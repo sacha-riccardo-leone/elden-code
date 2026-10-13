@@ -195,11 +195,17 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
 - **Who fights:** every Tarnished except the Twofold drops what it's doing and comes by grace to
   fight. Their sessions keep running, and they go back to them by grace afterwards. You fight too,
   as whoever you are.
+- **The enemy waits for you:** it enters only once you stand on the arena. Until then the others
+  wait by its entrance, and the log tells you where to go. If you haven't come after two and a
+  half minutes, it turns away and everyone goes home.
 - **How they fight:** each keeps its own ring around the enemy, circling its own way. When ready, one
   rushes in, strikes and falls back. Seeing a blow coming, they mostly sprint out of its way after
   a moment's reaction, though now and then someone is too slow.
-  - **The Bandit Knight** never fights (he's Elden Ring's Patches in all but name). He keeps as far
-    from the enemy as the arena allows, dodges everything, and begs for mercy when it comes close.
+  - **The Bandit Knight** never fights (he's Elden Ring's Patches in all but name). He keeps to the
+    left or right end of the arena on its middle line, whichever is away from the enemy, and runs
+    across to the other end when it comes for him, swerving past it. So you see him going back and
+    forth all fight, and his words stay clear of the blur at the top and bottom of the view. He
+    dodges everything and begs for mercy when the enemy comes close.
 - **The enemy:** Fenrath, the Crimson Fang (`client/js/heroes/boss.js`, effects in
   `client/js/bossfx.js`). He walks into his target's lane and strikes along it. Every blow shows
   itself before it lands: step out of the way, or dodge through it with **Space**.
@@ -331,7 +337,8 @@ A version anyone can open, with no bridge and no real data: an endless world of 
     least 10 seconds apart. An island nobody has worked on for 45 seconds sinks back into the
     mist, if it's the outermost on its side (the others hold up a bridge).
   - Great enemies come oftener: the first after about two minutes, then every 5 to 9 minutes, at
-    full strength. A run of failing tool calls or a session ending in failure can bring one too.
+    full strength. A run of failing tool calls or a session ending in failure can bring one too. As
+    locally, it enters only once you reach the arena.
   - Everything else works as locally: become anyone, fight, the Round Table.
 - **How it's built:** `client/js/mode.js` says which world the page shows. `npm run build:public`
   copies the game to `dist/elden-code-demo` with that switch set to the public demo, plus only what

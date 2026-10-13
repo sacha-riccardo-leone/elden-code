@@ -47,6 +47,7 @@ const TRIGGER = {
   invasion: [20 * 60, 40 * 60],    // seconds between invasions
   cooldown: 6 * 60,                // quiet time after a fight before anything (but a summons) brings another
   timeout: 8 * 60,                 // a fight left this long ends with the enemy withdrawing
+  noShow: 150,                     // seconds the enemy waits for thee to reach the arena before turning away
 };
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -58,14 +59,6 @@ function covers(shape, x, z, opt, px, pz, slack = 0.3) {
     return along >= opt.from - slack && along <= opt.len + slack && Math.abs(pz - z) <= opt.half + slack;
   }
   return Math.hypot(px - x, (pz - z) * 1.15) <= opt.r + slack;
-}
-
-// How close (px, pz) comes to the segment (ax, az)–(bx, bz).
-function segDist(px, pz, ax, az, bx, bz) {
-  const dx = bx - ax;
-  const dz = bz - az;
-  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz || 1)));
-  return Math.hypot(px - ax - t * dx, pz - az - t * dz);
 }
 
 // On the arena or its bridge: anywhere north of the Hold's floor.
@@ -230,6 +223,7 @@ export class Fight {
     this.cause = cause;
     this.fallen = 0;
     this.cowardsAlone = null;
+    this.hinted = false;
     this.state = 'rising';
     this.t = 0;
     world.arena.raise();
@@ -240,7 +234,7 @@ export class Fight {
       failure: cause.npc ? `Drawn by ${cause.npc.name.first}'s fall` : 'Drawn by a fall',
       long: cause.npc ? `Drawn by ${cause.npc.name.first}'s endless quest` : 'Drawn by an endless quest',
     }[cause.kind] || '';
-    ui.banner('A Great Enemy Approaches', why, 'red');
+    ui.banner('A Great Enemy Approaches', `${why} · Face it in the Arena of Trials`, 'red');
     ui.log('The Arena of Trials rises north of Roundtable Hold', 'red', { region: world.arena });
     return true;
   }
@@ -828,7 +822,7 @@ export class Fight {
         f.mode = 'circle';
       } else if (f.coward) {
         // the Bandit Knight: never a blow, only as far from the enemy as the arena allows (and some whining)
-        goal = this.hideFrom(b, n, f, dt);
+        goal = this.hideFrom(b, n, f);
         speed = dist < 7 ? 5.6 : 3.6;
         faceBoss = dist > 8;
         f.whine = (f.whine ?? rand(2, 5)) - dt;
@@ -918,26 +912,20 @@ export class Fight {
     return moving;
   }
 
-  // Where the Bandit Knight runs to: the spot by the arena's edge farthest from the enemy that he can reach
-  // without brushing past him (and not too far off), chosen afresh twice a second.
-  hideFrom(b, n, f, dt) {
-    f.hideT = (f.hideT || 0) - dt;
-    if (f.hide && f.hideT > 0) return f.hide;
-    f.hideT = 0.5;
+  // Where the Bandit Knight runs to: the left or the right end of the arena, on its middle line
+  // (where he's always in sight running back and forth, and his words aren't lost in the blur at
+  // the top and bottom of the view). He keeps to the end away from the enemy and crosses to the
+  // other when it comes for him, swerving a little above or below it as he runs past.
+  hideFrom(b, n, f) {
     const { cx, cz } = this.ctx.world.arena;
     const R = ARENA.walkRadius - 1.4;
-    let best = null;
-    let bs = -Infinity;
-    for (let i = 0; i < 16; i++) {
-      const a = (i / 16) * Math.PI * 2;
-      const x = cx + Math.cos(a) * R;
-      const z = cz + Math.sin(a) * R;
-      const near = segDist(b.pos.x, b.pos.y, n.pos.x, n.pos.y, x, z);
-      const s = Math.hypot(x - b.pos.x, z - b.pos.y) - Math.max(0, 4 - near) * 4 - Math.hypot(x - n.pos.x, z - n.pos.y) * 0.15;
-      if (s > bs) { bs = s; best = [x, z]; }
-    }
-    f.hide = best;
-    return best;
+    if (!f.side) f.side = n.pos.x < cx ? -1 : 1;
+    const close = Math.hypot(n.pos.x - b.pos.x, n.pos.y - b.pos.y) < 6.5;
+    const enemySide = Math.sign(b.pos.x - cx) || 1;
+    if (enemySide === f.side && (close || Math.abs(b.pos.x - cx) > R * 0.45)) f.side = -f.side;
+    const past = Math.sign(n.pos.x - b.pos.x) === f.side; // the enemy is behind him now
+    const z = past ? cz : cz + (b.pos.y >= cz ? -3 : 3);
+    return [cx + f.side * R, z];
   }
 
   // Where to run to get out from under a blow, staying on the arena floor: out of a swing's or a
@@ -1026,7 +1014,22 @@ export class Fight {
           this.t = 0;
         }
         break;
-      case 'gathering':
+      case 'gathering': {
+        // the great enemy comes only once thou standest on the arena to face it (and the others
+        // have had a moment to gather); if thou never comest, it turns away
+        const me = pilot.npc;
+        const here = me && !pilot.dead && this.inArena(me);
+        if (!here) {
+          if (this.t > this.trigger.noShow) {
+            ui.banner('The Great Enemy Turns Away', 'No challenger came to the arena', 'red');
+            ui.log('No challenger came: the great enemy turns away', 'dim', { region: world.arena });
+            this.end();
+          } else if (this.t > 3 && !this.hinted) {
+            this.hinted = true;
+            ui.log('The great enemy awaits thee in the Arena of Trials, north of Roundtable Hold', 'red', { region: world.arena });
+          }
+          break;
+        }
         if (this.t >= 2.5) {
           const [bx, bz] = world.arena.point('boss');
           this.boss = new Boss(this.ctx, bx, bz);
@@ -1040,6 +1043,7 @@ export class Fight {
           this.t = 0;
         }
         break;
+      }
       case 'fighting': {
         const b = this.boss;
         this.stepBoss(b, dt, t);
