@@ -322,8 +322,11 @@ A version anyone can open, with no bridge and no real data: an endless world of 
   `vercel.json` with the same security headers the bridge sends. No server code, hooks or token.
 - **Try it locally:** `npm run build:public`, then `npm run preview:public` and open
   <http://127.0.0.1:7788>.
-- **Deploy:** once, `npx vercel login`; then `npm run deploy:public` builds and deploys it to your
-  Vercel account as the project `elden-code-demo`. Run it again to update.
+- **Deploy from GitHub (simplest):** in Vercel, *Add New → Project* and import this repository.
+  Everything it needs is in `vercel.json` (install, `npm run build:public`, the output folder, the
+  headers), so leave the settings as they are and deploy. Every push to `main` then redeploys it.
+- **Or deploy from your machine:** once, `npx vercel login`; then `npm run deploy:public` builds and
+  deploys it to your Vercel account as the project `elden-code-demo`. Run it again to update.
 
 ## Cost
 
