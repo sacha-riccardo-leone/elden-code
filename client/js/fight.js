@@ -22,7 +22,6 @@
 import * as THREE from 'three';
 import { ARENA, HUB, HUB_LAYOUT } from './config.js';
 import { SpriteBody } from './npc.js';
-import { ANIMS, makeLook, sheetForLook } from './sprites.js';
 import { Crescent, Decal, Spike } from './bossfx.js';
 
 // reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
@@ -97,14 +96,9 @@ function shadowTex() {
 class Boss {
   constructor(ctx, x, z) {
     this.ctx = ctx;
-    const sheet = ctx.bossSheet;
-    this.standIn = !sheet; // a towering shade, should his art fail to load
-    this.name = sheet ? `${sheet.rig.firstName}, ${sheet.rig.epithet}` : 'the Nameless Shade';
-    this.body = new SpriteBody(ctx.scene, sheet || sheetForLook(makeLook('boss:shade', 'Shade', null)));
-    if (this.standIn) {
-      this.body.mesh.scale.setScalar(2.6);
-      this.body.mat.color.setRGB(0.55, 0.36, 0.4);
-    }
+    const sheet = ctx.bossSheet; // (no fight is ever started without it: Fight.start)
+    this.name = `${sheet.rig.firstName}, ${sheet.rig.epithet}`;
+    this.body = new SpriteBody(ctx.scene, sheet);
     this.body.mat.transparent = true;
     this.body.blob.material.map = shadowTex();
     this.body.blob.material.opacity = 1;
@@ -130,11 +124,8 @@ class Boss {
 
   get alive() { return this.state !== 'dying' && this.state !== 'withdraw' && this.state !== 'gone'; }
 
-  // A drawing of his (or, for the stand-in, the nearest common pose).
+  // One of his drawings.
   pose(name, restart = false) {
-    if (this.standIn && !this.body.sheet.anims?.[name] && !ANIMS[name]) {
-      name = { swing: 'hammer', lunge: 'hammer', slam: 'cast', jump: 'kneel' }[name.split('-')[0]] || 'idle';
-    }
     this.body.play(name, restart);
   }
 
@@ -223,6 +214,7 @@ export class Fight {
 
   // Why one can't be summoned now (or true).
   canSummon() {
+    if (!this.ctx.bossSheet) return 'No great enemy walks these lands';
     if (this.state === 'ending') return 'The arena is still settling';
     if (this.active) return 'A great enemy is already abroad';
     return true;
@@ -232,7 +224,8 @@ export class Fight {
   // what brings one
 
   start(cause) {
-    if (this.active) return false;
+    // only the user's own great enemy ever comes: without his art (it failed to load), none does
+    if (this.active || !this.ctx.bossSheet) return false;
     const { ui, world } = this.ctx;
     this.cause = cause;
     this.fallen = 0;

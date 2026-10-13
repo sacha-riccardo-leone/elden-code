@@ -67,7 +67,8 @@ export class Director {
     this.lastRise = -Infinity;
     this.riseGap = RISE_GAP; // (the public demo spaces them out more)
     this.notBefore = 0; // no island rises before this (the public demo: not before the player is up)
-    this.retireAfter = 0; // the public demo: seconds an island may stand empty before it sinks (0: never)
+    this.retireAfter = 0;
+    this.waiting = new Map(); // sid -> session: sessions waiting, unseen, for a hero to come free // the public demo: seconds an island may stand empty before it sinks (0: never)
     this.heroes = new Map(); // hero id -> the hand-drawn hero (bound to a session or not)
   }
 
@@ -376,34 +377,42 @@ export class Director {
       npc.session = session;
       return npc;
     }
-    const region = this.regionOf(session.project, fancy);
-    // A free hero takes up the session; they set out from the Round Table once its island rises.
+    // Only the hand-drawn heroes walk the Lands, each once: a free hero takes up the session and
+    // sets out from the Round Table once its island rises. With every hero out on a quest, the
+    // session waits, unseen and without an island, until one comes free (seatWaiting).
     const hero = this.freeHero();
-    if (hero) {
-      this.npcs.delete(hero.sid);
-      hero.bind(session, region);
-      this.npcs.set(session.sid, hero);
-      if (hero.intent.kind === 'gather') Object.assign(hero.intent, { leaveAt: this.clock + LEAVE_AFTER, stagger: 0.3 + Math.random() * 1.6 });
-      if (fancy) this.ctx.ui.log(`${hero.displayName} takes up a quest in ${region.project}`, 'gold', hero);
-      return hero;
+    if (!hero) {
+      this.waiting.set(session.sid, session);
+      return null;
     }
-    // Every hero is out: a generic Tarnished arrives at the Round Table and walks home from there.
-    const [gx, gz] = HUB_LAYOUT.grace;
-    npc = new Npc(this.ctx, session, { x: gx, z: gz + 2, demo: !!session.demo, region });
-    npc.setIntent({ kind: 'gather', leaveAt: this.clock + LEAVE_AFTER, stagger: 0.3 + Math.random() * 1.6 });
-    npc.spawn(fancy);
-    this.npcs.set(session.sid, npc);
-    if (fancy) this.ctx.ui.log(`${npc.displayName} has arisen in ${region.project}`, 'gold', npc);
-    return npc;
+    this.waiting.delete(session.sid);
+    const region = this.regionOf(session.project, fancy);
+    this.npcs.delete(hero.sid);
+    hero.bind(session, region);
+    this.npcs.set(session.sid, hero);
+    if (hero.intent.kind === 'gather') Object.assign(hero.intent, { leaveAt: this.clock + LEAVE_AFTER, stagger: 0.3 + Math.random() * 1.6 });
+    if (fancy) this.ctx.ui.log(`${hero.displayName} takes up a quest in ${region.project}`, 'gold', hero);
+    return hero;
+  }
+
+  // A hero has come free (its session ended, or the player let go of it): the session that has
+  // waited longest takes it up.
+  seatWaiting() {
+    if (!this.waiting.size || !this.freeHero()) return;
+    const next = [...this.waiting.values()].sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0))[0];
+    const hero = this.ensure(next, { fancy: true });
+    if (hero && next.state !== 'idle') hero.session = next; // its work waits until it's home (applyState)
   }
 
   snapshot(sessions) {
     const live = new Set(sessions.map((s) => s.sid));
     for (const [sid, npc] of [...this.npcs]) if (!npc.demo && !npc.unbound && !live.has(sid)) this.dismiss(npc);
-    // the eldest sessions take up the first heroes
+    for (const sid of [...this.waiting.keys()]) if (!live.has(sid)) this.waiting.delete(sid);
+    // the eldest sessions take up the first heroes (the rest wait for one to come free)
     for (const s of [...sessions].sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0))) {
       const known = this.npcs.has(s.sid);
       const npc = this.ensure(s, { fancy: false });
+      if (!npc) continue;
       if (known) this.applyState(npc, s);
       else npc.session = s; // gathered at the Round Table; they pick this up once home
     }
@@ -443,6 +452,7 @@ export class Director {
   event(ev, session) {
     const ui = this.ctx.ui;
     if (ev.event === 'SessionEnd' || ev.event === 'Gone' || session.state === 'gone') {
+      if (this.waiting.delete(ev.sid)) return; // it never had a hero
       const npc = this.npcs.get(ev.sid);
       if (npc && npc.intent.kind !== 'leave' && !npc.unbound) {
         const from = npc.region.project;
@@ -453,6 +463,7 @@ export class Director {
     }
     const isNew = !this.npcs.has(ev.sid);
     const npc = this.ensure(session, { fancy: true });
+    if (!npc) return; // every hero is out: this session waits, unseen, for one to come free
     const name = npc.name.first;
     const now = performance.now() / 1000;
 
@@ -810,6 +821,7 @@ export class Director {
     this.updateRises();
     this.retireIslands();
     this.updateGathering();
+    this.seatWaiting();
     this.updateRemarks();
     this.updateForms(dt);
     const world = this.ctx.world;

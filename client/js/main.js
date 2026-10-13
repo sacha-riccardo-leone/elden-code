@@ -42,7 +42,7 @@ const world = new World(scene, particles);
 const nav = new Nav(world);
 const ui = new UI(camera, canvas);
 // The Stormbound Knight is worn by Maren (thee); the sessions share the other heroes.
-// (the great enemy of the arena too, fight.js: should his art fail, a stand-in shade comes instead)
+// (the great enemy of the arena too, fight.js: should his art fail, no great enemy comes)
 const [allHeroes, fireArt, bossSheet] = await Promise.all([
   loadHeroSheets(),
   loadFireArt(),

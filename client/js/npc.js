@@ -5,7 +5,7 @@
 // Tarnished dissolves into golden light and reappears at the Site of Grace nearest its goal.
 
 import * as THREE from 'three';
-import { ANIMS, buildIcon, makeLook, spiritLook, sheetForLook } from './sprites.js';
+import { ANIMS, buildIcon, makeLook, sheetForLook } from './sprites.js';
 import { STATIONS, TIMING, FAST_TRAVEL, HUB_LAYOUT } from './config.js';
 import { nameFor, classTitle } from './lore.js';
 
@@ -209,39 +209,71 @@ export class SpriteBody {
   }
 }
 
+// A subagent at work: a wisp of blue spirit-light circling its summoner, flaring when it works.
+// (A light, not a second body: every character in the Lands is one of the hand-drawn heroes, and
+// each appears only once.)
+let wispTexture = null;
+function wispTex() {
+  if (wispTexture) return wispTexture;
+  const c = document.createElement('canvas');
+  c.width = c.height = 16;
+  const g = c.getContext('2d');
+  for (let y = 0; y < 16; y++) {
+    for (let x = 0; x < 16; x++) {
+      const dx = x - 7.5;
+      const dy = y - 10;
+      const d = Math.hypot(dx, dy < 0 ? dy * 0.5 : dy); // drawn out upward, like a flame
+      const col = d < 1.8 ? '#eaf6ff' : d < 3.2 ? '#9fd6ff' : d < 4.6 ? '#3f86d8' : null;
+      if (col) { g.fillStyle = col; g.fillRect(x, y, 1, 1); }
+    }
+  }
+  wispTexture = new THREE.CanvasTexture(c);
+  wispTexture.magFilter = THREE.NearestFilter;
+  wispTexture.minFilter = THREE.NearestFilter;
+  wispTexture.colorSpace = THREE.SRGBColorSpace;
+  return wispTexture;
+}
+
 class Spirit {
   constructor(owner, index) {
     this.owner = owner;
     this.index = index;
-    this.body = new SpriteBody(owner.ctx.scene, sheetForLook(spiritLook()), { spirit: true });
-    this.body.play('idle');
+    this.sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: wispTex(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: new THREE.Color(1.3, 1.4, 1.7),
+    }));
+    this.sprite.renderOrder = 7;
+    owner.ctx.scene.add(this.sprite);
     this.pos = owner.pos.clone().add(new THREE.Vector2((Math.random() - 0.5) * 1.5, 0.6));
     this.fade = 0;
     this.leaving = false;
     this.pulse = 0;
     this.phase = Math.random() * 6;
     owner.ctx.particles.emit({
-      pos: [this.pos.x, 0.8, this.pos.y], spread: [0.3, 0.6, 0.3], vel: [0, 0.6, 0], velSpread: [0.6, 0.4, 0.6],
-      color: ['#7fc8ff', '#b4e2ff', '#4e8fd0'], size: 0.09, life: 1.2, count: 24, drag: 1, intensity: 1.8,
+      pos: [this.pos.x, 1.4, this.pos.y], spread: [0.2, 0.3, 0.2], vel: [0, 0.6, 0], velSpread: [0.6, 0.4, 0.6],
+      color: ['#7fc8ff', '#b4e2ff', '#4e8fd0'], size: 0.08, life: 1.1, count: 18, drag: 1, intensity: 1.8,
     });
   }
 
   update(dt, t) {
     const o = this.owner;
     const n = Math.max(1, o.spirits.length);
-    const a = (this.index / n) * Math.PI * 2 + t * 0.35;
-    const target = new THREE.Vector2(o.pos.x - o.body.facing * 0.9 + Math.cos(a) * 0.6, o.pos.y - 0.5 + Math.sin(a) * 0.35);
-    this.pos.lerp(target, Math.min(1, dt * 2.5));
+    const a = (this.index / n) * Math.PI * 2 + t * 0.9;
+    const target = new THREE.Vector2(o.pos.x + Math.cos(a) * 0.8, o.pos.y + Math.sin(a) * 0.45);
+    this.pos.lerp(target, Math.min(1, dt * 3));
     this.fade += ((this.leaving ? 0 : 1) - this.fade) * Math.min(1, dt * 3);
     this.pulse = Math.max(0, this.pulse - dt * 2);
-    this.body.facing = o.body.facing;
-    this.body.play(o.working ? 'cast' : 'idle');
-    this.body.tick(dt, 0.8);
-    const bob = 0.35 + Math.sin(t * 2 + this.phase) * 0.12;
-    this.body.place(this.pos.x, bob, this.pos.y);
-    this.body.mat.opacity = 0.62 * this.fade;
-    this.body.mat.emissiveIntensity = 0.55 + this.pulse * 1.6;
-    this.body.blob.material.opacity = 0.2 * this.fade;
+    const y = 1.5 + Math.sin(t * 2.2 + this.phase) * 0.18;
+    this.sprite.position.set(this.pos.x, y, this.pos.y);
+    const size = (0.42 + this.pulse * 0.25) * (0.9 + 0.1 * Math.sin(t * 9 + this.phase));
+    this.sprite.scale.set(size, size, 1);
+    this.sprite.material.opacity = (0.75 + this.pulse * 0.25) * this.fade;
+    // a mote now and then, more while it works
+    if (this.fade > 0.5 && Math.random() < dt * (o.working ? 6 : 2)) {
+      o.ctx.particles.emit({
+        pos: [this.pos.x, y, this.pos.y], spread: [0.05, 0.05, 0.05], vel: [0, 0.5, 0], velSpread: [0.2, 0.2, 0.2],
+        color: ['#9fd6ff', '#4e8fd0'], size: 0.05, life: 0.8, count: 1, drag: 1, intensity: 1.6,
+      });
+    }
     return !(this.leaving && this.fade < 0.03);
   }
 
@@ -249,13 +281,14 @@ class Spirit {
     if (this.leaving) return;
     this.leaving = true;
     this.owner.ctx.particles.emit({
-      pos: [this.pos.x, 1.0, this.pos.y], spread: [0.3, 0.6, 0.3], vel: [0, 1.2, 0], velSpread: [0.4, 0.4, 0.4],
-      color: ['#7fc8ff', '#b4e2ff'], size: 0.08, life: 1.4, count: 20, drag: 0.6, intensity: 1.6,
+      pos: [this.pos.x, 1.5, this.pos.y], spread: [0.2, 0.3, 0.2], vel: [0, 1.2, 0], velSpread: [0.4, 0.4, 0.4],
+      color: ['#7fc8ff', '#b4e2ff'], size: 0.07, life: 1.2, count: 16, drag: 0.6, intensity: 1.6,
     });
   }
 
   dispose() {
-    this.body.dispose();
+    this.owner.ctx.scene.remove(this.sprite);
+    this.sprite.material.dispose();
   }
 }
 

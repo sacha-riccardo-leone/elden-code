@@ -24,7 +24,7 @@ light and reappear at their region's Site of Grace.
 | Bash / PowerShell | Invoking **the Ritual Circle** |
 | Web search / fetch, MCP tools | Sending ravens from **the Raven Tower** |
 | Todo lists, plans, questions | Plotting at **the War Table** |
-| Subagents | Blue spirit ashes float beside their summoner |
+| Subagents | Wisps of blue spirit-light circle their summoner |
 | Waiting for your permission | Kneeling at **the Fog Gate** while the bell tolls |
 | Slash commands (`/code-review`, `/loop`, skills…) | An incantation and a banner across the screen |
 | `/compact` | Runes spiral into them: *Memories Consolidated* |
@@ -70,9 +70,11 @@ Roundtable Hold, before any island exists, and Maren rises from grace beside the
 session takes up the next free hero (the eldest session first). Then the islands rise from the mist
 one after another, and as each one rises its hero gets up and walks home across the bridges (no
 travelling by grace), taking up whatever the session is doing on arrival. When a session ends, its
-hero walks back to the Round Table to wait for the next one. Only when every hero is already out on
-a quest does a session get a generic Tarnished, who also starts at the Round Table, walks home, and
-passes through the fog gate when the session ends.
+hero walks back to the Round Table to wait for the next one.
+
+Only the hand-drawn characters ever appear, each of them once. When every hero is already out on a
+quest, a new session waits, unseen and without an island yet, until one comes free (its session
+ends, or you let go of it); then the session that has waited longest takes it up.
 
 The project is the session's project root: Claude Code's project folder, or the nearest folder
 with `.git` / `package.json` above wherever the session is working. Each project keeps its biome
@@ -221,7 +223,7 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
   - **Withdrawn:** he leaves on his own after eight minutes.
 
   Nothing here ever reaches Claude Code.
-- If the enemy's art fails to load, a stand-in (a towering shade) comes instead.
+- If the enemy's art fails to load, no great enemy comes at all.
 
 ## Day and night
 
@@ -261,8 +263,8 @@ Tarnished's courtly old speech.
 
 - **Voices:** Fortuna is cold and vain, the Ronin terse, the Rune Lord pompous, Aurelion
   solemn and kind, Vael courteous and bloodthirsty, the Bandit Knight greedy and crude.
-  Generic Tarnished speak the common voice; any of them named **Ysolde** is mysterious and barely
-  speaks (`BY_NAME` in `voices.js`). Maren is a storm knight, warm, brave and wry, heard
+  A hero with no voice of its own would speak the common Tarnished's, and one named **Ysolde** would
+  be mysterious and barely speak (`BY_NAME` in `voices.js`). Maren is a storm knight, warm, brave and wry, heard
   whenever you're someone else. The Twofold, in either form, answers everything with "…".
 - **Conversations** between idle Tarnished follow a topic: a greeting and news, weariness,
   hunger, boredom, a musing, a compliment, a challenge to a duel. The two take turns, and each
