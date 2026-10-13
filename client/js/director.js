@@ -37,7 +37,7 @@ const RESPONSES = { bow: 'bow', kneel: 'bow', wave: 'wave', cheer: 'cheer', hear
 const REPLIES = { bow: 'bow_reply', kneel: 'bow_reply', wave: 'wave_reply', cheer: 'cheer_reply', heart: 'heart_reply', point: 'point_reply', pray: 'pray_reply' };
 const TALKERS = new Set(['wander', 'visit', 'gather']);
 const RISE_FIRST = 3; // seconds before the first island rises from the mist
-const RISE_GAP = 1.6; // between islands rising one after another
+const RISE_GAP = 10; // between islands rising one after another
 const LEAVE_AFTER = 2.5; // a newcomer sits at the Round Table at least this long
 // The Twofold's change of form (seconds): the drawing of the change replaces the old form, then
 // the new form bursts out, then it's free to move again.
@@ -65,7 +65,7 @@ export class Director {
     this.clock = 0;
     this.rises = []; // islands waiting to rise: { at, region, announce, started }
     this.lastRise = -Infinity;
-    this.riseGap = RISE_GAP; // (the public demo spaces them out more)
+    this.riseGap = RISE_GAP;
     this.notBefore = 0; // no island rises before this (the public demo: not before the player is up)
     this.retireAfter = 0;
     this.waiting = new Map(); // sid -> session: sessions waiting, unseen, for a hero to come free // the public demo: seconds an island may stand empty before it sinks (0: never)

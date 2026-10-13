@@ -68,7 +68,7 @@ can **become any character**: click one and choose **Become …** in the fan ove
 Every time the world loads, the hand-drawn heroes are already seated at the Round Table in
 Roundtable Hold, before any island exists, and Maren rises from grace beside them. Each Claude Code
 session takes up the next free hero (the eldest session first). Then the islands rise from the mist
-one after another, and as each one rises its hero gets up and walks home across the bridges (no
+one after another, 10 seconds apart, and as each one rises its hero gets up and walks home across the bridges (no
 travelling by grace), taking up whatever the session is doing on arrival. When a session ends, its
 hero walks back to the Round Table to wait for the next one.
 
