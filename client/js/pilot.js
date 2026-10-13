@@ -41,7 +41,7 @@ export class Pilot {
 
   // Take hold of `npc`, letting go of whoever was held before.
   take(npc) {
-    if (!npc || npc === this.npc || npc.dead) return;
+    if (!npc || npc === this.npc || npc.dead || npc.spectre) return; // spectres can't be taken up
     if (this.npc) this.letGo(this.npc);
     this.npc = npc;
     if (npc.intent.kind !== 'fight') npc.resume = npc.intent; // a fighter's own life is already kept

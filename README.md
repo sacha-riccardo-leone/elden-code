@@ -72,9 +72,9 @@ one after another, 10 seconds apart, and as each one rises its hero gets up and 
 travelling by grace), taking up whatever the session is doing on arrival. When a session ends, its
 hero walks back to the Round Table to wait for the next one.
 
-Only the hand-drawn characters ever appear, each of them once. When every hero is already out on a
-quest, a new session waits, unseen and without an island yet, until one comes free (its session
-ends, or you let go of it); then the session that has waited longest takes it up.
+Only the hand-drawn characters ever appear, each hero once. When every hero is already out on a
+quest, a **spectre** is called up for the new session instead (see below). (Should the spectre's art
+fail to load, the session waits, unseen, until a hero comes free.)
 
 The project is the session's project root: Claude Code's project folder, or the nearest folder
 with `.git` / `package.json` above wherever the session is working. Each project keeps its biome
@@ -117,6 +117,20 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
     change itself (`champion-to-queen.json` at dawn, `queen-to-champion.json` at dusk;
     `client/js/heroes/twofold.js`) holds for a moment. Then the other form bursts out under its
     own name, and the log tells it.
+
+- **The spectres of the Noble Sorcerers** — `spectre.json`, rigged in `client/js/heroes/spectre.js`,
+  coloured in `client/js/spectres.js`. Not heroes: they're called up only when every hero is busy,
+  one per extra session.
+  - They appear at their island's Site of Grace in blue sparkles once the island has risen, work
+    its stations, and fade away in blue sparkles when their session ends.
+  - They never walk: idle and moving are a float, rising and sinking, the cloak's tatters and the
+    legs stirring beneath them, and they leave a fading spectral trail of themselves as they glide.
+    Their work is done with the staff: struck down at the forge, tilted forward for sorcery, the
+    crystal and the circlet's gems glowing.
+  - Each one about at once has its own colour: the first blue, then purple, green, red, gold, teal,
+    pink, orange, indigo and lime (the drawing's blues turned; the gold stays gold).
+  - They can't be taken over, carried or struck, never talk, answer emotes, visit the Hold or join a
+    fight. Clicking one only shows who it is.
 
 Each hero's art is a standing pose and a kneeling pose, stored as palette-indexed pixel grids. The
 rig cuts the standing pose into parts (cape, legs, body, head, hand, weapon) and composes every
@@ -308,7 +322,8 @@ A version anyone can open, with no bridge and no real data: an endless world of 
 
 - **What it does:**
   - Sessions in realistic-sounding projects (`checkout-service`, `ios-app`, `infra-terraform`…) start
-    and end on their own, three to seven at a time.
+    and end on their own, three at the quietest and, at the busiest, a few more than there are
+    heroes (spectres are called up for those).
   - They work in believable runs: exploring, implementing and running tests, debugging, reading
     the web, planning with subagents, shipping through MCP tools. Slash commands, permission waits,
     model switches and compactions come up now and then.

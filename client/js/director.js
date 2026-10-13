@@ -5,6 +5,7 @@
 
 import { STATIONS, STATION_LABEL, TIMING, HUB_LAYOUT, stationForTool } from './config.js';
 import { Npc } from './npc.js';
+import { SPECTRE_COLORS, spectreSheet } from './spectres.js';
 import { conversation } from './lore.js';
 import { speak, voiceOf } from './voices.js';
 
@@ -175,6 +176,7 @@ export class Director {
   // A session is over: its hero sets it down and walks back to the Round Table; a generic
   // Tarnished passes through the fog and is gone.
   dismiss(npc) {
+    if (npc.spectre) { npc.vanish(); return; } // its work done, it fades away
     // a held Tarnished passing through the fog hands the player back to Maren first
     if (npc.piloted && !npc.heroActor) this.ctx.pilot.take(this.maren);
     if (!npc.heroActor) { npc.leave(); return; }
@@ -284,7 +286,7 @@ export class Director {
     if (fight?.active) fight.strikeFrom(p);
     for (const n of this.npcs.values()) {
       if (n === p || n.dead || n.dragged || n.travel || n.fade < 1 || n.intent.kind === 'leave') continue;
-      if (n.fighter) continue;
+      if (n.fighter || n.spectre) continue; // (a blow passes through a spectre)
       const ahead = (n.pos.x - p.pos.x) * p.body.facing;
       if (ahead < -0.3 || ahead > 2.8 || Math.abs(n.pos.y - p.pos.y) > 1.3) continue;
       n.body.facing = p.pos.x > n.pos.x ? 1 : -1;
@@ -377,11 +379,14 @@ export class Director {
       npc.session = session;
       return npc;
     }
-    // Only the hand-drawn heroes walk the Lands, each once: a free hero takes up the session and
-    // sets out from the Round Table once its island rises. With every hero out on a quest, the
-    // session waits, unseen and without an island, until one comes free (seatWaiting).
+    // Only the hand-drawn characters walk the Lands, each hero once: a free hero takes up the
+    // session and sets out from the Round Table once its island rises. With every hero out on a
+    // quest, a spectre is called up for it instead (each in its own colour); without the spectre's
+    // art, the session waits, unseen and without an island, until a hero comes free (seatWaiting).
     const hero = this.freeHero();
     if (!hero) {
+      const spectre = this.summonSpectre(session, fancy);
+      if (spectre) return spectre;
       this.waiting.set(session.sid, session);
       return null;
     }
@@ -393,6 +398,24 @@ export class Director {
     if (hero.intent.kind === 'gather') Object.assign(hero.intent, { leaveAt: this.clock + LEAVE_AFTER, stagger: 0.3 + Math.random() * 1.6 });
     if (fancy) this.ctx.ui.log(`${hero.displayName} takes up a quest in ${region.project}`, 'gold', hero);
     return hero;
+  }
+
+  // A spectre for a session no hero is free for: the first colour none of the others wears. It
+  // shows itself at its island's Site of Grace once the island has risen (npc.js).
+  summonSpectre(session, fancy) {
+    const base = this.ctx.spectreSheet;
+    if (!base) return null;
+    const used = new Set([...this.npcs.values()].filter((n) => n.spectre && !n.dead).map((n) => n.spectre.color));
+    let k = 0;
+    while (used.has(k)) k += 1;
+    const color = SPECTRE_COLORS[k % SPECTRE_COLORS.length];
+    const region = this.regionOf(session.project, fancy);
+    const [gx, gz] = region.point('grace');
+    const npc = new Npc(this.ctx, session, { x: gx, z: gz + 1.6, demo: !!session.demo, region });
+    npc.makeSpectre(spectreSheet(base, k), k, color);
+    this.npcs.set(session.sid, npc);
+    if (fancy) this.ctx.ui.log(`Every hero is out: the ${npc.name.first} is called up for ${region.project}`, 'gold', npc);
+    return npc;
   }
 
   // A hero has come free (its session ended, or the player let go of it): the session that has
@@ -457,7 +480,7 @@ export class Director {
       if (npc && npc.intent.kind !== 'leave' && !npc.unbound) {
         const from = npc.region.project;
         this.dismiss(npc);
-        ui.log(npc.heroActor ? `${npc.name.first} leaves ${from} and returns to the Round Table` : `${npc.name.first} passes through the fog of ${from}`, 'dim', npc);
+        ui.log(npc.spectre ? `The ${npc.name.first} fades from ${from}, its work done` : npc.heroActor ? `${npc.name.first} leaves ${from} and returns to the Round Table` : `${npc.name.first} passes through the fog of ${from}`, 'dim', npc);
       }
       return;
     }
@@ -618,7 +641,7 @@ export class Director {
       npc.gesture(g.anim, g.icon);
     }
     for (const other of this.npcs.values()) {
-      if (other === npc || other.dead || other.dragged || other.action || other.talk || other.travel) continue;
+      if (other === npc || other.dead || other.dragged || other.action || other.talk || other.travel || other.spectre) continue;
       if (!['wander', 'rest', 'visit', 'gather'].includes(other.intent.kind)) continue;
       if (Math.hypot(other.pos.x - npc.pos.x, other.pos.y - npc.pos.y) > 5) continue;
       if (Math.random() > 0.65) continue;
@@ -645,6 +668,7 @@ export class Director {
   }
 
   canTalk(n, now) {
+    if (n.spectre) return false; // spectres only work
     if (n.dead || n.dragged || n.action || n.talk || n.inTalk || n.travel || n.fade < 1) return false;
     if (now < n.chatReadyAt) return false;
     if (n.intent.kind === 'wander') return true;
@@ -754,7 +778,7 @@ export class Director {
   // `npc` says `intent` in its own voice, to `to` (or to no one), `delay` seconds from now;
   // unless by then it's being carried, travelling, gone, or deep in a conversation.
   remark(npc, intent, to = null, delay = 0) {
-    if (npc) this.remarks.push({ npc, intent, to, at: this.clock + delay });
+    if (npc && !npc.spectre) this.remarks.push({ npc, intent, to, at: this.clock + delay });
   }
 
   // Someone near where `to` stands now answers it, `delay` seconds from now: whoever is free
@@ -774,6 +798,7 @@ export class Director {
   }
 
   utter(npc, text) {
+    if (npc.spectre) return; // spectres never speak
     this.ctx.ui.say(npc, text, readTime(text));
   }
 
@@ -785,7 +810,7 @@ export class Director {
     let best = null;
     let bd = radius;
     for (const n of this.npcs.values()) {
-      if (n === npc || n.dead || n.dragged || n.travel || n.talk || n.inTalk || n.action || n.fade < 1 || n.piloted) continue;
+      if (n === npc || n.dead || n.dragged || n.travel || n.talk || n.inTalk || n.action || n.fade < 1 || n.piloted || n.spectre) continue;
       if (n.intent.kind === 'journey' || n.intent.kind === 'leave') continue;
       if (world.areaAt(n.pos.x, n.pos.y) !== area) continue;
       const d = Math.hypot(n.pos.x - at.x, n.pos.y - at.y);
@@ -803,7 +828,7 @@ export class Director {
     const hub = this.ctx.world.hub;
     if (!hub.seats.some((s) => !s)) return;
     for (const n of this.npcs.values()) {
-      if (n.intent.kind !== 'wander' || n.talk || n.inTalk || n.travel || n.dragged || n.action || n.fade < 1) continue;
+      if (n.intent.kind !== 'wander' || n.spectre || n.talk || n.inTalk || n.travel || n.dragged || n.action || n.fade < 1) continue;
       if (now - n.idleSince < TIMING.visitAfter || now - (n.lastVisit || 0) < 180) continue;
       if (Math.random() < 0.08) {
         n.lastVisit = now;

@@ -305,7 +305,8 @@ export class UI {
     this.selected = npc;
     this.inspectEl.hidden = !npc;
     if (npc) {
-      this.openFan(npc);
+      if (npc.spectre) this.closeFan(); // a spectre can only be looked at
+      else this.openFan(npc);
       this.refreshInspect(true);
     } else if (this.fanOwner && !this.fanOwner.piloted) {
       this.closeFan();

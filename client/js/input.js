@@ -50,7 +50,7 @@ export class Input {
   pick(e) {
     if (this.battle()) return null;
     this.setRay(e);
-    const npcs = [...this.director.npcs.values()].filter((n) => !n.dead && n.intent.kind !== 'leave');
+    const npcs = [...this.director.npcs.values()].filter((n) => !n.dead && n.intent.kind !== 'leave' && !n.spectre?.hidden && !n.spectre?.vanishing);
     const hits = this.ray.intersectObjects(npcs.map((n) => n.body.mesh), false);
     for (const h of hits) {
       const npc = h.object.userData.npc;
@@ -77,7 +77,7 @@ export class Input {
     if (p) {
       const dist = Math.hypot(e.clientX - p.x, e.clientY - p.y);
       if (dist > DRAG_THRESHOLD) p.moved = true;
-      if (p.npc && p.moved && !this.dragging && !p.npc.piloted) { // thou canst not carry thyself
+      if (p.npc && p.moved && !this.dragging && !p.npc.piloted && !p.npc.spectre) { // thou canst not carry thyself, nor a spectre
         this.dragging = p.npc;
         p.npc.pickUp();
         this.ui.hideFan();

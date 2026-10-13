@@ -127,8 +127,8 @@ export class Demo {
       await sleep(rand(5000, 11000));
       const live = this.phantoms.filter((ph) => ph.alive);
       const minutes = (Date.now() - this.born) / 60000;
-      // (never more than there are heroes to take them up: the rest would only wait, unseen)
-      const want = Math.min(this.director.heroes.size, Math.round(4.5 + 2 * Math.sin(minutes / 4) + rand(-0.6, 0.6)));
+      // (at its busiest a few more than there are heroes, so spectres are called up for the rest)
+      const want = Math.min(this.director.heroes.size + 3, Math.max(3, Math.round(5.5 + 3.5 * Math.sin(minutes / 4) + rand(-0.6, 0.6))));
       if (live.length >= want) continue;
       const project = this.pickProject(live);
       if (project) this.spawn(project.name, { fresh: project.fresh });

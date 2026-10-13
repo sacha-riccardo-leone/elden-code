@@ -761,6 +761,76 @@ export class Npc {
   }
 
   // ------------------------------------------------------------------------------------------
+  // spectres (spectres.js): called up when every hero is busy; they float, work, and fade
+
+  // Becomes a spectre in colour k (wearing `sheet`); it shows itself once its island has risen.
+  makeSpectre(sheet, k, color) {
+    this.spectre = { color: k, tint: color.tint, hidden: true, vanishing: false, trail: [], trailT: 0 };
+    this.setHero(sheet, { quiet: true });
+    this.name = { first: `${color.name} Spectre`, epithet: 'of the Noble Sorcerers' };
+    this.title = 'Spectre';
+    this.fade = 0;
+  }
+
+  // Called up at its island's Site of Grace in a burst of blue sparkles.
+  appear() {
+    const sp = this.spectre;
+    sp.hidden = false;
+    const [gx, gz] = this.region.point('grace');
+    const [x, z] = this.ctx.nav.clampToWalkable(gx + (Math.random() - 0.5) * 2.5, gz + 1.4 + Math.random());
+    this.pos.set(x, z);
+    this.fade = 0;
+    this.sparkle(70);
+  }
+
+  // Its work done, it fades away in blue sparkles (and is gone: director.update).
+  vanish() {
+    const sp = this.spectre;
+    if (!sp || sp.vanishing) return;
+    sp.vanishing = true;
+    this.setSpirits(0);
+    this.action = null;
+    this.path = [];
+    this.talk = null;
+    if (sp.hidden) { this.dead = true; return; } // never seen: simply gone
+    this.sparkle(60);
+  }
+
+  sparkle(count) {
+    this.ctx.particles.emit({
+      pos: [this.pos.x, 1.3, this.pos.y], spread: [0.5, 1.1, 0.35], vel: [0, 1.4, 0], velSpread: [1, 1, 0.8],
+      color: ['#7fc8ff', '#d8f2ff', '#3f86d8', '#ffffff'], size: 0.08, life: 1.4, count, drag: 0.9, intensity: 2.4, flicker: 1,
+    });
+  }
+
+  // While it floats along, it leaves fading copies of itself behind.
+  stepSpectre(dt, moving) {
+    const sp = this.spectre;
+    sp.trailT -= dt;
+    if (moving && sp.trailT <= 0 && this.fade > 0.5) {
+      sp.trailT = 0.09;
+      const b = this.body;
+      const tex = b.tex.clone();
+      const mat = new THREE.MeshBasicMaterial({
+        map: tex, transparent: true, depthWrite: false, alphaTest: 0.05, opacity: 0.32, color: new THREE.Color(...sp.tint),
+      });
+      const ghost = new THREE.Mesh(b.mesh.geometry, mat);
+      ghost.position.copy(b.mesh.position);
+      ghost.scale.copy(b.mesh.scale);
+      ghost.renderOrder = -1;
+      this.ctx.scene.add(ghost);
+      sp.trail.push({ ghost, t: 0 });
+    }
+    sp.trail = sp.trail.filter((g) => {
+      g.t += dt;
+      g.ghost.material.opacity = 0.32 * Math.max(0, 1 - g.t / 0.5);
+      if (g.t < 0.5) return true;
+      this.ctx.scene.remove(g.ghost);
+      g.ghost.material.map.dispose();
+      g.ghost.material.dispose();
+      return false;
+    });
+  }
 
   leave() {
     if (this.intent.kind === 'leave') return;
@@ -771,12 +841,26 @@ export class Npc {
   }
 
   update(dt, t) {
+    const sp = this.spectre;
+    if (sp?.hidden) {
+      // a spectre is called up only once its island has risen
+      this.body.mesh.visible = false;
+      this.body.blob.visible = false;
+      if (sp.vanishing || !this.region.risen) return;
+      this.body.mesh.visible = true;
+      this.body.blob.visible = true;
+      this.appear();
+    }
     let moving = false;
-    if (this.dragged) {
+    if (sp?.vanishing) {
+      this.fade -= dt / 1.2;
+      this.lift += dt * 0.6;
+      if (this.fade <= 0) this.dead = true;
+    } else if (this.dragged) {
       this.lift += (0.9 - this.lift) * Math.min(1, dt * 10);
       this.body.play('lifted');
     } else {
-      this.lift += (0 - this.lift) * Math.min(1, dt * 12);
+      this.lift += ((sp ? 0.35 : 0) - this.lift) * Math.min(1, dt * 12); // spectres float above the ground
       if (this.travel) {
         this.stepTravel(dt);
       } else if (this.intent.kind !== 'leave' && this.fade < 1) {
@@ -805,11 +889,12 @@ export class Npc {
     }
 
     this.body.place(this.pos.x, 0, this.pos.y, this.lift);
-    const fadeVisible = this.fade < 0.999;
+    const fadeVisible = this.fade < 0.999 || !!sp; // spectres are always a little see-through
     this.body.mat.transparent = fadeVisible;
-    this.body.mat.opacity = Math.max(0, this.fade);
+    this.body.mat.opacity = Math.max(0, this.fade) * (sp ? 0.88 : 1);
     this.body.mat.depthWrite = !fadeVisible;
-    this.body.blob.material.opacity = 0.7 * Math.max(0, this.fade);
+    this.body.blob.material.opacity = (sp ? 0.3 : 0.7) * Math.max(0, this.fade);
+    if (sp) this.stepSpectre(dt, moving);
 
     const ringTarget = this.selected ? 0.9 : this.hovered ? 0.45 : this.piloted ? 0.3 : 0; // a faint ring of grace marks thee
     this.ring.material.opacity += (ringTarget - this.ring.material.opacity) * Math.min(1, dt * 10);
@@ -953,6 +1038,11 @@ export class Npc {
     this.clearPersistentIcon();
     for (const s of this.spirits) s.dispose();
     this.spirits = [];
+    for (const g of this.spectre?.trail || []) {
+      this.ctx.scene.remove(g.ghost);
+      g.ghost.material.map.dispose();
+      g.ghost.material.dispose();
+    }
     this.body.dispose();
     this.ctx.scene.remove(this.ring);
     this.ring.material.dispose();
