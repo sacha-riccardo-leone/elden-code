@@ -75,6 +75,7 @@ function spawnPlayer() {
   const maren = director.addMaren(playerSheet, x, z);
   maren.spawn(true);
   pilot.take(maren);
+  if (PUBLIC_DEMO) director.holdRisesUntil(director.clock + 5); // the first island rises 5 s after thee
   rig.flyTo(x, z, FOLLOW_DIST);
   rig.target.set(x, 0.8, z - 0.6);
   rig.snap();
@@ -199,8 +200,9 @@ if (PUBLIC_DEMO) {
   // Islands nobody works on any more sink back into the mist, and great enemies come oftener.
   document.body.classList.add('public-demo');
   director.retireAfter = 45;
-  // (a lighter enemy: with nobody at the keyboard, the Tarnished should stand a fair chance)
-  fight.pace({ first: 100 + Math.random() * 60, invasion: [5 * 60, 9 * 60], cooldown: 5 * 60, bossHp: 700 });
+  director.riseGap = 10; // islands rise one at a time, at least 10 s apart…
+  director.notBefore = Infinity; // …and none before thou art up (spawnPlayer)
+  fight.pace({ first: 100 + Math.random() * 60, invasion: [5 * 60, 9 * 60], cooldown: 5 * 60 });
   ui.setStatus('demo', true);
   demo.startWorld();
 } else {

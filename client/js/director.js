@@ -65,6 +65,8 @@ export class Director {
     this.clock = 0;
     this.rises = []; // islands waiting to rise: { at, region, announce, started }
     this.lastRise = -Infinity;
+    this.riseGap = RISE_GAP; // (the public demo spaces them out more)
+    this.notBefore = 0; // no island rises before this (the public demo: not before the player is up)
     this.retireAfter = 0; // the public demo: seconds an island may stand empty before it sinks (0: never)
     this.heroes = new Map(); // hero id -> the hand-drawn hero (bound to a session or not)
   }
@@ -189,13 +191,24 @@ export class Director {
     const { region, created } = this.ctx.world.regionFor(project || 'Unknown');
     if (created) {
       region.sink();
-      const at = Math.max(this.clock + RISE_FIRST, this.lastRise + RISE_GAP);
+      const at = Math.max(this.clock + RISE_FIRST, this.lastRise + this.riseGap, this.notBefore);
       this.lastRise = at;
       this.rises.push({ at, region, announce, started: false });
       this.ctx.nav.sync();
       this.ctx.onWorldGrew?.();
     }
     return region;
+  }
+
+  // Islands may rise from `at` on, one after another: those already waiting are timed afresh.
+  holdRisesUntil(at) {
+    this.notBefore = at;
+    this.lastRise = -Infinity;
+    for (const r of this.rises) {
+      if (r.started) continue;
+      r.at = Math.max(at, this.lastRise + this.riseGap);
+      this.lastRise = r.at;
+    }
   }
 
   updateRises() {

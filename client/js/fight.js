@@ -216,8 +216,8 @@ export class Fight {
   get active() { return this.state !== 'idle'; }
 
   // A livelier pace for the public demo: invasions sooner and more often, shorter rests between.
-  pace({ first, invasion, cooldown, bossHp }) {
-    Object.assign(this.trigger, { invasion, cooldown, bossHp });
+  pace({ first, invasion, cooldown }) {
+    Object.assign(this.trigger, { invasion, cooldown });
     this.nextInvasion = this.clock + first;
   }
 
@@ -1037,7 +1037,6 @@ export class Fight {
         if (this.t >= 2.5) {
           const [bx, bz] = world.arena.point('boss');
           this.boss = new Boss(this.ctx, bx, bz);
-          if (this.trigger.bossHp) { this.boss.hp = this.trigger.bossHp; this.boss.max = this.trigger.bossHp; }
           this.lagHp = this.boss.hp;
           this.ctx.particles.emit({
             pos: [bx, 1.5, bz], spread: [1.2, 2, 0.8], vel: [0, 1.5, 0], velSpread: [1, 1, 0.6],

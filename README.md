@@ -310,11 +310,11 @@ A version anyone can open, with no bridge and no real data: an endless world of 
   - They work in believable runs: exploring, implementing and running tests, debugging, reading
     the web, planning with subagents, shipping through MCP tools. Slash commands, permission waits,
     model switches and compactions come up now and then.
-  - New projects rise as islands. An island nobody has worked on for 45 seconds sinks back into
-    the mist, if it's the outermost on its side (the others hold up a bridge).
-  - Great enemies come oftener: the first after about two minutes, then every 5 to 9 minutes, with
-    a lighter enemy (700 health) so the Tarnished can win without you. A run of failing tool calls
-    or a session ending in failure can bring one too.
+  - New projects rise as islands, one at a time: the first 5 seconds after you appear, then at
+    least 10 seconds apart. An island nobody has worked on for 45 seconds sinks back into the
+    mist, if it's the outermost on its side (the others hold up a bridge).
+  - Great enemies come oftener: the first after about two minutes, then every 5 to 9 minutes, at
+    full strength. A run of failing tool calls or a session ending in failure can bring one too.
   - Everything else works as locally: become anyone, fight, the Round Table.
 - **How it's built:** `client/js/mode.js` says which world the page shows. `npm run build:public`
   copies the game to `dist/elden-code-demo` with that switch set to the public demo, plus only what
