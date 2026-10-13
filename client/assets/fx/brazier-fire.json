@@ -1,0 +1,68 @@
+{
+  "name": "Brazier fire",
+  "source": "brazier-fire-sheet.webp: 12 frames, each resampled on its own art grid (~10.6 x 10 px) and reduced to 9 shared colours",
+  "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+  "palette": ["#b10101", "#dd1901", "#f34301", "#fc7201", "#fca702", "#fcd20a", "#fdf33f", "#fdfa70", "#fdfdf3"],
+  "frames": [
+    {
+      "w": 16,
+      "h": 23,
+      "rows": ["................", ".......A........", "........A.......", "........AA......", "........AA......", ".......ABA......", "......ABCAA.A...", "......ABCBA.AA..", ".....ABDCABAAA..", "....ABCECAABA...", "...AACDEDCBA....", "..AAACDEEDBA..A.", "..ABCADEFEBBAAA.", "...ADCDEGEDCCBA.", ".AAACEEFGEDDCA..", ".AABCEFGGFEDBA..", ".ABCDFHHGFEDCBA.", ".ABDEFHIHGFEDBA.", ".ABDEHIIIHFEDBA.", "..ABEGHIIHFDBA..", "...AACFHGEBAA...", "....AAAAAAA.....", "................"]
+    },
+    {
+      "w": 16,
+      "h": 23,
+      "rows": ["................", "......AA........", "......AA........", ".....ABA..A.....", ".....ABBA.A.....", "......ACBAA.....", ".......ACBAA....", "....A..ACCBA....", "...AA..ACDBA....", "...ABABBDEBBA...", "..ABBBDDEDDBA...", ".ABBACDEFDDAA...", ".ABCBCEFFDBA..A.", ".ABDDCFHFEDBAAA.", "..ABDDFGGFEDABA.", "..ABCEFHHFECBCA.", ".ABCEEGIHFEDDCA.", ".ACDFFHIIHFEDBA.", ".ABDFHIIIIGEDA..", ".AACEFHIIGFECA..", "...AACEHGEDAA...", "....AAAAAAAA....", "................"]
+    },
+    {
+      "w": 16,
+      "h": 26,
+      "rows": ["................", "........A.......", ".........AA.....", ".........AA.....", ".....A..AA......", ".....A.ABA......", "....AA.ACBA.....", "....ABAABCBA....", "....ABBABDBA....", ".....ABCCECA....", "......ACDECA....", "....A.ACFDBAA...", "...AAACEECBB....", "...ABCEFDBBA....", "..ABCDFEDCAA.A..", "..ABDEHEDCBAAA..", "...ADEHHFDDCBA..", ".A.ABDEHHFEDBA..", ".AABCDEFHGFDBAA.", ".ABCDEFGIGFDDBA.", ".ABDEFGHIHGEDBA.", "..ACEHIIIIGEDBA.", "..ABDFHIIIGDBA..", "...AABEGHFCBA...", ".....AAAAAAA....", "................"]
+    },
+    {
+      "w": 15,
+      "h": 27,
+      "rows": ["...............", ".....AA........", "....AAA........", "....ABA........", ".....ABA.A.....", "......ABAAA....", "......ACBA.....", "...A..ACCB.....", "..AA.AACDA.A...", "..ABAABDDA.A...", "...ABBDECAAA...", "...ACDEFBABA...", ".AACDEFDBBA....", ".ABDEGFDCCA....", ".ABDFHFEDCA.A..", ".ABDDFHFDCBAA..", "..ACDEFHEDCA...", "...BCDEGGEDBAA.", "A..BCDEGGECCBA.", "AAACDEFHGEDDBA.", "ABCDFFHIGGEDBA.", "ABDEFGHIHGEDBA.", "AADEGHIIIGEDAA.", ".ABDFHHIHFDBA..", "..AABDFHECAA...", "....AAAAAAA....", "..............."]
+    },
+    {
+      "w": 17,
+      "h": 29,
+      "rows": [".................", "........A........", ".................", ".......A.........", "......AA..AA.....", ".....AABA.AAA....", ".....ACBA.AAA....", ".....ACCAABA.....", ".....ACDBBAA.....", "......ADDCAA.A...", "....A.ACDCCBAA...", "...AA.ABDECCBA...", "...AAAABDEEDA....", "...ABCABCEFEBA...", "....ABCBCEFECBA..", ".....ABCCEGFDBA..", "..A..ABCDFHFDBA..", "..AAABCDEHFECBA..", "..AABCDEGGEDCA...", "..ABCDEFHEDDBA...", "..ABCEFHHEDDBA.A.", "...ACEFHIGEECBAA.", ".AABDEFHIHGFEDBA.", ".ABCEFFHIHGGEDBA.", ".AACEFHIIIHGEDBA.", "..AACEFGIIHFDBA..", "....AACEHGECAA...", ".....AAAAAAAA....", "................."]
+    },
+    {
+      "w": 15,
+      "h": 31,
+      "rows": ["...............", ".......A.......", "......AA.......", ".....AA........", "....ABA..A.....", "....ABA..AA....", "...ABDAA.AA....", "...ABDCAAA.....", "....ABDCBA.A...", ".....ABDCAAA...", "......ACDCBA...", "....A.ACDDB....", "....AABDEEB....", "...ABCDEFDB....", "..ABCDEGECBA...", ".ABCDEGECABA...", ".ABDEGEDBBA....", ".ABDFHEDCBA..A.", ".ABDFHFEDCAAAA.", "..ACDFHFEDCCBA.", "A.ABCEFHFEDCAA.", "AAABCDEFHFDBAAA", "ABBBCDEFHFDCBBA", "ABCCDEFHHFEDCBA", "ABDDEFGHIHFEDBA", "ABDEFGHIIHHEDBA", ".ACEFHIIIHFEDAA", ".ABCEHHIIHFDBA.", "..AAACEGGECAA..", "....AAAAAAA....", "..............."]
+    },
+    {
+      "w": 15,
+      "h": 30,
+      "rows": ["...............", "........AA.....", "........AA.....", "........AAA....", ".....A..ABA....", "....AAAABA.....", ".....AACBA.....", ".....ABCB......", ".....ACDBA.A...", ".....ACECAA....", "....A.BEDCA....", "...AA.ADEDCA...", "..ABA.ABDFDBA..", "..ABBAABDFECA..", "...ACBBCDFFCA..", "...ABCCDEGDBA..", "...ABCDEGECA.A.", "..ABCDEGFDCAAA.", "...BCDEHEDAABA.", "..ABBDFHECBBCA.", "..BCCDFHEDDDBA.", "..BCDEFHFEEDB..", "..ABDFGHHFECB..", ".AACDFHIHFEDCB.", ".ABDFGHIIHFEDA.", ".ABDEGIIIGFEDA.", "..ACEFHIIGFCA..", "...ABCEIFDBAA..", "....AAAAAAA....", "..............."]
+    },
+    {
+      "w": 16,
+      "h": 31,
+      "rows": ["................", ".......A........", "......A.........", ".....AA.........", "....ABA.........", "....ABA.........", "....ABBA..A.....", ".....ACBA.AA....", "......BCAAAA....", "......ACCBAA....", "....A.ACDBA.....", ".....ABDDBA.....", "...AAACEDBA.....", "..AAACDDBA......", "..ABCDFDBA......", ".ABBCDFDBAAA....", ".ABCCDFFDBA.....", "..ACCCDGFDCBA...", "..ABCCCEGGECBA..", "...ABCCDEGFDBA..", "A..ABCDEFHFDBA..", "AAABCDEFHGDBA.A.", "ABBDEEFHHECA.AA.", "ABDDEFGHFDCBAAA.", "ABDEFHIHFEDCBA..", "ABDFGHIIGFEDBA..", "ABDFGHIIIGEDAA..", ".ABDFHIIGGEBA...", "..AACEGGECAA....", "....AAAAAAA.....", "................"]
+    },
+    {
+      "w": 15,
+      "h": 24,
+      "rows": ["...............", ".......A.......", ".....AAA.......", "....AAA........", "....ABA...A....", ".....ABA.AA....", ".....ACBAAA....", "...AACDCBA.....", "...ACECBA..A...", "...ADEDBA..A...", "..ABDFECBAAA...", "..ABDEFECBBAA..", ".AAACDFFEDBBA..", ".ACBBDEGFDCBA..", ".ABCCDEHFDDBA..", "..ACDEFHEDCA...", "AABCEFHHEECBAA.", "ABCDEGHHFEDCBA.", "ABDEFHIIHFEDBA.", "AADEGIIIHGEDAA.", ".ABDFHIIHFDBA..", "..AACEGGECAA...", "....AAAAAAA....", "..............."]
+    },
+    {
+      "w": 16,
+      "h": 24,
+      "rows": ["................", "......A.........", ".....A..........", "....AA..........", "....ABA.........", ".....AAA...A....", ".....ABA...A....", ".....ACBA.A.....", "...A.ACDBAA.....", "..ABAACECBAAA...", ".AACABCEDCBAAA..", ".ABCBBCEEDCBBA..", ".ABCCCDEGECCBA..", "..ACDDEGFDDCA...", "ABABDEFHEDDB....", "ABBCDFHHEDCA..A.", "ABCCEFHHFECBAAA.", "AACEFFHHFFEDCBA.", "..AEFHIIGFFECBA.", ".ACEGHIIIGFECAA.", ".ABCEGIIHGECAA..", "..AABEFHECBAA...", "....AAAAAAA.....", "................"]
+    },
+    {
+      "w": 14,
+      "h": 23,
+      "rows": ["..............", "......A.......", "......AA......", ".....AA.......", "....ABA.......", "....ACA..A....", "...ABDBAAA....", "...ABECBA.....", "....ADDBA.A...", "..A.ABEDCBAA..", ".AA.ABEFDCBA..", ".ABABDEFDCBA..", "ABCBCEFFDCA...", "ABCDDFGECB..A.", ".ABDEGHECBAAA.", "..ACEGHEDCBAA.", "AABDEGIGEDDBA.", "ABDEFHIHGEDBA.", "ABDFGIIIGEDBA.", ".ACEFHIHFEBA..", "..AACFGECAA...", "...AAAAAAA....", ".............."]
+    },
+    {
+      "w": 14,
+      "h": 21,
+      "rows": ["..............", "......A.......", ".....AA.......", "....ABA.......", "....ABBA......", ".....ACBA.....", "..A..ACCBA....", ".AA.ABDDCAA...", ".ABABCEECBA...", "..ABBDEECBB...", ".AACBDFECCBA..", ".ABDDEGEECA.A.", ".ABDEFGFECAAA.", ".AADEFHFECBBA.", "ABCDFGIHFEDCA.", "ABDEGHIHHFDCA.", "ABDFGIIIGFDBA.", ".ABEGHIHGECA..", "..AACEGFDAA...", "...AAAAAAA....", ".............."]
+    }
+  ]
+}

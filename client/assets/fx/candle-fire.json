@@ -1,0 +1,68 @@
+{
+  "name": "Candle fire",
+  "source": "candle-fire-sheet.webp: 12 frames, each resampled on its 12.5 x 14.1 px art grid and reduced to 9 shared colours",
+  "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+  "palette": ["#c23901", "#d94801", "#f86501", "#fb9302", "#fcb809", "#fdda1e", "#fef45a", "#fdf9a3", "#fdfdfa"],
+  "frames": [
+    {
+      "w": 10,
+      "h": 14,
+      "rows": ["..........", "....B.....", "....CB....", "....DC....", "...BDEB...", "...CEFDB..", "..ADFGEB..", "..BEGHFC..", "..CFHHFDB.", ".BEGHIHFB.", ".BFHIIHFA.", ".AEHIIHEA.", "..BEHHEA..", "...ADDA..."]
+    },
+    {
+      "w": 9,
+      "h": 15,
+      "rows": [".........", "...B.....", "...A.....", "...C.....", "..BDC....", "..BDDB...", ".ACEFC...", ".BDFFDA..", ".CEGGEC..", "BEFHHGEB.", "BFHIIHFB.", "AEHIIHEA.", ".BFHHFA..", "..AEEA...", "........."]
+    },
+    {
+      "w": 9,
+      "h": 16,
+      "rows": [".........", ".....B...", ".........", "......B..", ".....C...", "...BCC...", "..BCDB...", "..BEFCB..", ".BDFFDB..", ".CEGGEC..", "BDFHHGDB.", "BFHIIHFB.", "AEHIIHEA.", ".BFHHFB..", "..AEEA...", "........."]
+    },
+    {
+      "w": 9,
+      "h": 14,
+      "rows": [".........", "..B......", "...B.....", "..BCB....", "...DDB...", "..BDFC...", "..BEFDB..", ".ADFGFB..", ".CEGGED..", "BDFHHGEB.", "BFHIIHFA.", "AEHIIHEA.", ".BFHHEA..", "..AEEA..."]
+    },
+    {
+      "w": 8,
+      "h": 14,
+      "rows": ["........", "....B...", "........", "...B.B..", "....B...", "...CB...", "..BEC...", ".ADFEB..", ".CEGFDB.", "BDFHHFCB", "BFHIIHEA", "AEHIIHEA", ".BFHHFB.", "..AEEA.."]
+    },
+    {
+      "w": 9,
+      "h": 14,
+      "rows": [".........", ".....B...", ".........", "....B.B..", "....CC...", "...CDC...", "..BDEA...", ".ADFECB..", ".CEGFDB..", "BDFHHFDB.", "BFHIIHFA.", "AEHIIHEA.", ".AFHHFA..", "..AEEA..."]
+    },
+    {
+      "w": 9,
+      "h": 15,
+      "rows": [".........", "....B....", "...BC....", "...CC....", "..BEC....", ".BDFDA...", ".BEGEC...", ".CFHFDA..", ".CEGGEC..", "BEFHHGDB.", "BFHIIHFB.", "AEHIIHEA.", ".BFHHFB..", "..AEEA...", "........."]
+    },
+    {
+      "w": 9,
+      "h": 12,
+      "rows": [".........", "....B....", "....CB...", "....CC...", "...BDEB..", "...BEFDA.", "..BDFGEC.", ".BCFHHGEB", ".BEGIIHFB", ".AEHIIHEA", "..BFHHFB.", "...AEEA.."]
+    },
+    {
+      "w": 9,
+      "h": 15,
+      "rows": [".........", ".....B...", "....B....", "....CB...", "...BC....", "..BEC....", ".ADFDB...", ".BEGECA..", ".CEHGEC..", "BDGHHFDB.", "BFHIIHFB.", "AEHIIHEA.", ".AFHHFB..", "..AEEA...", "........."]
+    },
+    {
+      "w": 9,
+      "h": 15,
+      "rows": [".........", "....B....", "..B......", "..C......", ".BDB.....", ".CFC.....", ".CFEB....", ".BEFDB...", ".BEGFCB..", ".CFHGEC..", "BEGHHFDB.", "BFHIIHFB.", "AEHIIHEA.", ".BFHHFB..", "..AEEA..."]
+    },
+    {
+      "w": 9,
+      "h": 15,
+      "rows": [".........", "...B.....", ".........", "....B....", "....C....", "...BDB...", "...CEC...", "..AEFDB..", ".ADFFDB..", ".CEGFEC..", "BDFHHFDB.", "BFHIIHFB.", "AEHIIHEA.", ".BFHHFB..", "..AEEA..."]
+    },
+    {
+      "w": 10,
+      "h": 15,
+      "rows": ["..........", "....B.....", "....CB....", "....CC....", "....CEB...", "...BDFDB..", "..BCEGEB..", "..BEFHEC..", "..CFHHFD..", ".BEGHHGEB.", ".BFHIIHFB.", ".AEHIIHEA.", "..AEHHFA..", "...AEEA...", ".........."]
+    }
+  ]
+}

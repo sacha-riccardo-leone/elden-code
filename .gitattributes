@@ -1,0 +1,6 @@
+# keep line endings as written (LF) on every platform
+* text=auto eol=lf
+*.png binary
+*.gif binary
+*.webp binary
+*.woff2 binary

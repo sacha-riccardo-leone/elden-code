@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Browser code; marked as ES modules so Node scripts can import the hero rigs."
+}

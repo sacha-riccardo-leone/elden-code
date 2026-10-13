@@ -1,0 +1,22 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "elden-code",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "server/bridge.js"
+      ],
+      "port": 7777,
+      "url": "http://127.0.0.1:7777"
+    },
+    {
+      "name": "public-demo",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/serve-public.mjs"
+      ],
+      "port": 7788
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elden Code</title>
+  <link rel="stylesheet" href="/css/game.css">
+  <script type="importmap">{"imports":{"three":"/vendor/three/build/three.module.js","three/addons/":"/vendor/three/addons/"}}</script>
+</head>
+<body>
+  <canvas id="scene" aria-label="The courtyard of Claude Code sessions"></canvas>
+  <div id="bubbles" aria-live="polite"></div>
+  <div id="label" class="label" hidden></div>
+  <div id="fan" hidden></div>
+  <div id="prompt" hidden><b>E</b><span></span></div>
+  <div id="hurt"></div>
+  <div id="hp" hidden><i></i></div>
+  <section id="boss" hidden><h4></h4><div class="bar"><i class="lag"></i><i class="hp"></i></div><span class="dmg"></span></section>
+  <section id="carry" hidden aria-label="Carry on the fight">
+    <h3>You Have Fallen</h3>
+    <p class="small">Choose who carries on the fight.</p>
+    <div class="list"></div>
+  </section>
+
+  <section id="table-menu" hidden aria-label="The Round Table">
+    <h3>The Round Table</h3>
+    <p class="small">Where the Tarnished gather. A great enemy may be called to the arena north of the Hold.</p>
+    <button id="table-summon" type="button">Summon a great enemy</button>
+    <button id="table-sit" type="button">Take a seat</button>
+    <button id="table-leave" type="button">Leave</button>
+  </section>
+
+  <header id="hud">
+    <h1>Elden Code</h1>
+    <p class="sub">The Lands Between Sessions</p>
+    <p id="stats">0 Tarnished</p>
+  </header>
+
+  <nav id="regions" aria-label="Regions"></nav>
+  <section id="area" aria-live="polite"><h2></h2><p></p></section>
+  <div id="region-labels"></div>
+
+  <nav id="controls">
+    <div id="status"><i></i><span>Seeking the bridge…</span></div>
+    <button id="demo-btn" type="button">Summon phantoms</button>
+    <a href="/debug" target="_blank" rel="noopener">Event log</a>
+    <button id="keys-btn" type="button" aria-expanded="false" aria-controls="keys">Controls</button>
+    <button id="help-btn" type="button" aria-expanded="false" aria-controls="help" title="How it works">?</button>
+  </nav>
+
+  <ol id="log" aria-live="polite"></ol>
+
+  <section id="banner" aria-live="polite"><h2></h2><p></p></section>
+
+  <aside id="inspect" hidden>
+    <button id="inspect-close" type="button" aria-label="Close">×</button>
+    <h3 id="inspect-name"></h3>
+    <p id="inspect-epithet"></p>
+    <p id="inspect-class"></p>
+    <div class="rule"><span></span></div>
+    <dl id="inspect-rows"></dl>
+    <h4>Rites most practised</h4>
+    <div id="inspect-bars"></div>
+    <p id="inspect-lore"></p>
+    <p class="hint">Its fan above it: become them · drag to carry · Esc to close</p>
+  </aside>
+
+  <div id="empty">
+    <p>The Lands lie empty.</p>
+    <p class="small">Start a Claude Code session to raise a Tarnished, or</p>
+    <button id="empty-demo" type="button">Summon phantoms</button>
+  </div>
+
+  <section id="keys" hidden>
+    <button id="keys-close" type="button" aria-label="Close">×</button>
+    <h3>Controls</h3>
+    <dl>
+      <dt>W A S D · arrows</dt><dd>Walk</dd>
+      <dt>Shift</dt><dd>Run</dd>
+      <dt>Left click</dt><dd>Strike</dd>
+      <dt>Space</dt><dd>Dodge</dd>
+      <dt>C</dt><dd>Crouch</dd>
+      <dt>B · 1–8</dt><dd>Gestures</dd>
+      <dt>E</dt><dd>Use what's in reach</dd>
+      <dt>M</dt><dd>Map</dd>
+      <dt>Z / X</dt><dd>Previous / next area</dd>
+      <dt>H</dt><dd>Roundtable Hold</dd>
+      <dt>Click someone</dt><dd>Inspect, become them</dd>
+      <dt>Drag someone</dt><dd>Carry them</dd>
+      <dt>Scroll · + / −</dt><dd>Zoom</dd>
+      <dt>P</dt><dd>Frame rate</dd>
+      <dt>Esc</dt><dd>Close</dd>
+    </dl>
+  </section>
+
+  <section id="help" hidden>
+    <button id="help-close" type="button" aria-label="Close">×</button>
+    <h3>The Lands Between Sessions</h3>
+    <p class="public-only"><b>This is a public demo.</b> Every Tarnished here is a made-up Claude Code session: projects rise and sink, sessions come and go, and nothing is real or sent anywhere. Run Elden Code on your own machine to see your own sessions.</p>
+    <p>Each Claude Code session on this machine walks here as a Tarnished. Every project has its own region, an island with its own biome, joined to <b>Roundtable Hold</b> in the middle by stone bridges. Cloth carries the project's colour; plume, eyes or feather carry the model's.</p>
+    <ul>
+      <li><b>The Forge</b> — editing and writing files</li>
+      <li><b>The Scriptorium</b> — reading and searching</li>
+      <li><b>The Ritual Circle</b> — shell commands</li>
+      <li><b>The Raven Tower</b> — web and MCP tools</li>
+      <li><b>The War Table</b> — plans and todo lists</li>
+      <li><b>The Fog Gate</b> — kneeling for thy permission; departing sessions pass through it</li>
+      <li><b>Spirit ashes</b> — subagents, hovering beside their summoner</li>
+      <li><b>Site of Grace</b> — rest after a quest; idle Tarnished wander and talk</li>
+      <li><b>Roundtable Hold</b> — idle Tarnished from every project come to sit at the round table and talk</li>
+    </ul>
+    <p>Thou art <b>Maren the Stormbound</b>, or anyone thou choosest to become: <b>W A S D</b> or the arrow keys to walk (hold <b>Shift</b> to run), and cross the bridges to other islands. <b>Left click</b> to strike, <b>Space</b> to dodge, <b>C</b> to crouch, <b>B</b> to open thy fan of gestures (or <b>1–8</b>); nearby Tarnished may answer. <b>E</b> uses what thou standest by: the forge, the scrolls, the war table, the ritual circle, the raven tower, the fog gate, a site of grace, and the Round Table (which can summon a great enemy to the Arena of Trials, north of the Hold; great enemies also come by themselves, and when a session struggles; every Tarnished but the Twofold joins the fight). <b>M</b> shows the map. <b>Z / X</b> travel by grace to the previous or next area, <b>H</b> to Roundtable Hold. Click another Tarnished to inspect it; the fan over its head lets thee <b>become</b> them. Maren lives her own life meanwhile; click her and become her again to return. Drag a Tarnished to carry it, scroll to zoom. Click a line in the log to travel to whoever it's about. <b>P</b> shows frame rate and resolution.</p>
+    <p>Day and night take turns, 18 minutes each, the last 2 a slow dusk or dawn. Add <b>?time=day</b> or <b>?time=night</b> to the address to hold one, or <b>?time=fast</b> to watch a whole day pass in two minutes.</p>
+    <p class="small">Read-only: nothing here can send anything back to Claude Code.</p>
+  </section>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

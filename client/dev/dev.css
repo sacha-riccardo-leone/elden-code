@@ -1,0 +1,9 @@
+body { margin: 0; padding: 12px; background: #121116; color: #d8d2c4; font: 12px ui-monospace, monospace; }
+canvas { image-rendering: pixelated; display: block; margin: 4px 0 12px; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.dev-title { font: 600 15px ui-monospace, monospace; color: #d6b46e; margin: 4px 0 12px; }
+.anims { display: flex; flex-wrap: wrap; gap: 10px; }
+.anim { background: #3a3742; padding: 6px; }
+.anim span { display: block; color: #d8d2c4; margin-bottom: 4px; }
+a { color: #d6b46e; }
+#sheet canvas { background: #3a3742; max-width: 100%; }

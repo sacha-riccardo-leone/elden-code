@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elden Code · Event Log</title>
+  <link rel="stylesheet" href="/css/debug.css">
+</head>
+<body>
+  <header>
+    <h1>Event Log</h1>
+    <span id="status" class="status">connecting…</span>
+    <a href="/">Return to the courtyard</a>
+  </header>
+  <section>
+    <h2>Sessions</h2>
+    <table id="sessions">
+      <thead><tr><th>Session</th><th>Project</th><th>State</th><th>Tool</th><th>Tools used</th><th>Spirits</th><th>Last seen</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+  <section>
+    <h2>Events <small>(exactly what the game receives)</small></h2>
+    <ol id="log" reversed></ol>
+  </section>
+  <script type="module" src="/js/debug.js"></script>
+</body>
+</html>

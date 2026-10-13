@@ -1,0 +1,22 @@
+{
+  "name": "elden-code",
+  "version": "0.1.0",
+  "description": "Claude Code sessions as a dark-fantasy HD-2D courtyard",
+  "scripts": {
+    "start": "node server/bridge.js",
+    "hooks:install": "node scripts/install-hooks.js",
+    "hooks:uninstall": "node scripts/install-hooks.js --uninstall",
+    "simulate": "node scripts/simulate.js",
+    "heroes": "node scripts/build-hero-sheets.mjs",
+    "build:public": "node scripts/build-public.mjs",
+    "preview:public": "node scripts/serve-public.mjs",
+    "deploy:public": "npm run build:public && npx vercel deploy dist/elden-code-demo --prod --yes"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "@fontsource/cinzel": "^5.3.0",
+    "@fontsource/cormorant-garamond": "^5.3.0",
+    "three": "^0.186.1"
+  },
+  "private": true
+}

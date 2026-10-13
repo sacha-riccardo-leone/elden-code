@@ -1,0 +1,29 @@
+:root {
+  color-scheme: dark;
+  --bg: #0d0d10;
+  --panel: #16161b;
+  --line: #2b2a31;
+  --ink: #d8d2c4;
+  --muted: #8a8478;
+  --gold: #c9a45a;
+  --ok: #8fbf7a;
+  --warn: #d9a441;
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px 24px 48px; background: var(--bg); color: var(--ink); font: 14px/1.5 ui-monospace, Consolas, monospace; }
+header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+h1 { margin: 0; color: var(--gold); font-size: 20px; letter-spacing: .08em; text-transform: uppercase; }
+h2 { color: var(--gold); font-size: 14px; letter-spacing: .06em; text-transform: uppercase; margin: 24px 0 8px; }
+h2 small { color: var(--muted); text-transform: none; letter-spacing: 0; }
+a { color: var(--gold); margin-left: auto; }
+.status { color: var(--warn); }
+.status[data-ok="1"] { color: var(--ok); }
+table { width: 100%; border-collapse: collapse; background: var(--panel); }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { color: var(--muted); font-weight: normal; }
+tr.state-working td:nth-child(3) { color: var(--ok); }
+tr.state-waiting td:nth-child(3) { color: var(--warn); }
+ol { list-style: none; margin: 0; padding: 0; background: var(--panel); max-height: 60vh; overflow: auto; }
+li { display: flex; gap: 12px; padding: 4px 10px; border-bottom: 1px solid var(--line); }
+li time { color: var(--muted); flex: none; }
+li code { white-space: pre-wrap; word-break: break-all; }
