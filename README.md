@@ -272,11 +272,9 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
     the enemy he begs ("Wrong bandit! Wrong bandit!"). Hidden, he mutters ("I'm a rock. A small,
     rusty, handsome rock."). From a safe distance he taunts it. When an ally falls he mourns them
     in his own way ("Rest easy. Dibs on yer purse.").
-- **The enemies:** two great enemies come by turns: Ossyrion, the Pale Tempest first, then
-  Fenrath, the Crimson Fang, and so on. If one's art fails to load, only the other comes. Each
-  walks into his target's lane and strikes along it. Every blow shows itself before it lands: step
-  out of the way, or dodge through it with **Space**. Their effects are in `client/js/bossfx.js`.
-- **Fenrath, the Crimson Fang** (`client/js/heroes/boss.js`):
+- **The enemy:** Fenrath, the Crimson Fang (`client/js/heroes/boss.js`, effects in
+  `client/js/bossfx.js`). He walks into his target's lane and strikes along it. Every blow shows
+  itself before it lands: step out of the way, or dodge through it with **Space**.
   - **Swing:** he raises the greatsword and cuts. A crescent of red light flies on down his lane
     for half a second, striking each person it passes once.
   - **Lunge:** he thrusts and slides forward. A lance of red light runs along the blade and well past
@@ -294,28 +292,6 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
     at hand."), and now and then another while he stalks ("Serve my will alone, O blade.", "*heavy
     breathing*"). He gives a grunt on some of his leaps and landings. Left facing nobody but the
     cowering Bandit Knight, he can't believe it: "*looks in disbelief*"… "Coward…".
-- **Ossyrion, the Pale Tempest** (`client/js/heroes/dragon.js`): a bone-white dragon who
-  throws red lightning. He is built from the cut-out pieces of his drawing (wings and their backs,
-  head and jaw, neck, chest, arms, legs and a tail in four), posed on a skeleton: his legs bend to
-  keep his feet planted, his tail lifts off the floor rather than sink through it, and his mouth
-  fills dark red as the jaw opens. He is bigger and slower to fall than Fenrath (3600 health),
-  and his circle on the ground is larger. He flies down onto the arena as he enters.
-  - **Claw swipe** (his swing): he rears back and rakes down with his talons. Three red bolts torn
-    from them fly on down his lane, striking each person they pass once.
-  - **Lunging bite** (his lunge): he lunges forward, jaws first, and lightning bursts from them
-    down along the ground ahead.
-  - **Thunder-summoning roar** (his slam): he draws himself up, arms and wings spread, and a red
-    mark appears under every fighter (and a few more around him) for about a second and a half.
-    Then he roars to the sky: a bolt goes up from his jaws, and a bolt comes down out of the sky
-    onto each mark in turn. Anyone still on one is hurt. It catches everyone at once, so it hurts
-    less than Fenrath's slam and comes more seldom.
-  - **Flight** (his leap): when beset or rooted, as Fenrath leaps, he spreads his wings, beats
-    up off the ground in a cloud of dust and flies down onto the marked zone. While he's in the
-    air the camera pulls back to keep him in view.
-  - **Tail sweep:** when someone stands behind him, he crouches, coils his tail, and lashes it
-    out low behind him, looking back over his shoulder. A ring marks where it sweeps.
-  - He speaks seldom too ("The storm hath found thee, Tarnished.", "*crackling breath*"), and
-    left facing only the Bandit Knight: "*looks in disbelief*"… "Craven worm…".
 - **The fight:**
   - Enough damage in quick succession breaks his stance: he reels and takes more from every blow.
   - As you step in and he enters, the camera shows him for a few seconds, then comes back to
@@ -346,7 +322,7 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
   - **Withdrawn:** he leaves on his own after eight minutes.
 
   Nothing here ever reaches Claude Code.
-- If neither enemy's art loads, no great enemy comes at all.
+- If the enemy's art fails to load, no great enemy comes at all.
 
 ## Day and night
 
@@ -504,7 +480,7 @@ client/js/grace.js      the grace itself, the figure of golden light floating ov
 client/js/interact.js   E: using the stations and the Round Table
 client/js/arena.js      the Arena of Trials, north of the Hold
 client/js/fight.js      great enemies: what brings them, their attacks, the fighters, thy health
-client/js/bossfx.js     the enemies' red light: crescent, lance, claw bolts, bite bolt, sky bolts, floor marks
+client/js/bossfx.js     the enemy's red light: the swing's crescent, the lunge's lance, floor marks
 client/js/director.js   event → behaviour, regions, slash-command effects, chatter, visits
 client/js/voices.js     how each character talks: base lines and every voice's version of them
 client/js/lore.js       names, epithets, session tallies, conversation topics
