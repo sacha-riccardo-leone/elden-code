@@ -505,25 +505,30 @@ export class Region extends Builder {
   buildTower() {
     const [tx, tz] = STATIONS.tower.pos;
     const R = 1.9, H = 10;
-    const body = new THREE.Mesh(scaleCylUV(new THREE.CylinderGeometry(R, R * 1.08, H, 10), R, H, BRICK_TILE), this.mat.stone);
+    const SIDES = 10;
+    const TURN = Math.PI / SIDES; // a flat face, not a corner, toward the viewer (the door sits on it)
+    const body = new THREE.Mesh(scaleCylUV(new THREE.CylinderGeometry(R, R * 1.08, H, SIDES), R, H, BRICK_TILE), this.mat.stone);
     body.position.set(tx, H / 2, tz);
+    body.rotation.y = TURN;
     body.castShadow = true;
     body.receiveShadow = true;
-    const ledge = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.35, R + 0.35, 0.4, 10), this.mat.stoneMoss);
+    const ledge = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.35, R + 0.35, 0.4, SIDES), this.mat.stoneMoss);
     ledge.position.set(tx, H, tz);
+    ledge.rotation.y = TURN;
     ledge.castShadow = true;
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(R + 0.6, 4.0, 10), this.biomeKey === 'frost' ? this.mat.snow : this.mat.slate);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(R + 0.6, 4.0, SIDES), this.biomeKey === 'frost' ? this.mat.snow : this.mat.slate);
     roof.position.set(tx, H + 2.2, tz);
+    roof.rotation.y = TURN;
     roof.castShadow = true;
     this.add(body, ledge, roof);
     this.blockCircle(tx, tz, R + 0.4);
+    // the front face's distance from the axis at height y (the tower narrows as it rises)
+    const face = (y) => (R * 1.08 - (R * 0.08 * y) / H) * Math.cos(TURN);
     const door = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.8), this.world.mat.doorway);
-    door.position.set(tx - 0.3, 0.9, tz + R + 0.03);
-    door.rotation.y = -0.15;
+    door.position.set(tx, 0.9, tz + face(0.9) + 0.03);
     this.towerWindowMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.2, 0.7, 0.3) });
     const win = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 1.0), this.towerWindowMat);
-    win.position.set(tx - 0.3, H - 2.0, tz + R + 0.03);
-    win.rotation.y = -0.15;
+    win.position.set(tx, H - 2.0, tz + face(H - 2.0) + 0.03);
     this.add(door, win);
     for (let i = 0; i < 3; i++) {
       const tex = this.world.tex.raven.clone();

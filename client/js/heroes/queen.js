@@ -5,7 +5,7 @@
 // Source art: assets/hero/queen.json (71x120, from queen-stand.webp) and queen-kneel.json (77x96,
 // from queen-kneel.webp).
 
-import { Img, region, blit, rotatable, drawRotated, prepareStill, composeStill } from './core.js';
+import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill } from './core.js';
 
 const FRAME = { w: 148, h: 124 };
 const MID = 36; // between the feet
@@ -19,7 +19,15 @@ const MAGIC_BOX = { x0: 49, y0: 55, y1: 90 }; // the ring lies in here, around t
 const KNEEL_MAGIC_BOX = { x0: 56, y0: 48, y1: 84 };
 const RING = { x: 60.5, y: 72 }; // it turns about this point
 const BRAID = { y0: 40, y1: 92 }; // the braid hangs down the left and sways below y0
-const HEM = 100; // the gown's hem sways below this row
+const HEM = 100; // the gown's panels sway below this row
+// Her legs walk as the knight's do (each sheared from its top to the foot, the foot lifted): the
+// one bare through the gown's slit (behind) and the other, below the hem (in front). Each is its
+// skin and sandal straps, with their dark outline.
+const BACK_LEG = { x0: 21, x1: 34, y0: 86 };
+const FRONT_LEG = { x0: 36, x1: 49, y0: 94 };
+const SKIN = 'eilpsuv';
+const STRAPS = 'fkmqtxORaUZ';
+const BUST = { x0: 35, x1: 49, y0: 45, y1: 53 }; // bounces a pixel, a beat behind her step
 
 // The ring is gold among gold (crown, bracelets, the gown's embroidery). Its pixels are the
 // gold-coloured ones in its box that touch nothing but gold or air; those get twin colours (one
@@ -59,13 +67,38 @@ function prepare(art, more = {}) {
     still = prepareStill(k, { ground: 94, mid: 36, neck: 34, waist: 58, cape: { x1: 18, y0: 45 }, float: kr.isRing });
   }
   const code = (ch) => twinOf(art.code(ch));
+  // a leg: its skin, the outline right beside it, and the sandal straps over it (up to two
+  // pixels from the skin)
+  const skin = ids(SKIN);
+  const straps = ids(STRAPS);
+  const nearSkin = (x, y, r) => {
+    for (let b = -r; b <= r; b++) for (let a = -r; a <= r; a++) if (skin.has(src.get(x + a, y + b))) return true;
+    return false;
+  };
+  const legOf = (box) => (x, y) => {
+    if (x < box.x0 || x > box.x1 || y < box.y0 || y > GROUND) return false;
+    const v = src.get(x, y);
+    if (v === NONE) return false;
+    return skin.has(v) || nearSkin(x, y, straps.has(v) ? 2 : 1);
+  };
+  const isBack = legOf(BACK_LEG);
+  const isFront = legOf(FRONT_LEG);
+  const isLeg = (x, y) => isBack(x, y) || isFront(x, y);
+  const body = region(src, (x, y) => !isBraid(x, y) && !isRing(x, y) && !isLeg(x, y));
   return {
     still,
     parts: {
       ring: rotatable(ring),
       braid: region(src, (x, y) => isBraid(x, y) && !isRing(x, y)),
-      body: region(src, (x, y) => !isBraid(x, y) && !isRing(x, y)),
+      body,
+      backLeg: region(src, isBack),
+      frontLeg: region(src, isFront),
+      bust: region(body, (x, y) => x >= BUST.x0 && x <= BUST.x1 && y >= BUST.y0 && y <= BUST.y1),
+      // where the legs were: the gown's dark inside shows when they step away (not at the very
+      // bottom, where it's the floor)
+      gap: region(src, (x, y) => isLeg(x, y) && y < GROUND - 4),
     },
+    gapColor: art.code('A'),
     colors: { white, gold, amber },
     // only the ring (and the light it sheds) glows; it shimmers and flares but never goes out
     energy: {
@@ -86,6 +119,21 @@ function prepare(art, more = {}) {
   };
 }
 
+// A leg from `top` down to the ground: sheared forward or back by `stride` (none at the top, all of
+// it at the foot), the foot raised by `lift`, or left to `dangle`.
+function drawLeg(dst, leg, top, { stride = 0, lift = 0, dangle = 0 }, dx, dy) {
+  const span = GROUND - top;
+  for (let y = top; y <= GROUND; y++) {
+    const t = (y - top) / span;
+    const shift = Math.round(stride * t + dangle * t * t);
+    const up = Math.round(lift * t);
+    for (let x = 0; x < leg.w; x++) {
+      const v = leg.get(x, y);
+      if (v !== NONE) dst.set(x + dx + shift, y + dy - up, v);
+    }
+  }
+}
+
 function compose(ctx, p) {
   if (p.still) return composeStill(ctx.still, p, FRAME);
   const { parts, colors } = ctx;
@@ -101,13 +149,22 @@ function compose(ctx, p) {
     glow.push(fy * FRAME.w + fx);
   };
 
-  // the braid swings, the gown's hem sways (each drawn as is and sheared, so nothing opens a gap)
+  // the braid swings (drawn as is and sheared, so nothing opens a gap)
   const sway = p.sway || 0;
   blit(f, parts.braid, ux, uy);
   if (sway) blit(f, parts.braid, ux, uy, (y) => Math.round((sway * Math.max(0, y - BRAID.y0)) / (BRAID.y1 - BRAID.y0)));
+  // the legs stay planted and step under the gown: the dark inside where they were, the legs
+  // where they are, then the gown over them, its panels swaying
+  const g = parts.gap;
+  for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.c[y * g.w + x] !== NONE) f.set(x + OX, y + OY, ctx.gapColor);
+  const legs = p.legs || {};
+  drawLeg(f, parts.backLeg, BACK_LEG.y0, legs.back || {}, OX, OY);
+  drawLeg(f, parts.frontLeg, FRONT_LEG.y0, legs.front || {}, OX, OY);
   const hem = p.hem || 0;
   blit(f, parts.body, ux, uy);
   if (hem) blit(f, parts.body, ux, uy, (y) => (y < HEM ? 0 : Math.round((hem * (y - HEM)) / (GROUND - HEM))));
+  // the bust, a pixel behind her step
+  if (p.bounce) blit(f, parts.bust, ux, uy + p.bounce);
 
   // the ring of light turns about the hand (and rises from it)
   const rise = p.rise || 0;
@@ -157,11 +214,18 @@ function anim(name, list) {
 }
 const seq = (n, fn) => Array.from({ length: n }, (_, i) => fn(i));
 
-anim('idle', seq(6, (i) => ({ bob: [0, 0, 1, 1, 1, 0][i], sway: [0, 1, 1, 0, -1, -1][i], hem: [0, 0, 1, 1, 0, 0][i], spin: i * 15, light: 1 })));
+const leg = (stride, lift = 0) => ({ stride, lift });
+anim('idle', seq(6, (i) => ({ bob: [0, 0, 1, 1, 1, 0][i], sway: [0, 1, 1, 0, -1, -1][i], hem: [0, 0, 1, 1, 0, 0][i], bounce: [0, 0, 0, 1, 0, 0][i], spin: i * 15, light: 1 })));
+// walking as the knight walks: the legs stride and lift in turn, the gown's panels following
 anim('walk', seq(6, (i) => ({
   bob: [1, 0, 0, 1, 0, 0][i],
   sway: [-1, -2, -2, -1, -2, -2][i],
-  hem: [2, 1, -1, -2, -1, 1][i],
+  hem: [1, 0, -1, -1, 0, 1][i],
+  bounce: [-1, 1, 0, -1, 1, 0][i],
+  legs: {
+    front: leg([3, 1, -1, -3, -1, 1][i], [0, 0, 0, 0, 2, 2][i]),
+    back: leg([-3, -1, 1, 3, 1, -1][i], [0, 2, 2, 0, 0, 0][i]),
+  },
   spin: i * 20,
   light: 1,
 })));
@@ -173,6 +237,8 @@ anim('strike', seq(6, (i) => ({
   burst: [0, 0, 0, 1, 2, 0][i],
   lean: [0, -1, 0, 1, 1, 0][i],
   hem: [0, -1, 0, 1, 1, 0][i],
+  bounce: [0, 0, 1, -1, 0, 0][i],
+  legs: { front: leg([0, 0, -1, 2, 3, 2][i]), back: leg([0, 0, 1, -1, -2, -1][i]) },
   light: [1, 2, 2, 2, 2, 1][i],
 })));
 anim('cast', seq(4, (i) => ({ spin: i * 60, rise: [2, 3, 3, 2][i], motes: 5, phase: i, bob: i % 2, sway: [1, 2, 1, 2][i], light: 2 })));
@@ -184,9 +250,9 @@ anim('rest', seq(2, (i) => ({ still: true, bob: i, head: [1, 1], sway: 1 - i, li
 anim('pray', seq(2, (i) => ({ still: true, bob: i, head: [1, 2], sway: 1, float: 1 + i, light: 2 })));
 anim('bow', seq(3, (i) => ({ lean: Math.min(1, i), bob: [0, 1, 2][i], hem: [0, 1, 1][i], spin: i * 10, light: 0 })));
 anim('study', seq(2, (i) => ({ bob: i, spin: i * 10, light: 0 })));
-anim('stagger', seq(2, (i) => ({ lean: -2 - i, spin: 30 + i * 30, sway: 2, hem: 2, light: 2 })));
+anim('stagger', seq(2, (i) => ({ lean: -2 - i, spin: 30 + i * 30, sway: 2, hem: 2, bounce: i ? 1 : -1, legs: { front: leg(-1), back: leg(1) }, light: 2 })));
 anim('collapse', [{ still: true, head: [2, 3], sway: 2, light: 0 }]);
-anim('lifted', seq(2, (i) => ({ sway: -3 + i, hem: -2 + i, spin: i * 20, light: 1 })));
+anim('lifted', seq(2, (i) => ({ sway: -3 + i, hem: -2 + i, spin: i * 20, legs: { front: { dangle: -2 - i }, back: { dangle: -3 } }, light: 1 })));
 anim('talk', seq(2, (i) => ({ bob: i, spin: i * 12, light: 1 })));
 
 const G = groups;

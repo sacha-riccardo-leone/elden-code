@@ -112,7 +112,8 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
   - **Solenne, the Eternal Queen** (by day) — `queen.json` (+ `queen-kneel.json`). Rigged in
     `client/js/heroes/queen.js`: a ring of holy light turns about one hand, rises and sheds motes
     of light, and lances out as a beam that bursts at its end. Only the ring glows; the crown,
-    bracelets and embroidery stay gold.
+    bracelets and embroidery stay gold. She walks as Aurelion does, her legs striding and lifting
+    under the gown (only its panels sway).
   - **The change:** halfway through dusk and dawn, golden light gathers and the drawing of the
     change itself (`champion-to-queen.json` at dawn, `queen-to-champion.json` at dusk;
     `client/js/heroes/twofold.js`) holds for a moment. Then the other form bursts out under its
