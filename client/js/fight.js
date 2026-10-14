@@ -40,6 +40,16 @@ const MOVES = {
 const CRESCENT = { from: 1.2, y: 3, size: 6, speed: 15, life: 0.5, half: 1.6, lane: 1.6 }; // starts `from` ahead of him
 const SPIKE = { from: 3.9, y: 3.2, len: 9, life: 0.75, slide: 2.2 }; // from the guard; he slides `slide` into it
 const SLAM = { r: 5.5 };
+// What Fenrath says, seldom: as he enters, now and then while he stalks, a grunt now and then as
+// he leaps and lands, and, left facing only the Bandit Knight, his disbelief (*asterisks*: a sound
+// or a look rather than words).
+const SAYS = {
+  enter: ['Thy death is close at hand.', 'Another Tarnished, come to die.'],
+  stalk: ['*grunts*', '*heavy breathing*', 'Serve my will alone, O blade.', 'Thy death is close at hand.', '*a low, rumbling growl*', 'Kneel, Tarnished.'],
+  leap: ['*grunts*'],
+  alone: ['*looks in disbelief*', 'Coward…'],
+};
+const pickOf = (list) => list[Math.floor(Math.random() * list.length)];
 const LEAP = { r: 3.2, height: 7, cooldown: 10 };
 const TRIGGER = {
   failures: 3, failureWindow: 120, // tool failures in a row (seconds) that summon one
@@ -116,6 +126,13 @@ class Boss {
   }
 
   get alive() { return this.state !== 'dying' && this.state !== 'withdraw' && this.state !== 'gone'; }
+  get dead() { return this.state === 'gone'; }
+
+  // Where his words show (ui.say): over his head, wherever his leap has him.
+  head() {
+    const s = this.body.sheet;
+    return new THREE.Vector3(this.pos.x, this.lift + s.head * s.px, this.pos.y);
+  }
 
   // One of his drawings.
   pose(name, restart = false) {
@@ -193,15 +210,16 @@ export class Fight {
       hpBar: document.querySelector('#hp i'),
       party: document.getElementById('party'),
       focusHint: document.getElementById('focus-hint'),
-      focusText: document.querySelector('#focus-hint span'),
       hurt: document.getElementById('hurt'),
       carry: document.getElementById('carry'),
       carryList: document.querySelector('#carry .list'),
     };
+    this.ui.focusHint.addEventListener('click', () => this.toggleFocus());
     this.dmgShown = 0;
     this.dmgUntil = 0;
     this.fallen = 0; // Tarnished fallen (for good) in this fight
     this.partyRows = new Map(); // npc -> its row under thy health (updateParty)
+    this.says = []; // his words to come: { at, text } (say)
   }
 
   get active() { return this.state !== 'idle'; }
@@ -492,9 +510,30 @@ export class Fight {
     return !!(me && b && b.alive && this.state === 'fighting' && !this.ctx.pilot.dead && this.inArena(me));
   }
 
+  // He says `text` (over his head, in red), `delay` seconds from now. A passing sound or word
+  // never cuts short what he said a moment ago, nor his disbelief; an `important` one always comes.
+  say(text, delay = 0, important = false) {
+    this.says.push({ at: this.clock + delay, text, important });
+  }
+
+  stepSays() {
+    const b = this.boss;
+    if (!b || b.state === 'gone') { this.says = []; return; }
+    this.says = this.says.filter((s) => {
+      if (this.clock < s.at) return true;
+      if (b.state === 'dying' || b.fade < 0.5) return false;
+      if (!s.important && (this.clock < (this.hushUntil ?? 0) || this.clock - (this.saidAt ?? -9) < 3)) return false;
+      this.ctx.ui.say(b, s.text, Math.min(5, 1.8 + s.text.length * 0.045), 'boss');
+      b.lastSaid = s.text;
+      this.saidAt = this.clock;
+      return false;
+    });
+  }
+
   // Q: the camera's focus on him, or back on thee (as he enters: straight to the focus on him).
   toggleFocus() {
     if (!this.facing(this.ctx.pilot.npc)) return;
+    this.focusLearned = true; // (thou know'st the key now: the hint is no longer shown)
     if (this.clock < this.introUntil) { this.introUntil = 0; this.focus = true; return; }
     this.focus = !this.focus;
   }
@@ -570,6 +609,12 @@ export class Fight {
         break;
       case 'ready':
         moving = this.think(b, dt, fast);
+        // now and then, between blows, a word or a sound
+        b.talkIn = (b.talkIn ?? rand(10, 16)) - dt;
+        if (b.talkIn <= 0) {
+          b.talkIn = rand(14, 24);
+          this.say(pickOf(SAYS.stalk.filter((x) => x !== b.lastSaid)));
+        }
         break;
       default:
         break;
@@ -796,6 +841,7 @@ export class Fight {
         b.marks.push(new Decal(scene, 'zone', a.x, a.z, decalSize('zone', LEAP.r)));
         break;
       case 'leap:1':
+        if (Math.random() < 0.4) this.say(pickOf(SAYS.leap)); // (a grunt as he springs, now and then)
         particles.emit({
           pos: [x, 0.2, z], spread: [1.6, 0.1, 0.6], vel: [0, 2, 0], velSpread: [2, 1, 1],
           color: ['#6a5a4e', '#3a2e28'], size: 0.12, life: 0.7, count: 24, drag: 1.4, intensity: 0.9,
@@ -804,6 +850,7 @@ export class Fight {
       case 'leap:3': {
         // he lands: the stone cracks, debris flies, the ground shakes, and all on the mark suffer
         b.lift = 0;
+        if (Math.random() < 0.4) this.say(pickOf(SAYS.leap), 0.15); // (and now and then as he lands)
         b.pos.set(a.x, a.z);
         for (const m of b.marks) m.dispose();
         b.marks = [];
@@ -1138,6 +1185,9 @@ export class Fight {
           this.lagHp = this.boss.hp;
           this.focus = false;
           this.introUntil = this.clock + BOSS_CAM.intro; // (the camera shows him a moment, then thee)
+          this.says = [];
+          this.say(pickOf(SAYS.enter), 1.4, true);
+          this.boss.talkIn = rand(10, 16);
           this.ctx.particles.emit({
             pos: [bx, 1.5, bz], spread: [1.2, 2, 0.8], vel: [0, 1.5, 0], velSpread: [1, 1, 0.6],
             color: ['#2a1a1a', '#6a2a2a', '#ff5a3a'], size: 0.14, life: 2, count: 80, drag: 0.6, intensity: 1.4,
@@ -1234,7 +1284,13 @@ export class Fight {
     if (me && !pilot.dead && this.inArena(me)) { this.cowardsAlone = null; return false; }
     if (!cowards) return true;
     if (this.carry) return false;
-    this.cowardsAlone ??= this.clock;
+    if (this.cowardsAlone == null) {
+      // none left to face him but the Bandit Knight, cowering: he can't believe it
+      this.cowardsAlone = this.clock;
+      this.hushUntil = this.clock + 6; // (nothing else from him meanwhile)
+      this.say(SAYS.alone[0], 0.8, true);
+      this.say(SAYS.alone[1], 4.6, true);
+    }
     return this.clock - this.cowardsAlone > 20;
   }
 
@@ -1299,6 +1355,7 @@ export class Fight {
   }
 
   updateUi(dt) {
+    this.stepSays();
     const b = this.boss;
     const el = this.ui;
     el.boss.hidden = !(b && (this.state === 'fighting'));
@@ -1310,10 +1367,8 @@ export class Fight {
       el.bossDmg.textContent = this.clock < this.dmgUntil ? String(this.dmgShown) : '';
     }
     const pilot = this.ctx.pilot;
-    // the floating hint, once he's been shown: how to turn the camera on him, or off him again
-    const hint = this.facing(pilot.npc) && this.clock >= this.introUntil;
-    el.focusHint.hidden = !hint;
-    if (hint) el.focusText.textContent = this.focus ? 'to free the camera' : 'to focus on the boss';
+    // the floating hint, once he's been shown, till thou'st used it once (Q, or a click on it)
+    el.focusHint.hidden = !(this.facing(pilot.npc) && this.clock >= this.introUntil && !this.focusLearned);
     el.hp.hidden = !(this.active || pilot.hp < pilot.maxHp);
     el.hpBar.style.width = `${(100 * pilot.hp) / pilot.maxHp}%`;
     this.updateParty();

@@ -288,12 +288,17 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
     a shake of the camera, hurting everyone on the zone. Beset, he lands away from the crowd;
     otherwise he lands next to someone.
   - Below half health he grows wild, and his blows come quicker.
+  - He says little, in red over his head. He has a line as he enters ("Thy death is close at
+    hand."), and now and then another while he stalks ("Serve my will alone, O blade.", "*heavy
+    breathing*"). He gives a grunt on some of his leaps and landings. Left facing nobody but the
+    cowering Bandit Knight, he can't believe it: "*looks in disbelief*"… "Coward…".
 - **The fight:**
   - Enough damage in quick succession breaks his stance: he reels and takes more from every blow.
   - As you step in and he enters, the camera shows him for a few seconds, then comes back to
-    you. A floating hint at the bottom of the screen says **Press Q to focus on the boss**. Q
-    turns the camera's focus on him (you and him both in view, pulled back to keep his height),
-    and Q again gives it back to you. The camera stays a little further back than usual all
+    you. A large floating hint in the middle of the lower half of the screen says **Press Q to
+    focus on the boss**. Q, or a click on the hint, turns the camera's focus on him (you and him
+    both in view, pulled back to keep his height), and Q again gives it back to you. Once you've
+    used it, the hint isn't shown again. The camera stays a little further back than usual all
     fight, and returns to your own zoom when it's over (`BOSS_CAM` in `client/js/config.js`).
   - Every click is a strike: nobody can be clicked, inspected or carried off until the fight is
     over.

@@ -141,9 +141,10 @@ export class UI {
     setTimeout(() => this.nextBanner(), 3900);
   }
 
-  say(npc, text, duration = 3) {
+  say(npc, text, duration = 3, tone = '') {
     for (const b of this.bubbles) if (b.npc === npc) b.until = 0;
     const div = el('div', 'bubble');
+    if (tone) div.classList.add(tone); // ('boss': a great enemy's words, in red)
     // *asterisks* mark a gesture rather than words
     for (const part of text.split(/(\*[^*]+\*)/)) {
       if (/^\*[^*]+\*$/.test(part)) div.append(el('i', null, part.slice(1, -1)));
