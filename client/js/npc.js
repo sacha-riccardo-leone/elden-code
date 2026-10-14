@@ -126,13 +126,15 @@ export class SpriteBody {
     this.scene = scene;
     this.facing = 1;
     this.frame = -1;
+    this.shown = 0; // the facing the texture last drew (`facing` is set freely; tick catches it up)
     this.anim = null;
   }
 
   setFrame(index, facing) {
-    if (index === this.frame && facing === this.facing) return;
+    if (index === this.frame && facing === this.shown) return;
     this.frame = index;
     this.facing = facing;
+    this.shown = facing;
     const { cols, rows } = this.sheet;
     const col = index % cols;
     const row = Math.floor(index / cols);

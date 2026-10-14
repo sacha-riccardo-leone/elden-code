@@ -1,7 +1,7 @@
 // The Guardian Golem's fight (fight.js hands him over to this; his drawings are heroes/golem.js).
 //
 // Stone turns every blow but those on his cracked ankle, low on his back leg, and those do him
-// little harm. Enough of them, though (thine and the fighters'), and the
+// little harm. Enough of them, though (thine, and the fighters', which count for half), and the
 // next time he walks the ankle gives way: he passes out and falls on his face, and for a few
 // seconds the fire in his ribcage lies open, a golden circle on the floor beside it. Blows struck
 // from inside the circle wound him deeply, from anywhere else not at all. Then he gets up (his fall
@@ -32,10 +32,13 @@ export const GOLEM = {
   speed: 1.6,
   // the cracked ankle: what a blow on it does, how many it takes for the next walk to fell him
   // (a fighter's counts for `weight` of one), and how near a blow must land to it
-  ankle: { player: 12, fighter: 3, need: 8, weight: 1, r: 1.2 },
+  ankle: { player: 12, fighter: 3, need: 15, weight: 0.5, r: 1.2 },
   // the fire in his chest, felled: what a blow from inside its circle does, the circle, and how
   // long he lies there
-  heart: { player: 150, fighter: 30, r: 2.1, down: 6 },
+  heart: { player: 110, fighter: 22, r: 2.1, down: 6 },
+  // how he turns (think): he keeps to one foe `keep` seconds; one more than `dead` behind him he
+  // turns round to once it has stayed there `after` seconds, and never twice within `every`
+  turn: { keep: [3, 5], dead: 1.2, after: 0.7, every: 1.6 },
   hurt: { swing: 26, lunge: 26, wave: 12, air: 14, slam: 14, last: 20, meteor: 18 }, // to thee (of 100)
   wave: { speed: 15, band: 1.1, swing: 8, slam: 10, last: 34 }, // shockwaves: their pace, and how far each rolls
   swing: { r: 2.2 }, // where the axe lands
@@ -72,6 +75,11 @@ export class GolemMind {
     this.px = b.body.sheet.px;
     this.ankle = 0; // blows on the ankle since he last got up
     this.weakT = 0; // how long he's walked on it, given way
+    this.tgt = null; // the foe he's after (think), kept a while
+    this.retarget = 0;
+    this.turnT = 0; // how long it has been behind him
+    this.sinceTurn = 9; // since he last turned round
+    this.walking = false;
     this.heart = null; // felled: the circle by his chest { x, z, r, decal }
     this.axe = null; // his axe, planted in the ground (the fire)
     this.slamIn = rand(12, 16);
@@ -190,49 +198,76 @@ export class GolemMind {
   // ------------------------------------------------------------------------------------------
   // his mind
 
-  // Ready: a foe to face, a blow to choose, or a walk into its lane (and, given way, a fall).
+  // Ready: a foe to face, a blow to choose, or a walk into its lane (and, given way, a fall). He's
+  // slow to change his mind (GOLEM.turn): he keeps to one foe a few seconds rather than whoever
+  // happens to be nearest (the fighters run round him for his ankle), turns round only once it
+  // has stayed behind him a moment, and not again straight after; and he sets off only for a
+  // place well away from him (a little short of it is near enough).
   think(dt, fast) {
     const b = this.b;
     const f = this.fight;
+    const T = GOLEM.turn;
     b.cd -= dt * fast;
     this.slamIn -= dt * fast;
     this.fireIn -= dt * fast;
     b.idleT += dt;
+    this.sinceTurn += dt;
     if (this.weak) this.smoulder(dt);
-    const tgt = f.target(b);
-    if (!tgt) { b.pose('idle'); return false; }
+    // his foe: kept a while, unless it's left the fight
+    this.retarget -= dt;
+    if (!this.tgt || this.retarget <= 0 || !f.foes().includes(this.tgt)) {
+      this.tgt = f.target(b);
+      this.retarget = rand(...T.keep);
+    }
+    const tgt = this.tgt;
+    if (!tgt) { this.walking = false; b.pose('idle'); return false; }
     const dx = tgt.pos.x - b.pos.x;
     const dz = tgt.pos.y - b.pos.y;
-    if (Math.abs(dx) > 0.6) b.body.facing = dx > 0 ? 1 : -1;
+    // turning round to it, once it has stayed behind him a moment
+    const behind = dx * b.body.facing < -T.dead;
+    this.turnT = behind ? this.turnT + dt : 0;
+    if (behind && this.turnT >= T.after && this.sinceTurn >= T.every) {
+      b.body.facing = -b.body.facing;
+      this.turnT = 0;
+      this.sinceTurn = 0;
+      return false;
+    }
+    // (his swing and lunge go where he faces; the slam and the fire, all round him)
+    const ahead = dx * b.body.facing > 0;
     if (!this.weak && b.cd <= 0) {
       const ax = Math.abs(dx);
       const inLane = Math.abs(dz) < b.kind.lane;
       let move = null;
       if (this.fireIn <= 0) move = 'fire';
       else if (this.slamIn <= 0 || f.foesWithin(b, 5) >= 3) move = 'slam';
-      else if (inLane && ax < 7.5) move = Math.random() < 0.65 ? 'swing' : 'lunge';
-      else if (inLane && ax < 15) move = 'lunge';
+      else if (ahead && inLane && ax < 7.5) move = Math.random() < 0.65 ? 'swing' : 'lunge';
+      else if (ahead && inLane && ax < 15) move = 'lunge';
       else if (b.idleT > 6) move = 'slam';
       if (move) {
         if (move === 'fire') { this.fireIn = rand(...GOLEM.fireEvery); this.slamIn = Math.max(this.slamIn, 8); }
         if (move === 'slam') this.slamIn = rand(...GOLEM.slamEvery);
+        this.walking = false;
         this.begin(move);
         return false;
       }
     }
-    // into its lane, at the swing's distance; given way, he keeps shifting about (and soon falls)
-    const side = Math.sign(dx) || b.body.facing;
-    let gx = tgt.pos.x - side * b.kind.spacing;
+    // his place: in its lane, the swing's distance short of it (waiting, while it's behind him,
+    // to turn round first); given way, he shifts on anyway (and soon falls)
+    let gx = tgt.pos.x - b.body.facing * b.kind.spacing;
     let gz = tgt.pos.y;
-    if (this.weak && Math.hypot(gx - b.pos.x, gz - b.pos.y) < 1.5) { gx = b.pos.x - side * 3; gz = b.pos.y; }
+    if (this.weak && Math.hypot(gx - b.pos.x, gz - b.pos.y) < 1.5) { gx = b.pos.x + b.body.facing * 3; gz = b.pos.y; }
+    else if (behind && !this.weak) { gx = b.pos.x; gz = b.pos.y; }
     const d = Math.hypot(gx - b.pos.x, gz - b.pos.y);
-    if (d < 0.3) { b.pose('idle'); return false; }
+    if (d < (this.walking ? 0.35 : 1.2)) { this.walking = false; b.pose('idle'); return false; }
+    this.walking = true;
     // walking on the cracked ankle, given way: a few steps, and down he goes
     if (this.weak) {
       this.weakT += dt;
       if (this.weakT > 0.7) { this.fall(); return false; }
     }
-    const step = Math.min(d, b.kind.speed * fast * dt);
+    // (backing off from a foe too close in front, he goes slower)
+    const back = (gx - b.pos.x) * b.body.facing < -0.3 ? 0.6 : 1;
+    const step = Math.min(d, b.kind.speed * back * fast * dt);
     f.shift(b, ((gx - b.pos.x) / d) * step, ((gz - b.pos.y) / d) * step);
     b.pose('walk');
     return true;

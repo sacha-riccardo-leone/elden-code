@@ -301,11 +301,15 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
   idle (breathing) and walk are rigged from the idle drawing.
   - **Weak points:** stone turns every blow except those on his **cracked ankle**, low on his back
     leg. Blows elsewhere do nothing (a puff of stone chips), and blows on the ankle do little (12).
-    After 8 ankle blows (yours and the fighters' alike) the ankle smoulders, and the next time he
-    walks it gives way. He **passes out** and falls on his face, and a **golden circle** appears on
-    the floor by the fire in his chest. For 6 seconds, blows struck from inside the circle deal
-    150 (a fighter's 30); from anywhere else, nothing. Then he gets up (the fall played
+    After 15 ankle blows (yours; a fighter's counts for half) the ankle smoulders, and the next
+    time he walks it gives way. He **passes out** and falls on his face, and a **golden circle**
+    appears on the floor by the fire in his chest. For 6 seconds, blows struck from inside the
+    circle deal 110 (a fighter's 22); from anywhere else, nothing. Then he gets up (the fall played
     backwards), the ankle whole again. A line in the log explains each step the first time.
+  - **Turning:** he's slow to change his mind. He keeps to one foe for a few seconds, turns round
+    only once it has stayed behind him a moment (never twice within a second and a half), and his
+    swing and lunge go only where he faces. Getting at his ankle, on his back leg, means getting
+    round him between turns.
   - **Shockwaves:** what hurts most is what his blows shake loose. A shockwave rolls out over the
     floor as a ring of dust, far wider than the axe. Dodge through it (Space) as it reaches you.
     The fighters hop them, mostly.
