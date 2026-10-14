@@ -20,7 +20,7 @@
 //           marks where he'll come down, leaps, and lands in a crack of stone and flying debris.
 
 import * as THREE from 'three';
-import { ARENA, HUB, HUB_LAYOUT, CROWD, LINE } from './config.js';
+import { ARENA, HUB, HUB_LAYOUT, CROWD, LINE, BOSS_CAM } from './config.js';
 import { SpriteBody } from './npc.js';
 import { Crescent, Decal, Spike } from './bossfx.js';
 
@@ -170,6 +170,8 @@ export class Fight {
     this.ctx = ctx;
     this.state = 'idle'; // idle, rising, gathering, fighting, won, ending
     this.sealed = false; // thou in the arena with him, the way out walled with fog (update)
+    this.focus = false; // the camera on him (Q), or on thee
+    this.introUntil = 0; // till then, as he enters, it shows him
     this.boss = null;
     this.fx = []; // his magic, living on by itself: flying crescents, lances, fading light, cracks
     this.cause = null;
@@ -190,6 +192,8 @@ export class Fight {
       hp: document.getElementById('hp'),
       hpBar: document.querySelector('#hp i'),
       party: document.getElementById('party'),
+      focusHint: document.getElementById('focus-hint'),
+      focusText: document.querySelector('#focus-hint span'),
       hurt: document.getElementById('hurt'),
       carry: document.getElementById('carry'),
       carryList: document.querySelector('#carry .list'),
@@ -472,10 +476,27 @@ export class Fight {
 
   // Where the camera should look while thou fightest him on the arena (main.js), or null:
   // between thee and him, and high enough to keep him whole.
+  // While thou fightest him on the arena: as he enters, him; then, with the focus on him (Q), between
+  // thee and him; otherwise null (the camera follows thee, as ever). `dist`: how far back it pulls.
   aim(me) {
     const b = this.boss;
-    if (!b || !b.alive || this.state !== 'fighting' || !this.inArena(me)) return null;
-    return [me.pos.x + (b.pos.x - me.pos.x) * 0.45, 2.6, me.pos.y + (b.pos.y - me.pos.y) * 0.45];
+    if (!this.facing(me)) return null;
+    if (this.clock < this.introUntil) return { at: [b.pos.x, 2.6, b.pos.y], dist: BOSS_CAM.far };
+    if (this.focus) return { at: [me.pos.x + (b.pos.x - me.pos.x) * 0.45, 2.6, me.pos.y + (b.pos.y - me.pos.y) * 0.45], dist: BOSS_CAM.far };
+    return { at: null, dist: BOSS_CAM.near };
+  }
+
+  // Thou, up against him on the arena.
+  facing(me) {
+    const b = this.boss;
+    return !!(me && b && b.alive && this.state === 'fighting' && !this.ctx.pilot.dead && this.inArena(me));
+  }
+
+  // Q: the camera's focus on him, or back on thee (as he enters: straight to the focus on him).
+  toggleFocus() {
+    if (!this.facing(this.ctx.pilot.npc)) return;
+    if (this.clock < this.introUntil) { this.introUntil = 0; this.focus = true; return; }
+    this.focus = !this.focus;
   }
 
   // Everyone on the arena he could strike: thee (`me`), and the fighters still standing.
@@ -1115,6 +1136,8 @@ export class Fight {
           const [bx, bz] = world.arena.point('boss');
           this.boss = new Boss(this.ctx, bx, bz);
           this.lagHp = this.boss.hp;
+          this.focus = false;
+          this.introUntil = this.clock + BOSS_CAM.intro; // (the camera shows him a moment, then thee)
           this.ctx.particles.emit({
             pos: [bx, 1.5, bz], spread: [1.2, 2, 0.8], vel: [0, 1.5, 0], velSpread: [1, 1, 0.6],
             color: ['#2a1a1a', '#6a2a2a', '#ff5a3a'], size: 0.14, life: 2, count: 80, drag: 0.6, intensity: 1.4,
@@ -1287,6 +1310,10 @@ export class Fight {
       el.bossDmg.textContent = this.clock < this.dmgUntil ? String(this.dmgShown) : '';
     }
     const pilot = this.ctx.pilot;
+    // the floating hint, once he's been shown: how to turn the camera on him, or off him again
+    const hint = this.facing(pilot.npc) && this.clock >= this.introUntil;
+    el.focusHint.hidden = !hint;
+    if (hint) el.focusText.textContent = this.focus ? 'to free the camera' : 'to focus on the boss';
     el.hp.hidden = !(this.active || pilot.hp < pilot.maxHp);
     el.hpBar.style.width = `${(100 * pilot.hp) / pilot.maxHp}%`;
     this.updateParty();

@@ -56,7 +56,8 @@ can **become any character**: click one and choose **Become …** in the fan ove
   - **W A S D** or the arrow keys to walk, **Shift** to run; cross the bridges to other islands.
     The camera stays on you.
   - **Left click** strikes with the character's own attack (a Tarnished in front of you staggers;
-    it's all for show). **Space** dodges. **C** crouches.
+    it's all for show). **Space** dodges. **C** crouches. **Q**, in a fight against a great
+    enemy, turns the camera's focus on it and back on you.
   - **B** (or clicking yourself) opens your fan of gestures over your head (or **1–8**). Nearby
     Tarnished may answer.
   - **E** uses what you stand by (a prompt shows it): the forge, the scrolls, the war table, the
@@ -289,8 +290,13 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
   - Below half health he grows wild, and his blows come quicker.
 - **The fight:**
   - Enough damage in quick succession breaks his stance: he reels and takes more from every blow.
-  - While you fight on the arena, the camera pulls back to keep him in view. Every click is a
-    strike: nobody can be clicked, inspected or carried off until the fight is over.
+  - As you step in and he enters, the camera shows him for a few seconds, then comes back to
+    you. A floating hint at the bottom of the screen says **Press Q to focus on the boss**. Q
+    turns the camera's focus on him (you and him both in view, pulled back to keep his height),
+    and Q again gives it back to you. The camera stays a little further back than usual all
+    fight, and returns to your own zoom when it's over (`BOSS_CAM` in `client/js/config.js`).
+  - Every click is a strike: nobody can be clicked, inspected or carried off until the fight is
+    over.
   - The sessions' banners across the screen (a region rising, a quest fulfilled or failed, an
     incantation) don't show while you fight on the arena, and aren't kept for after it. Only the
     fight's own banners do. The message log still lists everything.

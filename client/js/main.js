@@ -188,6 +188,7 @@ new Input({
     crouch: () => pilot.toggleCrouch(),
     interact: () => { if (ui.tableOpen) ui.closeTable(); else interact.press(); },
     dodge: () => pilot.dodge(),
+    focus: () => fight.toggleFocus(), // Q: the camera on a great enemy, or back on thee
     // B (or a click on thyself): thine own fan of gestures, over thy head
     fan: () => {
       const me = pilot.npc;
@@ -291,6 +292,8 @@ resize();
 
 let last = performance.now();
 let t = 0;
+let camMode = null; // in a fight on the arena: 'boss' (showing him) or 'thee' (following thee)
+let camBase = FOLLOW_DIST; // how far back the camera was before the fight took it over
 
 function step(dt) {
   t += dt;
@@ -298,11 +301,19 @@ function step(dt) {
   if (me) {
     if (overview && pilot.moving) endOverview();
     if (!overview) {
-      // fighting a great enemy on the arena: the camera looks between thee and him, pulled back
-      // far enough to keep his height in view
+      // fighting a great enemy on the arena: the camera shows him as he enters, then follows thee
+      // (or, with its focus on him, Q, looks between thee and him), pulled back far enough to keep
+      // his height in view
       const aim = fight.aim(me);
-      if (aim) rig.distGoal = Math.max(rig.distGoal, 30);
-      const [x, y, z] = aim || [me.pos.x, 0.8, me.pos.y];
+      // (how far back: set as it changes between showing him and following thee, so a scroll of
+      // the wheel still zooms; and as the fight ends, back to how far it was before)
+      const mode = aim ? (aim.at ? 'boss' : 'thee') : null;
+      if (mode !== camMode) {
+        if (!camMode) camBase = rig.distGoal;
+        rig.distGoal = mode ? Math.max(camBase, aim.dist) : camBase;
+        camMode = mode;
+      }
+      const [x, y, z] = aim?.at || [me.pos.x, 0.8, me.pos.y];
       rig.target.set(x, y, z - 0.6);
     }
   }

@@ -868,6 +868,40 @@ body.in-battle .region-label { pointer-events: none; cursor: default; } /* mid-f
   pointer-events: none;
 }
 #hp[hidden] { display: none; }
+/* in a fight on the arena: how to turn the camera on the great enemy, or off it (fight.js) */
+#focus-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 132px;
+  transform: translateX(-50%);
+  font-family: var(--serif-title);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-shadow: 0 1px 2px #000, 0 0 10px #000;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: hintFloat 2.6s ease-in-out infinite;
+}
+#focus-hint[hidden] { display: none; }
+#focus-hint kbd {
+  display: inline-block;
+  min-width: 20px;
+  margin: 0 4px;
+  padding: 2px 6px;
+  border: 1px solid var(--gold);
+  background: rgba(12, 10, 15, 0.8);
+  color: var(--gold-hi);
+  font: 600 12px var(--serif-title);
+  text-align: center;
+  box-shadow: 0 0 8px rgba(210, 178, 122, 0.35);
+}
+@keyframes hintFloat {
+  0%, 100% { transform: translate(-50%, 0); opacity: 0.85; }
+  50% { transform: translate(-50%, -5px); opacity: 1; }
+}
+
 /* the others in the fight, under thine (fight.js updateParty) */
 #party {
   position: fixed;

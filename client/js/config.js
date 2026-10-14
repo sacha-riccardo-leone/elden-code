@@ -180,6 +180,15 @@ export const GUIDE = {
   lift: 1.6,      // drawn this much nearer the camera than it lies, so low things can't hide it
 };
 
+// The camera in a fight against a great enemy (fight.js aim): as thou steppest in it shows him
+// for a moment, then comes back to thee; Q turns its focus on him (thee and him both in view) and
+// back off again.
+export const BOSS_CAM = {
+  intro: 3.2,    // seconds it holds on him as he enters
+  far: 30,       // how far back it pulls while it frames him
+  near: 24,      // how far back it stays the rest of the fight
+};
+
 export const TIMING = {
   restAtGrace: 25,        // seconds a finished session sits at grace before wandering
   chatCooldown: [22, 55], // seconds between conversations for one NPC

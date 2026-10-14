@@ -150,6 +150,7 @@ export class Input {
     if (e.code === 'KeyH' || e.key === 'Home') this.travel.home();
     if (e.code === 'KeyM' || e.key === '0') this.travel.overview();
     if (e.code === 'KeyC') this.actions.crouch();
+    if (e.code === 'KeyQ') this.actions.focus();
     if (e.code === 'KeyB') this.actions.fan();
     const n = Number(e.key);
     if (n >= 1 && n <= GESTURES.length) this.actions.emote(GESTURES[n - 1].key); // only thou gesturest
