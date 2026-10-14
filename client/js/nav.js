@@ -126,9 +126,11 @@ export class Nav {
     return true;
   }
 
-  // Returns [x, z] waypoints ending at the goal (or as close as reachable).
-  path(from, to) {
+  // Returns [x, z] waypoints ending at the goal (or as close as reachable). `avoid`: circles
+  // [x, z, r] to go round as if they were walls (characters standing in the way, crowd.js).
+  path(from, to, avoid = null) {
     this.sync();
+    if (avoid?.length) return this.around(avoid, () => this.path(from, to));
     if (this.lineOfSight(from, to) && this.walkable(to[0], to[1])) return [to];
     const [si, sj] = this.nearestFree(from[0], from[1]);
     const [gi, gj] = this.nearestFree(to[0], to[1]);
@@ -177,7 +179,7 @@ export class Nav {
         }
       }
     }
-    if (!found) return [to];
+    if (!found) return Object.assign([to], { failed: true }); // (no way there: straight at it)
     const cells = [];
     for (let n = goal; n !== -1 && n !== start; n = came[n]) cells.push(this.toWorld(n % W, Math.floor(n / W)));
     cells.reverse();
@@ -191,6 +193,29 @@ export class Nav {
       anchor = cells[k];
     }
     return out.length ? out : [to];
+  }
+
+  // `plan()` with the cells under each circle [x, z, r] blocked for the while, the grid as it was after.
+  around(avoid, plan) {
+    const taken = [];
+    for (const [x, z, r] of avoid) {
+      const [i0, j0] = this.toCell(x - r, z - r);
+      const [i1, j1] = this.toCell(x + r, z + r);
+      for (let j = j0; j <= j1; j++) {
+        for (let i = i0; i <= i1; i++) {
+          const [cx, cz] = this.toWorld(i, j);
+          const k = j * this.w + i;
+          if ((cx - x) ** 2 + (cz - z) ** 2 > r * r || this.blocked[k]) continue;
+          this.blocked[k] = 1;
+          taken.push(k);
+        }
+      }
+    }
+    try {
+      return plan();
+    } finally {
+      for (const k of taken) this.blocked[k] = 0;
+    }
   }
 
   randomPoint(rand, rect) {

@@ -45,7 +45,7 @@ export const STATIONS = {
   grace: {
     name: 'Site of Grace',
     pos: [0, -2.6],
-    slots: ring(0, -2.6, 1.6, 8),
+    slots: ring(0, -2.6, 1.65, 8), // (room for each to sit, crowd.js)
   },
   forge: {
     name: 'the Forge',
@@ -127,6 +127,32 @@ export function stationForTool(tool) {
 export const STATION_LABEL = {
   forge: 'Forge', scriptorium: 'Scriptorium', table: 'War Table', ritual: 'Ritual Circle',
   tower: 'Raven Tower', summon: 'Summoning', cast: 'Incantation', grace: 'Grace', gate: 'Fog Gate',
+};
+
+// Characters are solid (crowd.js): each stands on a circle no one else can walk into (the Noble
+// Sorcerers' spectres excepted, floating through everything). The tuning of how they bump, shove
+// and pass one another:
+export const CROWD = {
+  radius: 0.5,          // a Tarnished's (and thy) circle, in world units
+  bossRadius: 1.5,      // a great enemy's (he's never pushed, and never walked through)
+  // how heavy each is: the heavier, the less a shove moves them (and the more it slows thee)
+  weight: {
+    default: 1, champion: 2, runelord: 1.7, paladin: 1.6, twofold: 1.6, knight: 1.4,
+    ronin: 1, bloodbender: 0.9, bandit: 0.9, fortuna: 0.8, queen: 0.8,
+  },
+  playerWeight: 1.2,    // thine, as whoever thou art (NPCs never push thee; they go round)
+  shove: 1.4,           // thy pace shoving someone of weight w: shove × playerWeight / (playerWeight + w) of thy own
+  aside: 0.7,           // how much a shove sends them to the side, out of thy way, rather than on ahead of thee
+  wallPad: 0.25,        // no push ever brings anyone nearer than this to a wall, a ledge or the walkable edge
+  avoidRange: 3.5,      // how far about it an NPC watches for others to steer round
+  avoidHorizon: 1.4,    // seconds ahead it foresees where they'll be (from where they're heading)
+  avoidMargin: 0.3,     // room it leaves them as it passes
+  avoidStrength: 1.6,   // how hard it turns aside (against 1 for going straight on)
+  stuckAfter: 1.5,      // seconds held up before it plans a new way round whoever's blocking it
+  yieldTime: 1.4,       // seconds the one that gives way stands aside when two block each other
+  returnDelay: 0.8,     // seconds pushed off its spot (a seat, a station) before it steps back to it
+  fightSpacing: 1.8,    // room fighters keep from one another, and from thee, round a great enemy
+  passes: 4,            // collision passes per frame
 };
 
 export const TIMING = {

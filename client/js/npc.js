@@ -6,11 +6,12 @@
 
 import * as THREE from 'three';
 import { ANIMS, buildIcon, makeLook, sheetForLook } from './sprites.js';
-import { STATIONS, TIMING, FAST_TRAVEL, HUB_LAYOUT } from './config.js';
+import { STATIONS, TIMING, FAST_TRAVEL, HUB_LAYOUT, CROWD } from './config.js';
 import { nameFor, classTitle } from './lore.js';
 
 const SPEED = { wander: 1.25, rest: 2.3, visit: 2.0, journey: 2.7, urgent: 3.6 };
 const URGENT = new Set(['work', 'wait', 'channel', 'leave']);
+const SETTLED = new Set(['work', 'wait', 'rest', 'visit', 'gather']); // kept to a spot (its slot) once there
 
 // One quad per sheet size, standing on its bottom edge. The normals point up toward the sky so
 // overhead and torch light reach the sprite's face.
@@ -314,6 +315,13 @@ export class Npc {
     this.arrived = true;
     this.slot = null;
     this.travel = null;
+    // making its way among the others (crowd.js): how long it's been held up, giving way to
+    // someone (who goes first when two block each other: the higher rank), pushed off its spot
+    this.stuckT = 0;
+    this.wp = null;
+    this.yielding = null;
+    this.rank = Math.random();
+    this.pushedT = 0;
     this.idleSince = performance.now() / 1000;
     this.visitUntil = 0;
     this.action = null;
@@ -535,6 +543,10 @@ export class Npc {
     }
     this.path = this.ctx.nav.path([this.pos.x, this.pos.y], [x, z]);
     this.arrived = false;
+    this.yielding = null;
+    this.stuckT = 0;
+    this.wp = null;
+    this.steerV = null;
   }
 
   // Dissolve into golden light and reappear at the Site of Grace nearest the destination.
@@ -909,25 +921,219 @@ export class Npc {
     });
   }
 
-  // Walks the current path; returns true while moving.
+  // Walks the current path; returns true while moving. On the way it steers round the others
+  // (crowd.steer), plans a new way round anyone holding it up too long (`unstick`), and when two
+  // block each other the one of lower rank gives way.
   followPath(dt) {
+    if (this.yielding) return this.giveWay(dt);
     if (!this.path.length) return false;
+    const crowd = this.ctx.crowd;
     const [tx, tz] = this.path[0];
     const dx = tx - this.pos.x;
     const dz = tz - this.pos.y;
     const d = Math.hypot(dx, dz);
-    const step = this.speedFor() * dt;
-    if (d <= step || d < 0.04) {
-      this.pos.set(tx, tz);
+    const last = this.path.length === 1;
+    const speed = this.speedFor();
+    const step = speed * dt;
+    // (a waypoint on the way is passed close by; the last is stepped onto)
+    if (d <= step || d < 0.04 || (!last && d < 0.4)) {
+      if (d <= step) this.pos.set(tx, tz);
       this.path.shift();
-      if (!this.path.length) { this.arrived = true; this.arrivedAt = performance.now() / 1000; }
-    } else {
-      this.pos.x += (dx / d) * step;
-      this.pos.y += (dz / d) * step;
-      if (Math.abs(dx) > 0.02) this.body.facing = dx > 0 ? 1 : -1;
+      if (!this.path.length) this.arrive();
+      this.body.play('walk');
+      return true;
     }
+    if (crowd) {
+      // someone stands on the very spot it's making for: it stops beside them (and steps onto it
+      // once they've gone, `settle`)
+      const o = last && crowd.occupant(tx, tz, this);
+      if (o && d < CROWD.radius + o.r + 0.15) {
+        this.path = [];
+        this.arrive();
+        return false;
+      }
+      if (this.unstick(dt, dx / d, dz / d)) return true;
+      if (!this.path.length) return false;
+    }
+    // steering round the others, smoothly (no turning this way and that from one frame to the
+    // next); not on the last steps onto its spot, which may well be right beside someone
+    const steer = crowd && !(last && d < CROWD.radius * 2 + CROWD.avoidMargin);
+    let [vx, vz] = steer ? crowd.steer(this, dx / d, dz / d, speed) : [(dx / d) * speed, (dz / d) * speed];
+    const sv = (this.steerV ??= { x: vx, z: vz });
+    const k = Math.min(1, dt * 8);
+    sv.x += (vx - sv.x) * k;
+    sv.z += (vz - sv.z) * k;
+    vx = sv.x;
+    vz = sv.z;
+    const nx = this.pos.x + vx * dt;
+    const nz = this.pos.y + vz * dt;
+    if (!crowd || crowd.canStep(this.pos.x, this.pos.y, nx, nz)) this.pos.set(nx, nz);
+    else {
+      // turned aside into a wall, or off the edge: straight on along the path instead. A path found
+      // on the nav grid is trusted as it goes, as it always was (it may cut a corner a hair's
+      // breadth past the walkable edge, onto a bridge), though never into a wall; a straight line
+      // at a goal it found no way to is trusted no further than the ground goes.
+      vx = dx;
+      const sx = this.pos.x + (dx / d) * step;
+      const sz = this.pos.y + (dz / d) * step;
+      const nav = this.ctx.nav;
+      if (this.path.failed ? crowd.ground(sx, sz, 0) : !this.ctx.world.isBlocked(sx, sz, 0)) this.pos.set(sx, sz);
+      else if (this.goal && this.ctx.director.clock - (this.replanned ?? -9) > 0.5) {
+        // pushed or turned so far off its path that the way on to the next waypoint runs into a
+        // wall: a new path from here
+        this.replanned = this.ctx.director.clock;
+        this.path = nav.path([this.pos.x, this.pos.y], this.goal);
+        this.wp = null;
+      } else {
+        // (stopped short: back to the middle of the nearest open cell of the nav grid first, from
+        // where its paths run)
+        const [cx, cz] = nav.toWorld(...nav.nearestFree(this.pos.x, this.pos.y));
+        const ex = cx - this.pos.x;
+        const ez = cz - this.pos.y;
+        const ed = Math.hypot(ex, ez);
+        if (ed > 0.01) {
+          const k = Math.min(1, step / ed);
+          crowd.move(this, ex * k, ez * k);
+        }
+      }
+    }
+    if (Math.abs(vx) > 0.1) this.body.facing = vx > 0 ? 1 : -1;
     this.body.play('walk');
     return true;
+  }
+
+  arrive() {
+    this.arrived = true;
+    this.arrivedAt = performance.now() / 1000;
+    this.wp = null;
+    this.steerV = null;
+  }
+
+  // Held up (no nearer the next waypoint for CROWD.stuckAfter seconds, however much it shuffles
+  // about): when it and another block each other, the one of lower rank gives way; otherwise it
+  // plans a new way round whoever stands in its way (or simply anew, if it's caught on nothing
+  // but a wall). True while giving way.
+  unstick(dt, ux, uz) {
+    const wp = this.path[0];
+    const d = Math.hypot(wp[0] - this.pos.x, wp[1] - this.pos.y);
+    if (this.wp !== wp || d < this.bestD - 0.15) {
+      this.wp = wp;
+      this.bestD = d;
+      this.stuckT = 0;
+    } else this.stuckT += dt;
+    if (this.stuckT < CROWD.stuckAfter) return false;
+    this.wp = null;
+    this.stuckT = 0;
+    const now = this.ctx.director.clock;
+    this.heldUp = now;
+    // held up a step from where it's going: it stops there (and steps onto its spot, if it has one,
+    // once that's free: `settle`)
+    const end = this.path[this.path.length - 1];
+    if (this.path.length === 1 && Math.hypot(end[0] - this.pos.x, end[1] - this.pos.y) < CROWD.radius * 2 + 0.3) {
+      this.path = [];
+      this.arrive();
+      return false;
+    }
+    const blockers = this.ctx.crowd.blockers(this, ux, uz);
+    const rival = blockers.find((b) => {
+      const o = b.who;
+      // (one giving way itself, backing into it, it lets by as well)
+      if (!o.path?.length || o.piloted || o.yielding?.rival === this || (o.rank < this.rank && !o.yielding)) return false;
+      const v = o.vel || { x: 0, z: 0 };
+      return o.stuckT > 0.3 || now - (o.heldUp ?? -9) < 1 || v.x * ux + v.z * uz < -0.2; // held up too, or coming this way
+    });
+    if (rival) {
+      this.standAside(rival.who, ux, uz);
+      return true;
+    }
+    if (this.goal) {
+      // round those standing still in the way (a moving one will have gone on by the time it gets there)
+      const still = blockers.filter((b) => !b.who.vel || Math.hypot(b.who.vel.x, b.who.vel.z) < 0.4);
+      const avoid = still.map((b) => [b.pos.x, b.pos.y, b.r + CROWD.radius * 0.6]);
+      const from = [this.pos.x, this.pos.y];
+      const round = this.ctx.nav.path(from, this.goal, avoid);
+      this.path = round.failed ? this.ctx.nav.path(from, this.goal) : round; // (no way round: the way there is)
+    }
+    return false;
+  }
+
+  // Giving way to `rival` (who goes first): out of its way, to its own right if there's room there
+  // (everyone keeps to the right), else back the way it came, and on back for as long as the other
+  // keeps coming (out of a narrow way, if that's where they met); then, once the other has gone
+  // by, on to where it was going by a new path.
+  standAside(rival, ux, uz) {
+    this.yielding = { t: 0, rival, ux, uz, to: this.asideSpot(ux, uz) };
+  }
+
+  asideSpot(ux, uz) {
+    const crowd = this.ctx.crowd;
+    const { x, y: z } = this.pos;
+    const pad = 0.1; // (squeezed into a narrow way, it may well stand nearer the wall than usual)
+    for (const [ox, oz, s] of [[-uz, ux, 1.2], [-uz, ux, 0.7], [-ux, -uz, 1.0], [-ux, -uz, 0.5]]) {
+      const tx = x + ox * s;
+      const tz = z + oz * s;
+      if (crowd.ground(tx, tz, pad) && crowd.ground(x + ox * s * 0.5, z + oz * s * 0.5, pad) && !crowd.occupant(tx, tz, this)) return [tx, tz];
+    }
+    return [x, z];
+  }
+
+  giveWay(dt) {
+    const y = this.yielding;
+    y.t += dt;
+    const o = y.rival;
+    const rx = o.pos.x - this.pos.x;
+    const rz = o.pos.y - this.pos.y;
+    const dist = Math.hypot(rx, rz);
+    const v = o.vel || { x: 0, z: 0 };
+    const passed = rx * y.ux + rz * y.uz < -CROWD.radius * 2; // it's gone by
+    const gone = o.dead || o.travel || (!o.path?.length && !o.yielding);
+    const coming = v.x * -rx + v.z * -rz > 0.2 * dist;
+    if (passed || gone || y.t > CROWD.yieldTime * 5 || (y.t > CROWD.yieldTime && !coming && dist > CROWD.radius * 2 + 1)) {
+      this.yielding = null;
+      this.stuckT = 0;
+      this.wp = null;
+      this.steerV = null;
+      this.path = this.goal ? this.ctx.nav.path([this.pos.x, this.pos.y], this.goal) : [];
+      if (!this.path.length) this.arrive();
+      return true;
+    }
+    let dx = y.to[0] - this.pos.x;
+    let dz = y.to[1] - this.pos.y;
+    let d = Math.hypot(dx, dz);
+    if (d < 0.05 && dist < CROWD.radius * 2 + 0.5) {
+      // there, and it's still upon it: further aside (or back)
+      y.to = this.asideSpot(y.ux, y.uz);
+      dx = y.to[0] - this.pos.x;
+      dz = y.to[1] - this.pos.y;
+      d = Math.hypot(dx, dz);
+    }
+    if (d > 0.05) {
+      // (by the same rule as a push: sliding along a wall in the way, never into it)
+      const k = Math.min(1, (this.speedFor() * 0.9 * dt) / d);
+      if (!this.ctx.crowd.move(this, dx * k, dz * k)) y.to = [this.pos.x, this.pos.y];
+      if (Math.abs(dx) > 0.05) this.body.facing = dx > 0 ? 1 : -1;
+      this.body.play('walk');
+    } else {
+      this.body.facing = rx > 0 ? 1 : -1; // (watching it go by)
+      this.body.play('idle');
+    }
+    return true;
+  }
+
+  // Pushed off its spot (its seat, its place at a station, at grace or by the gate): once it has
+  // been off it a moment and nobody stands on it, it steps back onto it.
+  settle(dt) {
+    const s = this.slot;
+    if (!s || this.talk || !SETTLED.has(this.intent.kind) || Math.hypot(s.x - this.pos.x, s.z - this.pos.y) < 0.3) {
+      this.pushedT = 0;
+      return;
+    }
+    this.pushedT += dt;
+    if (this.pushedT < CROWD.returnDelay || this.ctx.crowd?.occupant(s.x, s.z, this)) return;
+    this.pushedT = 0;
+    this.goal = [s.x, s.z];
+    this.path = this.ctx.nav.path([this.pos.x, this.pos.y], this.goal);
+    this.arrived = false;
   }
 
   pursue(dt, t) {
@@ -937,6 +1143,8 @@ export class Npc {
       return false;
     }
     if (this.followPath(dt)) return true;
+    this.settle(dt);
+    if (this.path.length) return false; // (stepping back onto its spot, from the next frame)
     const now = performance.now() / 1000;
     switch (this.intent.kind) {
       case 'work': {

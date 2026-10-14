@@ -22,6 +22,7 @@ import { HUB_LAYOUT } from './config.js';
 import { Daylight } from './daylight.js';
 import { Interact } from './interact.js';
 import { Fight } from './fight.js';
+import { Crowd } from './crowd.js';
 import { PUBLIC_DEMO } from './mode.js';
 
 const canvas = document.getElementById('scene');
@@ -158,6 +159,8 @@ const fight = new Fight(ctx);
 ctx.fight = fight;
 ui.canSummon = () => fight.canSummon();
 ui.hushed = () => fight.inBattle(); // no session banners mid boss fight
+const crowd = new Crowd(ctx); // characters are solid
+ctx.crowd = crowd;
 document.getElementById('table-summon').addEventListener('click', () => {
   ui.closeTable();
   fight.start({ kind: 'summon' });
@@ -302,6 +305,7 @@ function step(dt) {
   world.update(dt, t, camera, rig.dist, director.hubVisitors || 0);
   director.update(dt, t);
   fight.update(dt, t);
+  crowd.resolve(dt); // once everyone has moved: nobody stands inside anybody
   document.body.classList.toggle('in-battle', fight.inBattle()); // (no labels to click mid-fight)
   particles.update(dt, t);
   ui.overview = rig.dist > 40;

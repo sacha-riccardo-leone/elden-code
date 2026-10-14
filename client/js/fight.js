@@ -20,7 +20,7 @@
 //           marks where he'll come down, leaps, and lands in a crack of stone and flying debris.
 
 import * as THREE from 'three';
-import { ARENA, HUB, HUB_LAYOUT } from './config.js';
+import { ARENA, HUB, HUB_LAYOUT, CROWD } from './config.js';
 import { SpriteBody } from './npc.js';
 import { Crescent, Decal, Spike } from './bossfx.js';
 
@@ -876,13 +876,15 @@ export class Fight {
       wx = (dx / d) * v;
       wz = (dz / d) * v;
     }
+    // (crowd.js keeps anyone from walking into anyone; this keeps them a little apart besides)
     const me = this.ctx.pilot.npc;
+    const room = CROWD.fightSpacing;
     for (const o of this.ctx.director.npcs.values()) {
       if (o === n || (!o.fighter && o !== me) || o.fighter?.dead) continue;
       const ox = n.pos.x - o.pos.x;
       const oz = n.pos.y - o.pos.y;
       const od = Math.hypot(ox, oz);
-      if (od > 0.01 && od < 1.4) { wx += (ox / od) * (1.4 - od) * 4; wz += (oz / od) * (1.4 - od) * 4; }
+      if (od > 0.01 && od < room) { wx += (ox / od) * (room - od) * 4; wz += (oz / od) * (room - od) * 4; }
     }
     if (live) {
       const bx = n.pos.x - b.pos.x;

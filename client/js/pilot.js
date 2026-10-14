@@ -50,6 +50,7 @@ export class Pilot {
     npc.path = [];
     npc.goal = null;
     npc.arrived = true;
+    npc.yielding = null;
     npc.talk = null;
     npc.inTalk = false;
     if (npc.action && npc.action.kind !== 'transform') npc.action = null;
@@ -86,10 +87,11 @@ export class Pilot {
     return this.ctx.world.isWalkArea(x, z) && !this.ctx.world.isBlocked(x, z, PAD);
   }
 
-  // One step along the held direction, sliding along whatever blocks the way.
+  // One step along the held direction, sliding along whatever blocks the way. Walking into
+  // someone shoves them aside (crowd.js), and slows thee down the heavier they are.
   walk(n, dt, h) {
-    const speed = h.run ? RUN : WALK;
     const len = Math.hypot(h.x, h.z);
+    const speed = (h.run ? RUN : WALK) * (this.ctx.crowd?.shoveFactor(n, h.x / len, h.z / len) ?? 1);
     const sx = (h.x / len) * speed * dt;
     const sz = (h.z / len) * speed * dt;
     const { x, y: z } = n.pos;

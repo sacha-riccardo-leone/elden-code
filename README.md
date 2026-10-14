@@ -71,6 +71,21 @@ can **become any character**: click one and choose **Become …** in the fan ove
   running. When you let go, it walks back to whatever the session is doing. If a generic
   Tarnished's session ends while you're them, you return to Maren.
 - **The Twofold:** if you're them at dusk or dawn, you can't move while they change form.
+- **Nobody walks through anybody** (`client/js/crowd.js`, tuned in `CROWD` in
+  `client/js/config.js`). Every character, you included, stands on a solid circle: in the open,
+  at the Hold and in a fight. A great enemy's circle is larger. Only the Noble Sorcerers'
+  spectres float through everyone.
+  - **You shove.** Walk into someone and they're pushed aside, out of your way. You slow down more
+    the heavier they are (each hero has a weight). Nobody can push a great enemy.
+  - **A push never stops anyone.** Someone walking somewhere is slowed or nudged, then carries on.
+    Someone pushed off their seat or their place at a station steps back once it's free. A push
+    never sends anyone into a wall, off a ledge or off the walkable ground.
+  - **NPCs never push you; they go round you.** They steer around anyone in their way, judging
+    where others are heading as well as where they stand. Two meeting head on both keep to their
+    right.
+  - **Held up for about 1.5 seconds,** an NPC plans a new path around the blocker. If two block
+    each other in a narrow way, one gives way: it backs off and steps aside, then goes on.
+  - **In a fight,** fighters keep some room between one another and you.
 
 Every time the world loads, the hand-drawn heroes are already seated at the Round Table in
 Roundtable Hold, before any island exists, and Maren rises from grace beside them. Each Claude Code
@@ -405,6 +420,8 @@ client/js/biomes.js     biome palettes, decor and particles
 client/js/build.js      island building helpers (local coords, merged static meshes)
 client/js/npc.js        a character: animation, pathing, emotes, dragging, spirits
 client/js/pilot.js      thee: whoever the player is (Maren, or anyone become), walked with the keyboard
+client/js/crowd.js      characters are solid: parting overlaps by weight, shoving, steering round others
+client/js/grace.js      the grace itself, the figure of golden light floating over every Site of Grace
 client/js/interact.js   E: using the stations and the Round Table
 client/js/arena.js      the Arena of Trials, north of the Hold
 client/js/fight.js      great enemies: what brings them, their attacks, the fighters, thy health
