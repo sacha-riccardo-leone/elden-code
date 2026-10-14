@@ -5,11 +5,12 @@
 //   Decal    – marks on the arena floor: the slam's ring and the light that fills it, the jump's
 //              landing zone, and the crack it leaves where it lands; and (the Guardian Golem's,
 //              golem.js) the golden circle by the fire in his chest as he lies felled.
-// The Golem's: Shockwave (rolling out over the floor from where his axe lands), AirWave (the shock
-// in the air flying on past the lunge's point), Meteor (a fireball falling out of the sky).
+// The Golem's: AirWave (the shock in the air flying on past the lunge's point), Meteor (a fireball
+// falling out of the sky). (His shockwaves along the ground ripple the floor itself: ripple.js.)
 
 import * as THREE from 'three';
 import { rng } from './pixel.js';
+import { rippling } from './ripple.js';
 
 const RED = {
   core: [255, 236, 226],
@@ -251,8 +252,10 @@ export class Decal {
   // a mark on the floor at (x, z), `size` across
   constructor(scene, kind, x, z, size, { glow = true, opacity = 1 } = {}) {
     const map = texture(DECALS[kind]());
-    const mat = glow ? glowing(map, opacity) : new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, opacity, alphaTest: 0.05 });
-    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(size, size), mat);
+    const mat = rippling(glow ? glowing(map, opacity) : new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, opacity, alphaTest: 0.05 }));
+    // (divided finely enough to bend with the floor when it ripples, ripple.js)
+    const seg = Math.max(1, Math.min(48, Math.ceil(size / 0.5)));
+    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(size, size, seg, seg), mat);
     this.mesh.rotation.x = -Math.PI / 2;
     this.mesh.position.set(x, 0.035, z);
     this.mesh.renderOrder = 3;
@@ -274,53 +277,6 @@ export class Decal {
 // the Guardian Golem's (golem.js)
 
 const DUST = { core: [255, 236, 200], hot: [236, 190, 130], mid: [176, 132, 92], deep: [104, 80, 64] };
-
-// A shockwave's front: a ring of churned dust and light at the edge, haze trailing inside it.
-function shockCanvas() {
-  const r = rng(Math.random() * 1000);
-  return canvasOf(128, 128, (put, w, h) => {
-    const c = w / 2 - 0.5;
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const d = Math.hypot(x - c, y - c);
-        const edge = 62 + (r() - 0.5) * 1.5;
-        if (d > edge) continue;
-        const k = (d - (edge - 9)) / 9; // 0 inside the band → 1 at its edge
-        if (k > 0) put(x, y, k > 0.75 ? DUST.core : k > 0.4 ? DUST.hot : DUST.mid, Math.round(255 * (0.55 + 0.45 * k)));
-        else if (d > edge - 20 && r() < 0.5) put(x, y, DUST.deep, Math.round(90 * (1 + k / 1.2)));
-      }
-    }
-  });
-}
-
-export class Shockwave {
-  // rolling out over the floor from (x, z) to radius R at `speed` (units a second)
-  constructor(scene, x, z, R, { speed = 15 } = {}) {
-    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), glowing(texture(shockCanvas())));
-    this.mesh.rotation.x = -Math.PI / 2;
-    this.mesh.position.set(x, 0.06, z);
-    this.mesh.renderOrder = 4;
-    this.mesh.scale.setScalar(0.5);
-    scene.add(this.mesh);
-    Object.assign(this, { scene, x, z, R, speed, r: 0.5 });
-  }
-
-  // returns false once it has spent itself
-  step(dt) {
-    this.r = Math.min(this.R, this.r + this.speed * dt);
-    this.mesh.scale.setScalar(this.r);
-    const k = this.r / this.R;
-    this.mesh.material.opacity = Math.max(0, 1 - k * k);
-    return this.r < this.R;
-  }
-
-  dispose() {
-    this.scene.remove(this.mesh);
-    this.mesh.material.map.dispose();
-    this.mesh.material.dispose();
-    this.mesh.geometry.dispose();
-  }
-}
 
 // The air shock: a ring of rippling air seen edge-on, a tall thin ellipse.
 function airCanvas() {

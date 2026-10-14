@@ -8,6 +8,7 @@ import * as T from './textures.js';
 import { rng } from './pixel.js';
 import { Builder, BRICK_TILE, scaleCylUV, scaleBoxUV, NOISE_GLSL, UV_VERT } from './build.js';
 import { Flame } from './fire.js';
+import { rippleBounds, rippling } from './ripple.js';
 
 const FLOOR = {
   stone: ['#3e3a37', '#45403c', '#393532', '#4a4440', '#403b37'],
@@ -36,6 +37,25 @@ const SEAL_FRAG = /* glsl */ `
     gl_FragColor = vec4(col, a);
   }
 `;
+
+// A disc of radius R in the xy plane (as CircleGeometry, uv likewise), divided into a grid of
+// `step`-sized squares: those past its edge are drawn in onto it, so the rim stays round.
+function discGeometry(R, step) {
+  const n = Math.ceil((2 * R) / step);
+  const geo = new THREE.PlaneGeometry(2 * R, 2 * R, n, n);
+  const pos = geo.attributes.position;
+  const uv = geo.attributes.uv;
+  for (let i = 0; i < pos.count; i++) {
+    let x = pos.getX(i);
+    let y = pos.getY(i);
+    const r = Math.hypot(x, y);
+    if (r > R) { x *= R / r; y *= R / r; }
+    pos.setXY(i, x, y);
+    uv.setXY(i, (x / R + 1) / 2, (y / R + 1) / 2);
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
 
 export class Arena extends Builder {
   constructor(world) {
@@ -93,10 +113,13 @@ export class Arena extends Builder {
       const d = Math.hypot(cx - R, cz - R);
       return d < R - 1.2 ? 1.1 : 0.35;
     }, FLOOR, 9191));
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(R, 56), new THREE.MeshLambertMaterial({ map: floorTex }));
+    // (finely divided, so the Golem's shockwaves can ripple it like water: ripple.js)
+    const floor = new THREE.Mesh(discGeometry(R, 0.25), rippling(new THREE.MeshLambertMaterial({ map: floorTex }), { lit: true }));
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
+    floor.userData.dynamic = true; // (never merged with anything: its material bends it)
     this.add(floor);
+    rippleBounds(this.cx, this.cz, R);
     const rock = this.mat.rockTex.clone();
     rock.repeat.set(34, 13);
     rock.needsUpdate = true;
@@ -109,7 +132,8 @@ export class Arena extends Builder {
     this.add(lip);
 
     // a carved ring in the middle of the floor, where the great enemy is met
-    const ring = new THREE.Mesh(new THREE.RingGeometry(4.2, 4.6, 48), new THREE.MeshBasicMaterial({ color: '#2a1a14', transparent: true, opacity: 0.55, depthWrite: false }));
+    const ring = new THREE.Mesh(new THREE.RingGeometry(4.2, 4.6, 48), rippling(new THREE.MeshBasicMaterial({ color: '#2a1a14', transparent: true, opacity: 0.55, depthWrite: false })));
+    ring.userData.dynamic = true;
     ring.rotation.x = -Math.PI / 2;
     ring.position.y = 0.015;
     this.add(ring);

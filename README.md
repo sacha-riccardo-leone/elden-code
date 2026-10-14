@@ -310,9 +310,15 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
     only once it has stayed behind him a moment (never twice within a second and a half), and his
     swing and lunge go only where he faces. Getting at his ankle, on his back leg, means getting
     round him between turns.
-  - **Shockwaves:** what hurts most is what his blows shake loose. A shockwave rolls out over the
-    floor as a ring of dust, far wider than the axe. Dodge through it (Space) as it reaches you.
-    The fighters hop them, mostly.
+  - **Shockwaves:** what hurts most is what his blows shake loose. Where the axe or the pole
+    strikes, the stone floor itself ripples like still water with a stone dropped in it: a
+    ring-shaped crest rolls outward, two lower ones following with troughs between, the tiles
+    bending over them, dust thrown up along the leading crest, the whole ripple flattening as it
+    spreads. Everyone standing on it rises and sinks as it passes under them. Its first crest is
+    what hurts: dodge through it (Space) as it reaches you. The fighters hop it, mostly. Each
+    meteor of the fire spit makes a small ripple too, which hurts no one. (`client/js/ripple.js`:
+    the ripple, the same formula bending the floor on the graphics card and lifting the
+    characters; its sizes are in the `GOLEM` table.)
   - **Swing:** he raises the axe behind him and brings it over and down. Where it lands (marked
     beforehand) the stone cracks and a shockwave rolls out 8 units.
   - **Lunge:** he drives the axe out at full stretch. His size gives it a reach of about 12
@@ -517,7 +523,8 @@ client/js/interact.js   E: using the stations and the Round Table
 client/js/arena.js      the Arena of Trials, north of the Hold
 client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the fighters, thy health
 client/js/golem.js      the Guardian Golem's fight: his weak points, his fall, shockwaves, fire
-client/js/bossfx.js     the enemies' effects: crescent, lance, floor marks, shockwaves, meteors
+client/js/ripple.js     the arena floor rippling like water under the Golem's shockwaves
+client/js/bossfx.js     the enemies' effects: crescent, lance, floor marks, the air shock, meteors
 client/js/director.js   event → behaviour, regions, slash-command effects, chatter, visits
 client/js/voices.js     how each character talks: base lines and every voice's version of them
 client/js/lore.js       names, epithets, session tallies, conversation topics

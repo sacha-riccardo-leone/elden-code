@@ -5,6 +5,7 @@
 // Tarnished dissolves into golden light and reappears at the Site of Grace nearest its goal.
 
 import * as THREE from 'three';
+import { rippleAt } from './ripple.js';
 import { ANIMS, buildIcon, makeLook, sheetForLook } from './sprites.js';
 import { STATIONS, TIMING, FAST_TRAVEL, HUB_LAYOUT, CROWD } from './config.js';
 import { nameFor, classTitle } from './lore.js';
@@ -176,7 +177,7 @@ export class SpriteBody {
 
   place(x, y, z, lift = 0) {
     this.mesh.position.set(x, y + lift, z);
-    this.blob.position.set(x, 0.015, z + 0.05);
+    this.blob.position.set(x, y + 0.015, z + 0.05);
     const s = 1 - Math.min(0.5, lift * 0.35);
     this.blob.scale.set(s, s, 1);
   }
@@ -904,7 +905,7 @@ export class Npc {
       if (this.fade <= 0) this.dead = true;
     }
 
-    this.body.place(this.pos.x, 0, this.pos.y, this.lift);
+    this.body.place(this.pos.x, rippleAt(this.pos.x, this.pos.y), this.pos.y, this.lift); // (riding the ground as it ripples, ripple.js)
     const fadeVisible = this.fade < 0.999 || !!sp; // spectres are always a little see-through
     this.body.mat.transparent = fadeVisible;
     this.body.mat.opacity = Math.max(0, this.fade) * (sp ? 0.88 : 1);

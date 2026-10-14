@@ -7,9 +7,10 @@
 // from inside the circle wound him deeply, from anywhere else not at all. Then he gets up (his fall
 // played backwards), the ankle whole again.
 //
-// His blows are slow, and what hurts most is what they shake loose: shockwaves rolling out over the
-// floor, far wider than the axe. Dodge through one (Space) as it reaches thee; the fighters hop
-// them, mostly.
+// His blows are slow, and what hurts most is what they shake loose: the stone floor rippling like
+// water where the axe or the pole strikes it (ripple.js), far wider than the axe, its first crest
+// hurting each it reaches. Dodge through it (Space) as it reaches thee; the fighters hop it,
+// mostly. (Each meteor of his fire makes a little ripple of its own, harmless.)
 //   swing – the axe raised behind him and brought over and down: where it lands the stone cracks
 //           and a shockwave rolls out;
 //   lunge – the axe driven out at full stretch (his size gives it a great reach), and a shock in
@@ -24,7 +25,8 @@
 
 import { ARENA } from './config.js';
 import { SpriteBody } from './npc.js';
-import { AirWave, Decal, Meteor, Shockwave } from './bossfx.js';
+import { AirWave, Decal, Meteor } from './bossfx.js';
+import { addRipple, rippleAt } from './ripple.js';
 import { SPOTS } from './heroes/golem.js';
 
 export const GOLEM = {
@@ -40,10 +42,16 @@ export const GOLEM = {
   // turns round to once it has stayed there `after` seconds, and never twice within `every`
   turn: { keep: [3, 5], dead: 1.2, after: 0.7, every: 1.6 },
   hurt: { swing: 26, lunge: 26, wave: 12, air: 14, slam: 14, last: 20, meteor: 18 }, // to thee (of 100)
-  wave: { speed: 15, band: 1.1, swing: 8, slam: 10, last: 34 }, // shockwaves: their pace, and how far each rolls
+  // shockwaves, rippling the ground (ripple.js): their pace, the distance between crests and how
+  // many, how far each rolls, and how high its first crest stands
+  wave: {
+    speed: 15, band: 1.1, length: 2.2, crests: 3,
+    swing: 8, slam: 10, last: 34, amp: { swing: 0.45, slam: 0.5, last: 0.7 },
+  },
   swing: { r: 2.2 }, // where the axe lands
   lunge: { half: 1.3, air: { speed: 20, life: 0.7, half: 1.7 } },
-  meteor: { r: 1.6, every: [0.14, 0.24], fall: 0.9, aimed: 0.35 }, // `aimed`: the share falling about a foe
+  // `aimed`: the share falling about a foe; `ripple`: the little one each makes where it lands
+  meteor: { r: 1.6, every: [0.14, 0.24], fall: 0.9, aimed: 0.35, ripple: { amp: 0.16, length: 1.0, crests: 2, speed: 7, reach: 3.2 } },
   slamEvery: [15, 21],
   fireEvery: [26, 36],
 };
@@ -421,7 +429,7 @@ export class GolemMind {
         for (const m of b.marks) m.dispose();
         b.marks = [];
         this.fight.strike((px, pz) => Math.hypot(px - a.ix, pz - z) <= GOLEM.swing.r, H.swing);
-        this.groundHit(a.ix, z, GOLEM.wave.swing, H.wave, 0.35);
+        this.groundHit(a.ix, z, GOLEM.wave.swing, H.wave, 0.35, GOLEM.wave.amp.swing);
         break;
       }
       case 'lunge:1': {
@@ -453,11 +461,11 @@ export class GolemMind {
       case 'slam:3':
         for (const m of b.marks) m.dispose();
         b.marks = [];
-        this.groundHit(a.ix, z, GOLEM.wave.slam, H.slam, 0.3);
+        this.groundHit(a.ix, z, GOLEM.wave.slam, H.slam, 0.3, GOLEM.wave.amp.slam);
         break;
       case 'slam:5':
         // the last: the whole arena
-        this.groundHit(a.ix, z, GOLEM.wave.last, H.last, 0.6);
+        this.groundHit(a.ix, z, GOLEM.wave.last, H.last, 0.6, GOLEM.wave.amp.last);
         break;
       case 'fire:1': {
         // the pole driven into the ground, and left there: no shockwave, only the crack
@@ -493,11 +501,11 @@ export class GolemMind {
   }
 
   // Where the axe (or the pole) strikes the ground: a crack, dust, a shake, and a shockwave.
-  groundHit(x, z, R, dmg, shake) {
+  groundHit(x, z, R, dmg, shake, amp) {
     this.crack(x, z, 7);
     this.dust(x, z, 1.6, 50);
     this.ctx.rig.shake?.(shake);
-    this.wave(x, z, R, dmg);
+    this.wave(x, z, R, dmg, amp);
   }
 
   crack(x, z, life) {
@@ -516,19 +524,20 @@ export class GolemMind {
     });
   }
 
-  // A shockwave rolling out from (x, z) to radius R: each it reaches as it passes is hurt once,
-  // unless dodging (thee) or in the air (a fighter hopping it, which most do).
-  wave(x, z, R, dmg) {
-    const { speed, band } = GOLEM.wave;
-    const w = new Shockwave(this.ctx.scene, x, z, R, { speed });
+  // A shockwave from (x, z) out to radius R: the ground ripples like water (ripple.js), its first
+  // crest `amp` high, and each that crest reaches as it passes is hurt once, unless dodging (thee)
+  // or in the air (a fighter hopping it, which most do).
+  wave(x, z, R, dmg, amp) {
+    const { speed, band, length, crests } = GOLEM.wave;
+    const ripple = addRipple(x, z, { amp, length, crests, speed, reach: R });
     const seen = new Set();
     const decided = new Set();
     const fight = this.fight;
     const { particles, director } = this.ctx;
     this.fight.fx.push({
       step: (dt) => {
-        const on = w.step(dt);
-        const r = w.r;
+        const r = ripple.front - length / 4; // (the first crest, a quarter wavelength behind the front)
+        const on = r < R;
         // the fighters it's about to reach decide: hop it, or brace (and take it)
         for (const n of director.npcs.values()) {
           const f = n.fighter;
@@ -543,17 +552,19 @@ export class GolemMind {
           const d = Math.hypot(px - x, pz - z);
           return d <= r && d >= r - band - speed * dt;
         }, dmg, seen, true);
-        // dust thrown up along its front
-        if (on && Math.random() < 0.9) {
+        // dust thrown up along the crest
+        if (on && r > 0 && Math.random() < 0.9) {
           const ang = Math.random() * Math.PI * 2;
+          const px = x + Math.cos(ang) * r;
+          const pz = z + Math.sin(ang) * r;
           particles.emit({
-            pos: [x + Math.cos(ang) * r, 0.2, z + Math.sin(ang) * r], spread: [0.3, 0.1, 0.3], vel: [Math.cos(ang) * 2, 1.4, Math.sin(ang) * 2],
+            pos: [px, rippleAt(px, pz) + 0.15, pz], spread: [0.3, 0.1, 0.3], vel: [Math.cos(ang) * 2, 1.4, Math.sin(ang) * 2],
             velSpread: [0.6, 0.6, 0.6], color: ['#8a7a6a', '#5a4a3e', '#c8b8a0'], size: 0.14, life: 0.7, count: 3, drag: 1.4, intensity: 0.9,
           });
         }
         return on;
       },
-      dispose: () => w.dispose(),
+      dispose: () => {},
     });
   }
 
@@ -618,6 +629,7 @@ export class GolemMind {
             color: FIRE, size: 0.14, life: 0.8, count: 34, gravity: 7, drag: 0.6, intensity: 2.8,
           });
           this.crack(x, z, 4);
+          addRipple(x, z, { ...M.ripple, minor: true }); // (a little ripple of the ground, harmless)
           rig.shake?.(0.08);
         }
         after += dt;

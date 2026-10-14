@@ -26,6 +26,7 @@ import { SpriteBody } from './npc.js';
 import { Crescent, Decal, Spike } from './bossfx.js';
 import { GOLEM, GOLEM_MOVES, GolemMind } from './golem.js';
 import { setFoe } from './voices.js';
+import { clearRipples, rippleAt, stepRipples } from './ripple.js';
 
 // reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
 // lane: how far out of his line (in depth) a swing or a lunge still catches someone
@@ -670,13 +671,14 @@ export class Fight {
     // where he's been standing: rooted too long and he'll want to leap elsewhere
     if (b.pos.distanceTo(b.anchor) > 3) { b.anchor.copy(b.pos); b.anchorT = 0; } else b.anchorT += dt;
     b.body.tick(dt, moving ? 0.8 * fast : 0.7);
-    b.body.place(b.pos.x + jitter + b.body.facing * b.offset, 0, b.pos.y, b.lift);
+    b.body.place(b.pos.x + jitter + b.body.facing * b.offset, rippleAt(b.pos.x, b.pos.y), b.pos.y, b.lift);
     // his shadow: wide and deep (he's long, and heavy), a little smaller the higher he leaps (and
     // longer, the Golem lying on his face)
     const s = 1 - Math.min(0.3, b.lift * 0.045);
     const [sw, sd] = b.kind.shadow;
     const lying = b.mind?.lying ? 1.6 : 1;
     b.body.blob.position.x = b.pos.x + (lying > 1 ? b.body.facing * 1.4 : 0);
+    b.body.blob.position.y = rippleAt(b.body.blob.position.x, b.pos.y) + 0.015;
     b.body.blob.scale.set(sw * s * lying, sd * s, 1);
     b.body.blob.material.opacity = b.fade;
     b.body.mat.opacity = b.fade;
@@ -1165,6 +1167,7 @@ export class Fight {
 
   update(dt, t) {
     this.clock += dt;
+    stepRipples(dt); // (the ground rippling where the Golem struck it, ripple.js)
     const { world, director, ui, pilot } = this.ctx;
     this.t += dt;
     // from the moment he's announced till he's felled, prevails or withdraws, every fire and grace
@@ -1427,6 +1430,7 @@ export class Fight {
   }
 
   end() {
+    clearRipples();
     this.release();
     this.state = 'ending';
     this.t = 0;
