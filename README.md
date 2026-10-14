@@ -232,6 +232,13 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
 - **Who fights:** every Tarnished except the Twofold drops what it's doing and comes by grace to
   fight. Their sessions keep running, and they go back to them by grace afterwards. You fight too,
   as whoever you are.
+- **Only the fight:** in the fight, a Tarnished's session works on unseen: no log lines about its
+  work, no incantations, signs or gestures, no spirit wisps and no small talk. It says only its
+  battle lines (taking up the charge, falling back, mourning the fallen, the victory). From the
+  moment the enemy is announced until it's over, the message log carries only the fight. What the
+  sessions did meanwhile is taken up again afterwards.
+- **The others' health:** under your own health bar (top left), each fighter's name and health,
+  in the order they lined up. The fallen stay greyed out and struck through.
 - **The enemy waits for you:** it enters only once you stand on the arena. Until then the others
   wait for you in a curved line just inside the way in. The line follows the arena's round, in two
   wings facing a wide aisle down the middle for you to walk through (`LINE` in
@@ -251,11 +258,14 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
 - **How they fight:** each keeps its own ring around the enemy, circling its own way. When ready, one
   rushes in, strikes and falls back. Seeing a blow coming, they mostly sprint out of its way after
   a moment's reaction, though now and then someone is too slow.
-  - **The Bandit Knight** never fights (he's Elden Ring's Patches in all but name). He keeps to the
-    left or right end of the arena on its middle line, whichever is away from the enemy, and runs
-    across to the other end when it comes for him, swerving past it. So you see him going back and
-    forth all fight, and his words stay clear of the blur at the top and bottom of the view. He
-    dodges everything and begs for mercy when the enemy comes close.
+  - **The Bandit Knight** (Ulric) never fights (he's Elden Ring's Patches in all but name). He has
+    three hiding places: the left and right ends of the arena on its middle line, and its top end
+    among the pillars. He keeps to whichever is farthest from the enemy and crouches out of sight
+    there. When it comes for him, or after a while when he grows uneasy, he scurries to another,
+    around the enemy rather than past it. He dodges everything, and never stops talking. Close to
+    the enemy he begs ("Wrong bandit! Wrong bandit!"). Hidden, he mutters ("I'm a rock. A small,
+    rusty, handsome rock."). From a safe distance he taunts it. When an ally falls he mourns them
+    in his own way ("Rest easy. Dibs on yer purse.").
 - **The enemy:** Fenrath, the Crimson Fang (`client/js/heroes/boss.js`, effects in
   `client/js/bossfx.js`). He walks into his target's lane and strikes along it. Every blow shows
   itself before it lands: step out of the way, or dodge through it with **Space**.

@@ -37,6 +37,8 @@ const RESPONSES = { bow: 'bow', kneel: 'bow', wave: 'wave', cheer: 'cheer', hear
 // what a bystander says back to a gesture (see voices.js)
 const REPLIES = { bow: 'bow_reply', kneel: 'bow_reply', wave: 'wave_reply', cheer: 'cheer_reply', heart: 'heart_reply', point: 'point_reply', pray: 'pray_reply' };
 const TALKERS = new Set(['wander', 'visit', 'gather']);
+// what a Tarnished in a fight against a great enemy may say (fight.js): nothing of its work
+const FIGHT_LINES = new Set(['battle', 'victory', 'flee', 'cower', 'taunt', 'fallen']);
 const RISE_FIRST = 3; // seconds before the first island rises from the mist
 const RISE_GAP = 10; // between islands rising one after another
 const LEAVE_AFTER = 2.5; // a newcomer sits at the Round Table at least this long
@@ -122,7 +124,7 @@ export class Director {
       n.shift = { to: want, t: 0, stage: 0, glow: 0 };
       n.action = { kind: 'transform', anim: 'cast', t: 0, dur: SHIFT.end };
       n.body.play('cast', true);
-      this.ctx.ui.log(`${n.displayName} is wreathed in golden light…`, 'gold', n);
+      this.log(`${n.displayName} is wreathed in golden light…`, 'gold', n);
     }
   }
 
@@ -150,7 +152,7 @@ export class Director {
       n.setHero(n.forms[s.to]);
       n.form = s.to;
       n.body.play('idle', true);
-      this.ctx.ui.log(`…and becomes ${n.displayName}`, 'gold', n);
+      this.log(`…and becomes ${n.displayName}`, 'gold', n);
     }
     if (s.t >= SHIFT.end) n.shift = null;
   }
@@ -184,6 +186,12 @@ export class Director {
     npc.unbind(idleSession(`hero:${npc.heroActor}`), this.ctx.world.hub);
     this.npcs.set(npc.sid, npc);
     npc.setIntent({ kind: 'journey', dest: 'hub' });
+  }
+
+  // A line in the message log; but while a great enemy is abroad (fight.js) the log carries the
+  // fight alone, and the doings of the Lands Between go unsaid.
+  log(...args) {
+    if (!this.ctx.fight?.hunting()) this.ctx.ui.log(...args);
   }
 
   // ------------------------------------------------------------------------------------------
@@ -220,7 +228,7 @@ export class Director {
         r.started = true;
         r.region.startRise();
         if (r.announce) this.ctx.ui.notice(r.region.project, `A new region rises from the mist · ${r.region.biome.name}`);
-        this.ctx.ui.log(`${r.region.project}: ${r.region.biome.name} rises from the mist`, 'gold', { region: r.region });
+        this.log(`${r.region.project}: ${r.region.biome.name} rises from the mist`, 'gold', { region: r.region });
       }
       if (r.started && r.region.risen) {
         r.region.risenAt = this.clock;
@@ -242,7 +250,7 @@ export class Director {
         world.removeRegion(r);
         nav.sync();
         this.ctx.onWorldGrew?.();
-        ui.log(`${r.project}: ${r.biome.name} sinks into the mist`, 'dim');
+        this.log(`${r.project}: ${r.biome.name} sinks into the mist`, 'dim');
         continue;
       }
       if (r.sinking || !r.risen) continue;
@@ -270,7 +278,7 @@ export class Director {
       if (n.intent.kind !== 'gather' || n.unbound || n.action || n.dragged || n.inTalk || !n.region.risen) continue;
       if (this.clock < n.intent.leaveAt || this.clock < (n.region.risenAt ?? 0) + n.intent.stagger) continue;
       n.setIntent({ kind: 'journey' });
-      this.ctx.ui.log(`${n.name.first} rises from the Round Table and sets out for ${n.region.project}`, 'dim', n);
+      this.log(`${n.name.first} rises from the Round Table and sets out for ${n.region.project}`, 'dim', n);
       this.remark(n, 'depart', null, 0.3);
       if (this.clock > (this.lastLuck ?? -Infinity) + 2.5) {
         this.lastLuck = this.clock;
@@ -396,7 +404,7 @@ export class Director {
     hero.bind(session, region);
     this.npcs.set(session.sid, hero);
     if (hero.intent.kind === 'gather') Object.assign(hero.intent, { leaveAt: this.clock + LEAVE_AFTER, stagger: 0.3 + Math.random() * 1.6 });
-    if (fancy) this.ctx.ui.log(`${hero.displayName} takes up a quest in ${region.project}`, 'gold', hero);
+    if (fancy) this.log(`${hero.displayName} takes up a quest in ${region.project}`, 'gold', hero);
     return hero;
   }
 
@@ -414,7 +422,7 @@ export class Director {
     const npc = new Npc(this.ctx, session, { x: gx, z: gz + 1.6, demo: !!session.demo, region });
     npc.makeSpectre(spectreSheet(base, k), k, color);
     this.npcs.set(session.sid, npc);
-    if (fancy) this.ctx.ui.log(`Every hero is out: the ${npc.name.first} is called up for ${region.project}`, 'gold', npc);
+    if (fancy) this.log(`Every hero is out: the ${npc.name.first} is called up for ${region.project}`, 'gold', npc);
     return npc;
   }
 
@@ -468,19 +476,24 @@ export class Director {
     } else if (!['wander', 'rest', 'visit'].includes(npc.intent.kind)) {
       npc.setIntent({ kind: 'rest' });
     }
-    npc.setSpirits(session.spirits || 0);
+    if (!npc.fighter) npc.setSpirits(session.spirits || 0); // (a fighter's spirit ashes wait out the fight)
     if (session.model) npc.setModel(session.model);
   }
 
   event(ev, session) {
     const ui = this.ctx.ui;
+    // While a great enemy is abroad the message log carries the fight alone; and a Tarnished in the
+    // fight (fight.js) works its session on unseen: no signs, gestures or words of its work, only its
+    // battle lines (remark). What its session does is still kept, for when the fight is over.
+    const quiet = !!this.ctx.fight?.hunting();
+    const log = (...a) => { if (!quiet) this.log(...a); };
     if (ev.event === 'SessionEnd' || ev.event === 'Gone' || session.state === 'gone') {
       if (this.waiting.delete(ev.sid)) return; // it never had a hero
       const npc = this.npcs.get(ev.sid);
       if (npc && npc.intent.kind !== 'leave' && !npc.unbound) {
         const from = npc.region.project;
         this.dismiss(npc);
-        ui.log(npc.spectre ? `The ${npc.name.first} fades from ${from}, its work done` : npc.heroActor ? `${npc.name.first} leaves ${from} and returns to the Round Table` : `${npc.name.first} passes through the fog of ${from}`, 'dim', npc);
+        log(npc.spectre ? `The ${npc.name.first} fades from ${from}, its work done` : npc.heroActor ? `${npc.name.first} leaves ${from} and returns to the Round Table` : `${npc.name.first} passes through the fog of ${from}`, 'dim', npc);
       }
       return;
     }
@@ -489,22 +502,26 @@ export class Director {
     if (!npc) return; // every hero is out: this session waits, unseen, for one to come free
     const name = npc.name.first;
     const now = performance.now() / 1000;
+    const fighting = !!npc.fighter; // (in the fight: none of what follows shows)
+    const shown = !fighting;
 
     switch (ev.event) {
       case 'SessionStart':
         if (!isNew && ev.source === 'clear') {
-          npc.spawn(true);
-          this.spellBanner(npc, 'clear', { title: 'Reborn at Grace', icon: 'sparkle' });
+          if (shown) {
+            npc.spawn(true);
+            this.spellBanner(npc, 'clear', { title: 'Reborn at Grace', icon: 'sparkle' });
+          }
         } else if (!isNew && ev.source === 'resume') {
-          ui.log(`${name} returns to ${npc.region.project}`, 'gold', npc);
+          log(`${name} returns to ${npc.region.project}`, 'gold', npc);
         }
         break;
       case 'UserPromptSubmit':
         this.questStart.set(ev.sid, now);
         if (ev.command) this.command(npc, ev.command);
-        else {
+        else if (shown) {
           npc.showIcon('quest', 2.5);
-          ui.log(`${name} receives a quest from the Voice`, '', npc);
+          log(`${name} receives a quest from the Voice`, '', npc);
           if (Math.random() < 0.35) this.remark(npc, 'called', null, 0.8);
         }
         break;
@@ -512,50 +529,55 @@ export class Director {
         if (ev.command) this.command(npc, ev.command);
         break;
       case 'PreToolUse': {
-        if (ev.agent) { npc.pulseSpirit(); break; }
+        if (ev.agent) { if (shown) npc.pulseSpirit(); break; }
         const st = stationForTool(ev.tool);
         if (ev.tool === 'Skill') {
-          npc.castBurst();
-          ui.log(`${name} invokes ${ev.skill ? `the skill ${ev.skill}` : 'a skill'}`, '', npc);
+          if (shown) npc.castBurst();
+          if (shown) log(`${name} invokes ${ev.skill ? `the skill ${ev.skill}` : 'a skill'}`, '', npc);
         } else if (st === 'summon') {
-          npc.castBurst(['#7fc8ff', '#b4e2ff']);
-          ui.log(`${name} summons spirit ashes${ev.agentType ? ` · ${ev.agentType}` : ''}`, 'blue', npc);
-        } else if (npc.lastStation !== st) {
+          if (shown) npc.castBurst(['#7fc8ff', '#b4e2ff']);
+          if (shown) log(`${name} summons spirit ashes${ev.agentType ? ` · ${ev.agentType}` : ''}`, 'blue', npc);
+        } else if (npc.lastStation !== st && shown) {
           const verb = STATIONS[st]?.verb || 'weaves an incantation';
-          ui.log(`${name} ${verb} · ${shortTool(ev.tool)}`, '', npc);
+          log(`${name} ${verb} · ${shortTool(ev.tool)}`, '', npc);
         }
         npc.lastStation = st;
         break;
       }
       case 'PostToolUseFailure':
         if (ev.agent) break;
-        if (ev.reason === 'interrupt') npc.showIcon('dots', 2);
+        if (ev.reason === 'interrupt') { if (shown) npc.showIcon('dots', 2); }
         else {
-          npc.stagger();
-          ui.log(`${name} falters · ${shortTool(ev.tool)}`, 'red', npc);
+          if (shown) {
+            npc.stagger();
+            log(`${name} falters · ${shortTool(ev.tool)}`, 'red', npc);
+          }
           this.ctx.fight?.noteFailure(npc); // failure upon failure draws a great enemy
         }
         break;
       case 'PermissionRequest':
       case 'Notification':
         if (ev.event === 'Notification' && ev.kind !== 'permission') break;
-        if (npc.intent.kind !== 'wait') {
+        if (npc.intent.kind !== 'wait' && shown) {
           npc.region.ringBell();
           if (Math.random() < 0.5) this.remark(npc, 'waiting', null, 2.5);
-          ui.log(`${name} kneels at the gate of ${npc.region.project}, awaiting thy command${ev.tool ? ` · ${shortTool(ev.tool)}` : ''}`, 'amber', npc);
+          log(`${name} kneels at the gate of ${npc.region.project}, awaiting thy command${ev.tool ? ` · ${shortTool(ev.tool)}` : ''}`, 'amber', npc);
         }
         break;
       case 'PermissionDenied':
-        npc.showIcon('anger', 2.5);
-        ui.log(`${name} is turned away from the gate · ${shortTool(ev.tool)}`, 'red', npc);
+        if (shown) {
+          npc.showIcon('anger', 2.5);
+          log(`${name} is turned away from the gate · ${shortTool(ev.tool)}`, 'red', npc);
+        }
         break;
       case 'Stop': {
         const started = this.questStart.get(ev.sid);
         this.questStart.delete(ev.sid);
+        this.ctx.fight?.noteDone(npc); // the great enemy this session drew reels (said in the fight's own words)
+        if (!shown) break;
         npc.showIcon('sparkle', 2.5);
         if (started && now - started > 180) ui.notice('Quest Fulfilled', `${npc.displayName} · ${formatDuration(now - started)}`);
-        ui.log(`${name} returns to grace, quest fulfilled`, 'gold', npc);
-        this.ctx.fight?.noteDone(npc); // the great enemy this session drew reels
+        log(`${name} returns to grace, quest fulfilled`, 'gold', npc);
         if (Math.random() < 0.45) {
           this.remark(npc, 'done', null, 0.6);
           if (Math.random() < 0.6) this.answer(npc, 'praise', 2.6);
@@ -563,30 +585,33 @@ export class Director {
         break;
       }
       case 'StopFailure': {
-        npc.collapse(5);
-        const title = ev.reason === 'rate_limit' ? 'Thy Stamina Is Spent' : ev.reason === 'overloaded' ? 'The Grace Wavers' : 'Fallen';
-        ui.notice(title, `${npc.displayName}${ev.reason ? ` · ${ev.reason.replace(/_/g, ' ')}` : ''}`, 'red');
-        ui.log(`${name} has fallen${ev.reason ? ` · ${ev.reason.replace(/_/g, ' ')}` : ''}`, 'red', npc);
-        this.answer(npc, 'sympathy', 1.4, 7);
+        if (shown) {
+          npc.collapse(5);
+          const title = ev.reason === 'rate_limit' ? 'Thy Stamina Is Spent' : ev.reason === 'overloaded' ? 'The Grace Wavers' : 'Fallen';
+          ui.notice(title, `${npc.displayName}${ev.reason ? ` · ${ev.reason.replace(/_/g, ' ')}` : ''}`, 'red');
+          log(`${name} has fallen${ev.reason ? ` · ${ev.reason.replace(/_/g, ' ')}` : ''}`, 'red', npc);
+          this.answer(npc, 'sympathy', 1.4, 7);
+        }
         this.ctx.fight?.noteFall(npc);
         break;
       }
       case 'SubagentStart':
-        ui.log(`A spirit answers ${name}'s call${ev.agentType ? ` · ${ev.agentType}` : ''}`, 'blue', npc);
+        if (shown) log(`A spirit answers ${name}'s call${ev.agentType ? ` · ${ev.agentType}` : ''}`, 'blue', npc);
         break;
       case 'SubagentStop':
-        ui.log(`${name}'s spirit returns to the ashes`, 'blue', npc);
+        if (shown) log(`${name}'s spirit returns to the ashes`, 'blue', npc);
         break;
       case 'PreCompact':
+        if (!shown) break;
         npc.absorb();
         if (ev.trigger === 'manual') this.spellBanner(npc, 'compact', { title: 'Memories Consolidated', icon: 'rune' });
-        else ui.log(`${name}'s memories grow heavy… consolidating`, 'gold', npc);
+        else log(`${name}'s memories grow heavy… consolidating`, 'gold', npc);
         break;
       case 'PostCompact':
-        npc.showIcon('sparkle', 2);
+        if (shown) npc.showIcon('sparkle', 2);
         break;
       case 'PostModelSwitch':
-        ui.log(`${name} takes up the mantle of ${titleCase(ev.model || 'another')}`, 'gold', npc);
+        log(`${name} takes up the mantle of ${titleCase(ev.model || 'another')}`, 'gold', npc);
         break;
       default:
         break;
@@ -595,6 +620,7 @@ export class Director {
   }
 
   command(npc, cmd) {
+    if (npc.fighter) return; // (no incantations of its work mid-fight)
     const now = performance.now() / 1000;
     const last = this.lastCommand.get(npc.sid);
     if (last && last.cmd === cmd && now - last.t < 4) return;
@@ -605,7 +631,7 @@ export class Director {
 
   spellBanner(npc, cmd, fx) {
     this.ctx.ui.notice(fx.title, `/${cmd} · ${npc.displayName} · ${npc.region.project}`);
-    this.ctx.ui.log(`${npc.name.first} invokes /${cmd}`, 'gold', npc);
+    this.log(`${npc.name.first} invokes /${cmd}`, 'gold', npc);
     npc.gesture('cast', fx.icon);
     for (let k = 0; k < 28; k++) {
       const a = (k / 28) * Math.PI * 2;
@@ -778,6 +804,7 @@ export class Director {
   // `npc` says `intent` in its own voice, to `to` (or to no one), `delay` seconds from now;
   // unless by then it's being carried, travelling, gone, or deep in a conversation.
   remark(npc, intent, to = null, delay = 0) {
+    if (npc?.fighter && !FIGHT_LINES.has(intent)) return; // in the fight: battle lines only
     if (npc && !npc.spectre) this.remarks.push({ npc, intent, to, at: this.clock + delay });
   }
 
@@ -810,7 +837,7 @@ export class Director {
     let best = null;
     let bd = radius;
     for (const n of this.npcs.values()) {
-      if (n === npc || n.dead || n.dragged || n.travel || n.talk || n.inTalk || n.action || n.fade < 1 || n.piloted || n.spectre) continue;
+      if (n === npc || n.dead || n.dragged || n.travel || n.talk || n.inTalk || n.action || n.fade < 1 || n.piloted || n.spectre || n.fighter) continue;
       if (n.intent.kind === 'journey' || n.intent.kind === 'leave') continue;
       if (world.areaAt(n.pos.x, n.pos.y) !== area) continue;
       const d = Math.hypot(n.pos.x - at.x, n.pos.y - at.y);
@@ -833,7 +860,7 @@ export class Director {
       if (Math.random() < 0.08) {
         n.lastVisit = now;
         n.setIntent({ kind: 'visit' });
-        this.ctx.ui.log(`${n.name.first} sets out for Roundtable Hold`, 'dim', n);
+        this.log(`${n.name.first} sets out for Roundtable Hold`, 'dim', n);
         return;
       }
     }

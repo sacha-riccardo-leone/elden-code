@@ -868,6 +868,41 @@ body.in-battle .region-label { pointer-events: none; cursor: default; } /* mid-f
   pointer-events: none;
 }
 #hp[hidden] { display: none; }
+/* the others in the fight, under thine (fight.js updateParty) */
+#party {
+  position: fixed;
+  top: 127px;
+  left: 22px;
+  width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+}
+#party[hidden] { display: none; }
+.ally { display: flex; align-items: center; gap: 8px; }
+.ally-name {
+  flex: none;
+  width: 66px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--serif-title);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-shadow: 0 1px 2px #000, 0 0 6px #000;
+}
+.ally-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(8, 6, 8, 0.75);
+  border: 1px solid rgba(201, 164, 90, 0.4);
+}
+.ally-bar i { display: block; height: 100%; background: linear-gradient(#b8402c, #6e1a10); transition: width 0.25s; }
+.ally.fallen .ally-name { color: var(--muted); text-decoration: line-through; }
+.ally.fallen .ally-bar { opacity: 0.45; }
 #hp i { display: block; height: 100%; background: linear-gradient(#c43a2a, #7a160e); }
 #hurt {
   position: fixed;

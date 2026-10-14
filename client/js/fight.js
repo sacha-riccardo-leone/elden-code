@@ -189,6 +189,7 @@ export class Fight {
       bossDmg: document.querySelector('#boss .dmg'),
       hp: document.getElementById('hp'),
       hpBar: document.querySelector('#hp i'),
+      party: document.getElementById('party'),
       hurt: document.getElementById('hurt'),
       carry: document.getElementById('carry'),
       carryList: document.querySelector('#carry .list'),
@@ -196,6 +197,7 @@ export class Fight {
     this.dmgShown = 0;
     this.dmgUntil = 0;
     this.fallen = 0; // Tarnished fallen (for good) in this fight
+    this.partyRows = new Map(); // npc -> its row under thy health (updateParty)
   }
 
   get active() { return this.state !== 'idle'; }
@@ -311,6 +313,7 @@ export class Fight {
       n.inTalk = false;
       if (n.action?.kind !== 'transform') n.action = null;
       n.intent = { kind: 'fight' };
+      n.setSpirits(0); // (the spirit ashes of its work wait out the fight)
       n.fighter = {
         line: k, // their place in the line they wait in (lineSpot)
         hp: 100, down: 0, cd: rand(1.5, 4), angle: (k * 2.4) % (Math.PI * 2),
@@ -336,6 +339,7 @@ export class Fight {
       if (n.action?.kind === 'gesture' && n.action.anim === 'collapse') n.action = null;
       n.intent = { kind: 'none' };
       n.setIntent(want);
+      n.setSpirits(n.session?.spirits || 0);
       this.leaveArena(n);
     }
   }
@@ -416,6 +420,9 @@ export class Fight {
       this.fallen += 1;
       n.collapse(3);
       this.ctx.ui.log(`${n.name.first} has fallen`, 'red', n);
+      for (const o of this.ctx.director.npcs.values()) {
+        if (o !== n && o.fighter?.coward && !o.fighter.dead && !o.piloted) this.ctx.director.remark(o, 'fallen', n, 0.8);
+      }
     } else {
       n.stagger();
     }
@@ -852,14 +859,17 @@ export class Fight {
         faceBoss = false;
         f.mode = 'circle';
       } else if (f.coward) {
-        // the Bandit Knight: never a blow, only as far from the enemy as the arena allows (and some whining)
+        // the Bandit Knight: never a blow, only as far from the enemy as the arena allows, and
+        // never a quiet moment: begging when it comes near, and from his hiding place, cowering
+        // asides and brave words shouted from a safe distance
         goal = this.hideFrom(b, n, f);
         speed = dist < 7 ? 5.6 : 3.6;
         faceBoss = dist > 8;
-        f.whine = (f.whine ?? rand(2, 5)) - dt;
-        if (dist < 6 && f.whine <= 0) {
-          f.whine = rand(7, 12);
-          this.ctx.director.remark(n, 'flee');
+        f.whine = (f.whine ?? rand(1.5, 3.5)) - dt;
+        if (f.whine <= 0) {
+          const near = dist < 6.5;
+          f.whine = near ? rand(3, 5) : rand(4.5, 8);
+          this.ctx.director.remark(n, near ? 'flee' : Math.random() < 0.6 ? 'cower' : 'taunt');
         }
       } else {
         f.cd -= dt;
@@ -941,24 +951,53 @@ export class Fight {
     if (faceBoss) { if (Math.abs(b.pos.x - n.pos.x) > 0.3) n.body.facing = b.pos.x > n.pos.x ? 1 : -1; }
     else if (Math.abs(f.vx) > 0.3) n.body.facing = f.vx > 0 ? 1 : -1;
     else if (!live) n.body.facing = n.pos.x < world.arena.cx ? 1 : -1; // (in line, facing the aisle)
-    n.body.play(moving ? 'walk' : 'idle');
+    // (the Bandit Knight, still in his hiding place with the enemy well away, crouches out of sight)
+    n.body.play(moving ? 'walk' : f.coward && live && Math.hypot(n.pos.x - b.pos.x, n.pos.y - b.pos.y) > 9 ? 'kneel' : 'idle');
     return moving;
   }
 
-  // Where the Bandit Knight runs to: the left or the right end of the arena, on its middle line
-  // (where he's always in sight running back and forth, and his words aren't lost in the blur at
-  // the top and bottom of the view). He keeps to the end away from the enemy and crosses to the
-  // other when it comes for him, swerving a little above or below it as he runs past.
+  // Where the Bandit Knight runs to: one of his three hiding places, the left or the right end of
+  // the arena on its middle line, or its top (north) end among the pillars. He keeps to one till
+  // the enemy comes for him (or nears it), or till he's sat there long enough to grow uneasy, then
+  // runs for whichever lies farthest from it (now and then the other, to keep it guessing), round
+  // the enemy rather than past its nose.
   hideFrom(b, n, f) {
     const { cx, cz } = this.ctx.world.arena;
     const R = ARENA.walkRadius - 1.4;
-    if (!f.side) f.side = n.pos.x < cx ? -1 : 1;
+    const spots = [[cx - R, cz], [cx + R, cz], [cx, cz - R]];
+    const from = (i) => Math.hypot(spots[i][0] - b.pos.x, spots[i][1] - b.pos.y);
+    const farthest = (list) => list.sort((i, j) => from(j) - from(i));
+    if (f.spot == null) { f.spot = farthest([0, 1, 2])[0]; f.movedAt = -9; f.stayUntil = this.clock + rand(12, 22); }
     const close = Math.hypot(n.pos.x - b.pos.x, n.pos.y - b.pos.y) < 6.5;
-    const enemySide = Math.sign(b.pos.x - cx) || 1;
-    if (enemySide === f.side && (close || Math.abs(b.pos.x - cx) > R * 0.45)) f.side = -f.side;
-    const past = Math.sign(n.pos.x - b.pos.x) === f.side; // the enemy is behind him now
-    const z = past ? cz : cz + (b.pos.y >= cz ? -3 : 3);
-    return [cx + f.side * R, z];
+    // (and, it being too quiet where he is, now and then he scurries off to another anyway)
+    const restless = this.clock > f.stayUntil;
+    if ((close || from(f.spot) < 8 || restless) && this.clock - f.movedAt > 2.5) {
+      const others = farthest([0, 1, 2].filter((i) => i !== f.spot));
+      f.spot = Math.random() < (restless ? 0.6 : 0.8) ? others[0] : others[1];
+      f.movedAt = this.clock;
+      f.stayUntil = this.clock + rand(12, 22);
+    }
+    const [sx, sz] = spots[f.spot];
+    let dx = sx - n.pos.x;
+    let dz = sz - n.pos.y;
+    const len = Math.hypot(dx, dz) || 1;
+    dx /= len;
+    dz /= len;
+    // the enemy stands in his way: round it, on the side away from it
+    const bx = b.pos.x - n.pos.x;
+    const bz = b.pos.y - n.pos.y;
+    const along = bx * dx + bz * dz;
+    const off = bx * -dz + bz * dx;
+    if (along > 0 && along < len && Math.abs(off) < 4.5) {
+      const side = off > 0 ? -1 : 1;
+      let wx = b.pos.x - dz * side * 5.5;
+      let wz = b.pos.y + dx * side * 5.5;
+      const r = Math.hypot(wx - cx, wz - cz);
+      const lim = ARENA.walkRadius - 1.5;
+      if (r > lim) { wx = cx + ((wx - cx) / r) * lim; wz = cz + ((wz - cz) / r) * lim; }
+      return [wx, wz];
+    }
+    return [sx, sz];
   }
 
   // Where to run to get out from under a blow, staying on the arena floor: out of a swing's or a
@@ -1250,5 +1289,38 @@ export class Fight {
     const pilot = this.ctx.pilot;
     el.hp.hidden = !(this.active || pilot.hp < pilot.maxHp);
     el.hpBar.style.width = `${(100 * pilot.hp) / pilot.maxHp}%`;
+    this.updateParty();
+  }
+
+  // Under thy health, the others in the fight: each one's name and health, in the order they
+  // lined up, the fallen greyed and struck through (out for good).
+  updateParty() {
+    const el = this.ui.party;
+    const allies = [...this.ctx.director.npcs.values()].filter((n) => n.fighter && !n.piloted).sort((a, b) => a.fighter.line - b.fighter.line);
+    el.hidden = !this.active || !allies.length;
+    const seen = new Set(allies);
+    for (const [n, row] of this.partyRows) if (!seen.has(n)) { row.el.remove(); this.partyRows.delete(n); }
+    if (el.hidden) return;
+    allies.forEach((n, i) => {
+      let row = this.partyRows.get(n);
+      if (!row) {
+        const div = document.createElement('div');
+        div.className = 'ally';
+        const name = document.createElement('span');
+        name.className = 'ally-name';
+        name.textContent = n.name.first;
+        const bar = document.createElement('div');
+        bar.className = 'ally-bar';
+        const fill = document.createElement('i');
+        bar.append(fill);
+        div.append(name, bar);
+        row = { el: div, fill };
+        this.partyRows.set(n, row);
+      }
+      if (el.children[i] !== row.el) el.insertBefore(row.el, el.children[i] || null);
+      const f = n.fighter;
+      row.el.classList.toggle('fallen', !!f.dead);
+      row.fill.style.width = `${Math.max(0, f.hp)}%`;
+    });
   }
 }
