@@ -65,12 +65,12 @@ const DRAGON_MOVES = {
   leap: { steps: [['takeoff', 0.75, true], ['fly', 0.6, true], ['fly', 0.55, true], ['land', 0.8]], danger: 3 },
   tail: { steps: [['tail-1', 0.75], ['tail-2', 0.25], ['tail-3', 0.45], ['tail-4', 0.6]], danger: 1 },
 };
-const CLAW = { from: 2.8, y: 2.4, size: 5, speed: 14, life: 0.55, half: 1.6, lane: 1.7 }; // the bolts, as CRESCENT
-const BITE = { from: 4.2, y: 4.4, len: 8.5, life: 0.6, slide: 2.6, tilt: 0.42 }; // from his jaws, tipped `tilt` toward the ground
+const CLAW = { from: 2.3, y: 2.6, size: 5, speed: 14, life: 0.55, half: 1.6, lane: 1.7 }; // the bolts, as CRESCENT
+const BITE = { from: 2.9, y: 4.7, len: 8.5, life: 0.6, slide: 2.6, tilt: 0.42 }; // from his jaws, tipped `tilt` toward the ground
 // the roar: a mark of radius r under each foe and `extra` more round him; a bolt out of the sky onto
 // each, one after another (`every` seconds apart); and one from his jaws up into it (`mouth`: where
 // they are as he roars, ahead of and above his middle)
-const ROAR = { r: 1.9, extra: 3, every: 0.07, height: 26, mouth: [-0.2, 8.4] };
+const ROAR = { r: 1.9, extra: 3, every: 0.07, height: 26, mouth: [-1.3, 7.3] };
 const TAIL = { r: 4.4, back: 3.9, cooldown: [5, 9] }; // a disc `back` behind his middle
 const FLIGHT = { r: 4, height: 7, cooldown: 10 };
 const DRAGON_SAYS = {

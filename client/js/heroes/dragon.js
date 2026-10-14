@@ -13,8 +13,7 @@ import { Img, NONE, rotatable } from './core.js';
 
 const FRAME = { w: 600, h: 420 };
 const GROUND = FRAME.h - 1; // the row the feet stand on
-const MIDX = 300; // his body's middle (legs and torso, not tail or wings) sits here in every frame
-const BODY = 262; // where it is as he's drawn, facing left (compose)
+const MIDX = 300; // his body's middle (his hips, not tail or wings) sits here in every frame
 // the head's lower jaw: below the line under its upper teeth, and in front of the hinge
 const inJaw = (x, y) => x <= 44 && y >= 39.5 - (x - 5) * 0.13;
 
@@ -25,61 +24,84 @@ const PIECES = {
   wingNear: { box: [247, 1, 195, 111], joint: [24, 94] },
   smallFar: { box: [26, 101, 141, 75], joint: [128, 44] },
   smallNear: { box: [254, 101, 134, 75], joint: [9, 44] },
-  neck: { box: [189, 56, 39, 58], joint: [19, 54] },
+  neck: { box: [189, 56, 39, 58], joint: [10, 53] },
   // (`caps`: open socket ends to close with bone, [cx, cy, rx, ry]: the pieces are made to slot
   // together like a figure's, and a socket's dark hollow shouldn't show where nothing slots in)
   torso: { box: [176, 111, 64, 79], joint: [33, 64], caps: [[53, 14, 6, 11], [4, 12, 5, 9]] },
-  upperNear: { box: [365, 141, 37, 35], joint: [9, 11], caps: [[8, 13, 7, 11]] },
-  upperFar: { box: [15, 143, 39, 34], joint: [31, 11], caps: [[31, 12, 7, 11]] },
+  upperNear: { box: [365, 141, 37, 35], joint: [6, 10], caps: [[8, 13, 7, 11]] },
+  upperFar: { box: [15, 143, 39, 34], joint: [33, 10], caps: [[31, 12, 7, 11]] },
   foreNear: { box: [348, 176, 56, 55], joint: [36, 6] },
   foreFar: { box: [10, 176, 58, 55], joint: [22, 6] },
   // the legs come as one figure each, thigh and shin and foot: cut at the knee (row 37)
-  thighFar: { box: [107, 181, 59, 99], rows: [0, 37], joint: [44, 8], caps: [[47, 7, 8, 8]] },
+  thighFar: { box: [107, 181, 59, 99], rows: [0, 37], joint: [51, 9], caps: [[47, 7, 8, 8]] },
   shinFar: { box: [107, 181, 59, 99], rows: [37, 99], joint: [41, 39] },
   thighNear: { box: [197, 192, 56, 98], rows: [0, 37], joint: [11, 8], caps: [[8, 7, 8, 8]] },
   shinNear: { box: [197, 192, 56, 98], rows: [37, 98], joint: [20, 38] },
-  tail1: { box: [237, 182, 49, 52], joint: [8, 20] },
-  tail2: { box: [271, 218, 55, 41], joint: [4, 15] },
-  tail3: { box: [314, 237, 41, 30], joint: [3, 11] },
-  tail4: { box: [354, 241, 101, 45], joint: [4, 13] },
+  tail1: { box: [237, 182, 49, 52], joint: [5, 13] },
+  tail2: { box: [271, 218, 55, 41], joint: [3, 19] },
+  tail3: { box: [314, 237, 41, 30], joint: [3, 13] },
+  tail4: { box: [354, 241, 101, 45], joint: [3, 17] },
   // the crested head, its lower jaw cut free to open and snap shut about its hinge
-  skull: { box: [168, 1, 88, 66], test: (x, y) => !inJaw(x, y), joint: [52, 48] },
+  skull: { box: [168, 1, 88, 66], test: (x, y) => !inJaw(x, y), joint: [44, 49] },
   jaw: { box: [168, 1, 88, 66], test: inJaw, joint: [42, 36] },
   backBig: { sheet: 'backs', box: [1, 1, 197, 111], joint: [21, 91] },
   backSmall: { sheet: 'backs', box: [7, 102, 138, 75], joint: [9, 50] },
 };
 
-// The skeleton, back to front as drawn. Each bone: its piece, its parent, and where the piece
-// lies at rest (its top-left corner, frame pixels: the dragon standing as in the user's drawing,
-// facing left), every bone then at angle 0. A bone turns about its piece's joint. `virtual` bones
-// carry no piece (the hips, from which the body, the legs and the tail hang).
+// The skeleton, back to front as drawn. Each bone: its piece, its parent, and the socket its joint
+// slots into, in the parent's own pixels (the virtual hips are the torso's pelvis: theirs too). The
+// user's sheet is an exploded view, every piece set a little out from where it belongs; slotted in,
+// each child's joint end tucks under its parent, or covers the cut end of it (the tail's
+// segments, each over the one before). At rest every bone stands at angle 0, as drawn; a bone
+// turns about its piece's joint.
 const BONES = [
-  { name: 'hips', virtual: true, at: [251, 324] },
-  { name: 'wingFar', parent: 'torso', off: [100, 135] },
-  { name: 'smallFar', parent: 'torso', off: [110, 238] },
-  { name: 'upperFar', parent: 'torso', off: [195, 283] },
-  { name: 'foreFar', parent: 'upperFar', off: [180, 312] },
-  { name: 'thighFar', parent: 'hips', off: [205, 320] },
-  { name: 'shinFar', parent: 'thighFar', off: [205, 320] },
-  { name: 'wingNear', parent: 'torso', off: [262, 140] },
-  { name: 'smallNear', parent: 'torso', off: [285, 240] },
-  // (root first: each segment's root covers the socket at the end of the one before)
-  { name: 'tail1', parent: 'hips', off: [268, 314] },
-  { name: 'tail2', parent: 'tail1', off: [268 + 30, 314 + 34] },
-  { name: 'tail3', parent: 'tail2', off: [268 + 69, 314 + 51] },
-  { name: 'tail4', parent: 'tail3', off: [268 + 105, 314 + 54] },
-  { name: 'thighNear', parent: 'hips', off: [262, 321] },
-  { name: 'shinNear', parent: 'thighNear', off: [262, 321] },
-  { name: 'torso', parent: 'hips', off: [218, 260] },
-  { name: 'neck', parent: 'torso', off: [200, 208] },
-  { name: 'skull', parent: 'neck', off: [176, 152] },
-  { name: 'jaw', parent: 'skull', off: [176, 152] },
-  { name: 'upperNear', parent: 'torso', off: [250, 258] },
-  { name: 'foreNear', parent: 'upperNear', off: [254, 288] },
+  { name: 'hips', virtual: true },
+  { name: 'wingFar', parent: 'torso', socket: [9, 7] },
+  { name: 'smallFar', parent: 'torso', socket: [7, 28] },
+  { name: 'upperFar', parent: 'torso', socket: [4, 12] },
+  { name: 'foreFar', parent: 'upperFar', socket: [17, 26] },
+  // (a shin under its thigh, which covers the cut top of it at the knee; thigh and shin share their
+  // box, so the shin's socket is its own joint: as drawn)
+  { name: 'shinFar', parent: 'thighFar', socket: [41, 39] },
+  { name: 'thighFar', parent: 'hips', socket: [16, 66] },
+  { name: 'wingNear', parent: 'torso', socket: [47, 7] },
+  { name: 'smallNear', parent: 'torso', socket: [52, 28] },
+  { name: 'tail1', parent: 'hips', socket: [53, 66] },
+  { name: 'tail2', parent: 'tail1', socket: [27, 41] },
+  { name: 'tail3', parent: 'tail2', socket: [35, 29] },
+  { name: 'tail4', parent: 'tail3', socket: [29, 18] },
+  { name: 'shinNear', parent: 'thighNear', socket: [20, 38] },
+  { name: 'torso', parent: 'hips', socket: [33, 64] },
+  { name: 'thighNear', parent: 'hips', socket: [50, 68] }, // (in front of his belly)
+  { name: 'neck', parent: 'torso', socket: [28, 7] },
+  { name: 'skull', parent: 'neck', socket: [23, 4] },
+  { name: 'jaw', parent: 'skull', socket: [42, 36] },
+  { name: 'upperNear', parent: 'torso', socket: [51, 14] },
+  { name: 'foreNear', parent: 'upperNear', socket: [20, 30] },
 ];
-// where each joint stands at rest
-for (const b of BONES) if (!b.virtual) b.at = [b.off[0] + PIECES[b.name].joint[0], b.off[1] + PIECES[b.name].joint[1]];
 const BONE = Object.fromEntries(BONES.map((b) => [b.name, b]));
+// Where each joint stands at rest: from the hips down the tree, each child's joint on its socket;
+// then all of him moved so his feet stand on the ground, his hips at x = HIPX.
+const HIPX = 300;
+const SOLES = { Near: [27, 97], Far: [29, 98] }; // each foot's sole, in its shin's box
+{
+  const place = (b) => {
+    if (b.at) return;
+    if (b.virtual) { b.at = [0, 0]; return; }
+    const parent = BONE[b.parent];
+    place(parent);
+    const pj = PIECES[parent.virtual ? 'torso' : parent.name].joint;
+    b.at = [parent.at[0] + b.socket[0] - pj[0], parent.at[1] + b.socket[1] - pj[1]];
+  };
+  BONES.forEach(place);
+  for (const b of BONES) if (!b.virtual) b.off = [b.at[0] - PIECES[b.name].joint[0], b.at[1] - PIECES[b.name].joint[1]];
+  const low = Math.max(...Object.entries(SOLES).map(([side, [, y]]) => BONE[`shin${side}`].off[1] + y));
+  const [dx, dy] = [HIPX - BONE.hips.at[0], GROUND - 1 - low];
+  for (const b of BONES) {
+    b.at = [b.at[0] + dx, b.at[1] + dy];
+    if (b.off) b.off = [b.off[0] + dx, b.off[1] + dy];
+  }
+}
 // the order bones are worked out in: a parent before its children
 const SOLVE = [];
 const solved = new Set();
@@ -212,18 +234,21 @@ function prepare(art, more) {
 // posing
 
 // Each leg's hip, knee and the sole of its foot at rest (frame pixels), for the legs' IK: a pose
-// says where the feet stand, and the thigh and shin turn to reach them.
+// says where the feet stand, and the thigh and shin turn to reach them. He stands with his feet
+// set wider than the pieces fall (SPREAD, outward), the legs bending to reach them.
+const SPREAD = { Near: 9, Far: -9 };
 const LEGS = {};
-for (const [side, sole] of [['Near', [27, 97]], ['Far', [29, 98]]]) {
+for (const [side, sole] of Object.entries(SOLES)) {
   const thigh = BONE[`thigh${side}`];
   const shin = BONE[`shin${side}`];
   const hip = thigh.at;
   const knee = shin.at;
-  const foot = [shin.off[0] + sole[0], shin.off[1] + sole[1]];
+  const drawn = [shin.off[0] + sole[0], shin.off[1] + sole[1]];
+  const foot = [drawn[0] + SPREAD[side], drawn[1]];
   const T = [knee[0] - hip[0], knee[1] - hip[1]];
-  const S = [foot[0] - knee[0], foot[1] - knee[1]];
+  const S = [drawn[0] - knee[0], drawn[1] - knee[1]];
   // which side of the line from hip to foot the knee lies on (kept as the legs bend)
-  const D = [foot[0] - hip[0], foot[1] - hip[1]];
+  const D = [drawn[0] - hip[0], drawn[1] - hip[1]];
   LEGS[side] = { foot, T, S, L1: Math.hypot(...T), L2: Math.hypot(...S), bend: Math.sign(D[0] * T[1] - D[1] * T[0]) || 1 };
 }
 const deg = (r) => (r * 180) / Math.PI;
@@ -292,7 +317,7 @@ function solve(pose) {
   return out;
 }
 // the far end of each tail segment (its piece's pixels): where the next sits, and the tip
-const TAIL_END = { tail1: [40, 44], tail2: [50, 30], tail3: [38, 18], tail4: [99, 43] };
+const TAIL_END = { tail1: [30, 44], tail2: [38, 31], tail3: [32, 19], tail4: [99, 43] };
 
 // The dark red inside the mouth, filled behind the jaw where it opens wider than drawn: the
 // triangle between its hinge, the tip of the upper jaw and the tip of the lower.
@@ -341,7 +366,7 @@ function compose(ctx, pose) {
   const out = new Img(FRAME.w, FRAME.h);
   for (let y = 0; y < FRAME.h; y++) {
     for (let x = 0; x < FRAME.w; x++) {
-      const sx = BODY + MIDX - x;
+      const sx = HIPX + MIDX - x;
       if (sx >= 0 && sx < FRAME.w) out.c[y * FRAME.w + x] = f.c[y * FRAME.w + sx];
     }
   }
@@ -484,7 +509,7 @@ export default {
   frame: FRAME,
   cols: 6,
   px: 0.034, // world units per art pixel: about a hero's own, so he stands huge
-  head: 275, // (to the crest of his head: where his words show)
+  head: 255, // (to the crest of his head: where his words show)
   hits: {},
   glowIntensity: 1,
   glowColors: [[200, 20, 20], [255, 120, 100]],
