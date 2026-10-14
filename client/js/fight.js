@@ -11,24 +11,29 @@
 // is lost. (The Bandit Knight, Elden Ring's Patches in all but name, never fights: he keeps as far
 // from the enemy as he can.) Nothing here ever reaches Claude Code.
 //
-// The enemy is Fenrath, the Crimson Fang (heroes/boss.js). Every blow of his shows itself before
-// it lands (bossfx.js): step out of its way, or dodge through it (Space).
+// Two great enemies come by turns (KINDS). Every blow shows itself before it lands (bossfx.js):
+// step out of its way, or dodge through it (Space). Fenrath, the Crimson Fang (heroes/boss.js):
 //   swing – the greatsword raised and brought down: a crescent of red light flies on down his lane;
 //   lunge – a thrust: a lance of light runs along the blade and far past its point;
 //   slam  – a ring of light gathers round him for a moment, then fills: all inside it suffer;
 //   leap  – beset (crowded, or battered) or rooted too long in one place, he crouches trembling,
 //           marks where he'll come down, leaps, and lands in a crack of stone and flying debris.
+// Ossyrion, the Pale Tempest (heroes/dragon.js), a dragon of red lightning, flies down onto the
+// arena and fights the same way with blows of his own:
+//   swing – the claw swipe: three bolts torn from his talons fly on down his lane;
+//   lunge – the lunging bite: he lunges, and lightning bursts from his jaws along the ground;
+//   slam  – the thunder-summoning roar: a mark under every foe (and here and there besides), then,
+//           as he roars to the sky, a bolt out of it onto each;
+//   leap  – flight: up on his wings, and down where he's marked, as Fenrath's leap;
+//   tail  – the tail sweep, at whoever stands behind him.
 
 import * as THREE from 'three';
 import { ARENA, HUB, HUB_LAYOUT, CROWD, LINE, BOSS_CAM } from './config.js';
 import { SpriteBody } from './npc.js';
-import { Crescent, Decal, Spike } from './bossfx.js';
+import { BiteBolt, ClawBolts, Crescent, Decal, SkyBolt, Spike } from './bossfx.js';
 
-// reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
-// lane: how far out of his line (in depth) a swing or a lunge still catches someone
-const BOSS = { hp: 3000, speed: 2.2, reach: 3.0, radius: 2.0, lane: 1.3 };
 const DAMAGE = { player: 55, fighter: 12, quest: 0.5 }; // quest: the share of its health a fulfilled quest takes
-const HURT = { swing: 22, lunge: 28, slam: 34, leap: 30 }; // to thee (of 100); fighters take as much
+const HURT = { swing: 22, lunge: 28, slam: 34, leap: 30, tail: 26 }; // to thee (of 100); fighters take as much
 // Each move: its drawings and how long each is held (seconds; `true`: fixed, else it quickens
 // when he's wounded); `danger`: the last step during which it can still be escaped.
 const MOVES = {
@@ -40,6 +45,7 @@ const MOVES = {
 const CRESCENT = { from: 1.2, y: 3, size: 6, speed: 15, life: 0.5, half: 1.6, lane: 1.6 }; // starts `from` ahead of him
 const SPIKE = { from: 3.9, y: 3.2, len: 9, life: 0.75, slide: 2.2 }; // from the guard; he slides `slide` into it
 const SLAM = { r: 5.5 };
+const ENTER_LIFT = 16; // how high the dragon is as he comes into sight, flying down onto the arena
 // What Fenrath says, seldom: as he enters, now and then while he stalks, a grunt now and then as
 // he leaps and lands, and, left facing only the Bandit Knight, his disbelief (*asterisks*: a sound
 // or a look rather than words).
@@ -49,8 +55,55 @@ const SAYS = {
   leap: ['*grunts*'],
   alone: ['*looks in disbelief*', 'Coward…'],
 };
-const pickOf = (list) => list[Math.floor(Math.random() * list.length)];
 const LEAP = { r: 3.2, height: 7, cooldown: 10 };
+
+// Ossyrion's: as Fenrath's, and the tail sweep
+const DRAGON_MOVES = {
+  swing: { steps: [['claw-1', 0.75], ['claw-2', 0.3], ['claw-3', 0.6]], danger: 2 },
+  lunge: { steps: [['bite-1', 0.7], ['bite-2', 0.35], ['bite-3', 0.6]], danger: 1 },
+  slam: { steps: [['roar-1', 0.8, true], ['roar-2', 0.75, true], ['roar-3', 1.1]], danger: 1 },
+  leap: { steps: [['takeoff', 0.75, true], ['fly', 0.6, true], ['fly', 0.55, true], ['land', 0.8]], danger: 3 },
+  tail: { steps: [['tail-1', 0.75], ['tail-2', 0.25], ['tail-3', 0.45], ['tail-4', 0.6]], danger: 1 },
+};
+const CLAW = { from: 2.8, y: 2.4, size: 5, speed: 14, life: 0.55, half: 1.6, lane: 1.7 }; // the bolts, as CRESCENT
+const BITE = { from: 4.2, y: 4.4, len: 8.5, life: 0.6, slide: 2.6, tilt: 0.42 }; // from his jaws, tipped `tilt` toward the ground
+// the roar: a mark of radius r under each foe and `extra` more round him; a bolt out of the sky onto
+// each, one after another (`every` seconds apart); and one from his jaws up into it (`mouth`: where
+// they are as he roars, ahead of and above his middle)
+const ROAR = { r: 1.9, extra: 3, every: 0.07, height: 26, mouth: [-0.2, 8.4] };
+const TAIL = { r: 4.4, back: 3.9, cooldown: [5, 9] }; // a disc `back` behind his middle
+const FLIGHT = { r: 4, height: 7, cooldown: 10 };
+const DRAGON_SAYS = {
+  enter: ['*a roar that splits the sky*', 'The storm hath found thee, Tarnished.'],
+  stalk: ['*thunder rumbles in his throat*', '*crackling breath*', 'Bow before the tempest.', 'Thou art but kindling.', '*a deep, rolling growl*', 'The sky remembereth not thy name.'],
+  leap: ['*the beat of great wings*', '*a thunderous snarl*'],
+  roar: ['*ROARS*'],
+  alone: ['*looks in disbelief*', 'Craven worm…'],
+};
+
+// The great enemies, by turns (Fight.start): his art (ctx[sheet]), health, pace and bulk
+// (reach/radius: how far a blow may land from his middle; lane: how far out of his line, in depth,
+// a swing or a lunge still catches someone; depth: how far out of it thy blow still lands on him;
+// spacing: how far off he stands to strike; crowd: the circle nobody walks into, crowd.js; shadow:
+// its size, and how far behind his middle it lies), his blows, what they throw and how they hurt
+// (and how often the slam comes), the camera as it frames him (how far back it pulls, how high it
+// looks), and what he says.
+const KINDS = {
+  fenrath: {
+    sheet: 'bossSheet', hp: 3000, speed: 2.2, reach: 3.0, radius: 2.0, lane: 1.3, depth: 1.9, spacing: 4,
+    crowd: CROWD.bossRadius, shadow: [3.6, 2.6, 0], cam: { far: BOSS_CAM.far, y: 2.6 },
+    moves: MOVES, swing: CRESCENT, lunge: SPIKE, slam: SLAM, leap: LEAP, says: SAYS, hurt: HURT, slamEvery: [11, 16],
+  },
+  dragon: {
+    sheet: 'dragonSheet', hp: 3600, speed: 2.6, reach: 3.4, radius: 2.4, lane: 1.6, depth: 2.3, spacing: 4.6,
+    crowd: CROWD.dragonRadius, shadow: [5.4, 3.2, 1.2], cam: { far: BOSS_CAM.far * 1.25, y: 4 },
+    moves: DRAGON_MOVES, swing: CLAW, lunge: BITE, slam: { r: Infinity }, leap: FLIGHT, says: DRAGON_SAYS,
+    hurt: { ...HURT, lunge: 26, slam: 22 }, slamEvery: [15, 21], // (the roar strikes everyone at once: it hurts less, and comes more seldom)
+    roar: ROAR, tail: TAIL, flies: true,
+  },
+};
+for (const [id, k] of Object.entries(KINDS)) k.id = id;
+const pickOf = (list) => list[Math.floor(Math.random() * list.length)];
 const TRIGGER = {
   failures: 3, failureWindow: 120, // tool failures in a row (seconds) that summon one
   longQuest: 600,                  // seconds a single quest may run before one comes
@@ -61,9 +114,11 @@ const TRIGGER = {
 };
 const rand = (a, b) => a + Math.random() * (b - a);
 
-// Whether a blow (its shape, where it lands) covers a point, with some slack: a disc, or a line
-// running `dir`-ward from (x, z), `from`..`len` along it and `half` either side.
+// Whether a blow (its shape, where it lands) covers a point, with some slack: a disc, a line
+// running `dir`-ward from (x, z), `from`..`len` along it and `half` either side, or a scatter of
+// discs (`spots`, each of radius r).
 function covers(shape, x, z, opt, px, pz, slack = 0.3) {
+  if (shape === 'spots') return opt.spots.some(([sx, sz]) => Math.hypot(px - sx, (pz - sz) * 1.15) <= opt.r + slack);
   if (shape === 'line') {
     const along = (px - x) * opt.dir;
     return along >= opt.from - slack && along <= opt.len + slack && Math.abs(pz - z) <= opt.half + slack;
@@ -97,25 +152,27 @@ function shadowTex() {
 
 // The great enemy.
 class Boss {
-  constructor(ctx, x, z) {
+  constructor(ctx, x, z, kind) {
     this.ctx = ctx;
-    const sheet = ctx.bossSheet; // (no fight is ever started without it: Fight.start)
+    this.kind = KINDS[kind];
+    const sheet = ctx[this.kind.sheet]; // (no fight is ever started without it: Fight.start)
     this.name = `${sheet.rig.firstName}, ${sheet.rig.epithet}`;
     this.body = new SpriteBody(ctx.scene, sheet);
     this.body.mat.transparent = true;
     this.body.blob.material.map = shadowTex();
     this.body.blob.material.opacity = 1;
-    this.pose('idle');
+    this.pose(this.kind.flies ? 'fly' : 'idle'); // (the dragon comes down out of the sky: Fight.stepBoss)
     this.pos = new THREE.Vector2(x, z);
-    this.lift = 0;
-    this.hp = BOSS.hp;
-    this.max = BOSS.hp;
+    this.lift = this.kind.flies ? ENTER_LIFT : 0;
+    this.hp = this.kind.hp;
+    this.max = this.kind.hp;
     this.fade = 0;
     this.state = 'enter'; // enter, ready, attack, staggered, dying, withdraw, gone
     this.t = 0;
     this.cd = 2.5; // until the next blow
     this.slamIn = rand(10, 14); // until he'd rather slam
-    this.leapCd = LEAP.cooldown;
+    this.leapCd = this.kind.leap.cooldown;
+    this.tailIn = 4; // (and the tail sweep, if he has one)
     this.idleT = 0; // since his last blow
     this.posture = 0;
     this.attack = null; // the move under way: { kind, step, t, dir, shape, x, z, opt, … }
@@ -244,19 +301,29 @@ export class Fight {
 
   // Why one can't be summoned now (or true).
   canSummon() {
-    if (!this.ctx.bossSheet) return 'No great enemy walks these lands';
+    if (!this.nextKind()) return 'No great enemy walks these lands';
     if (this.state === 'ending') return 'The arena is still settling';
     if (this.active) return 'A great enemy is already abroad';
     return true;
+  }
+
+  // Who comes next: Fenrath and Ossyrion by turns (the dragon first), save that one whose art
+  // failed to load never comes (and, with neither, nobody does).
+  nextKind() {
+    const order = this.lastKind === 'dragon' ? ['fenrath', 'dragon'] : ['dragon', 'fenrath'];
+    return order.find((k) => this.ctx[KINDS[k].sheet]) || null;
   }
 
   // ------------------------------------------------------------------------------------------
   // what brings one
 
   start(cause) {
-    // only the user's own great enemy ever comes: without his art (it failed to load), none does
-    if (this.active || !this.ctx.bossSheet) return false;
+    // only the user's own great enemies ever come: without their art (it failed to load), none does
+    const kind = this.nextKind();
+    if (this.active || !kind) return false;
     const { ui, world } = this.ctx;
+    this.kind = kind;
+    this.lastKind = kind;
     this.cause = cause;
     this.fallen = 0;
     this.cowardsAlone = null;
@@ -389,7 +456,7 @@ export class Fight {
     const b = this.boss;
     if (!b || !b.alive || b.lift > 2) return false;
     const ahead = (b.pos.x - p.pos.x) * p.body.facing;
-    if (ahead < -0.6 || ahead > BOSS.reach + BOSS.radius || Math.abs(b.pos.y - p.pos.y) > 1.9) return false;
+    if (ahead < -0.6 || ahead > b.kind.reach + b.kind.radius || Math.abs(b.pos.y - p.pos.y) > b.kind.depth) return false;
     this.hit(b, DAMAGE.player);
     return true;
   }
@@ -492,15 +559,16 @@ export class Fight {
     return !!me && (this.state === 'gathering' || this.state === 'fighting') && north(me);
   }
 
-  // Where the camera should look while thou fightest him on the arena (main.js), or null:
-  // between thee and him, and high enough to keep him whole.
-  // While thou fightest him on the arena: as he enters, him; then, with the focus on him (Q), between
-  // thee and him; otherwise null (the camera follows thee, as ever). `dist`: how far back it pulls.
+  // Where the camera should look (main.js). While thou fightest him on the arena: as he enters, him; then, with the focus on him (Q), between
+  // thee and him, as too while he's up in the air (leaping, flying: else he'd be out of sight above);
+  // otherwise null (the camera follows thee, as ever). `dist`: how far back it pulls.
   aim(me) {
     const b = this.boss;
     if (!this.facing(me)) return null;
-    if (this.clock < this.introUntil) return { at: [b.pos.x, 2.6, b.pos.y], dist: BOSS_CAM.far };
-    if (this.focus) return { at: [me.pos.x + (b.pos.x - me.pos.x) * 0.45, 2.6, me.pos.y + (b.pos.y - me.pos.y) * 0.45], dist: BOSS_CAM.far };
+    const { far, y } = b.kind.cam;
+    const rise = Math.min(b.lift, 8) * 0.5; // (looking higher the higher he is)
+    if (this.clock < this.introUntil) return { at: [b.pos.x, y + rise, b.pos.y], dist: far };
+    if (this.focus || b.lift > 1) return { at: [me.pos.x + (b.pos.x - me.pos.x) * 0.45, y + rise, me.pos.y + (b.pos.y - me.pos.y) * 0.45], dist: far };
     return { at: null, dist: BOSS_CAM.near };
   }
 
@@ -576,6 +644,20 @@ export class Fight {
     let jitter = 0;
     switch (b.state) {
       case 'enter':
+        if (b.kind.flies) {
+          // the dragon: down out of the sky on his wings, and onto the arena in a cloud of dust
+          b.fade = Math.min(1, b.t / 0.8);
+          const k = Math.min(1, b.t / 2);
+          b.lift = ENTER_LIFT * (1 - k) ** 2;
+          if (k >= 1 && !b.landed) {
+            b.landed = true;
+            b.pose('land', true);
+            this.dust(b.pos.x, b.pos.y, 3.4);
+            this.ctx.rig.shake?.(0.3);
+          }
+          if (b.t >= 2.8) { b.state = 'ready'; b.t = 0; b.pose('idle'); }
+          break;
+        }
         b.fade = Math.min(1, b.t / 2);
         if (b.t >= 2.2) { b.state = 'ready'; b.t = 0; }
         break;
@@ -613,7 +695,7 @@ export class Fight {
         b.talkIn = (b.talkIn ?? rand(10, 16)) - dt;
         if (b.talkIn <= 0) {
           b.talkIn = rand(14, 24);
-          this.say(pickOf(SAYS.stalk.filter((x) => x !== b.lastSaid)));
+          this.say(pickOf(b.kind.says.stalk.filter((x) => x !== b.lastSaid)));
         }
         break;
       default:
@@ -625,8 +707,9 @@ export class Fight {
     b.body.place(b.pos.x + jitter, 0, b.pos.y, b.lift);
     // his shadow: wide and deep (he's long, and heavy), a little smaller the higher he leaps
     const s = 1 - Math.min(0.3, b.lift * 0.045);
-    b.body.blob.position.x = b.pos.x;
-    b.body.blob.scale.set(3.6 * s, 2.6 * s, 1);
+    const [sw, sd, back] = b.kind.shadow;
+    b.body.blob.position.x = b.pos.x - b.body.facing * back;
+    b.body.blob.scale.set(sw * s, sd * s, 1);
     b.body.blob.material.opacity = b.fade;
     b.body.mat.opacity = b.fade;
     b.body.mat.depthWrite = b.fade > 0.99;
@@ -643,6 +726,8 @@ export class Fight {
     const dx = tgt.pos.x - b.pos.x;
     const dz = tgt.pos.y - b.pos.y;
     if (Math.abs(dx) > 0.4) b.body.facing = dx > 0 ? 1 : -1;
+    const k = b.kind;
+    b.tailIn -= dt;
     const close = this.foesWithin(b, 4.2);
     // beset (crowded, or battered) or rooted: he leaps elsewhere
     const beset = close >= 3 || b.taken(5) > 250;
@@ -652,29 +737,65 @@ export class Fight {
     }
     if (b.cd <= 0) {
       const ax = Math.abs(dx);
-      const inLane = Math.abs(dz) < BOSS.lane;
+      const inLane = Math.abs(dz) < k.lane;
       let move = null;
-      if ((b.slamIn <= 0 || close >= 3) && this.foesWithin(b, SLAM.r) >= 1) move = 'slam';
+      // (the dragon's tail first, for whoever has crept up behind him)
+      if (k.tail && b.tailIn <= 0 && this.behind(b) >= 1) move = 'tail';
+      else if ((b.slamIn <= 0 || close >= 3) && this.foesWithin(b, k.slam.r) >= 1) move = 'slam';
       else if (inLane && ax < 5.5) move = Math.random() < (ax < 3.5 ? 0.7 : 0.35) ? 'swing' : 'lunge';
       else if (inLane && ax < 12) move = 'lunge';
-      else if (b.idleT > 5 && this.foesWithin(b, SLAM.r) >= 1) move = 'slam';
+      else if (b.idleT > 5 && this.foesWithin(b, k.slam.r) >= 1) move = 'slam';
       else if (b.idleT > 7 && b.leapCd <= 0) { this.begin(b, 'leap', false); return false; }
       if (move) {
-        if (move === 'slam') b.slamIn = rand(11, 16);
+        if (move === 'slam') b.slamIn = rand(...k.slamEvery);
+        if (move === 'tail') b.tailIn = rand(...k.tail.cooldown);
         this.begin(b, move);
         return false;
       }
     }
     // into its lane, a sword's length to the side he's on (backing off if it's too close)
     const side = Math.sign(dx) || b.body.facing;
-    const gx = tgt.pos.x - side * 4;
+    const gx = tgt.pos.x - side * k.spacing;
     const gz = tgt.pos.y;
     const d = Math.hypot(gx - b.pos.x, gz - b.pos.y);
     if (d < 0.3) { b.pose('idle'); return false; }
-    const step = Math.min(d, BOSS.speed * fast * dt);
+    const step = Math.min(d, k.speed * fast * dt);
     this.shift(b, ((gx - b.pos.x) / d) * step, ((gz - b.pos.y) / d) * step);
     b.pose('walk');
     return true;
+  }
+
+  // The foes his tail would catch: behind him, where it sweeps (the dragon's TAIL).
+  behind(b) {
+    const t = b.kind.tail;
+    const x = b.pos.x - b.body.facing * t.back;
+    return this.foes().filter((n) => (n.pos.x - b.pos.x) * b.body.facing < -0.5 && covers('disc', x, b.pos.y, t, n.pos.x, n.pos.y, 0)).length;
+  }
+
+  // The dragon's roar: a mark under every foe, and a few more round him where they might run.
+  roarSpots(b) {
+    const { cx, cz } = this.ctx.world.arena;
+    const R = b.kind.roar;
+    const spots = this.foes().map((n) => [n.pos.x, n.pos.y]);
+    for (let i = 0, tries = 0; i < R.extra && tries < 40; tries++) {
+      const ang = Math.random() * Math.PI * 2;
+      const r = rand(3, 10);
+      const x = b.pos.x + Math.cos(ang) * r;
+      const z = b.pos.y + Math.sin(ang) * r * 0.8;
+      if (Math.hypot(x - cx, z - cz) > ARENA.walkRadius - 1.5) continue;
+      if (spots.some(([sx, sz]) => Math.hypot(sx - x, sz - z) < R.r * 1.6)) continue;
+      spots.push([x, z]);
+      i += 1;
+    }
+    return spots;
+  }
+
+  // Dust thrown up off the arena floor round (x, z): a landing, wings beating.
+  dust(x, z, r, count = 40) {
+    this.ctx.particles.emit({
+      pos: [x, 0.3, z], spread: [r, 0.2, r * 0.6], vel: [0, 1.2, 0], velSpread: [3, 1, 2],
+      color: ['#6a5a4e', '#3a2e28', '#8a7a6a'], size: 0.16, life: 1.2, count, drag: 1.4, intensity: 0.8,
+    });
   }
 
   // Moves him, keeping him on the arena floor.
@@ -691,19 +812,27 @@ export class Fight {
   // A move begins: what it covers is known from the start (the fighters see it coming).
   begin(b, kind, beset = false) {
     const dir = b.body.facing;
-    const a = { kind, step: -1, t: 0, dir, x: b.pos.x, z: b.pos.y, shape: 'disc', opt: { r: SLAM.r } };
+    const k = b.kind;
+    const a = { kind, step: -1, t: 0, dir, x: b.pos.x, z: b.pos.y, shape: 'disc', opt: { r: k.slam.r } };
     if (kind === 'swing') {
+      const c = k.swing;
       a.shape = 'line';
-      a.opt = { dir, from: -0.5, len: CRESCENT.from + CRESCENT.speed * CRESCENT.life + CRESCENT.half, half: CRESCENT.lane };
+      a.opt = { dir, from: -0.5, len: c.from + c.speed * c.life + c.half, half: c.lane };
     } else if (kind === 'lunge') {
       a.shape = 'line';
-      a.opt = { dir, from: -0.5, len: SPIKE.slide + SPIKE.from + SPIKE.len, half: BOSS.lane };
+      a.opt = { dir, from: -0.5, len: k.lunge.slide + k.lunge.from + k.lunge.len, half: k.lane };
+    } else if (kind === 'slam' && k.roar) {
+      a.shape = 'spots';
+      a.opt = { r: k.roar.r, spots: this.roarSpots(b) };
+    } else if (kind === 'tail') {
+      a.x = b.pos.x - dir * k.tail.back;
+      a.opt = { r: k.tail.r };
     } else if (kind === 'leap') {
       [a.x, a.z] = this.landing(b, beset);
       a.from = b.pos.clone();
-      a.opt = { r: LEAP.r };
+      a.opt = { r: k.leap.r };
       if (Math.abs(a.x - b.pos.x) > 0.4) b.body.facing = a.x > b.pos.x ? 1 : -1;
-      b.leapCd = LEAP.cooldown;
+      b.leapCd = k.leap.cooldown;
     }
     b.attack = a;
     b.state = 'attack';
@@ -735,21 +864,38 @@ export class Fight {
   // The move goes on: its marks pulse, he trembles, flies; at the end of each step, the next.
   stepMove(b, dt, t, fast) {
     const a = b.attack;
-    const [, dur, fixed] = MOVES[a.kind].steps[a.step];
+    const kind = b.kind;
+    const [, dur, fixed] = kind.moves[a.kind].steps[a.step];
     a.t += dt;
     const k = Math.min(1, a.t / (fixed ? dur : dur / fast));
     let jitter = 0;
-    if (a.kind === 'slam' && a.step === 0) {
+    if (a.kind === 'slam' && kind.roar && a.step <= 1) {
+      // the marks of the roar brighten as he draws himself up, and red sparks crackle on them
+      const glow = (0.3 + 0.35 * (a.step + k)) * (0.8 + 0.2 * Math.sin(t * 30));
+      for (const m of b.marks) m.opacity = glow;
+      if (Math.random() < dt * 30) {
+        const [sx, sz] = pickOf(a.opt.spots);
+        this.ctx.particles.emit({
+          pos: [sx, 0.2, sz], spread: [a.opt.r * 0.6, 0.1, a.opt.r * 0.5], vel: [0, 2.2, 0], velSpread: [0.6, 1.2, 0.4],
+          color: ['#ff3a2a', '#ffb0a0', '#a01010'], size: 0.06, life: 0.45, count: 3, drag: 1.2, intensity: 2.4,
+        });
+      }
+    } else if ((a.kind === 'slam' || a.kind === 'tail') && a.step === 0) {
       b.marks[0].opacity = (0.35 + 0.65 * k) * (0.8 + 0.2 * Math.sin(t * 30));
+    } else if (a.kind === 'tail' && a.step === 1) {
+      b.marks[0].opacity = 0.9 + 0.1 * Math.sin(t * 30);
     } else if (a.kind === 'lunge' && a.step === 1) {
       if (a.slide > 0) {
         const s = Math.min(a.slide, dt * 16);
         a.slide -= s;
         this.shift(b, a.dir * s, 0);
       }
-      a.spike.mesh.position.x = b.pos.x + a.dir * SPIKE.from; // the lance goes with the blade
+      a.spike.mesh.position.x = b.pos.x + a.dir * kind.lunge.from; // the lance goes with the blade (the bolt with his jaws)
     } else if (a.kind === 'leap') {
-      if (a.step === 0) {
+      if (a.step === 0 && kind.flies) {
+        // spreading his wings: their first beats raise the dust round him
+        if (Math.random() < dt * 6) this.dust(b.pos.x, b.pos.y, 2.6, 8);
+      } else if (a.step === 0) {
         // gathering himself: he trembles, side to side, and the ground stirs at his feet
         jitter = (Math.floor(a.t * 28) % 2 ? 1 : -1) * 0.09;
         if (Math.random() < dt * 14) {
@@ -761,7 +907,7 @@ export class Fight {
       } else if (a.step === 1 || a.step === 2) {
         // up, and down onto the mark: his shadow runs along the ground beneath him
         const up = a.step === 1;
-        b.lift = LEAP.height * (up ? 1 - (1 - k) ** 2 : 1 - k * k);
+        b.lift = kind.leap.height * (up ? 1 - (1 - k) ** 2 : 1 - k * k);
         const f = up ? 0.5 * k : 0.5 + 0.5 * k;
         b.pos.set(a.from.x + (a.x - a.from.x) * f, a.from.y + (a.z - a.from.y) * f);
       }
@@ -777,7 +923,7 @@ export class Fight {
     const { scene, particles, rig } = this.ctx;
     a.step += 1;
     a.t = 0;
-    const steps = MOVES[a.kind].steps;
+    const steps = b.kind.moves[a.kind].steps;
     if (a.step >= steps.length) {
       b.endMove();
       b.state = 'ready';
@@ -786,17 +932,20 @@ export class Fight {
       return;
     }
     b.pose(steps[a.step][0], true);
+    // (the dragon's blows are his own; only his flight goes as Fenrath's leap)
+    if (b.kind.id === 'dragon' && a.kind !== 'leap') { this.dragonStep(b, a); return; }
     const [x, z] = [b.pos.x, b.pos.y];
     const dir = a.dir;
+    const { swing: C, lunge: S, leap: L } = b.kind;
     switch (`${a.kind}:${a.step}`) {
       case 'swing:1': {
         // the cut, and the crescent it throws: on down his lane, striking each it passes once
-        const c = new Crescent(scene, x + dir * CRESCENT.from, CRESCENT.y, z + 0.12, dir, CRESCENT);
-        this.strike((px, pz) => covers('line', x, z, { dir, from: -0.5, len: CRESCENT.from, half: CRESCENT.lane }, px, pz, 0), HURT.swing, c.hit);
+        const c = new Crescent(scene, x + dir * C.from, C.y, z + 0.12, dir, C);
+        this.strike((px, pz) => covers('line', x, z, { dir, from: -0.5, len: C.from, half: C.lane }, px, pz, 0), HURT.swing, c.hit);
         this.fx.push({
           step: (dt) => {
             const on = c.step(dt);
-            this.strike((px, pz) => Math.abs(px - c.x) <= CRESCENT.half && Math.abs(pz - c.z) <= CRESCENT.lane, HURT.swing, c.hit);
+            this.strike((px, pz) => Math.abs(px - c.x) <= C.half && Math.abs(pz - c.z) <= C.lane, HURT.swing, c.hit);
             return on;
           },
           dispose: () => c.dispose(),
@@ -809,10 +958,10 @@ export class Fight {
       }
       case 'lunge:1': {
         // the thrust: he drives forward, and a lance of light runs along the blade and past it
-        a.slide = SPIKE.slide;
-        const s = new Spike(scene, x + dir * SPIKE.from, SPIKE.y, z, dir, SPIKE.len);
+        a.slide = S.slide;
+        const s = new Spike(scene, x + dir * S.from, S.y, z, dir, S.len);
         a.spike = s;
-        this.fx.push({ step: (dt) => s.step(dt, SPIKE.life), dispose: () => s.dispose() });
+        this.fx.push({ step: (dt) => s.step(dt, S.life), dispose: () => s.dispose() });
         this.strike((px, pz) => covers('line', x, z, a.opt, px, pz, 0), HURT.lunge);
         break;
       }
@@ -838,10 +987,11 @@ export class Fight {
         break;
       }
       case 'leap:0':
-        b.marks.push(new Decal(scene, 'zone', a.x, a.z, decalSize('zone', LEAP.r)));
+        b.marks.push(new Decal(scene, 'zone', a.x, a.z, decalSize('zone', L.r)));
         break;
       case 'leap:1':
-        if (Math.random() < 0.4) this.say(pickOf(SAYS.leap)); // (a grunt as he springs, now and then)
+        if (Math.random() < 0.4) this.say(pickOf(b.kind.says.leap)); // (a grunt as he springs, now and then)
+        if (b.kind.flies) this.dust(x, z, 3.2, 50);
         particles.emit({
           pos: [x, 0.2, z], spread: [1.6, 0.1, 0.6], vel: [0, 2, 0], velSpread: [2, 1, 1],
           color: ['#6a5a4e', '#3a2e28'], size: 0.12, life: 0.7, count: 24, drag: 1.4, intensity: 0.9,
@@ -850,30 +1000,140 @@ export class Fight {
       case 'leap:3': {
         // he lands: the stone cracks, debris flies, the ground shakes, and all on the mark suffer
         b.lift = 0;
-        if (Math.random() < 0.4) this.say(pickOf(SAYS.leap), 0.15); // (and now and then as he lands)
+        if (Math.random() < 0.4) this.say(pickOf(b.kind.says.leap), 0.15); // (and now and then as he lands)
         b.pos.set(a.x, a.z);
         for (const m of b.marks) m.dispose();
         b.marks = [];
-        const crack = new Decal(scene, 'crack', a.x, a.z, LEAP.r * 2.6, { glow: false });
+        const crack = new Decal(scene, 'crack', a.x, a.z, L.r * 2.6, { glow: false });
         let life = 0;
         this.fx.push({
           step: (dt) => { life += dt; crack.opacity = Math.min(1, Math.max(0, (7 - life) / 2)); return life < 7; },
           dispose: () => crack.dispose(),
         });
-        this.strike((px, pz) => covers('disc', a.x, a.z, a.opt, px, pz, 0), HURT.leap);
+        this.strike((px, pz) => covers('disc', a.x, a.z, a.opt, px, pz, 0), b.kind.hurt.leap);
         particles.emit({
-          pos: [a.x, 0.3, a.z], spread: [LEAP.r * 0.5, 0.2, LEAP.r * 0.4], vel: [0, 6.5, 0], velSpread: [6, 3, 4],
+          pos: [a.x, 0.3, a.z], spread: [L.r * 0.5, 0.2, L.r * 0.4], vel: [0, 6.5, 0], velSpread: [6, 3, 4],
           color: ['#7a6a5c', '#4a3e36', '#9a8a78', '#2a221e'], size: 0.2, life: 1.2, count: 46, gravity: 16, drag: 0.4, intensity: 0.9,
         });
         particles.emit({
-          pos: [a.x, 0.4, a.z], spread: [LEAP.r * 0.6, 0.3, LEAP.r * 0.5], vel: [0, 2.5, 0], velSpread: [2.5, 1.5, 1.5],
+          pos: [a.x, 0.4, a.z], spread: [L.r * 0.6, 0.3, L.r * 0.5], vel: [0, 2.5, 0], velSpread: [2.5, 1.5, 1.5],
           color: ['#ff5a3a', '#ffd2a8', '#a01818'], size: 0.08, life: 0.8, count: 30, drag: 1.2, intensity: 2.2,
         });
         particles.emit({
-          pos: [a.x, 0.5, a.z], spread: [LEAP.r * 0.8, 0.3, LEAP.r * 0.6], vel: [0, 0.8, 0], velSpread: [2, 0.6, 1.4],
+          pos: [a.x, 0.5, a.z], spread: [L.r * 0.8, 0.3, L.r * 0.6], vel: [0, 0.8, 0], velSpread: [2, 0.6, 1.4],
           color: ['#5a4a3e', '#3a2e28'], size: 0.16, life: 1.4, count: 30, drag: 1.6, intensity: 0.7,
         });
         rig.shake?.(0.4);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  // What the dragon's blows do as each drawing is struck (nextStep): the claw's bolts, the bite's,
+  // the roar's marks and the bolts out of the sky, the tail's sweep.
+  dragonStep(b, a) {
+    const { scene, particles, rig } = this.ctx;
+    const k = b.kind;
+    const [x, z] = [b.pos.x, b.pos.y];
+    const dir = a.dir;
+    const red = ['#ff3a2a', '#ffb0a0', '#a01010'];
+    switch (`${a.kind}:${a.step}`) {
+      case 'swing:1': {
+        // the claw comes down: the bolts torn from it fly on down his lane, striking each once
+        const C = k.swing;
+        const c = new ClawBolts(scene, x + dir * C.from, C.y, z + 0.12, dir, C);
+        this.strike((px, pz) => covers('line', x, z, { dir, from: -0.5, len: C.from, half: C.lane }, px, pz, 0), k.hurt.swing, c.hit);
+        this.fx.push({
+          step: (dt) => {
+            const on = c.step(dt);
+            this.strike((px, pz) => Math.abs(px - c.x) <= C.half && Math.abs(pz - c.z) <= C.lane, k.hurt.swing, c.hit);
+            return on;
+          },
+          dispose: () => c.dispose(),
+        });
+        particles.emit({
+          pos: [x + dir * 2.6, 2, z], spread: [1, 1.2, 0.3], vel: [dir * 4, -0.5, 0], velSpread: [2, 1.5, 0.6],
+          color: red, size: 0.08, life: 0.5, count: 22, drag: 2, intensity: 2.6,
+        });
+        break;
+      }
+      case 'lunge:1': {
+        // the bite: he lunges, and lightning bursts from his jaws down along the ground ahead
+        const B = k.lunge;
+        a.slide = B.slide;
+        const s = new BiteBolt(scene, x + dir * B.from, B.y, z, dir, B.len);
+        s.mesh.rotation.z = -dir * B.tilt;
+        a.spike = s;
+        this.fx.push({ step: (dt) => s.step(dt, B.life), dispose: () => s.dispose() });
+        this.strike((px, pz) => covers('line', x, z, a.opt, px, pz, 0), k.hurt.lunge);
+        particles.emit({
+          pos: [x + dir * B.from, B.y, z], spread: [0.6, 0.5, 0.3], vel: [dir * 3, 0, 0], velSpread: [2, 2, 0.6],
+          color: red, size: 0.07, life: 0.4, count: 16, drag: 2, intensity: 2.6,
+        });
+        break;
+      }
+      case 'slam:0':
+        for (const [sx, sz] of a.opt.spots) b.marks.push(new Decal(scene, 'ring', sx, sz, decalSize('ring', a.opt.r), { opacity: 0.3 }));
+        break;
+      case 'slam:2': {
+        // the roar to the sky: a bolt from his jaws up into it, and out of it a bolt onto each mark
+        // in turn; whoever still stands on one suffers (each only once)
+        for (const m of b.marks) m.dispose();
+        b.marks = [];
+        const R = k.roar;
+        if (Math.random() < 0.5) this.say(pickOf(k.says.roar));
+        const up = new SkyBolt(scene, x + dir * R.mouth[0], z - 0.2, { height: R.height, width: 2.6, life: 0.7 });
+        up.mesh.position.y = R.mouth[1];
+        this.fx.push({ step: (dt) => up.step(dt), dispose: () => up.dispose() });
+        const seen = new Set();
+        a.opt.spots.forEach(([sx, sz], i) => {
+          let wait = 0.12 + i * R.every;
+          let bolt = null;
+          let fill = null;
+          let life = 0;
+          this.fx.push({
+            step: (dt) => {
+              if (!bolt) {
+                wait -= dt;
+                if (wait > 0) return true;
+                bolt = new SkyBolt(scene, sx, sz, { height: R.height });
+                fill = new Decal(scene, 'fill', sx, sz, decalSize('fill', R.r));
+                this.strike((px, pz) => Math.hypot(px - sx, (pz - sz) * 1.15) <= R.r, k.hurt.slam, seen);
+                particles.emit({
+                  pos: [sx, 0.3, sz], spread: [R.r * 0.5, 0.2, R.r * 0.4], vel: [0, 3, 0], velSpread: [2.4, 2, 1.6],
+                  color: red, size: 0.09, life: 0.7, count: 26, drag: 1.4, intensity: 2.6,
+                });
+                rig.shake?.(0.12);
+              }
+              // the bolt flickers out, and the scorch where it struck fades after it
+              life += dt;
+              fill.opacity = Math.max(0, 1 - life / 0.6);
+              const on = bolt.step(dt);
+              return on || life < 0.6;
+            },
+            dispose: () => { bolt?.dispose(); fill?.dispose(); },
+          });
+        });
+        break;
+      }
+      case 'tail:0':
+        b.marks.push(new Decal(scene, 'ring', a.x, a.z, decalSize('ring', a.opt.r), { opacity: 0.35 }));
+        break;
+      case 'tail:2': {
+        // the lash: everyone behind him inside its sweep suffers, and the dust flies along it
+        for (const m of b.marks) m.dispose();
+        b.marks = [];
+        const fill = new Decal(scene, 'fill', a.x, a.z, decalSize('fill', a.opt.r));
+        let life = 0;
+        this.fx.push({
+          step: (dt) => { life += dt; fill.opacity = Math.max(0, 1 - life / 0.6); return life < 0.6; },
+          dispose: () => fill.dispose(),
+        });
+        this.strike((px, pz) => covers('disc', a.x, a.z, a.opt, px, pz, 0), k.hurt.tail);
+        this.dust(a.x, a.z, a.opt.r * 0.8, 50);
+        rig.shake?.(0.2);
         break;
       }
       default:
@@ -913,7 +1173,7 @@ export class Fight {
       const toX = n.pos.x - b.pos.x;
       const toZ = n.pos.y - b.pos.y;
       const dist = Math.hypot(toX, toZ) || 1;
-      const a = b.state === 'attack' && b.attack.step <= MOVES[b.attack.kind].danger ? b.attack : null;
+      const a = b.state === 'attack' && b.attack.step <= b.kind.moves[b.attack.kind].danger ? b.attack : null;
       if (a && a !== f.seen) {
         f.seen = a;
         f.react = rand(0.1, 0.4);
@@ -943,10 +1203,10 @@ export class Fight {
         f.cd -= dt;
         if (f.mode === 'circle' && f.cd <= 0 && !a) f.mode = 'engage';
         if (f.mode === 'engage') {
-          const r = BOSS.radius + 1.4;
+          const r = b.kind.radius + 1.4;
           goal = [b.pos.x + (toX / dist) * r, b.pos.y + (toZ / dist) * r * 0.8];
           speed = 4.8;
-          if (dist < BOSS.reach + BOSS.radius + 0.2 && b.lift < 1) {
+          if (dist < b.kind.reach + b.kind.radius + 0.2 && b.lift < 1) {
             const def = n.body.sheet.anims.hammer;
             n.action = { kind: 'fightAttack', anim: 'hammer', t: 0, dur: def.frames.length / def.fps, hitAt: (n.body.sheet.hits?.hammer ?? 2) / def.fps, hit: false };
             n.body.facing = b.pos.x > n.pos.x ? 1 : -1;
@@ -998,7 +1258,7 @@ export class Fight {
       const bx = n.pos.x - b.pos.x;
       const bz = n.pos.y - b.pos.y;
       const bd = Math.hypot(bx, bz);
-      if (b.lift < 2 && bd > 0.01 && bd < BOSS.radius + 0.7) { wx += (bx / bd) * 6; wz += (bz / bd) * 6; }
+      if (b.lift < 2 && bd > 0.01 && bd < b.kind.radius + 0.7) { wx += (bx / bd) * 6; wz += (bz / bd) * 6; }
     }
     const k = Math.min(1, dt * 7);
     f.vx += (wx - f.vx) * k;
@@ -1069,8 +1329,8 @@ export class Fight {
   }
 
   // Where to run to get out from under a blow, staying on the arena floor: out of a swing's or a
-  // lunge's lane (up or down, whichever is nearer and open), or straight away from where a slam
-  // or a leap lands, past its edge.
+  // lunge's lane (up or down, whichever is nearer and open), straight away from where a slam or a
+  // leap lands, past its edge, or off the roar's mark to the nearest ground none covers.
   escape(a, n) {
     const { x, z, opt } = a;
     const { cx, cz } = this.ctx.world.arena;
@@ -1087,6 +1347,20 @@ export class Fight {
       }
       // no room up or down: behind him, then
       return clamp([x - opt.dir * 2.5, n.pos.y]);
+    }
+    if (a.shape === 'spots') {
+      let best = null;
+      let bd = Infinity;
+      for (let i = 0; i < 12; i++) {
+        const ang = (i / 12) * Math.PI * 2;
+        for (const d of [opt.r * 1.3 + 0.8, opt.r * 2.4 + 0.8]) {
+          const [ex, ez] = clamp([n.pos.x + Math.cos(ang) * d, n.pos.y + Math.sin(ang) * d]);
+          if (covers('spots', x, z, opt, ex, ez, 0.3)) continue;
+          const cost = Math.hypot(ex - n.pos.x, ez - n.pos.y);
+          if (cost < bd) { bd = cost; best = [ex, ez]; }
+        }
+      }
+      return best || clamp([n.pos.x + opt.r * 2.4, n.pos.y]);
     }
     let dx = n.pos.x - x;
     let dz = n.pos.y - z;
@@ -1181,12 +1455,12 @@ export class Fight {
         }
         if (this.t >= 2.5) {
           const [bx, bz] = world.arena.point('boss');
-          this.boss = new Boss(this.ctx, bx, bz);
+          this.boss = new Boss(this.ctx, bx, bz, this.kind);
           this.lagHp = this.boss.hp;
           this.focus = false;
           this.introUntil = this.clock + BOSS_CAM.intro; // (the camera shows him a moment, then thee)
           this.says = [];
-          this.say(pickOf(SAYS.enter), 1.4, true);
+          this.say(pickOf(this.boss.kind.says.enter), this.boss.kind.flies ? 2.4 : 1.4, true);
           this.boss.talkIn = rand(10, 16);
           this.ctx.particles.emit({
             pos: [bx, 1.5, bz], spread: [1.2, 2, 0.8], vel: [0, 1.5, 0], velSpread: [1, 1, 0.6],
@@ -1206,7 +1480,7 @@ export class Fight {
           const a = n.action;
           if (a?.kind === 'fightAttack' && !a.hit && a.t >= a.hitAt) {
             a.hit = true;
-            if (b.lift < 2 && Math.hypot(b.pos.x - n.pos.x, b.pos.y - n.pos.y) < BOSS.reach + BOSS.radius + 0.4) this.hit(b, DAMAGE.fighter);
+            if (b.lift < 2 && Math.hypot(b.pos.x - n.pos.x, b.pos.y - n.pos.y) < b.kind.reach + b.kind.radius + 0.4) this.hit(b, DAMAGE.fighter);
           }
         }
         if (b.state === 'gone' || !b.alive) {
@@ -1288,8 +1562,9 @@ export class Fight {
       // none left to face him but the Bandit Knight, cowering: he can't believe it
       this.cowardsAlone = this.clock;
       this.hushUntil = this.clock + 6; // (nothing else from him meanwhile)
-      this.say(SAYS.alone[0], 0.8, true);
-      this.say(SAYS.alone[1], 4.6, true);
+      const { alone } = this.boss.kind.says;
+      this.say(alone[0], 0.8, true);
+      this.say(alone[1], 4.6, true);
     }
     return this.clock - this.cowardsAlone > 20;
   }
