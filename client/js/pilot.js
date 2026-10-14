@@ -182,18 +182,21 @@ export class Pilot {
   }
 
   // Where one may travel by grace: Roundtable Hold always; an island once it has risen (not while
-  // it's still under the mist, nor once it's sinking back into it); and while a great enemy is
-  // abroad, nowhere but the Hold (the way to the arena is on foot, guide.js).
+  // it's still under the mist, nor once it's sinking back into it); while a great enemy is abroad,
+  // nowhere but the Hold (the way to the arena is on foot, guide.js); and sealed in the arena
+  // with him, nowhere at all till the fight is over.
   canTravelTo(area) {
     const { world, fight } = this.ctx;
+    if (fight?.sealed && this.npc && fight.inArena(this.npc)) return false;
     if (area === world.hub) return true;
     return !!area?.walkRect && area.risen && !area.sinking && !fight?.hunting();
   }
 
   // Travel by grace to an area (hub or region): dissolve and reappear at its Site of Grace.
-  travelTo(area) {
+  // (`forced`: rising again at the Hold after falling, wherever one fell.)
+  travelTo(area, forced = false) {
     const n = this.npc;
-    if (!n || n.travel || n.shift || !area || !this.canTravelTo(area)) return;
+    if (!n || n.travel || n.shift || !area || (!forced && !this.canTravelTo(area))) return;
     n.action = null;
     n.goal = null;
     n.path = [];

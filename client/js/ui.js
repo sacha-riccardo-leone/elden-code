@@ -8,19 +8,18 @@ import { GESTURES, STATION_LABEL } from './director.js';
 import { stats } from './lore.js';
 import { REGION, HUB } from './config.js';
 
-// The Arena of Trials' mark on the map strip: a horned skull, in pixels (h: its paler brow).
+// The Arena of Trials' mark on the map strip: a horned skull, in pixels, its horns sweeping out
+// from the top of the head and curving down beside the face (h: its paler brow).
 const SKULL = [
-  'x.............x',
-  'xx...........xx',
-  '.xx..hhhhh..xx.',
-  '..xxxhxxxhxxx..',
-  '...xxxxxxxxx...',
-  '...x..xxx..x...',
-  '...x..xxx..x...',
-  '...xxxx.xxxx...',
-  '....xxxxxxx....',
-  '....xx.x.xx....',
-  '.....xxxxx.....',
+  '.....xhhhhhhhx.....',
+  '..xxxxxxxxxxxxxxx..',
+  '.xxx.xxxxxxxxx.xxx.',
+  'xxx..xx..x..xx..xxx',
+  'xx...xx..x..xx...xx',
+  'xx...xxxx.xxxx...xx',
+  '.x....xxxxxxx....x.',
+  '.x....x.x.x.x....x.',
+  '......xxxxxxx......',
 ];
 
 const $ = (sel) => document.querySelector(sel);
@@ -251,9 +250,11 @@ export class UI {
     return Math.max(0, Math.min(1, (x - min) / (max - min || 1)));
   }
 
-  // Every frame: thy dot where thou art, and the arena while a great enemy is abroad.
-  updateMap(x, boss) {
+  // Every frame: thy dot where thou art, and the arena while a great enemy is abroad. Sealed in the
+  // arena with him (`sealed`), the strip gives way to his health bar till the fight is over.
+  updateMap(x, boss, sealed = false) {
     if (!this.mapMarks) this.buildMap();
+    this.regionsEl.classList.toggle('sealed', sealed);
     this.mapMe.style.left = `${(this.mapAt(x) * 100).toFixed(2)}%`;
     if (boss) this.mapArena.style.left = `${(this.mapAt(0) * 100).toFixed(2)}%`; // (north of the Hold)
     if (boss === this.mapBoss) return;

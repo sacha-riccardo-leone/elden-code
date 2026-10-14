@@ -186,7 +186,10 @@ body.day #area h2 {
   width: min(720px, 46vw);
   height: 92px;
   pointer-events: none;
+  transition: opacity 0.6s, visibility 0.6s;
 }
+/* sealed in the arena with a great enemy: the strip gives way to its health bar */
+#regions.sealed { opacity: 0; visibility: hidden; }
 .map-line {
   position: absolute;
   left: 0;
@@ -288,8 +291,8 @@ body.day #area h2 {
   background: rgba(255, 70, 50, 0.8);
 }
 .map-arena svg {
-  width: 30px;
-  height: 22px;
+  width: 36px;
+  height: 17px;
   animation: arenaGlow 1.8s ease-in-out infinite;
 }
 .map-arena-name {

@@ -20,7 +20,7 @@
 //           marks where he'll come down, leaps, and lands in a crack of stone and flying debris.
 
 import * as THREE from 'three';
-import { ARENA, HUB, HUB_LAYOUT, CROWD } from './config.js';
+import { ARENA, HUB, HUB_LAYOUT, CROWD, LINE } from './config.js';
 import { SpriteBody } from './npc.js';
 import { Crescent, Decal, Spike } from './bossfx.js';
 
@@ -169,6 +169,7 @@ export class Fight {
   constructor(ctx) {
     this.ctx = ctx;
     this.state = 'idle'; // idle, rising, gathering, fighting, won, ending
+    this.sealed = false; // thou in the arena with him, the way out walled with fog (update)
     this.boss = null;
     this.fx = []; // his magic, living on by itself: flying crescents, lances, fading light, cracks
     this.cause = null;
@@ -311,6 +312,7 @@ export class Fight {
       if (n.action?.kind !== 'transform') n.action = null;
       n.intent = { kind: 'fight' };
       n.fighter = {
+        line: k, // their place in the line they wait in (lineSpot)
         hp: 100, down: 0, cd: rand(1.5, 4), angle: (k * 2.4) % (Math.PI * 2),
         ring: 4.6 + (k % 3) * 0.8, dir: k % 2 ? 1 : -1, mode: 'circle', modeT: 0, vx: 0, vz: 0, speed: 0,
         coward: n.hero?.hero === 'bandit', // the Bandit Knight (Patches, really) never fights: he keeps his distance, and whines
@@ -435,6 +437,23 @@ export class Fight {
 
   inArena(n) {
     return this.ctx.world.areaAt(n.pos.x, n.pos.y) === this.ctx.world.arena;
+  }
+
+  // On the ring itself, past the way in (not still on the end of the bridge).
+  onRing(n) {
+    const { cx, cz } = this.ctx.world.arena;
+    return Math.hypot(n.pos.x - cx, n.pos.y - cz) <= ARENA.walkRadius - 0.4;
+  }
+
+  // The i-th fighter's place in the line they wait in: right and left wings by turns, outward
+  // from the aisle, along a curve that follows the arena's round just inside the way in.
+  lineSpot(i) {
+    const { cx, cz } = this.ctx.world.arena;
+    const r = ARENA.walkRadius - LINE.inset;
+    const side = i % 2 ? -1 : 1;
+    const s = LINE.aisle / 2 + Math.floor(i / 2) * LINE.spacing;
+    const a = Math.PI / 2 - side * (s / r); // (the way in lies due south of the centre: +z)
+    return [cx + Math.cos(a) * r, cz + Math.sin(a) * r];
   }
 
   // Thou art on the arena while he's abroad there: every click is a blow, and nobody can be
@@ -872,9 +891,8 @@ export class Fight {
         }
       }
     } else {
-      // waiting for the enemy (or done with it): a loose crowd by the entrance
-      const [ax, az] = world.arena.point('grace');
-      goal = [ax + Math.cos(f.angle) * 3.5, az - 1.5 + Math.sin(f.angle) * 1.2];
+      // waiting for the enemy (or done with it): in their place in the line by the way in
+      goal = this.lineSpot(f.line);
       speed = 3;
     }
     // steer for the goal (easing in as it's reached), away from the others and the enemy's bulk
@@ -922,6 +940,7 @@ export class Fight {
     f.speed = v;
     if (faceBoss) { if (Math.abs(b.pos.x - n.pos.x) > 0.3) n.body.facing = b.pos.x > n.pos.x ? 1 : -1; }
     else if (Math.abs(f.vx) > 0.3) n.body.facing = f.vx > 0 ? 1 : -1;
+    else if (!live) n.body.facing = n.pos.x < world.arena.cx ? 1 : -1; // (in line, facing the aisle)
     n.body.play(moving ? 'walk' : 'idle');
     return moving;
   }
@@ -985,6 +1004,11 @@ export class Fight {
     // in the Lands Between goes out but the arena's (world.douse), and an arrow shows thee the way
     // there (guide.js)
     world.dousing = this.hunting();
+    // once thou'st stepped onto the arena to face him, a wall of fog seals the way out behind thee
+    // till the fight is over (and the map strip at the bottom gives way to his health, ui.js)
+    const me0 = pilot.npc;
+    this.sealed = this.state === 'fighting' || (this.state === 'gathering' && !!me0 && !pilot.dead && this.onRing(me0));
+    world.arena.seal(this.sealed);
 
     // thy health: back to full slowly out of a fight, quickly at grace
     const me = pilot.npc;
@@ -1002,7 +1026,7 @@ export class Fight {
         this.closeCarry();
         pilot.dead = false;
         pilot.hp = pilot.maxHp;
-        if (me) { me.action = null; pilot.travelTo(world.hub); }
+        if (me) { me.action = null; pilot.travelTo(world.hub, true); }
       }
     }
 

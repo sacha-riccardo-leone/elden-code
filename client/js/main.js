@@ -320,7 +320,7 @@ function step(dt) {
   ui.setFocusArea(world.areaAt(rig.cur.x, rig.cur.z), t);
   ui.updateLabels(areas());
   // the map strip: where thou art, between islands too, and the arena while a great enemy is abroad
-  ui.updateMap(me ? me.pos.x : 0, fight.hunting());
+  ui.updateMap(me ? me.pos.x : 0, fight.hunting(), fight.sealed);
   ui.update(dt);
   interact.update();
   // walking away from the Round Table folds its menu

@@ -66,8 +66,9 @@ can **become any character**: click one and choose **Become …** in the fan ove
     the line shows where you are, moving with you even between islands. An island only appears on
     it, and can only be reached by grace, once it has fully risen from the mist.
   - While a great enemy is abroad, the **Arena of Trials** shows over Roundtable Hold in shining
-    red, under a horned skull. Every island but the Hold is greyed out: the Hold is the only place
-    you can travel to by grace, and the way on to the arena is on foot.
+    red, under a skull whose horns curve down. Every island but the Hold is greyed out: the Hold is
+    the only place you can travel to by grace, and the way on to the arena is on foot. Once you're
+    sealed in the arena with it, the strip gives way to its health bar until the fight is over.
   - The **Controls** button (top right) lists all of this.
 - **Others:** only the character you are can gesture. Clicking anyone else opens their info panel
   and a fan with just **Become [name]**. You can drag them to carry them elsewhere. Scroll to zoom.
@@ -217,8 +218,8 @@ Extract all of a sheet's frames in one run so they share a palette, and pack the
 
 ## Great enemies
 
-Boss fights happen in the **Arena of Trials**. It rises from the mist north of Roundtable Hold,
-with a bridge from the Hold, when a fight begins. It sinks again only once the fight is over and
+Boss fights happen in the **Arena of Trials**, a wide ring of broken pillars (radius 19). It rises
+from the mist north of Roundtable Hold, with a bridge from the Hold, when a fight begins. It sinks again only once the fight is over and
 everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
 
 - **What brings one:**
@@ -232,8 +233,13 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
   fight. Their sessions keep running, and they go back to them by grace afterwards. You fight too,
   as whoever you are.
 - **The enemy waits for you:** it enters only once you stand on the arena. Until then the others
-  wait by its entrance, and the log tells you where to go. If you haven't come after two and a
-  half minutes, it turns away and everyone goes home.
+  wait for you in a curved line just inside the way in. The line follows the arena's round, in two
+  wings facing a wide aisle down the middle for you to walk through (`LINE` in
+  `client/js/config.js`). The log tells you where to go. If you haven't come after two and a half
+  minutes, it turns away and everyone goes home.
+- **No way out:** as you step onto the ring, a wall of fog wells up across the way in, between two
+  stone posts. Until the fight is over (felled, prevailing or withdrawn), nobody walks back out
+  over the bridge and you can't travel by grace, not even to the Hold. Then the fog thins away.
 - **The lights go out:** from the moment it's announced until it's felled, prevails or withdraws,
   every torch, candle, fire and grace in the Lands Between goes out, one after another, except the
   arena's braziers. Flames sink into their beds, the big fires give off a wisp of smoke, and the

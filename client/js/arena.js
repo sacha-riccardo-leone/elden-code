@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { ARENA, HUB } from './config.js';
 import * as T from './textures.js';
 import { rng } from './pixel.js';
-import { Builder, BRICK_TILE, scaleCylUV, scaleBoxUV } from './build.js';
+import { Builder, BRICK_TILE, scaleCylUV, scaleBoxUV, NOISE_GLSL, UV_VERT } from './build.js';
 import { Flame } from './fire.js';
 
 const FLOOR = {
@@ -16,6 +16,26 @@ const FLOOR = {
   tuft: ['#565034', '#47422f'],
 };
 const DEPTH = 46; // how far below the mist it waits
+const GATE = { w: ARENA.bridgeHalf * 2 + 0.9, h: 4.2 }; // the fog wall across its entrance
+
+// The fog wall that seals the arena once thou'st stepped in to face a great enemy: a curtain of
+// pale, gold-shot mist welling up and swirling, thick enough to be seen as a wall.
+const SEAL_FRAG = /* glsl */ `
+  uniform float uTime;
+  uniform float uIntensity;
+  varying vec2 vUv;
+  ${NOISE_GLSL}
+  void main() {
+    vec2 p = vec2((vUv.x - 0.5) * ${GATE.w.toFixed(2)}, vUv.y * ${GATE.h.toFixed(2)});
+    float swirl = fbm(vec2(p.x * 0.9 + sin(p.y * 0.7 + uTime * 0.4), p.y * 0.5 - uTime * 0.45));
+    float streak = fbm(vec2(p.x * 3.5, p.y * 0.3 + uTime * 0.7));
+    float n = swirl * 0.7 + streak * 0.4;
+    float edge = smoothstep(0.0, 0.5, ${(GATE.w / 2).toFixed(2)} - abs(p.x)) * smoothstep(0.0, 0.25, p.y) * smoothstep(0.0, 1.4, ${GATE.h.toFixed(2)} - p.y);
+    vec3 col = mix(vec3(0.72, 0.72, 0.78), vec3(1.0, 0.9, 0.68), smoothstep(0.5, 0.95, n));
+    float a = edge * (0.2 + 0.55 * smoothstep(0.35, 0.95, n)) * uIntensity;
+    gl_FragColor = vec4(col, a);
+  }
+`;
 
 export class Arena extends Builder {
   constructor(world) {
@@ -25,6 +45,7 @@ export class Arena extends Builder {
     this.subtitle = 'Where great enemies are faced';
     this.mat = world.matsFor('ashen');
     this.braziers = [];
+    this.sealed = false; // the fog wall across the entrance (seal)
     this.build();
     this.mergeStatic();
     this.depth = DEPTH;
@@ -38,11 +59,26 @@ export class Arena extends Builder {
     return this.risen && (x - this.cx) ** 2 + (z - this.cz) ** 2 <= ARENA.radius ** 2;
   }
 
-  // Walkable: the ring itself and its bridge back to the Hold, once it has risen.
+  // Walkable: the ring itself and its bridge back to the Hold, once it has risen (but not the
+  // bridge while the fog wall seals the way out).
   isWalk(x, z) {
     if (!this.risen) return false;
     if ((x - this.cx) ** 2 + (z - this.cz) ** 2 <= ARENA.walkRadius ** 2) return true;
+    if (this.sealed) return false;
     return Math.abs(x - this.cx) <= ARENA.bridgeHalf && z <= -HUB.walkRadius + 0.6 && z >= this.cz + ARENA.walkRadius - 0.6;
+  }
+
+  // Thou'st stepped in to face a great enemy: a wall of fog wells up across the way out, and stays
+  // till the fight is over (fight.js); then it thins away.
+  seal(on) {
+    if (on === this.sealed) return;
+    this.sealed = on;
+    this.world.version += 1; // (the bridge is walkable again, or not: the nav grid follows)
+    if (!on) return;
+    this.world.particles.emit({
+      pos: [this.cx, 1.4, this.cz + this.gateZ], spread: [GATE.w / 2, 1.2, 0.2], vel: [0, 0.6, 0], velSpread: [0.5, 0.5, 0.5],
+      color: ['#e8e4dc', '#c8c4bc', '#f2dca8'], size: 0.12, life: 1.6, count: 50, drag: 0.8, intensity: 1.1,
+    });
   }
 
   // Arrivals by grace come in at the south end, by the bridge; the great enemy waits to the north.
@@ -117,6 +153,30 @@ export class Arena extends Builder {
       this.braziers.push({ x, z, glow, light: this.light(x, 1.9, z, '#ff8a3a', 10, 1.5), flame: null, phase: a * 7 });
     }
 
+    // the way in from the bridge, where it meets the ring: two stone posts, and between them the
+    // fog wall when it's sealed
+    this.gateZ = ARENA.walkRadius + 0.4;
+    for (const side of [-1, 1]) {
+      const x = side * (GATE.w / 2 + 0.2);
+      const post = new THREE.Mesh(scaleCylUV(new THREE.CylinderGeometry(0.32, 0.4, 3.6, 8), 0.36, 3.6, BRICK_TILE), this.mat.stoneMoss);
+      post.position.set(x, 1.8, this.gateZ);
+      post.castShadow = true;
+      post.receiveShadow = true;
+      this.add(post);
+      this.box(0.9, 0.3, 0.9, this.mat.stone, x, 3.75, this.gateZ, { tile: 1 });
+    }
+    this.sealUniforms = { uTime: { value: 0 }, uIntensity: { value: 0 } };
+    this.fogWall = new THREE.Mesh(new THREE.PlaneGeometry(GATE.w, GATE.h), new THREE.ShaderMaterial({
+      vertexShader: UV_VERT, fragmentShader: SEAL_FRAG, uniforms: this.sealUniforms,
+      transparent: true, depthWrite: false, side: THREE.DoubleSide,
+    }));
+    this.fogWall.position.set(0, GATE.h / 2, this.gateZ);
+    this.fogWall.renderOrder = 4;
+    this.fogWall.visible = false;
+    this.fogWall.userData.dynamic = true;
+    this.add(this.fogWall);
+    this.fogLight = this.light(0, 2.2, this.gateZ - 0.8, '#dfe2ea', 8, 1.6);
+
     // the bridge back to Roundtable Hold, which rises and sinks with the arena
     const z0 = R - 0.6;
     const z1 = -HUB.radius - this.cz + 0.6;
@@ -180,6 +240,14 @@ export class Arena extends Builder {
     }
     const up = this.rise > 0;
     this.group.visible = up;
+    // the fog wall wells up quickly when sealed, and thins away slowly after
+    const u = this.sealUniforms;
+    u.uTime.value = t;
+    u.uIntensity.value = Math.max(0, Math.min(1, u.uIntensity.value + (this.sealed ? dt / 0.8 : -dt / 1.4)));
+    this.fogWall.visible = up && u.uIntensity.value > 0.01;
+    this.fogWall.scale.y = 0.4 + 0.6 * Math.min(1, u.uIntensity.value * 1.5);
+    this.fogWall.position.y = (GATE.h / 2) * this.fogWall.scale.y;
+    this.fogLight.intensity = up ? 7 * u.uIntensity.value : 0;
     for (const b of this.braziers) {
       const f = b.flame ? 0.75 + 0.3 * b.flame.step(dt) : 0.85 + 0.15 * Math.sin(t * 10 + b.phase);
       b.light.intensity = up ? 10 * f : 0;
