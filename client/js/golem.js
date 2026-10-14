@@ -51,7 +51,9 @@ export const GOLEM = {
 // His moves: drawings and how long each is held (`true`: fixed, else quicker when he's wounded);
 // `danger`: the last step during which it can still be escaped.
 export const GOLEM_MOVES = {
-  swing: { steps: [['swing-1', 1.0], ['swing-2', 0.22], ['swing-3', 0.9]], danger: 2 },
+  // (the axe raised a long moment; then the swing itself only a blink, so the axe seems to sweep
+  // through it straight down onto the ground)
+  swing: { steps: [['swing-1', 1.0], ['swing-2', 0.07, true], ['swing-3', 0.9]], danger: 2 },
   lunge: { steps: [['lunge-1', 1.0], ['lunge-2', 0.5], ['lunge-3', 0.8]], danger: 1 },
   slam: {
     steps: [['slam-1', 2, true], ['slam-2', 0.2, true], ['slam-1', 0.22, true], ['slam-2', 0.2, true], ['slam-1', 1, true], ['slam-2', 0.6, true], ['slam-3', 1]],
