@@ -15,6 +15,7 @@ import { Demo } from './demo.js';
 import { loadHeroSheets } from './heroes/index.js';
 import { loadSheet } from './heroes/core.js';
 import bossRig from './heroes/boss.js';
+import golemRig from './heroes/golem.js';
 import spectreRig from './heroes/spectre.js';
 import { loadFireArt } from './fire.js';
 import { Pilot } from './pilot.js';
@@ -45,20 +46,21 @@ const world = new World(scene, particles);
 const nav = new Nav(world);
 const ui = new UI(camera, canvas);
 // The Stormbound Knight is worn by Maren (thee); the sessions share the other heroes.
-// (the great enemy of the arena too, fight.js: should his art fail, no great enemy comes)
+// (the great enemies of the arena too, fight.js: should one's art fail, only the other comes)
 // (and the spectres called up when every hero is busy, director.js: without their art, sessions
 // wait for a free hero instead)
-const [allHeroes, fireArt, bossSheet, spectreSheet] = await Promise.all([
+const [allHeroes, fireArt, bossSheet, golemSheet, spectreSheet] = await Promise.all([
   loadHeroSheets(),
   loadFireArt(),
   loadSheet(bossRig).catch((err) => { console.warn('Boss art unavailable', err); return null; }),
+  loadSheet(golemRig).catch((err) => { console.warn('Golem art unavailable', err); return null; }),
   loadSheet(spectreRig).catch((err) => { console.warn('Spectre art unavailable', err); return null; }),
 ]);
 world.fireArt = fireArt; // (each island lights its own when it's built, region.js)
 world.hub.lightFires(fireArt);
 world.arena.lightFires(fireArt);
 const playerSheet = allHeroes.find((s) => s.hero === 'knight') || null;
-const ctx = { scene, world, nav, particles, ui, director: null, heroSheets: allHeroes.filter((s) => s !== playerSheet), bossSheet, spectreSheet };
+const ctx = { scene, world, nav, particles, ui, director: null, heroSheets: allHeroes.filter((s) => s !== playerSheet), bossSheet, golemSheet, spectreSheet };
 const director = new Director(ctx);
 ctx.director = director;
 const keys = new Set();

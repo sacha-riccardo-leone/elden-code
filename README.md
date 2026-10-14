@@ -272,9 +272,12 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
     the enemy he begs ("Wrong bandit! Wrong bandit!"). Hidden, he mutters ("I'm a rock. A small,
     rusty, handsome rock."). From a safe distance he taunts it. When an ally falls he mourns them
     in his own way ("Rest easy. Dibs on yer purse.").
-- **The enemy:** Fenrath, the Crimson Fang (`client/js/heroes/boss.js`, effects in
-  `client/js/bossfx.js`). He walks into his target's lane and strikes along it. Every blow shows
-  itself before it lands: step out of the way, or dodge through it with **Space**.
+- **The enemies:** one of two comes, an even chance of either: Fenrath, the Crimson Fang, or the
+  Guardian Golem. If one's art fails to load, only the other comes. The Tarnished's battle lines
+  fit whichever came (Ulric has his own jokes for each).
+- **Fenrath, the Crimson Fang** (`client/js/heroes/boss.js`, effects in `client/js/bossfx.js`).
+  He walks into his target's lane and strikes along it. Every blow shows itself before it lands:
+  step out of the way, or dodge through it with **Space**.
   - **Swing:** he raises the greatsword and cuts. A crescent of red light flies on down his lane
     for half a second, striking each person it passes once.
   - **Lunge:** he thrusts and slides forward. A lance of red light runs along the blade and well past
@@ -292,6 +295,35 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
     at hand."), and now and then another while he stalks ("Serve my will alone, O blade.", "*heavy
     breathing*"). He gives a grunt on some of his leaps and landings. Left facing nobody but the
     cowering Bandit Knight, he can't believe it: "*looks in disbelief*"… "Coward…".
+- **The Guardian Golem** (drawings `client/js/heroes/golem.js`, fight `client/js/golem.js`): a
+  giant of black stone, about 8 units tall, with a fire in his ribcage and a double-bladed axe on
+  a long pole. He says nothing. His attacks and his fall are the user's frames, used as drawn;
+  idle (breathing) and walk are rigged from the idle drawing.
+  - **Weak points:** stone turns every blow except those on his **cracked ankle**, low on his back
+    leg. Blows elsewhere do nothing (a puff of stone chips), and blows on the ankle do little (12).
+    After 8 ankle blows (yours and the fighters' alike) the ankle smoulders, and the next time he
+    walks it gives way. He **passes out** and falls on his face, and a **golden circle** appears on
+    the floor by the fire in his chest. For 6 seconds, blows struck from inside the circle deal
+    150 (a fighter's 30); from anywhere else, nothing. Then he gets up (the fall played
+    backwards), the ankle whole again. A line in the log explains each step the first time.
+  - **Shockwaves:** what hurts most is what his blows shake loose. A shockwave rolls out over the
+    floor as a ring of dust, far wider than the axe. Dodge through it (Space) as it reaches you.
+    The fighters hop them, mostly.
+  - **Swing:** he raises the axe behind him and brings it over and down. Where it lands (marked
+    beforehand) the stone cracks and a shockwave rolls out 8 units.
+  - **Lunge:** he drives the axe out at full stretch. His size gives it a reach of about 12
+    units, and a shock in the air flies on past its point.
+  - **Slam:** he raises the pole high and holds it for two seconds, drives it into the ground
+    twice, fast, holds again for a second and drives it down a last time. Three shockwaves, the
+    last over the whole arena. Then he settles.
+  - **Fire spit:** it begins exactly like the slam, but the pole goes into the ground and stays
+    there, planted, with a crack at its foot, while he lets go of it. He shakes for two seconds,
+    then spits fire from his chest for five while meteors fall all over the arena, each marked
+    on the floor before it lands. Nothing hurts him meanwhile. Then he settles and takes his axe
+    back.
+  - Tuning (health, damage, how many ankle blows, the circle, the shockwaves, how often each
+    attack comes) is the `GOLEM` table in `client/js/golem.js`. His size is `px` in
+    `client/js/heroes/golem.js`.
 - **The fight:**
   - Enough damage in quick succession breaks his stance: he reels and takes more from every blow.
   - As you step in and he enters, the camera shows him for a few seconds, then comes back to
@@ -322,7 +354,7 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
   - **Withdrawn:** he leaves on his own after eight minutes.
 
   Nothing here ever reaches Claude Code.
-- If the enemy's art fails to load, no great enemy comes at all.
+- If neither enemy's art loads, no great enemy comes at all.
 
 ## Day and night
 
@@ -479,8 +511,9 @@ client/js/guide.js      the golden arrow on the ground that shows the way to the
 client/js/grace.js      the grace itself, the figure of golden light floating over every Site of Grace
 client/js/interact.js   E: using the stations and the Round Table
 client/js/arena.js      the Arena of Trials, north of the Hold
-client/js/fight.js      great enemies: what brings them, their attacks, the fighters, thy health
-client/js/bossfx.js     the enemy's red light: the swing's crescent, the lunge's lance, floor marks
+client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the fighters, thy health
+client/js/golem.js      the Guardian Golem's fight: his weak points, his fall, shockwaves, fire
+client/js/bossfx.js     the enemies' effects: crescent, lance, floor marks, shockwaves, meteors
 client/js/director.js   event → behaviour, regions, slash-command effects, chatter, visits
 client/js/voices.js     how each character talks: base lines and every voice's version of them
 client/js/lore.js       names, epithets, session tallies, conversation topics

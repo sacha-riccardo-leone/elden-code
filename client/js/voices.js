@@ -130,7 +130,7 @@ const tarnished = {
     victory: ['The great enemy is felled!', 'Glory to the Round Table!'],
     flee: ['Fall back!', 'Retreat!'],
     cower: ['*keeps low*'],
-    taunt: ['Face me, beast!'],
+    taunt: ['[fenrath]Face me, beast!', '[golem]Face me, stone!'],
     fallen: ['{name}! No!', 'Avenge {name}!'],
   },
 };
@@ -189,8 +189,11 @@ const vael = {
     point_reply: ['Is something bleeding there, {name}?', 'Where? I smell nothing.'],
     pray_reply: ['Pray as thou wilt. Blood answers sooner than gods.', '*watches, amused*'],
     solo: ['*licks a fleck of red from a fingertip*', 'Such thin blood in this hall…', 'Mm.', '*swirls a drop of crimson about a finger*'],
-    battle: ['At last, something with real blood in it.', 'Let us see what thou bleedest, beast.'],
-    victory: ['Such a vintage… spilled.', 'Delicious.'],
+    battle: [
+      '[fenrath]At last, something with real blood in it.', '[fenrath]Let us see what thou bleedest, beast.',
+      '[golem]Stone? No blood in it at all? How very rude.', '[golem]Only the fire in its heart is worth the drinking.',
+    ],
+    victory: ['[fenrath]Such a vintage… spilled.', '[fenrath]Delicious.', '[golem]Not a drop in it. What a waste of an evening.'],
   },
 };
 
@@ -258,16 +261,22 @@ const bandit = {
       "I'll hold the flank! The far, far flank.",
       'Somebody distract it. Not me. Somebody.',
       'Is it too late to resign? In writing?',
-      "Who let the big red dog in? Don't look at me!",
+      "[fenrath]Who let the big red dog in? Don't look at me!",
+      "[golem]That's not a knight, that's a quarry with opinions!",
+      "[golem]Who carved this one? I want words with 'em.",
+      "[golem]Statues aren't supposed to MOVE! It's the whole point of statues!",
     ],
     victory: [
       'Dibs on the loot!',
       "Ha! Told ye we'd win. Teamwork!",
       'We did it! I mostly supervised.',
-      "Right, I'll take the teeth. Teeth sell well.",
+      "[fenrath]Right, I'll take the teeth. Teeth sell well.",
+      "[golem]Dibs on the gravel! Some of it's bound to be gold.",
+      "[golem]I'll take the axe. …Somebody help me lift the axe.",
       'Never in doubt! Not once! Not even when I screamed.',
       'Did everyone see how brave I was? …Good. Nobody did? Also good.',
-      "First dibs on the carcass! It's tradition! Bandit tradition!",
+      "[fenrath]First dibs on the carcass! It's tradition! Bandit tradition!",
+      "[golem]Lovely rubble. I'll sell it as a garden feature.",
     ],
     flee: [
       "Mercy! I'm just a humble merchant!",
@@ -278,13 +287,17 @@ const bandit = {
       "Help! Somebody who's paid to help!",
       "I've got a wife! …Somewhere. Probably.",
       'Wrong bandit! Wrong bandit!',
-      'I taste awful! Ask anyone who ever bit me!',
-      "I'm allergic to fangs! It says so on me papers!",
+      '[fenrath]I taste awful! Ask anyone who ever bit me!',
+      "[fenrath]I'm allergic to fangs! It says so on me papers!",
+      "[golem]Not the axe! Anything but the big axe!",
+      "[golem]Pick on someone yer own size! …Nobody's yer own size!",
+      "[golem]I'm too crunchy to be squashed! …Wait, that's worse.",
       "This isn't fleein', it's tactical joggin'!",
       "Ye'll never catch me! …Please don't catch me.",
       "Back, foul beast! …That's me goin' back, not you.",
       "Take the knight! She's crunchier!",
-      "Good doggy! Sit! SIT! Why doesn't it sit?!",
+      "[fenrath]Good doggy! Sit! SIT! Why doesn't it sit?!",
+      "[golem]Rocks don't chase people! It's the LAW!",
     ],
     cower: [
       '*hides behind a pillar, poorly*',
@@ -305,17 +318,25 @@ const bandit = {
       "I'm not hidin'. I'm guardin' this pillar. Very valuable pillar.",
       "Lovely weather for someone else's fight.",
       "Me mum always said, 'Ulric, never fight anything taller than a door.'",
+      "[golem]Stay still, Ulric. Ye're a pebble. A brave little pebble.",
+      "[golem]If he's a statue, I'm a statue. Two statues. Nothin' to see here.",
+      "[golem]*hides behind a pillar, which is also stone, so they're probably friends*",
     ],
     taunt: [
-      'Oi! Big red! Yer mum was a lizard!',
+      '[fenrath]Oi! Big red! Yer mum was a lizard!',
+      "[golem]Oi, gravel-face! Yer ankle's showin'!",
+      '[golem]Hit his foot, lads! His FOOT! The cracky one!',
+      "[golem]Ye walk like me nan's wardrobe!",
+      '[golem]Come on then, ye great paperweight!',
       "Come on then! …Not literally! Stay there!",
       "Ha! Missed me! …He wasn't aimin' at me, was he.",
       "I've seen scarier things in me soup!",
-      "Call that a fang? Me cousin's got bigger fangs. Lovely girl.",
+      "[fenrath]Call that a fang? Me cousin's got bigger fangs. Lovely girl.",
       'Go on, lads! Hit it where it hurts! The… everywhere!',
       "I'd fight ye meself, but I'd hate to show off.",
-      'Fetch, doggy! …Fetch somewhere far away!',
-      "Oi! Yer breath smells like a dead Tarnished! Several!",
+      '[fenrath]Fetch, doggy! …Fetch somewhere far away!',
+      "[fenrath]Oi! Yer breath smells like a dead Tarnished! Several!",
+      "[golem]Somebody fetch a chisel! He's lost his good looks!",
       "That's right, ye great sausage! Keep lookin' at THEM!",
     ],
     fallen: [
@@ -383,7 +404,7 @@ const fortuna = {
     point_reply: ['If it is not a mirror, I am not interested.', 'What is it, {name}?'],
     pray_reply: ['The gods could learn grace from me.', '*folds two hands; the other two keep busy*'],
     solo: ['*checks her reflection in her blade*', 'Hm. Still beautiful.', '*breathes frost onto a fingertip*'],
-    battle: ['Four blades against one beast. Hardly fair to it.', 'Do try to keep up.'],
+    battle: ['[fenrath]Four blades against one beast. Hardly fair to it.', '[golem]Four blades against one rock. Hardly fair to it.', 'Do try to keep up.'],
     victory: ['Flawless. As expected.', 'Frozen solid.'],
   },
 };
@@ -694,9 +715,16 @@ export function homeOf(npc) {
 
 const recent = new Map(); // voice -> its last few lines, so nobody repeats themselves too soon
 
+// The great enemy abroad (fight.js tells, setFoe): a line about one of them only begins with its
+// tag ('[fenrath]', '[golem]'), and is left out while the other is.
+let foe = null;
+export function setFoe(kind) { foe = kind; }
+const forFoe = (line) => !line.startsWith('[') || line.startsWith(`[${foe}]`);
+
 function pick(voice, intent) {
   const own = voice.all || voice.lines[intent] || voice.lines[intent.split('_')[0]];
-  const options = own || tarnished.lines[intent] || ['…'];
+  const all = own || tarnished.lines[intent] || ['…'];
+  const options = all.filter(forFoe).length ? all.filter(forFoe) : ['…'];
   const used = recent.get(voice) || [];
   const fresh = options.filter((o) => !used.includes(o));
   const pool = fresh.length ? fresh : options;
@@ -704,7 +732,7 @@ function pick(voice, intent) {
   used.push(line);
   if (used.length > 12) used.shift();
   recent.set(voice, used);
-  return line;
+  return line.replace(/^\[\w+\]/, '');
 }
 
 function fill(line, ctx) {

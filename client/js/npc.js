@@ -872,7 +872,9 @@ export class Npc {
       this.lift += (0.9 - this.lift) * Math.min(1, dt * 10);
       this.body.play('lifted');
     } else {
-      this.lift += ((sp ? 0.35 : 0) - this.lift) * Math.min(1, dt * 12); // spectres float above the ground
+      // spectres float above the ground; a fighter hopping a great enemy's shockwave is up in the air (fight.js)
+      if (this.hopLift > 0) this.lift = this.hopLift;
+      else this.lift += ((sp ? 0.35 : 0) - this.lift) * Math.min(1, dt * 12);
       if (this.travel) {
         this.stepTravel(dt);
       } else if (this.intent.kind !== 'leave' && this.fade < 1) {

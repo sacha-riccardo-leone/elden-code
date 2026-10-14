@@ -3,7 +3,10 @@
 //   Spike    – the lunge's lance of light, along the blade and past its point: two ragged edges
 //              (above and below the blade) closing to a point, an open rectangle with a ">" end;
 //   Decal    – marks on the arena floor: the slam's ring and the light that fills it, the jump's
-//              landing zone, and the crack it leaves where it lands.
+//              landing zone, and the crack it leaves where it lands; and (the Guardian Golem's,
+//              golem.js) the golden circle by the fire in his chest as he lies felled.
+// The Golem's: Shockwave (rolling out over the floor from where his axe lands), AirWave (the shock
+// in the air flying on past the lunge's point), Meteor (a fireball falling out of the sky).
 
 import * as THREE from 'three';
 import { rng } from './pixel.js';
@@ -224,7 +227,25 @@ export class Spike {
   }
 }
 
-const DECALS = { ring: () => ringCanvas(7, false), fill: () => ringCanvas(11, true), zone: zoneCanvas, crack: () => crackCanvas(Math.random() * 1000) };
+// The circle by the Golem's heart: a ring of gold, its inside faintly lit.
+const GOLD = { core: [255, 250, 222], hot: [255, 214, 120], mid: [244, 164, 52], deep: [172, 92, 20] };
+function heartCanvas() {
+  return canvasOf(96, 96, (put, w, h) => {
+    const c = w / 2 - 0.5;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const d = Math.hypot(x - c, y - c);
+        const a = Math.atan2(y - c, x - c);
+        if (d > 45) continue;
+        if (d > 41) put(x, y, d > 43.5 ? GOLD.deep : GOLD.hot);
+        else if (d > 38.5 && Math.floor((a + Math.PI) * 6) % 2 === 0) put(x, y, GOLD.core);
+        else if (d <= 38.5) put(x, y, GOLD.mid, Math.round(40 + 40 * (d / 38.5)));
+      }
+    }
+  });
+}
+
+const DECALS = { ring: () => ringCanvas(7, false), fill: () => ringCanvas(11, true), zone: zoneCanvas, crack: () => crackCanvas(Math.random() * 1000), heart: heartCanvas };
 
 export class Decal {
   // a mark on the floor at (x, z), `size` across
@@ -240,6 +261,153 @@ export class Decal {
   }
 
   set opacity(v) { this.mesh.material.opacity = v; }
+
+  dispose() {
+    this.scene.remove(this.mesh);
+    this.mesh.material.map.dispose();
+    this.mesh.material.dispose();
+    this.mesh.geometry.dispose();
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
+// the Guardian Golem's (golem.js)
+
+const DUST = { core: [255, 236, 200], hot: [236, 190, 130], mid: [176, 132, 92], deep: [104, 80, 64] };
+
+// A shockwave's front: a ring of churned dust and light at the edge, haze trailing inside it.
+function shockCanvas() {
+  const r = rng(Math.random() * 1000);
+  return canvasOf(128, 128, (put, w, h) => {
+    const c = w / 2 - 0.5;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const d = Math.hypot(x - c, y - c);
+        const edge = 62 + (r() - 0.5) * 1.5;
+        if (d > edge) continue;
+        const k = (d - (edge - 9)) / 9; // 0 inside the band → 1 at its edge
+        if (k > 0) put(x, y, k > 0.75 ? DUST.core : k > 0.4 ? DUST.hot : DUST.mid, Math.round(255 * (0.55 + 0.45 * k)));
+        else if (d > edge - 20 && r() < 0.5) put(x, y, DUST.deep, Math.round(90 * (1 + k / 1.2)));
+      }
+    }
+  });
+}
+
+export class Shockwave {
+  // rolling out over the floor from (x, z) to radius R at `speed` (units a second)
+  constructor(scene, x, z, R, { speed = 15 } = {}) {
+    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), glowing(texture(shockCanvas())));
+    this.mesh.rotation.x = -Math.PI / 2;
+    this.mesh.position.set(x, 0.06, z);
+    this.mesh.renderOrder = 4;
+    this.mesh.scale.setScalar(0.5);
+    scene.add(this.mesh);
+    Object.assign(this, { scene, x, z, R, speed, r: 0.5 });
+  }
+
+  // returns false once it has spent itself
+  step(dt) {
+    this.r = Math.min(this.R, this.r + this.speed * dt);
+    this.mesh.scale.setScalar(this.r);
+    const k = this.r / this.R;
+    this.mesh.material.opacity = Math.max(0, 1 - k * k);
+    return this.r < this.R;
+  }
+
+  dispose() {
+    this.scene.remove(this.mesh);
+    this.mesh.material.map.dispose();
+    this.mesh.material.dispose();
+    this.mesh.geometry.dispose();
+  }
+}
+
+// The air shock: a ring of rippling air seen edge-on, a tall thin ellipse.
+function airCanvas() {
+  return canvasOf(32, 96, (put, w, h) => {
+    const cx = w / 2 - 0.5;
+    const cy = h / 2 - 0.5;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const e = Math.hypot((x - cx) / 13, (y - cy) / 45);
+        if (e > 1 || e < 0.72) continue;
+        const k = (e - 0.72) / 0.28;
+        put(x, y, k > 0.6 ? DUST.core : DUST.hot, Math.round(255 * (0.25 + 0.6 * (1 - Math.abs(k - 0.65) / 0.65))));
+      }
+    }
+  });
+}
+
+export class AirWave {
+  // from (x, z) at height y, flying toward dir (±1), growing as it goes, for `life` seconds
+  constructor(scene, x, y, z, dir, { size = 3.2, speed = 20, life = 0.7 } = {}) {
+    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(size / 3, size), glowing(texture(airCanvas())));
+    this.mesh.position.set(x, y, z + 0.1);
+    this.mesh.renderOrder = 6;
+    scene.add(this.mesh);
+    Object.assign(this, { scene, x, z, dir, speed, life, t: 0, hit: new Set() });
+  }
+
+  step(dt) {
+    this.t += dt;
+    this.x += this.dir * this.speed * dt;
+    this.mesh.position.x = this.x;
+    const k = this.t / this.life;
+    this.mesh.scale.setScalar(1 + k * 0.8);
+    this.mesh.material.opacity = Math.max(0, 1 - Math.max(0, k - 0.5) / 0.5);
+    return this.t < this.life;
+  }
+
+  dispose() {
+    this.scene.remove(this.mesh);
+    this.mesh.material.map.dispose();
+    this.mesh.material.dispose();
+    this.mesh.geometry.dispose();
+  }
+}
+
+// A fireball: a white-hot heart in yellow and orange flame, ragged at the edge.
+const FIRE = { core: [255, 250, 220], hot: [255, 214, 70], mid: [255, 138, 20], deep: [214, 56, 8], dark: [120, 24, 4] };
+function fireballCanvas() {
+  const r = rng(Math.random() * 1000);
+  return canvasOf(32, 32, (put, w, h) => {
+    const c = w / 2 - 0.5;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const d = Math.hypot(x - c, y - c) + (r() - 0.5) * 2.4;
+        if (d > 15) continue;
+        put(x, y, d < 4 ? FIRE.core : d < 7.5 ? FIRE.hot : d < 11 ? FIRE.mid : d < 13.5 ? FIRE.deep : FIRE.dark);
+      }
+    }
+  });
+}
+
+export class Meteor {
+  // falling out of the sky onto (x, z) over `dur` seconds, from `drift` to the side of it
+  constructor(scene, x, z, { dur = 0.9, height = 22, drift = 5, size = 1.5 } = {}) {
+    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(size, size), glowing(texture(fireballCanvas())));
+    this.mesh.renderOrder = 6;
+    scene.add(this.mesh);
+    Object.assign(this, { scene, x, z, dur, height, drift, t: 0 });
+    this.place(0);
+  }
+
+  place(k) {
+    // speeding up as it falls
+    const e = k * k;
+    this.mesh.position.set(this.x - this.drift * (1 - e), 0.6 + this.height * (1 - e), this.z);
+  }
+
+  // returns false once it has landed
+  step(dt) {
+    this.t += dt;
+    const k = Math.min(1, this.t / this.dur);
+    this.place(k);
+    this.mesh.rotation.z += dt * 9;
+    return k < 1;
+  }
+
+  get pos() { return this.mesh.position; }
 
   dispose() {
     this.scene.remove(this.mesh);

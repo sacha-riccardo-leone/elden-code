@@ -12,7 +12,7 @@
 
 import { CROWD } from './config.js';
 
-const MAX_R = Math.max(CROWD.radius, CROWD.bossRadius);
+const MAX_R = Math.max(CROWD.radius, CROWD.bossRadius, CROWD.golemRadius);
 
 export class Crowd {
   constructor(ctx) {
@@ -44,7 +44,10 @@ export class Crowd {
     }
     // a great enemy, once he's come and while he's not in the air
     const b = fight?.boss;
-    if (b && b.alive && b.fade > 0.5 && b.lift < 1) list.push({ who: b, pos: b.pos, r: CROWD.bossRadius, w: Infinity, player: false, boss: true });
+    if (b && b.alive && b.fade > 0.5 && b.lift < 1) {
+      const r = b.mind ? b.mind.crowdRadius(b.kind.crowd) : b.kind.crowd;
+      list.push({ who: b, pos: b.pos, r, w: Infinity, player: false, boss: true });
+    }
     this.bodies = list;
   }
 

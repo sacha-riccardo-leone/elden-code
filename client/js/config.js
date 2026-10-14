@@ -141,7 +141,8 @@ export const STATION_LABEL = {
 // and pass one another:
 export const CROWD = {
   radius: 0.5,          // a Tarnished's (and thy) circle, in world units
-  bossRadius: 1.5,      // a great enemy's (he's never pushed, and never walked through)
+  bossRadius: 1.5,      // a great enemy's (he's never pushed, and never walked through): Fenrath's
+  golemRadius: 1.6,     // the Guardian Golem's (less, lying felled: golem.js)
   // how heavy each is: the heavier, the less a shove moves them (and the more it slows thee)
   weight: {
     default: 1, champion: 2, runelord: 1.7, paladin: 1.6, twofold: 1.6, knight: 1.4,

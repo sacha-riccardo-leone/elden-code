@@ -11,8 +11,9 @@
 // is lost. (The Bandit Knight, Elden Ring's Patches in all but name, never fights: he keeps as far
 // from the enemy as he can.) Nothing here ever reaches Claude Code.
 //
-// The enemy is Fenrath, the Crimson Fang (heroes/boss.js). Every blow of his shows itself before
-// it lands (bossfx.js): step out of its way, or dodge through it (Space).
+// Two great enemies, one or the other by chance (KINDS): Fenrath, the Crimson Fang, below, and the
+// Guardian Golem, whose fight is golem.js. Fenrath (heroes/boss.js): every blow of his shows itself
+// before it lands (bossfx.js): step out of its way, or dodge through it (Space).
 //   swing – the greatsword raised and brought down: a crescent of red light flies on down his lane;
 //   lunge – a thrust: a lance of light runs along the blade and far past its point;
 //   slam  – a ring of light gathers round him for a moment, then fills: all inside it suffer;
@@ -23,6 +24,8 @@ import * as THREE from 'three';
 import { ARENA, HUB, HUB_LAYOUT, CROWD, LINE, BOSS_CAM } from './config.js';
 import { SpriteBody } from './npc.js';
 import { Crescent, Decal, Spike } from './bossfx.js';
+import { GOLEM, GOLEM_MOVES, GolemMind } from './golem.js';
+import { setFoe } from './voices.js';
 
 // reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
 // lane: how far out of his line (in depth) a swing or a lunge still catches someone
@@ -51,6 +54,24 @@ const SAYS = {
 };
 const pickOf = (list) => list[Math.floor(Math.random() * list.length)];
 const LEAP = { r: 3.2, height: 7, cooldown: 10 };
+
+// The great enemies (Fight.start picks one by chance, of those whose art loaded): his art
+// (ctx[sheet]), health, pace and bulk (reach/radius/lane as BOSS's; depth: how far out of his
+// line, in depth, thy blow still lands on him; spacing: how far off he stands to strike; crowd:
+// his circle on the floor, crowd.js; shadow: its size), his moves, the camera as it frames him
+// (how far back it pulls, how high it looks) and what he says. `Mind`: his own fight, where it
+// isn't Fenrath's.
+const KINDS = {
+  fenrath: {
+    sheet: 'bossSheet', ...BOSS, depth: 1.9, spacing: 4, crowd: CROWD.bossRadius, shadow: [3.6, 2.6],
+    cam: { far: BOSS_CAM.far, y: 2.6 }, moves: MOVES, says: SAYS,
+  },
+  golem: {
+    sheet: 'golemSheet', hp: GOLEM.hp, speed: GOLEM.speed, reach: 3.4, radius: 2.0, lane: 1.6, depth: 2.2, spacing: 4.4,
+    crowd: CROWD.golemRadius, shadow: [4.4, 3.0], cam: { far: BOSS_CAM.far * 1.3, y: 3.6 }, moves: GOLEM_MOVES, says: {},
+    Mind: GolemMind,
+  },
+};
 const TRIGGER = {
   failures: 3, failureWindow: 120, // tool failures in a row (seconds) that summon one
   longQuest: 600,                  // seconds a single quest may run before one comes
@@ -61,9 +82,12 @@ const TRIGGER = {
 };
 const rand = (a, b) => a + Math.random() * (b - a);
 
-// Whether a blow (its shape, where it lands) covers a point, with some slack: a disc, or a line
-// running `dir`-ward from (x, z), `from`..`len` along it and `half` either side.
+// Whether a blow (its shape, where it lands) covers a point, with some slack: a disc, a line
+// running `dir`-ward from (x, z), `from`..`len` along it and `half` either side, or a scatter of
+// discs (`spots`, each of radius r).
 function covers(shape, x, z, opt, px, pz, slack = 0.3) {
+  if (shape === 'wave') return false; // (the Golem's shockwaves: no running from them; they're hopped, golem.js)
+  if (shape === 'spots') return opt.spots.some(([sx, sz]) => Math.hypot(px - sx, pz - sz) <= opt.r + slack);
   if (shape === 'line') {
     const along = (px - x) * opt.dir;
     return along >= opt.from - slack && along <= opt.len + slack && Math.abs(pz - z) <= opt.half + slack;
@@ -97,10 +121,13 @@ function shadowTex() {
 
 // The great enemy.
 class Boss {
-  constructor(ctx, x, z) {
+  constructor(ctx, x, z, kind) {
     this.ctx = ctx;
-    const sheet = ctx.bossSheet; // (no fight is ever started without it: Fight.start)
-    this.name = `${sheet.rig.firstName}, ${sheet.rig.epithet}`;
+    this.kind = KINDS[kind];
+    const sheet = ctx[this.kind.sheet]; // (no fight is ever started without it: Fight.start)
+    this.name = sheet.rig.epithet ? `${sheet.rig.firstName}, ${sheet.rig.epithet}` : sheet.rig.firstName;
+    // (a drawing whose middle isn't his: the frame is set that far ahead of him, heroes/golem.js)
+    this.offset = (sheet.rig.offset || 0) * sheet.px;
     this.body = new SpriteBody(ctx.scene, sheet);
     this.body.mat.transparent = true;
     this.body.blob.material.map = shadowTex();
@@ -108,10 +135,11 @@ class Boss {
     this.pose('idle');
     this.pos = new THREE.Vector2(x, z);
     this.lift = 0;
-    this.hp = BOSS.hp;
-    this.max = BOSS.hp;
+    this.hp = this.kind.hp;
+    this.max = this.kind.hp;
     this.fade = 0;
-    this.state = 'enter'; // enter, ready, attack, staggered, dying, withdraw, gone
+    this.state = 'enter'; // enter, ready, attack, staggered, dying, withdraw, gone (the Golem: falling, down, rising too)
+    this.mind = null; // his own fight, where it isn't Fenrath's (Fight.update)
     this.t = 0;
     this.cd = 2.5; // until the next blow
     this.slamIn = rand(10, 14); // until he'd rather slam
@@ -140,18 +168,20 @@ class Boss {
   }
 
   damage(n) {
-    if (!this.alive || this.state === 'enter') return 0;
+    if (!this.alive || this.state === 'enter' || this.mind?.immune()) return 0;
     const dealt = Math.min(this.hp, n * (this.state === 'staggered' ? 1.5 : 1));
     this.hp -= dealt;
     this.posture += dealt;
     this.hurtLog.push([performance.now() / 1000, dealt]);
     const airborne = this.attack?.kind === 'leap' && this.attack.step >= 1 && this.attack.step <= 2;
     if (this.hp <= 0) {
+      const lying = this.mind?.lying;
       this.state = 'dying';
       this.t = 0;
       this.endMove();
-      this.pose('collapse', true);
-    } else if (this.posture > 420 && this.state !== 'staggered' && !airborne) {
+      this.mind?.closeHeart();
+      this.pose(lying ? 'down' : 'collapse', true);
+    } else if (!this.mind && this.posture > 420 && this.state !== 'staggered' && !airborne) {
       // his stance breaks: he reels, and takes more from every blow for a moment
       this.state = 'staggered';
       this.t = 0;
@@ -174,10 +204,12 @@ class Boss {
     for (const m of this.marks) m.dispose();
     this.marks = [];
     this.attack = null;
+    this.mind?.endMove();
   }
 
   dispose() {
     this.endMove();
+    this.mind?.dispose();
     this.body.dispose();
   }
 }
@@ -244,19 +276,27 @@ export class Fight {
 
   // Why one can't be summoned now (or true).
   canSummon() {
-    if (!this.ctx.bossSheet) return 'No great enemy walks these lands';
+    if (!this.kinds().length) return 'No great enemy walks these lands';
     if (this.state === 'ending') return 'The arena is still settling';
     if (this.active) return 'A great enemy is already abroad';
     return true;
+  }
+
+  // The great enemies whose art loaded (should one's fail, only the other comes).
+  kinds() {
+    return Object.keys(KINDS).filter((k) => this.ctx[KINDS[k].sheet]);
   }
 
   // ------------------------------------------------------------------------------------------
   // what brings one
 
   start(cause) {
-    // only the user's own great enemy ever comes: without his art (it failed to load), none does
-    if (this.active || !this.ctx.bossSheet) return false;
+    // only the user's own great enemies ever come: without their art (it failed to load), none do
+    const kinds = this.kinds();
+    if (this.active || !kinds.length) return false;
     const { ui, world } = this.ctx;
+    this.kind = pickOf(kinds); // (an even chance of either)
+    setFoe(this.kind); // (the Tarnished's lines about him, voices.js)
     this.cause = cause;
     this.fallen = 0;
     this.cowardsAlone = null;
@@ -388,19 +428,21 @@ export class Fight {
   strikeFrom(p) {
     const b = this.boss;
     if (!b || !b.alive || b.lift > 2) return false;
+    if (b.mind) return b.mind.playerBlow(p); // (the Golem: only his weak points, golem.js)
     const ahead = (b.pos.x - p.pos.x) * p.body.facing;
-    if (ahead < -0.6 || ahead > BOSS.reach + BOSS.radius || Math.abs(b.pos.y - p.pos.y) > 1.9) return false;
+    if (ahead < -0.6 || ahead > b.kind.reach + b.kind.radius || Math.abs(b.pos.y - p.pos.y) > b.kind.depth) return false;
     this.hit(b, DAMAGE.player);
     return true;
   }
 
-  hit(b, n) {
+  // A blow wounds him (`at`: where it shows, if not his middle).
+  hit(b, n, at = null) {
     const dealt = b.damage(n);
     if (!dealt) return;
     this.dmgShown = this.clock < this.dmgUntil ? this.dmgShown + Math.round(dealt) : Math.round(dealt);
     this.dmgUntil = this.clock + 1.6;
     this.ctx.particles.emit({
-      pos: [b.pos.x, 2.2, b.pos.y], spread: [0.5, 0.8, 0.3], vel: [0, 1.4, 0], velSpread: [1.4, 1, 0.8],
+      pos: at || [b.pos.x, 2.2, b.pos.y], spread: [0.5, 0.8, 0.3], vel: [0, 1.4, 0], velSpread: [1.4, 1, 0.8],
       color: ['#ff6a4a', '#ffd2a8', '#a01818'], size: 0.07, life: 0.6, count: 10, drag: 1.2, intensity: 2.2,
     });
   }
@@ -451,11 +493,13 @@ export class Fight {
   }
 
   // Everyone a blow covers (inside(x, z)): thee, and the fighters. `seen`: those it already struck
-  // (a crescent strikes each only once on its way).
-  strike(inside, dmg, seen = null) {
+  // (a crescent strikes each only once on its way). `ground`: it runs along the floor (a
+  // shockwave), passing under whoever is in the air.
+  strike(inside, dmg, seen = null, ground = false) {
     const { pilot, director } = this.ctx;
     const take = (n) => {
       if (seen?.has(n) || !inside(n.pos.x, n.pos.y)) return false;
+      if (ground && n.lift > 0.3) return false;
       seen?.add(n);
       return true;
     };
@@ -499,8 +543,9 @@ export class Fight {
   aim(me) {
     const b = this.boss;
     if (!this.facing(me)) return null;
-    if (this.clock < this.introUntil) return { at: [b.pos.x, 2.6, b.pos.y], dist: BOSS_CAM.far };
-    if (this.focus) return { at: [me.pos.x + (b.pos.x - me.pos.x) * 0.45, 2.6, me.pos.y + (b.pos.y - me.pos.y) * 0.45], dist: BOSS_CAM.far };
+    const { far, y } = b.kind.cam;
+    if (this.clock < this.introUntil) return { at: [b.pos.x, y, b.pos.y], dist: far };
+    if (this.focus) return { at: [me.pos.x + (b.pos.x - me.pos.x) * 0.45, y, me.pos.y + (b.pos.y - me.pos.y) * 0.45], dist: far };
     return { at: null, dist: BOSS_CAM.near };
   }
 
@@ -605,28 +650,34 @@ export class Fight {
         if (b.t >= 3.2) b.state = 'gone';
         break;
       case 'attack':
-        jitter = this.stepMove(b, dt, t, fast);
+        jitter = b.mind ? b.mind.stepMove(dt, t, fast) : this.stepMove(b, dt, t, fast);
         break;
-      case 'ready':
-        moving = this.think(b, dt, fast);
-        // now and then, between blows, a word or a sound
+      case 'ready': {
+        moving = b.mind ? b.mind.think(dt, fast) : this.think(b, dt, fast);
+        // now and then, between blows, a word or a sound (from those that speak)
+        const stalk = b.kind.says.stalk;
         b.talkIn = (b.talkIn ?? rand(10, 16)) - dt;
-        if (b.talkIn <= 0) {
+        if (stalk && b.talkIn <= 0) {
           b.talkIn = rand(14, 24);
-          this.say(pickOf(SAYS.stalk.filter((x) => x !== b.lastSaid)));
+          this.say(pickOf(stalk.filter((x) => x !== b.lastSaid)));
         }
         break;
+      }
       default:
+        b.mind?.stepState(dt); // (the Golem falling, felled, getting up)
         break;
     }
     // where he's been standing: rooted too long and he'll want to leap elsewhere
     if (b.pos.distanceTo(b.anchor) > 3) { b.anchor.copy(b.pos); b.anchorT = 0; } else b.anchorT += dt;
     b.body.tick(dt, moving ? 0.8 * fast : 0.7);
-    b.body.place(b.pos.x + jitter, 0, b.pos.y, b.lift);
-    // his shadow: wide and deep (he's long, and heavy), a little smaller the higher he leaps
+    b.body.place(b.pos.x + jitter + b.body.facing * b.offset, 0, b.pos.y, b.lift);
+    // his shadow: wide and deep (he's long, and heavy), a little smaller the higher he leaps (and
+    // longer, the Golem lying on his face)
     const s = 1 - Math.min(0.3, b.lift * 0.045);
-    b.body.blob.position.x = b.pos.x;
-    b.body.blob.scale.set(3.6 * s, 2.6 * s, 1);
+    const [sw, sd] = b.kind.shadow;
+    const lying = b.mind?.lying ? 1.6 : 1;
+    b.body.blob.position.x = b.pos.x + (lying > 1 ? b.body.facing * 1.4 : 0);
+    b.body.blob.scale.set(sw * s * lying, sd * s, 1);
     b.body.blob.material.opacity = b.fade;
     b.body.mat.opacity = b.fade;
     b.body.mat.depthWrite = b.fade > 0.99;
@@ -913,7 +964,7 @@ export class Fight {
       const toX = n.pos.x - b.pos.x;
       const toZ = n.pos.y - b.pos.y;
       const dist = Math.hypot(toX, toZ) || 1;
-      const a = b.state === 'attack' && b.attack.step <= MOVES[b.attack.kind].danger ? b.attack : null;
+      const a = b.state === 'attack' && b.attack.step <= b.kind.moves[b.attack.kind].danger ? b.attack : null;
       if (a && a !== f.seen) {
         f.seen = a;
         f.react = rand(0.1, 0.4);
@@ -941,19 +992,27 @@ export class Fight {
         }
       } else {
         f.cd -= dt;
-        if (f.mode === 'circle' && f.cd <= 0 && !a) f.mode = 'engage';
+        // (the Golem's weak points: where to strike, if anywhere just now, golem.js)
+        const spot = b.mind ? b.mind.strikeSpot(n) : null;
+        // (felled, he's rushed at once)
+        if (b.state === 'down' && spot && f.mode === 'circle') f.mode = 'engage';
+        if (f.mode === 'circle' && f.cd <= 0 && !a && (spot || !b.mind)) f.mode = 'engage';
+        if (f.mode === 'engage' && b.mind && !spot) f.mode = 'circle';
         if (f.mode === 'engage') {
-          const r = BOSS.radius + 1.4;
-          goal = [b.pos.x + (toX / dist) * r, b.pos.y + (toZ / dist) * r * 0.8];
+          const r = b.kind.radius + 1.4;
+          goal = spot ? spot.goal : [b.pos.x + (toX / dist) * r, b.pos.y + (toZ / dist) * r * 0.8];
           speed = 4.8;
-          if (dist < BOSS.reach + BOSS.radius + 0.2 && b.lift < 1) {
+          // (felled, they stay in the circle, striking again after a breath)
+          const felled = b.state === 'down';
+          if ((spot ? spot.ready && (!felled || f.cd <= 0) : dist < b.kind.reach + b.kind.radius + 0.2) && b.lift < 1) {
             const def = n.body.sheet.anims.hammer;
             n.action = { kind: 'fightAttack', anim: 'hammer', t: 0, dur: def.frames.length / def.fps, hitAt: (n.body.sheet.hits?.hammer ?? 2) / def.fps, hit: false };
-            n.body.facing = b.pos.x > n.pos.x ? 1 : -1;
+            const faceX = spot ? spot.face : b.pos.x;
+            n.body.facing = faceX > n.pos.x ? 1 : -1;
             n.body.play('hammer', true);
-            f.mode = 'retreat';
+            f.mode = felled ? 'engage' : 'retreat';
             f.modeT = 0;
-            f.cd = rand(2, 4.5);
+            f.cd = felled ? rand(0.7, 1.3) : rand(2, 4.5);
             f.vx = 0;
             f.vz = 0;
             return false;
@@ -998,7 +1057,8 @@ export class Fight {
       const bx = n.pos.x - b.pos.x;
       const bz = n.pos.y - b.pos.y;
       const bd = Math.hypot(bx, bz);
-      if (b.lift < 2 && bd > 0.01 && bd < BOSS.radius + 0.7) { wx += (bx / bd) * 6; wz += (bz / bd) * 6; }
+      const bulk = b.mind?.lying ? b.kind.radius * 0.6 : b.kind.radius;
+      if (b.lift < 2 && bd > 0.01 && bd < bulk + 0.7) { wx += (bx / bd) * 6; wz += (bz / bd) * 6; }
     }
     const k = Math.min(1, dt * 7);
     f.vx += (wx - f.vx) * k;
@@ -1138,10 +1198,17 @@ export class Fight {
     }
 
     // the fallen lie a moment where they fell before going (counted here: they lie under a
-    // collapse, not their mind); they don't get up again
+    // collapse, not their mind); they don't get up again. And a fighter hopping a shockwave
+    // (golem.js) rises and comes down.
     for (const n of director.npcs.values()) {
       const f = n.fighter;
       if (f && f.down > 0) f.down -= dt;
+      if (f?.hop) {
+        f.hop.t += dt;
+        const k = f.hop.t / f.hop.dur;
+        n.hopLift = k < 1 ? 4 * 0.95 * k * (1 - k) : 0;
+        if (k >= 1) f.hop = null;
+      } else if (n.hopLift) n.hopLift = 0;
     }
 
     // what may bring one
@@ -1181,12 +1248,15 @@ export class Fight {
         }
         if (this.t >= 2.5) {
           const [bx, bz] = world.arena.point('boss');
-          this.boss = new Boss(this.ctx, bx, bz);
+          this.boss = new Boss(this.ctx, bx, bz, this.kind);
+          const Mind = this.boss.kind.Mind;
+          if (Mind) this.boss.mind = new Mind(this, this.boss);
           this.lagHp = this.boss.hp;
           this.focus = false;
           this.introUntil = this.clock + BOSS_CAM.intro; // (the camera shows him a moment, then thee)
           this.says = [];
-          this.say(pickOf(SAYS.enter), 1.4, true);
+          const enter = this.boss.kind.says.enter;
+          if (enter) this.say(pickOf(enter), 1.4, true);
           this.boss.talkIn = rand(10, 16);
           this.ctx.particles.emit({
             pos: [bx, 1.5, bz], spread: [1.2, 2, 0.8], vel: [0, 1.5, 0], velSpread: [1, 1, 0.6],
@@ -1206,7 +1276,8 @@ export class Fight {
           const a = n.action;
           if (a?.kind === 'fightAttack' && !a.hit && a.t >= a.hitAt) {
             a.hit = true;
-            if (b.lift < 2 && Math.hypot(b.pos.x - n.pos.x, b.pos.y - n.pos.y) < BOSS.reach + BOSS.radius + 0.4) this.hit(b, DAMAGE.fighter);
+            if (b.mind) b.mind.fighterBlow(n);
+            else if (b.lift < 2 && Math.hypot(b.pos.x - n.pos.x, b.pos.y - n.pos.y) < b.kind.reach + b.kind.radius + 0.4) this.hit(b, DAMAGE.fighter);
           }
         }
         if (b.state === 'gone' || !b.alive) {
@@ -1242,11 +1313,13 @@ export class Fight {
     }
     if (this.boss && this.state !== 'fighting' && this.boss.state !== 'gone') this.stepBoss(this.boss, dt, t);
     if (this.boss?.state === 'gone' && this.state !== 'fighting') { this.boss.dispose(); this.boss = null; }
-    this.fx = this.fx.filter((e) => {
-      if (e.step(dt)) return true;
-      e.dispose();
-      return false;
-    });
+    // (an effect may start another as it goes, a meteor its crack: those join the new list)
+    const fx = this.fx;
+    this.fx = [];
+    for (const e of fx) {
+      if (e.step(dt)) this.fx.push(e);
+      else e.dispose();
+    }
     this.updateUi(dt);
   }
 
@@ -1288,19 +1361,24 @@ export class Fight {
       // none left to face him but the Bandit Knight, cowering: he can't believe it
       this.cowardsAlone = this.clock;
       this.hushUntil = this.clock + 6; // (nothing else from him meanwhile)
-      this.say(SAYS.alone[0], 0.8, true);
-      this.say(SAYS.alone[1], 4.6, true);
+      const alone = this.boss?.kind.says.alone;
+      if (alone) {
+        this.say(alone[0], 0.8, true);
+        this.say(alone[1], 4.6, true);
+      }
     }
     return this.clock - this.cowardsAlone > 20;
   }
 
   // He leaves the arena (unbeaten): he fades into red mist, and the fight is over.
   withdraw(b) {
+    const lying = b.mind?.lying; // (the Golem, felled, fades where he lies)
     b.endMove();
+    b.mind?.closeHeart();
     b.lift = 0;
     b.state = 'withdraw';
     b.t = 0;
-    b.pose('idle');
+    b.pose(lying ? 'down' : 'idle');
     this.end();
   }
 
