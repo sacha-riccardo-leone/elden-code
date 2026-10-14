@@ -23,6 +23,7 @@ import { Daylight } from './daylight.js';
 import { Interact } from './interact.js';
 import { Fight } from './fight.js';
 import { Crowd } from './crowd.js';
+import { Guide } from './guide.js';
 import { PUBLIC_DEMO } from './mode.js';
 
 const canvas = document.getElementById('scene');
@@ -161,6 +162,7 @@ ui.canSummon = () => fight.canSummon();
 ui.hushed = () => fight.inBattle(); // no session banners mid boss fight
 const crowd = new Crowd(ctx); // characters are solid
 ctx.crowd = crowd;
+const guide = new Guide(ctx); // the way to the arena, while a great enemy is abroad
 document.getElementById('table-summon').addEventListener('click', () => {
   ui.closeTable();
   fight.start({ kind: 'summon' });
@@ -209,6 +211,7 @@ if (PUBLIC_DEMO) {
   // Islands nobody works on any more sink back into the mist, and great enemies come oftener.
   document.body.classList.add('public-demo');
   director.retireAfter = 45;
+  director.riseGap = 30; // half a minute between islands, to look round each before the next
   director.notBefore = Infinity; // no island rises before thou art up (spawnPlayer)
   fight.pace({ first: 100 + Math.random() * 60, invasion: [5 * 60, 9 * 60], cooldown: 5 * 60 });
   ui.setStatus('demo', true);
@@ -306,6 +309,7 @@ function step(dt) {
   director.update(dt, t);
   fight.update(dt, t);
   crowd.resolve(dt); // once everyone has moved: nobody stands inside anybody
+  guide.update(dt);
   document.body.classList.toggle('in-battle', fight.inBattle()); // (no labels to click mid-fight)
   particles.update(dt, t);
   ui.overview = rig.dist > 40;

@@ -199,6 +199,18 @@ export class Fight {
 
   get active() { return this.state !== 'idle'; }
 
+  // A great enemy abroad, still to be fought: from his coming till he's beaten, wins or goes.
+  hunting() {
+    return this.state === 'rising' || this.state === 'gathering' || this.state === 'fighting';
+  }
+
+  // Where the way to him ends: the arena's arrival point, once it has risen (till then, the foot of
+  // its bridge on the Hold's north edge).
+  destination() {
+    const arena = this.ctx.world.arena;
+    return arena.risen ? arena.point('grace') : [0, -HUB.walkRadius + 1];
+  }
+
   // A livelier pace for the public demo: invasions sooner and more often, shorter rests between.
   pace({ first, invasion, cooldown }) {
     Object.assign(this.trigger, { invasion, cooldown });
@@ -969,6 +981,10 @@ export class Fight {
     this.clock += dt;
     const { world, director, ui, pilot } = this.ctx;
     this.t += dt;
+    // from the moment he's announced till he's felled, prevails or withdraws, every fire and grace
+    // in the Lands Between goes out but the arena's (world.douse), and an arrow shows thee the way
+    // there (guide.js)
+    world.dousing = this.hunting();
 
     // thy health: back to full slowly out of a fight, quickly at grace
     const me = pilot.npc;

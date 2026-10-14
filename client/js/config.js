@@ -155,6 +155,24 @@ export const CROWD = {
   passes: 4,            // collision passes per frame
 };
 
+// While a great enemy is abroad (fight.js) every torch, candle, fire and grace goes out but the
+// arena's, one after another, and they're lit again once it's over.
+export const DOUSE = {
+  out: 2.5,    // seconds from the first going out to the last
+  in: 3.5,     // seconds to light them all again
+  spread: 0.6, // how far apart their moments are (0: all at once)
+};
+
+// While a great enemy is abroad, an arrow on the ground before thee shows the way to the arena
+// (guide.js), along the path there.
+export const GUIDE = {
+  size: 2.0,      // its length, in world units
+  ahead: 1.9,     // how far before thee it lies (more when it points away from the camera)
+  lookAhead: 2.6, // how far along the path it looks for where to point
+  replan: 0.5,    // seconds between new paths
+  lift: 1.6,      // drawn this much nearer the camera than it lies, so low things can't hide it
+};
+
 export const TIMING = {
   restAtGrace: 25,        // seconds a finished session sits at grace before wandering
   chatCooldown: [22, 55], // seconds between conversations for one NPC

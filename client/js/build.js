@@ -4,8 +4,15 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { DOUSE } from './config.js';
 
 export const BRICK_TILE = 2; // world units covered by one brick texture
+
+// A steady 0..1 for a thing from a number or two (which moment a fire goes out, Builder.lit).
+export function seedOf(a, b = 0) {
+  const s = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453;
+  return s - Math.floor(s);
+}
 
 export function scaleBoxUV(geo, w, h, d, tile) {
   const uv = geo.attributes.uv;
@@ -127,6 +134,26 @@ export class Builder {
     });
     this.ownLights.push(src);
     return src;
+  }
+
+  // How lit one of its fires (or its grace) is just now: 1, or less while they're put out for a
+  // great enemy (world.douse), each going out, and being lit again, at its own moment (`seed`, 0..1).
+  lit(seed) {
+    const d = this.world.douse;
+    if (d <= 0) return 1;
+    return Math.max(0, Math.min(1, 1 - (d - seed * DOUSE.spread) / (1 - DOUSE.spread)));
+  }
+
+  // A wisp of smoke from a fire as it goes out (`state` remembers it's out; local coordinates).
+  smoke(state, lit, x, y, z) {
+    if (lit > 0.5) state.out = false;
+    if (lit > 0.08 || state.out) return;
+    state.out = true;
+    if (!this.near) return;
+    this.world.particles.emit({
+      pos: [this.wx(x), y, this.wz(z)], spread: [0.12, 0.08, 0.12], vel: [0, 0.8, 0], velSpread: [0.25, 0.3, 0.25],
+      color: ['#5a5652', '#3a3734', '#77716a'], size: 0.09, life: 1.6, count: 12, drag: 0.9, intensity: 0.5,
+    });
   }
 
   // Ambient particles only flow while the island is near the camera (and above the mist).

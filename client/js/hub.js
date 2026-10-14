@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { HUB, HUB_LAYOUT } from './config.js';
 import * as T from './textures.js';
 import { rng, ramp, hashStr } from './pixel.js';
-import { Builder, BRICK_TILE, scaleCylUV } from './build.js';
+import { Builder, BRICK_TILE, scaleCylUV, seedOf } from './build.js';
 import { Flame } from './fire.js';
 import { plantedWeapons } from './weapons.js';
 import { GraceFigure } from './grace.js';
@@ -121,7 +121,7 @@ export class Hub extends Builder {
     // and over it the grace itself, a figure of golden light far larger than any island's
     this.graceFigure = new GraceFigure(this.group, tx, GY + 1.25, tz, 3.0);
     this.lights.grace = this.light(tx, 2.6, tz, '#ffb347', 14, 1.2);
-    this.ambient(12, () => ({
+    this.ambient(12, () => (this.lit(seedOf(0, 20)) < 0.3 ? null : {
       pos: [tx, GY - 0.4, tz], spread: [0.35, 0.3, 0.3], vel: [0, 0.9, 0], velSpread: [0.25, 0.35, 0.25],
       color: ['#ffd27a', '#ffe7a8', '#ffb347'], size: 0.06, life: 3, drag: 0.4, intensity: 1.4,
     }));
@@ -166,8 +166,9 @@ export class Hub extends Builder {
       this.add(fire);
       this.blockCircle(x, z, 0.55);
       const light = this.light(x, 1.9, z, '#ff8a3a', 9, 1.5);
+      const i = this.braziers.length;
       this.braziers.push({ fire, light, phase: a * 5, x, z, flame: null });
-      this.ambient(3, () => ({
+      this.ambient(3, () => (this.lit(seedOf(0, 30 + i)) < 0.3 ? null : {
         pos: [x, 1.5, z], spread: [0.2, 0.05, 0.2], vel: [0, 1.1, 0], velSpread: [0.25, 0.4, 0.25],
         color: ['#ff9a3a', '#ffd27a', '#ff6a2a'], size: 0.06, life: 1.4, flicker: 1, intensity: 1.7,
       }));
@@ -253,39 +254,50 @@ export class Hub extends Builder {
   update(dt, t, grace = 0) {
     const flick = (ph, sp = 9) => 0.85 + 0.1 * Math.sin(t * sp + ph) + 0.05 * Math.sin(t * 23 + ph * 2);
     const gp = 0.92 + 0.08 * Math.sin(t * 1.7);
-    this.lights.grace.intensity = (11 + grace * 4) * gp;
-    let candles = flick(5, 8);
-    if (this.candleFlames) {
-      candles = 0;
-      this.candleFlames.forEach((f, i) => {
+    // while a great enemy is abroad the Hold's fires and its grace go out, each at its own moment
+    // (Builder.lit), the flames sinking into their bowls and wicks
+    const lg = this.lit(seedOf(0, 20));
+    this.lights.grace.intensity = (11 + grace * 4) * gp * lg;
+    let candles = 0;
+    this.tableCandles.forEach((glow, i) => {
+      const lc = this.lit(seedOf(0, 10 + i));
+      if (this.candleFlames) {
+        const f = this.candleFlames[i];
         const e = f.step(dt);
-        candles += (0.8 + 0.2 * e) / this.candleFlames.length;
-        this.tableCandles[i].scale.setScalar(0.43 * (0.85 + 0.15 * e));
-        this.tableCandles[i].material.opacity = 0.2;
-      });
-    } else {
-      this.tableCandles.forEach((c, i) => c.scale.setScalar(0.28 * flick(i * 3, 13)));
-    }
+        candles += ((0.8 + 0.2 * e) * lc) / this.tableCandles.length;
+        f.mesh.scale.setScalar(lc);
+        f.mesh.visible = lc > 0.02;
+        glow.scale.setScalar(0.43 * (0.85 + 0.15 * e));
+        glow.material.opacity = 0.2 * lc;
+      } else {
+        candles += (flick(5, 8) * lc) / this.tableCandles.length;
+        glow.scale.setScalar(0.28 * flick(i * 3, 13) * lc);
+      }
+    });
     this.lights.table.intensity = 6 * candles;
-    this.graceCore.material.opacity = 0.62 * gp;
-    this.graceHalo.material.opacity = 0.12 * gp;
-    this.gracePillar.material.opacity = 0.4 + 0.18 * Math.sin(t * 1.1); // (soft, not to drown the figure in it)
-    this.graceFigure.update(dt, gp);
-    for (const b of this.braziers) {
+    this.graceCore.material.opacity = 0.62 * gp * lg;
+    this.graceHalo.material.opacity = 0.12 * gp * lg;
+    this.gracePillar.material.opacity = (0.4 + 0.18 * Math.sin(t * 1.1)) * lg; // (soft, not to drown the figure in it)
+    this.graceFigure.update(dt, gp * lg);
+    this.braziers.forEach((b, i) => {
+      const lb = this.lit(seedOf(0, 30 + i));
+      this.smoke(b, lb, b.x, 1.5, b.z);
       // the light rises and falls with how much fire the flame's frame holds
       let f = flick(b.phase, 10);
       if (b.flame) {
         b.level = (b.level ?? 1) + (0.75 + 0.3 * b.flame.step(dt) - (b.level ?? 1)) * Math.min(1, dt * 12);
         f = b.level;
       }
-      b.light.intensity = 10 * f;
+      b.light.intensity = 10 * f * lb;
       if (b.flame) {
         b.fire.scale.set(2.15 * f, 1.95 * f, 1);
-        b.fire.material.opacity = 0.3;
+        b.fire.material.opacity = 0.3 * lb;
+        b.flame.mesh.scale.setScalar(lb);
+        b.flame.mesh.visible = lb > 0.02;
       } else {
-        b.fire.scale.set(0.9 * f, 1.15 * f, 1);
+        b.fire.scale.set(0.9 * f * lb, 1.15 * f * lb, 1);
       }
-    }
+    });
     if (this.near) for (const b of this.banners) this.swayBanner(b, t);
   }
 }

@@ -8,7 +8,7 @@ import * as T from './textures.js';
 import { rng, ramp, hashStr, shade } from './pixel.js';
 import { buildRaven } from './sprites.js';
 import { BIOMES } from './biomes.js';
-import { Builder, BRICK_TILE, scaleCylUV, NOISE_GLSL, UV_VERT } from './build.js';
+import { Builder, BRICK_TILE, scaleCylUV, NOISE_GLSL, UV_VERT, seedOf } from './build.js';
 import { Flame } from './fire.js';
 import { GraceFigure } from './grace.js';
 
@@ -178,6 +178,7 @@ export class Region extends Builder {
       const f = new Flame(sheet, opts);
       const s = height / (sheet.h * sheet.px);
       f.mesh.scale.set(s, s, 1);
+      f.base = s;
       f.mesh.position.set(x, y, z);
       this.add(f.mesh);
       return f;
@@ -426,7 +427,7 @@ export class Region extends Builder {
     // the grace itself, a figure of golden light floating over its flame
     this.grace = { core, halo, pillar, figure: new GraceFigure(this.group, gx, 1.65, gz, 1.4) };
     this.lights.grace = this.light(gx, 2.2, gz, '#ffb347', 12, 1.2);
-    this.ambient(7, () => ({
+    this.ambient(7, () => (this.lit(seedOf(this.slot, 20)) < 0.3 ? null : {
       pos: [this.wx(gx), 0.3, this.wz(gz)], spread: [0.35, 0.1, 0.3], vel: [0, 0.7, 0], velSpread: [0.15, 0.25, 0.15],
       color: ['#ffd27a', '#ffe7a8', '#ffb347'], size: 0.06, life: 2.4, drag: 0.4, intensity: 1.2,
     }));
@@ -459,7 +460,8 @@ export class Region extends Builder {
     this.box(1.6, 0.1, 0.12, this.mat.wood, -13.7, 1.3, -6.4, { tile: 1 });
     this.block(-14.5, -6.7, -12.8, -6.1);
     this.lights.forge = this.light(fx + 0.3, 1.2, fz + 1.8, '#ff6a1f', 12, 1.4);
-    this.ambient(2, () => ({
+    this.forgeSmoke = {};
+    this.ambient(2, () => (this.lit(seedOf(this.slot, 1)) < 0.3 ? null : {
       pos: [this.wx(fx - 0.7), 8.2, this.wz(fz - 0.3)], spread: [0.4, 0.1, 0.4], vel: [0.2, 1.2, 0], velSpread: [0.2, 0.3, 0.2],
       color: ['#ff8a3a', '#ffb347'], size: 0.06, life: 3, drag: 0.2, flicker: 1, intensity: 1.5,
     }));
@@ -626,8 +628,9 @@ export class Region extends Builder {
       flame.position.set(x, 3.4, -8.3);
       this.add(flame);
       const light = this.light(x, 3.4, -7.8, '#ff8a3a', 9, 1.6);
-      this.torches.push({ flame, light, phase: x * 3.1 + this.slot });
-      this.ambient(1.5, () => ({
+      const i = this.torches.length;
+      this.torches.push({ flame, light, phase: x * 3.1 + this.slot, x });
+      this.ambient(1.5, () => (this.lit(seedOf(this.slot, 30 + i)) < 0.3 ? null : {
         pos: [this.wx(x), 3.6, this.wz(-8.3)], spread: [0.08, 0.05, 0.08],
         vel: [0, 0.9, 0], velSpread: [0.15, 0.3, 0.15], color: ['#ff9a3a', '#ffd27a'], size: 0.05, life: 1.2, flicker: 1, intensity: 1.6,
       }));
@@ -896,53 +899,68 @@ export class Region extends Builder {
     const flick = (ph, sp = 9) => 0.85 + 0.1 * Math.sin(t * sp + ph) + 0.05 * Math.sin(t * 23 + ph * 2);
 
     this.forgeFlash = Math.max(0, this.forgeFlash - dt * 5);
-    this.lights.forge.intensity = (18 + forge * 30 + this.forgeFlash * 40) * flick(1 + this.slot, 7);
+    // while a great enemy is abroad its fires and its grace go out, each at its own moment
+    // (Builder.lit), the flames sinking into their beds
+    const id = this.slot;
+    const lf = this.lit(seedOf(id, 1));
+    this.smoke(this.forgeSmoke, lf, this.forgeAt.x, 1.1, this.forgeAt.z + 0.2);
+    this.lights.forge.intensity = (18 + forge * 30 + this.forgeFlash * 40) * flick(1 + this.slot, 7) * lf;
     const fires = this.fires;
     if (fires) {
       // the mouth a deep ember glow, the fire in it rising and brightening while it's worked
-      this.forgeMouth.material.color.setRGB(0.07 + forge * 0.1 + this.forgeFlash * 0.25, 0.012 + forge * 0.02, 0.004);
+      this.forgeMouth.material.color.setRGB(0.07 + forge * 0.1 + this.forgeFlash * 0.25, 0.012 + forge * 0.02, 0.004).multiplyScalar(lf);
       fires.forge.forEach((f, i) => {
         f.step(dt * (1 + forge * 0.6));
-        const k = fires.forgeScales[i] * (0.88 + forge * 0.22 + this.forgeFlash * 0.2);
+        const k = fires.forgeScales[i] * (0.88 + forge * 0.22 + this.forgeFlash * 0.2) * lf;
         f.mesh.scale.set(k, k, 1);
+        f.mesh.visible = lf > 0.02;
         f.mesh.material.color.setScalar(1.1 + forge * 0.4 + this.forgeFlash * 0.6);
       });
-      for (const c of fires.candles) {
+      fires.candles.forEach((c, i) => {
+        const lc = this.lit(seedOf(id, 10 + i));
         const e = c.flame.step(dt);
+        c.flame.mesh.scale.setScalar(lc);
+        c.flame.mesh.visible = lc > 0.02;
         c.glow.scale.setScalar(0.4 * (0.85 + 0.15 * e));
-        c.glow.material.opacity = 0.22;
-      }
+        c.glow.material.opacity = 0.22 * lc;
+      });
     } else {
-      this.forgeMouth.material.color.setRGB(1.0 + forge * 0.8 + this.forgeFlash, 0.4 + forge * 0.3, 0.1);
-      this.candles.forEach((c, i) => { c.scale.setScalar((0.24 + script * 0.08) * flick(i * 2, 13)); });
+      this.forgeMouth.material.color.setRGB(1.0 + forge * 0.8 + this.forgeFlash, 0.4 + forge * 0.3, 0.1).multiplyScalar(lf);
+      this.candles.forEach((c, i) => { c.scale.setScalar((0.24 + script * 0.08) * flick(i * 2, 13) * this.lit(seedOf(id, 10 + i))); });
     }
-    this.lights.scriptorium.intensity = (6 + script * 12) * flick(2 + this.slot);
+    this.lights.scriptorium.intensity = (6 + script * 12) * flick(2 + this.slot) * this.lit(seedOf(id, 10));
     this.ritualMat.opacity = 0.22 + ritual * 0.7 + Math.sin(t * 2) * 0.05;
     this.ritualCircle.rotation.z = t * (0.05 + ritual * 0.4);
     this.lights.ritual.intensity = ritual * 35 * flick(3, 5);
     this.towerWindowMat.color.setRGB(0.9 + tower * 2.2, 0.55 + tower * 1.1, 0.25 + tower * 0.3);
-    if (!fires) this.tableFlame.scale.setScalar((0.26 + table * 0.1) * flick(4, 12));
+    if (!fires) this.tableFlame.scale.setScalar((0.26 + table * 0.1) * flick(4, 12) * this.lit(seedOf(id, 13)));
     this.fogUniforms.uIntensity.value = 0.65 + gate * 0.45;
     this.lights.gate.intensity = 4 + gate * 10;
     const gp = 0.92 + 0.08 * Math.sin(t * 2.1 + this.slot);
-    this.lights.grace.intensity = (8 + grace * 5) * gp;
-    this.grace.core.material.opacity = 0.65 * gp;
-    this.grace.halo.material.opacity = (0.14 + grace * 0.1) * gp;
-    this.grace.pillar.material.opacity = 0.4 + 0.18 * Math.sin(t * 1.3);
-    this.grace.figure.update(dt, gp);
+    const lg = this.lit(seedOf(id, 20));
+    this.lights.grace.intensity = (8 + grace * 5) * gp * lg;
+    this.grace.core.material.opacity = 0.65 * gp * lg;
+    this.grace.halo.material.opacity = (0.14 + grace * 0.1) * gp * lg;
+    this.grace.pillar.material.opacity = (0.4 + 0.18 * Math.sin(t * 1.3)) * lg;
+    this.grace.figure.update(dt, gp * lg);
     this.torches.forEach((tc, i) => {
+      const lt = this.lit(seedOf(id, 30 + i));
+      this.smoke(tc, lt, tc.x, 3.5, -8.3);
       if (fires) {
         // the light rises and falls with how much fire the flame's frame holds
-        const e = fires.torches[i].step(dt);
+        const f = fires.torches[i];
+        const e = f.step(dt);
         tc.level = (tc.level ?? 1) + (0.75 + 0.3 * e - (tc.level ?? 1)) * Math.min(1, dt * 12);
-        tc.light.intensity = 8 * tc.level;
+        tc.light.intensity = 8 * tc.level * lt;
         tc.flame.scale.set(1.0 * tc.level, 1.1 * tc.level, 1);
-        tc.flame.material.opacity = 0.28;
+        tc.flame.material.opacity = 0.28 * lt;
+        f.mesh.scale.setScalar(f.base * lt);
+        f.mesh.visible = lt > 0.02;
         return;
       }
       const f = flick(tc.phase, 11);
-      tc.light.intensity = 8 * f;
-      tc.flame.scale.set(0.6 * f, 0.75 * f, 1);
+      tc.light.intensity = 8 * f * lt;
+      tc.flame.scale.set(0.6 * f * lt, 0.75 * f * lt, 1);
     });
     this.shafts.forEach((s, i) => { s.material.opacity = 0.045 + 0.02 * Math.sin(t * 0.4 + i * 1.3); });
     if (this.rising) this.stepRise(dt);

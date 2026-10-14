@@ -99,8 +99,12 @@ quest, a **spectre** is called up for the new session instead (see below). (Shou
 fail to load, the session waits, unseen, until a hero comes free.)
 
 The project is the session's project root: Claude Code's project folder, or the nearest folder
-with `.git` / `package.json` above wherever the session is working. Each project keeps its biome
-across reloads.
+with `.git` / `package.json` above wherever the session is working.
+
+No two islands standing at once share a design (biome). A new island takes its project's own
+design, the one it had before, kept across reloads, if no other island has it. Otherwise it takes
+the free design that appeared longest ago (or never yet). With all six standing, it takes the one
+that appeared longest ago (`pickBiome` in `client/js/world.js`).
 
 ## Heroes
 
@@ -223,6 +227,14 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
 - **The enemy waits for you:** it enters only once you stand on the arena. Until then the others
   wait by its entrance, and the log tells you where to go. If you haven't come after two and a
   half minutes, it turns away and everyone goes home.
+- **The lights go out:** from the moment it's announced until it's felled, prevails or withdraws,
+  every torch, candle, fire and grace in the Lands Between goes out, one after another, except the
+  arena's braziers. Flames sink into their beds, the big fires give off a wisp of smoke, and the
+  graces fade. They're lit again, one by one, once it's over (`DOUSE` in `client/js/config.js`).
+- **The way there:** meanwhile a golden arrow lies on the ground in front of you, pointing along
+  the path to the arena (`client/js/guide.js`, `GUIDE` in the config). From an island it points
+  along the island and over its bridge; at the Hold it turns north. It fades once you're on the
+  arena, and comes back if you leave mid-fight. Low things in front of it never hide it.
 - **How they fight:** each keeps its own ring around the enemy, circling its own way. When ready, one
   rushes in, strikes and falls back. Seeing a blow coming, they mostly sprint out of its way after
   a moment's reaction, though now and then someone is too slow.
@@ -362,7 +374,7 @@ A version anyone can open, with no bridge and no real data: an endless world of 
     the web, planning with subagents, shipping through MCP tools. Slash commands, permission waits,
     model switches and compactions come up now and then.
   - New projects rise as islands, one at a time: the first 5 seconds after you appear, then at
-    least 10 seconds apart. An island nobody has worked on for 45 seconds sinks back into the
+    least 30 seconds apart, time to look round each before the next. An island nobody has worked on for 45 seconds sinks back into the
     mist, if it's the outermost on its side (the others hold up a bridge).
   - Great enemies come oftener: the first after about two minutes, then every 5 to 9 minutes, at
     full strength. A run of failing tool calls or a session ending in failure can bring one too. As
@@ -421,6 +433,7 @@ client/js/build.js      island building helpers (local coords, merged static mes
 client/js/npc.js        a character: animation, pathing, emotes, dragging, spirits
 client/js/pilot.js      thee: whoever the player is (Maren, or anyone become), walked with the keyboard
 client/js/crowd.js      characters are solid: parting overlaps by weight, shoving, steering round others
+client/js/guide.js      the golden arrow on the ground that shows the way to the arena in a fight
 client/js/grace.js      the grace itself, the figure of golden light floating over every Site of Grace
 client/js/interact.js   E: using the stations and the Round Table
 client/js/arena.js      the Arena of Trials, north of the Hold

@@ -8,7 +8,7 @@
 // shaders slowing down. The moon's shadow box follows the camera for the same reason.
 
 import * as THREE from 'three';
-import { REGION, HUB, BRIDGE, slotCenterX, innerSlot } from './config.js';
+import { REGION, HUB, BRIDGE, DOUSE, slotCenterX, innerSlot } from './config.js';
 import * as T from './textures.js';
 import { rng, hashStr, shade } from './pixel.js';
 import { buildRaven } from './sprites.js';
@@ -110,6 +110,12 @@ export class World {
     this.biomeCache = {};
     this.tuftCache = {};
     try { this.biomeMemory = JSON.parse(localStorage.getItem(BIOME_MEMORY) || '{}') || {}; } catch { this.biomeMemory = {}; }
+    this.biomeSeen = {}; // design -> when an island last took it (a count of islands made)
+    this.biomeTick = 0;
+    // While a great enemy is abroad every fire and grace goes out but the arena's (fight.js sets
+    // `dousing`); `douse` runs 0..1 as they go out one after another, and back as they're lit again.
+    this.dousing = false;
+    this.douse = 0;
 
     this.buildShared();
     this.buildSky();
@@ -401,18 +407,27 @@ export class World {
   // --------------------------------------------------------------------------------------------
   // islands
 
+  // The design (biome) a new island takes: never one an island already standing has. The
+  // project's own (the one it had before, kept across reloads) if that's free; else whichever free
+  // one appeared longest ago (or never yet); and with all six standing, the one that appeared
+  // longest ago.
   pickBiome(project) {
-    const remembered = this.biomeMemory[project];
-    if (BIOMES[remembered]) return remembered;
     const used = new Set([...this.regions.values()].map((r) => r.biomeKey));
-    const start = hashStr(`biome:${project}`) % BIOME_KEYS.length;
-    let key = BIOME_KEYS[start];
-    for (let i = 0; i < BIOME_KEYS.length; i++) {
-      const k = BIOME_KEYS[(start + i) % BIOME_KEYS.length];
-      if (!used.has(k)) { key = k; break; }
+    const remembered = this.biomeMemory[project];
+    let key;
+    if (BIOMES[remembered] && !used.has(remembered)) key = remembered;
+    else {
+      const free = BIOME_KEYS.filter((k) => !used.has(k));
+      const pool = free.length ? free : BIOME_KEYS;
+      const start = hashStr(`biome:${project}`) % BIOME_KEYS.length; // (ties: the project's own order)
+      const order = (k) => (BIOME_KEYS.indexOf(k) - start + BIOME_KEYS.length) % BIOME_KEYS.length;
+      key = [...pool].sort((a, b) => (this.biomeSeen[a] ?? -1) - (this.biomeSeen[b] ?? -1) || order(a) - order(b))[0];
     }
-    this.biomeMemory[project] = key;
-    try { localStorage.setItem(BIOME_MEMORY, JSON.stringify(this.biomeMemory)); } catch {}
+    this.biomeSeen[key] = ++this.biomeTick;
+    if (!BIOMES[remembered]) {
+      this.biomeMemory[project] = key;
+      try { localStorage.setItem(BIOME_MEMORY, JSON.stringify(this.biomeMemory)); } catch {}
+    }
     return key;
   }
 
@@ -553,6 +568,7 @@ export class World {
 
   update(dt, t, camera, camDist, hubResting = 0) {
     this.uTime.value = t;
+    this.douse = Math.max(0, Math.min(1, this.douse + (this.dousing ? dt / DOUSE.out : -dt / DOUSE.in)));
     this.focus.copy(camera.userData.target);
     this.placeSkyElements(camera);
     const reach = 26 + camDist;
