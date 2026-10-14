@@ -9,6 +9,7 @@ import { rng, ramp, hashStr, shade } from './pixel.js';
 import { buildRaven } from './sprites.js';
 import { BIOMES } from './biomes.js';
 import { Builder, BRICK_TILE, scaleCylUV, NOISE_GLSL, UV_VERT } from './build.js';
+import { Flame } from './fire.js';
 
 const FOG_FRAG = /* glsl */ `
   uniform float uTime;
@@ -102,6 +103,7 @@ export class Region extends Builder {
     this.buildShafts();
     this.buildParticles();
     this.mergeStatic();
+    this.lightFires(world.fireArt);
   }
 
   get name() {
@@ -162,6 +164,46 @@ export class Region extends Builder {
         m.dispose();
       }
     });
+  }
+
+  // The user's pixel-art fire (fire.js), as in Roundtable Hold: a flame on each candle (the
+  // scriptorium's stand and the war table's), a fire burning in the forge's mouth (fiercer while
+  // someone works it), and a small one on each torch beside the fog gate. The old glows stay on,
+  // dimmer and wider, as the light around them. `art` comes from fire.js loadFireArt().
+  lightFires(art) {
+    if (!art || this.fires) return;
+    const flame = (sheet, x, y, z, height, opts) => {
+      const f = new Flame(sheet, opts);
+      const s = height / (sheet.h * sheet.px);
+      f.mesh.scale.set(s, s, 1);
+      f.mesh.position.set(x, y, z);
+      this.add(f.mesh);
+      return f;
+    };
+    const candle = (glow, i) => {
+      const f = new Flame(art.candle[i % art.candle.length], { brightness: 1.05 });
+      const base = glow.position.y - 0.08; // the wick, just above the wax
+      f.mesh.position.set(glow.position.x, base, glow.position.z);
+      this.add(f.mesh);
+      glow.position.y = base + 0.13; // the halo just behind its flame, so the wick stays dark
+      glow.position.z -= 0.06;
+      return { flame: f, glow };
+    };
+    const { x: mx, z: mz } = this.forgeAt;
+    // two fires side by side fill the forge's mouth, licking up past its top as they flare
+    const forgeFires = [[-0.36, 1.45, 0], [0.38, 1.25, 2]].map(([dx, h, k]) => flame(art.brazier[(this.slot + k) % art.brazier.length], mx + dx, 0.24, mz + 0.02, h, { brightness: 1.2 }));
+    this.fires = {
+      forgeScales: forgeFires.map((f) => f.mesh.scale.x),
+      candles: [...this.candles.map(candle), candle(this.tableFlame, 3)],
+      // the forge's mouth goes dark and deep, the fire burning low in it
+      forge: forgeFires,
+      torches: this.torches.map((tc, i) => {
+        const p = tc.flame.position;
+        const f = flame(art.brazier[(i + 1) % art.brazier.length], p.x, p.y - 0.22, p.z, 0.95, { brightness: 1.3 });
+        tc.flame.position.y = p.y + 0.05;
+        return f;
+      }),
+    };
   }
 
   stepRise(dt) {
@@ -396,6 +438,7 @@ export class Region extends Builder {
     this.block(fx - 1.9, fz - 1.3, fx + 1.9, fz + 1.2);
     this.forgeMouth = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.0), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.4, 0.6, 0.15) }));
     this.forgeMouth.position.set(fx + 0.3, 0.75, fz + 1.11);
+    this.forgeAt = { x: fx + 0.3, z: fz + 1.11 }; // where its fire burns (lightFires)
     this.add(this.forgeMouth);
     const [ax, az] = STATIONS.forge.pos;
     this.box(0.5, 0.55, 0.45, this.mat.iron, ax, 0.27, az, { tile: 1 });
@@ -851,14 +894,31 @@ export class Region extends Builder {
 
     this.forgeFlash = Math.max(0, this.forgeFlash - dt * 5);
     this.lights.forge.intensity = (18 + forge * 30 + this.forgeFlash * 40) * flick(1 + this.slot, 7);
-    this.forgeMouth.material.color.setRGB(1.0 + forge * 0.8 + this.forgeFlash, 0.4 + forge * 0.3, 0.1);
+    const fires = this.fires;
+    if (fires) {
+      // the mouth a deep ember glow, the fire in it rising and brightening while it's worked
+      this.forgeMouth.material.color.setRGB(0.07 + forge * 0.1 + this.forgeFlash * 0.25, 0.012 + forge * 0.02, 0.004);
+      fires.forge.forEach((f, i) => {
+        f.step(dt * (1 + forge * 0.6));
+        const k = fires.forgeScales[i] * (0.88 + forge * 0.22 + this.forgeFlash * 0.2);
+        f.mesh.scale.set(k, k, 1);
+        f.mesh.material.color.setScalar(1.1 + forge * 0.4 + this.forgeFlash * 0.6);
+      });
+      for (const c of fires.candles) {
+        const e = c.flame.step(dt);
+        c.glow.scale.setScalar(0.4 * (0.85 + 0.15 * e));
+        c.glow.material.opacity = 0.22;
+      }
+    } else {
+      this.forgeMouth.material.color.setRGB(1.0 + forge * 0.8 + this.forgeFlash, 0.4 + forge * 0.3, 0.1);
+      this.candles.forEach((c, i) => { c.scale.setScalar((0.24 + script * 0.08) * flick(i * 2, 13)); });
+    }
     this.lights.scriptorium.intensity = (6 + script * 12) * flick(2 + this.slot);
-    this.candles.forEach((c, i) => { c.scale.setScalar((0.24 + script * 0.08) * flick(i * 2, 13)); });
     this.ritualMat.opacity = 0.22 + ritual * 0.7 + Math.sin(t * 2) * 0.05;
     this.ritualCircle.rotation.z = t * (0.05 + ritual * 0.4);
     this.lights.ritual.intensity = ritual * 35 * flick(3, 5);
     this.towerWindowMat.color.setRGB(0.9 + tower * 2.2, 0.55 + tower * 1.1, 0.25 + tower * 0.3);
-    this.tableFlame.scale.setScalar((0.26 + table * 0.1) * flick(4, 12));
+    if (!fires) this.tableFlame.scale.setScalar((0.26 + table * 0.1) * flick(4, 12));
     this.fogUniforms.uIntensity.value = 0.65 + gate * 0.45;
     this.lights.gate.intensity = 4 + gate * 10;
     const gp = 0.92 + 0.08 * Math.sin(t * 2.1 + this.slot);
@@ -866,11 +926,20 @@ export class Region extends Builder {
     this.grace.core.material.opacity = 0.65 * gp;
     this.grace.halo.material.opacity = (0.14 + grace * 0.1) * gp;
     this.grace.pillar.material.opacity = 0.5 + 0.25 * Math.sin(t * 1.3);
-    for (const tc of this.torches) {
+    this.torches.forEach((tc, i) => {
+      if (fires) {
+        // the light rises and falls with how much fire the flame's frame holds
+        const e = fires.torches[i].step(dt);
+        tc.level = (tc.level ?? 1) + (0.75 + 0.3 * e - (tc.level ?? 1)) * Math.min(1, dt * 12);
+        tc.light.intensity = 8 * tc.level;
+        tc.flame.scale.set(1.0 * tc.level, 1.1 * tc.level, 1);
+        tc.flame.material.opacity = 0.28;
+        return;
+      }
       const f = flick(tc.phase, 11);
       tc.light.intensity = 8 * f;
       tc.flame.scale.set(0.6 * f, 0.75 * f, 1);
-    }
+    });
     this.shafts.forEach((s, i) => { s.material.opacity = 0.045 + 0.02 * Math.sin(t * 0.4 + i * 1.3); });
     if (this.rising) this.stepRise(dt);
     if (this.sinking) this.stepSink(dt);

@@ -52,6 +52,7 @@ const [allHeroes, fireArt, bossSheet, spectreSheet] = await Promise.all([
   loadSheet(bossRig).catch((err) => { console.warn('Boss art unavailable', err); return null; }),
   loadSheet(spectreRig).catch((err) => { console.warn('Spectre art unavailable', err); return null; }),
 ]);
+world.fireArt = fireArt; // (each island lights its own when it's built, region.js)
 world.hub.lightFires(fireArt);
 world.arena.lightFires(fireArt);
 const playerSheet = allHeroes.find((s) => s.hero === 'knight') || null;

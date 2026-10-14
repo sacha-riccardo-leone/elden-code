@@ -12,7 +12,10 @@ first time one of a project's sessions appears, alternating east and west of **R
 Hold**, the hub in the middle, and are joined to it by stone bridges.
 
 Idle Tarnished sometimes cross the bridges to sit at the round table and talk with Tarnished
-from other projects. When work calls and home is far, they fast travel: they dissolve into golden
+from other projects. As in Elden Ring, a ring of weapons is planted in the table (swords,
+greatswords, katanas, a scimitar, an estoc, war axes, a spear, a halberd, a great hammer, each at
+its own angle; `client/js/weapons.js`), and the great Site of Grace floats at its heart, larger
+than any island's, a pillar of golden light rising from it. Taking a seat there rests at grace. When work calls and home is far, they fast travel: they dissolve into golden
 light and reappear at their region's Site of Grace.
 
 | In Claude Code | In the world |
@@ -155,7 +158,9 @@ or `:pitch=px,py` after an input when the art is soft and the grid needs setting
 ### Fire
 
 The braziers and the candles on the round table in Roundtable Hold burn with pixel-art fire from
-two sprite sheets (`client/assets/fx/`, rigged in `client/js/fire.js`).
+two sprite sheets (`client/assets/fx/`, rigged in `client/js/fire.js`). So does every island: a
+candle flame on the scriptorium's candles and the war table's, two fires in the forge's dark
+mouth (fiercer while someone works it), and a smaller brazier fire on each torch by the fog gate.
 
 - **Braziers:** the sheet's frames grow tall and then collapse rather than loop, so each brazier is
   rigged from one of its cleanest frames instead, each from a different frame, every other one

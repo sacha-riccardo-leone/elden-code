@@ -1,5 +1,6 @@
-// Roundtable Hold: the round island at the centre of the world. A great Site of Grace, a
-// round table where idle Tarnished from every project sit and talk, braziers and candles burning
+// Roundtable Hold: the round island at the centre of the world. A round table where idle
+// Tarnished from every project sit and talk, a ring of weapons planted in it (weapons.js) about
+// the great Site of Grace floating at its heart, braziers and candles burning
 // with pixel-art fire (fire.js), a broken colonnade, and a banner for each project's region.
 
 import * as THREE from 'three';
@@ -8,6 +9,7 @@ import * as T from './textures.js';
 import { rng, ramp, hashStr } from './pixel.js';
 import { Builder, BRICK_TILE, scaleCylUV } from './build.js';
 import { Flame } from './fire.js';
+import { plantedWeapons } from './weapons.js';
 
 const HUB_FLOOR = {
   stone: ['#403b38', '#47423e', '#3c3734', '#4d4742', '#433e3a'],
@@ -76,11 +78,21 @@ export class Hub extends Builder {
     foot.castShadow = true;
     this.add(top, foot);
     this.blockCircle(tx, tz, 2.15);
+    // at its heart a dark inlaid disc, ringed in bronze, and round it a ring of weapons driven into
+    // the wood, each its own kind, at its own angle
+    const TOP = 1.0;
+    const inlay = new THREE.Mesh(new THREE.CircleGeometry(1.05, 32), new THREE.MeshLambertMaterial({ color: '#2b2620' }));
+    inlay.rotation.x = -Math.PI / 2;
+    inlay.position.set(tx, TOP + 0.004, tz);
+    const band = new THREE.Mesh(new THREE.RingGeometry(1.05, 1.13, 40), new THREE.MeshLambertMaterial({ color: '#7a6034' }));
+    band.rotation.x = -Math.PI / 2;
+    band.position.set(tx, TOP + 0.006, tz);
+    this.add(inlay, band, plantedWeapons(tx, tz, TOP, 1.05, rng(41)));
     this.tableCandles = [];
     for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * Math.PI * 2;
-      const x = tx + Math.cos(a) * 1.2;
-      const z = tz + Math.sin(a) * 1.0;
+      const a = (i / 5) * Math.PI * 2 + 0.3;
+      const x = tx + Math.cos(a) * 1.68;
+      const z = tz + Math.sin(a) * 1.55;
       const c = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.26, 6), this.world.mat.wax);
       c.position.set(x, 1.13, z);
       const f = this.additiveSprite('#ffb347', 0.3, 0.9);
@@ -90,28 +102,25 @@ export class Hub extends Builder {
     }
     this.lights = { table: this.light(tx, 2.2, tz, '#ffb070', 8, 1.4) };
 
-    // the great grace
-    const [gx, gz] = HUB_LAYOUT.grace;
+    // the great grace, larger than any island's, floating over the heart of the table amid the
+    // ring of weapons, a pillar of golden light rising from it (arrivals by grace still appear
+    // behind the table, at HUB_LAYOUT.grace)
     const r = rng(77);
-    for (let i = 0; i < 11; i++) {
-      const a = (i / 11) * Math.PI * 2;
-      const s = 0.28 + r() * 0.18;
-      this.box(s * 1.4, s, s, this.mat.stoneMoss, gx + Math.cos(a) * 1.0, s / 2, gz + Math.sin(a) * 0.8, { ry: r() * 3, tile: 1 });
-    }
-    this.blockCircle(gx, gz, 1.2);
+    for (let i = 0; i < 22; i++) r(); // (the colonnade's columns break where they always have)
+    const GY = 1.75;
     this.graceCore = this.additiveSprite('#ffcf6b', 1.5, 0.75);
-    this.graceCore.position.set(gx, 0.7, gz);
-    this.graceHalo = this.additiveSprite('#ffb347', 5, 0.2);
-    this.graceHalo.position.set(gx, 1.0, gz);
-    this.gracePillar = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 5), new THREE.MeshBasicMaterial({
-      map: this.world.tex.pillar, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: new THREE.Color(1.2, 0.9, 0.5),
+    this.graceCore.position.set(tx, GY, tz);
+    this.graceHalo = this.additiveSprite('#ffb347', 4.6, 0.2);
+    this.graceHalo.position.set(tx, GY + 0.2, tz);
+    this.gracePillar = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 7.5), new THREE.MeshBasicMaterial({
+      map: this.world.tex.pillar, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: new THREE.Color(1.25, 0.95, 0.5),
     }));
-    this.gracePillar.position.set(gx, 2.5, gz);
+    this.gracePillar.position.set(tx, TOP + 3.75, tz);
     this.add(this.graceCore, this.graceHalo, this.gracePillar);
-    this.lights.grace = this.light(gx, 2.4, gz, '#ffb347', 14, 1.2);
-    this.ambient(10, () => ({
-      pos: [gx, 0.4, gz], spread: [0.5, 0.1, 0.4], vel: [0, 0.8, 0], velSpread: [0.2, 0.3, 0.2],
-      color: ['#ffd27a', '#ffe7a8', '#ffb347'], size: 0.06, life: 2.8, drag: 0.4, intensity: 1.3,
+    this.lights.grace = this.light(tx, 2.6, tz, '#ffb347', 14, 1.2);
+    this.ambient(12, () => ({
+      pos: [tx, GY - 0.4, tz], spread: [0.35, 0.3, 0.3], vel: [0, 0.9, 0], velSpread: [0.25, 0.35, 0.25],
+      color: ['#ffd27a', '#ffe7a8', '#ffb347'], size: 0.06, life: 3, drag: 0.4, intensity: 1.4,
     }));
 
     // broken colonnade, open toward the bridges and the viewer
@@ -255,8 +264,8 @@ export class Hub extends Builder {
       this.tableCandles.forEach((c, i) => c.scale.setScalar(0.28 * flick(i * 3, 13)));
     }
     this.lights.table.intensity = 6 * candles;
-    this.graceCore.material.opacity = 0.7 * gp;
-    this.graceHalo.material.opacity = 0.18 * gp;
+    this.graceCore.material.opacity = 0.62 * gp;
+    this.graceHalo.material.opacity = 0.12 * gp;
     this.gracePillar.material.opacity = 0.55 + 0.25 * Math.sin(t * 1.1);
     for (const b of this.braziers) {
       // the light rises and falls with how much fire the flame's frame holds

@@ -1,7 +1,8 @@
 // Things thou canst use (E) when standing by them: every station the sessions' characters work at
 // (the forge, the scriptorium, the war table, the ritual circle, the raven tower, the fog gate, the
-// site of grace) on every island, and in Roundtable Hold its grace and the Round Table itself
-// (which can summon a great enemy to the arena). A prompt shows over the nearest one in reach.
+// site of grace) on every island, and in Roundtable Hold the Round Table, with its great grace
+// at its heart (taking a seat there rests at grace; it can also summon a great enemy to the
+// arena). A prompt shows over the nearest one in reach.
 // Using a station works it as the characters do: the forge glows and throws sparks at each blow,
 // the ritual circle spins up, a raven takes wing, the bell rings at the fog gate. Walking off (or E
 // again) stops.
@@ -35,11 +36,7 @@ export class Interact {
     if (!area) return [];
     if (area === world.hub) {
       const [tx, tz] = HUB_LAYOUT.table;
-      const [gx, gz] = HUB_LAYOUT.grace;
-      return [
-        { x: tx, z: tz, reach: 3.4, label: 'The Round Table', use: () => this.ctx.ui.openTable() },
-        { x: gx, z: gz, reach: 2.4, label: USES.grace.label, use: (n) => this.work(n, null, 'grace', gx) },
-      ];
+      return [{ x: tx, z: tz, reach: 3.4, label: 'The Round Table', use: () => this.ctx.ui.openTable() }];
     }
     if (!area.point || area.isArena) return [];
     return Object.keys(USES).map((station) => {
