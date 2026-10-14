@@ -6,6 +6,22 @@ import * as THREE from 'three';
 import { buildIcon } from './sprites.js';
 import { GESTURES, STATION_LABEL } from './director.js';
 import { stats } from './lore.js';
+import { REGION, HUB } from './config.js';
+
+// The Arena of Trials' mark on the map strip: a horned skull, in pixels (h: its paler brow).
+const SKULL = [
+  'x.............x',
+  'xx...........xx',
+  '.xx..hhhhh..xx.',
+  '..xxxhxxxhxxx..',
+  '...xxxxxxxxx...',
+  '...x..xxx..x...',
+  '...x..xxx..x...',
+  '...xxxx.xxxx...',
+  '....xxxxxxx....',
+  '....xx.x.xx....',
+  '.....xxxxx.....',
+];
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -141,38 +157,110 @@ export class UI {
     this.emptyEl.hidden = total > 0;
   }
 
-  // The strip of areas at the top: Roundtable Hold plus every project's region, with live counts.
+  // The map strip at the bottom: one line as wide as the whole world (the Hold and every island
+  // that has risen), each area's name over its own place on it (clicked, it takes thee there by
+  // grace), and a golden dot under it where thou art, between islands too (updateMap). While a
+  // great enemy is abroad the Arena of Trials shows over the Hold in red, under a horned skull, and
+  // every island but the Hold is out of reach.
+  buildMap() {
+    const m = this.regionsEl;
+    m.append(el('div', 'map-line'));
+    this.mapMarks = el('div', 'map-marks');
+    this.mapMe = el('div', 'map-me');
+    this.mapMe.title = 'Thou art here';
+    this.mapArena = el('div', 'map-arena');
+    this.mapArena.hidden = true;
+    const skull = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    skull.setAttribute('viewBox', `0 0 ${SKULL[0].length} ${SKULL.length}`);
+    skull.setAttribute('shape-rendering', 'crispEdges');
+    skull.setAttribute('aria-hidden', 'true');
+    SKULL.forEach((row, y) => [...row].forEach((c, x) => {
+      if (c === '.') return;
+      const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      r.setAttribute('x', x);
+      r.setAttribute('y', y);
+      r.setAttribute('width', 1);
+      r.setAttribute('height', 1);
+      r.setAttribute('fill', c === 'h' ? '#ff9a7a' : '#ff3a2a');
+      skull.append(r);
+    }));
+    this.mapArena.append(skull, el('span', 'map-arena-name', 'Arena of Trials'));
+    m.append(this.mapMarks, this.mapArena, this.mapMe);
+    this.mapSpan = { min: -12, max: 12 };
+    this.mapBoss = false;
+  }
+
+  // The areas on the map, with live counts: Roundtable Hold and each risen island (director.js).
   setRegions(list) {
+    if (!this.mapMarks) this.buildMap();
+    // the world's width: from the far edge of the westmost area to that of the eastmost
+    let min = Infinity;
+    let max = -Infinity;
+    for (const r of list) {
+      const half = r.area.walkRect && r.area.biome ? REGION.halfW : HUB.radius;
+      min = Math.min(min, r.area.cx - half);
+      max = Math.max(max, r.area.cx + half);
+    }
+    if (list.length) this.mapSpan = { min, max };
     const seen = new Set();
-    list.forEach((r, i) => {
+    for (const r of list) {
       seen.add(r.area);
       let b = this.regionButtons.get(r.area);
       if (!b) {
-        const btn = el('button', 'region-btn');
+        const btn = el('button', 'map-mark');
         btn.type = 'button';
+        const name = el('span', 'map-name');
         const swatch = el('i');
         swatch.style.background = r.color;
-        const name = el('span', 'region-name', r.name);
-        const meta = el('span', 'region-meta');
-        btn.append(swatch, name, meta);
+        const meta = el('em', 'map-meta');
+        name.append(swatch, el('span', 'map-label', r.name), meta);
+        btn.append(name, el('b', 'map-tick'));
         btn.addEventListener('click', () => this.onFocus && this.onFocus({ region: r.area }));
-        b = { btn, meta, name };
+        if (!r.area.biome) btn.classList.add('hub');
+        b = { btn, meta, name, area: r.area };
         this.regionButtons.set(r.area, b);
+        this.mapMarks.append(btn);
       }
-      if (this.regionsEl.children[i] !== b.btn) this.regionsEl.insertBefore(b.btn, this.regionsEl.children[i] || null);
+      b.btn.style.left = `${(this.mapAt(r.area.cx) * 100).toFixed(2)}%`;
+      b.btn.disabled = this.mapBoss && !!r.area.biome;
       const meta = [];
-      if (r.area.walkRect && r.total && r.name !== 'Roundtable Hold') meta.push(`${r.total}`);
-      if (r.name === 'Roundtable Hold' && r.total) meta.push(`${r.total} seated`);
-      if (r.working) meta.push(`⚒${r.working}`);
+      if (r.total) meta.push(`${r.total}`);
       if (r.waiting) meta.push(`!${r.waiting}`);
       b.meta.textContent = meta.join(' ');
       b.btn.dataset.waiting = r.waiting ? '1' : '';
       b.btn.dataset.active = r.area === this.focusArea ? '1' : '';
       b.btn.title = r.area.biome ? `${r.name} — ${r.area.biome.name}` : r.name;
-    });
+    }
     for (const [area, b] of this.regionButtons) {
       if (!seen.has(area)) { b.btn.remove(); this.regionButtons.delete(area); }
     }
+    // names never run into one another: each as wide as the room to its neighbours allows
+    const width = this.regionsEl.clientWidth || 600;
+    const marks = [...this.regionButtons.values()].sort((a, b) => a.area.cx - b.area.cx);
+    marks.forEach((b, i) => {
+      const at = this.mapAt(b.area.cx);
+      const left = i > 0 ? at - this.mapAt(marks[i - 1].area.cx) : at * 2;
+      const right = i < marks.length - 1 ? this.mapAt(marks[i + 1].area.cx) - at : (1 - at) * 2;
+      b.name.style.maxWidth = `${Math.max(48, Math.floor(Math.min(left, right) * width - 8))}px`;
+    });
+  }
+
+  // Where x lies along the map strip (0 at its west end, 1 at its east).
+  mapAt(x) {
+    const { min, max } = this.mapSpan;
+    return Math.max(0, Math.min(1, (x - min) / (max - min || 1)));
+  }
+
+  // Every frame: thy dot where thou art, and the arena while a great enemy is abroad.
+  updateMap(x, boss) {
+    if (!this.mapMarks) this.buildMap();
+    this.mapMe.style.left = `${(this.mapAt(x) * 100).toFixed(2)}%`;
+    if (boss) this.mapArena.style.left = `${(this.mapAt(0) * 100).toFixed(2)}%`; // (north of the Hold)
+    if (boss === this.mapBoss) return;
+    this.mapBoss = boss;
+    this.regionsEl.classList.toggle('boss', boss);
+    this.mapArena.hidden = !boss;
+    for (const b of this.regionButtons.values()) b.btn.disabled = boss && !!b.area.biome;
   }
 
   // Elden Ring-style area title when the camera settles over a new area.

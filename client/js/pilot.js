@@ -181,10 +181,19 @@ export class Pilot {
     n.body.play('kneel', true);
   }
 
+  // Where one may travel by grace: Roundtable Hold always; an island once it has risen (not while
+  // it's still under the mist, nor once it's sinking back into it); and while a great enemy is
+  // abroad, nowhere but the Hold (the way to the arena is on foot, guide.js).
+  canTravelTo(area) {
+    const { world, fight } = this.ctx;
+    if (area === world.hub) return true;
+    return !!area?.walkRect && area.risen && !area.sinking && !fight?.hunting();
+  }
+
   // Travel by grace to an area (hub or region): dissolve and reappear at its Site of Grace.
   travelTo(area) {
     const n = this.npc;
-    if (!n || n.travel || n.shift || !area) return;
+    if (!n || n.travel || n.shift || !area || !this.canTravelTo(area)) return;
     n.action = null;
     n.goal = null;
     n.path = [];

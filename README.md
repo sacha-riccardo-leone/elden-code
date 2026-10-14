@@ -61,10 +61,17 @@ can **become any character**: click one and choose **Become …** in the fan ove
     takes wing…).
   - **M** shows the map of every island. **Z / X** travel by grace to the previous / next area,
     **H** to Roundtable Hold.
+  - **The map strip** (bottom centre) is one line as wide as the whole world. Each area's name
+    sits over its own place on it, and clicking a name takes you there by grace. A golden dot under
+    the line shows where you are, moving with you even between islands. An island only appears on
+    it, and can only be reached by grace, once it has fully risen from the mist.
+  - While a great enemy is abroad, the **Arena of Trials** shows over Roundtable Hold in shining
+    red, under a horned skull. Every island but the Hold is greyed out: the Hold is the only place
+    you can travel to by grace, and the way on to the arena is on foot.
   - The **Controls** button (top right) lists all of this.
 - **Others:** only the character you are can gesture. Clicking anyone else opens their info panel
   and a fan with just **Become [name]**. You can drag them to carry them elsewhere. Scroll to zoom.
-  The region bar (bottom right) and the lines of the message log take you places.
+  The names on the map strip and the lines of the message log take you places.
 - **Back to Maren:** while you're someone else, Maren lives on her own. She wanders, sits at the
   Round Table and talks in her own voice. To return to her, click her and choose **Become Maren**.
 - **Sessions:** a character you take over stops following its Claude Code session, which keeps

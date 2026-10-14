@@ -887,7 +887,8 @@ export class Director {
       this.ctx.ui.setStats([...this.npcs.values()].filter((n) => !n.unbound).length, working, waiting);
       this.ctx.ui.setRegions([
         { area: world.hub, name: world.hub.name, color: '#d6b46e', total: visitors, working: 0, waiting: 0 },
-        ...world.regionList().map((r) => ({ area: r, name: r.project, color: r.color, ...counts.get(r) })),
+        // (only those that have risen: one still under the mist, or sinking into it, isn't on the map)
+        ...world.regionList().filter((r) => r.risen && !r.sinking).map((r) => ({ area: r, name: r.project, color: r.color, ...counts.get(r) })),
       ]);
     }
   }

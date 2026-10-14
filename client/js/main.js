@@ -69,7 +69,9 @@ Object.defineProperty(ctx, 'player', { get: () => pilot.npc });
 // ---------------------------------------------------------------------------------------------
 // thee and the camera locked on thee; travel by grace between areas; the overview
 
-const areas = () => [world.hub, ...world.regionList()].sort((a, b) => a.cx - b.cx);
+// the areas on the map: the Hold and every island that has risen (not one still under the mist,
+// nor one sinking back into it)
+const areas = () => [world.hub, ...world.regionList().filter((r) => r.risen && !r.sinking)].sort((a, b) => a.cx - b.cx);
 const FOLLOW_DIST = 22;
 let overview = null; // { dist } to return to while the overview is shown
 
@@ -116,8 +118,10 @@ const travel = {
     const me = pilot.npc;
     if (!me) return;
     endOverview();
-    const list = areas();
-    let i = list.indexOf(areaOfPlayer());
+    // (only where one may go by grace just now: the Hold alone, while a great enemy is abroad)
+    const here = areaOfPlayer();
+    const list = areas().filter((a) => a === here || pilot.canTravelTo(a));
+    let i = list.indexOf(here);
     if (i < 0) i = list.reduce((best, a, k) => (Math.abs(a.cx - me.pos.x) < Math.abs(list[best].cx - me.pos.x) ? k : best), 0);
     pilot.travelTo(list[(i + dir + list.length) % list.length]);
   },
@@ -315,6 +319,8 @@ function step(dt) {
   ui.overview = rig.dist > 40;
   ui.setFocusArea(world.areaAt(rig.cur.x, rig.cur.z), t);
   ui.updateLabels(areas());
+  // the map strip: where thou art, between islands too, and the arena while a great enemy is abroad
+  ui.updateMap(me ? me.pos.x : 0, fight.hunting());
   ui.update(dt);
   interact.update();
   // walking away from the Round Table folds its menu
