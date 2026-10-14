@@ -10,6 +10,7 @@ import { buildRaven } from './sprites.js';
 import { BIOMES } from './biomes.js';
 import { Builder, BRICK_TILE, scaleCylUV, NOISE_GLSL, UV_VERT } from './build.js';
 import { Flame } from './fire.js';
+import { GraceFigure } from './grace.js';
 
 const FOG_FRAG = /* glsl */ `
   uniform float uTime;
@@ -150,6 +151,7 @@ export class Region extends Builder {
   // Frees what only this island used (shared materials and textures are left alone).
   dispose(shared) {
     const sharedTex = new Set(Object.values(this.world.tex || {}));
+    this.grace.figure.dispose();
     this.world.scene.remove(this.group);
     for (const s of this.ravens) {
       this.world.scene.remove(s);
@@ -421,7 +423,8 @@ export class Region extends Builder {
     }));
     pillar.position.set(gx, 1.6, gz);
     this.add(core, halo, pillar);
-    this.grace = { core, halo, pillar };
+    // the grace itself, a figure of golden light floating over its flame
+    this.grace = { core, halo, pillar, figure: new GraceFigure(this.group, gx, 1.65, gz, 1.4) };
     this.lights.grace = this.light(gx, 2.2, gz, '#ffb347', 12, 1.2);
     this.ambient(7, () => ({
       pos: [this.wx(gx), 0.3, this.wz(gz)], spread: [0.35, 0.1, 0.3], vel: [0, 0.7, 0], velSpread: [0.15, 0.25, 0.15],
@@ -925,7 +928,8 @@ export class Region extends Builder {
     this.lights.grace.intensity = (8 + grace * 5) * gp;
     this.grace.core.material.opacity = 0.65 * gp;
     this.grace.halo.material.opacity = (0.14 + grace * 0.1) * gp;
-    this.grace.pillar.material.opacity = 0.5 + 0.25 * Math.sin(t * 1.3);
+    this.grace.pillar.material.opacity = 0.4 + 0.18 * Math.sin(t * 1.3);
+    this.grace.figure.update(dt, gp);
     this.torches.forEach((tc, i) => {
       if (fires) {
         // the light rises and falls with how much fire the flame's frame holds

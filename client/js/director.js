@@ -219,7 +219,7 @@ export class Director {
       if (!r.started && this.clock >= r.at) {
         r.started = true;
         r.region.startRise();
-        if (r.announce) this.ctx.ui.banner(r.region.project, `A new region rises from the mist · ${r.region.biome.name}`);
+        if (r.announce) this.ctx.ui.notice(r.region.project, `A new region rises from the mist · ${r.region.biome.name}`);
         this.ctx.ui.log(`${r.region.project}: ${r.region.biome.name} rises from the mist`, 'gold', { region: r.region });
       }
       if (r.started && r.region.risen) {
@@ -553,7 +553,7 @@ export class Director {
         const started = this.questStart.get(ev.sid);
         this.questStart.delete(ev.sid);
         npc.showIcon('sparkle', 2.5);
-        if (started && now - started > 180) ui.banner('Quest Fulfilled', `${npc.displayName} · ${formatDuration(now - started)}`);
+        if (started && now - started > 180) ui.notice('Quest Fulfilled', `${npc.displayName} · ${formatDuration(now - started)}`);
         ui.log(`${name} returns to grace, quest fulfilled`, 'gold', npc);
         this.ctx.fight?.noteDone(npc); // the great enemy this session drew reels
         if (Math.random() < 0.45) {
@@ -565,7 +565,7 @@ export class Director {
       case 'StopFailure': {
         npc.collapse(5);
         const title = ev.reason === 'rate_limit' ? 'Thy Stamina Is Spent' : ev.reason === 'overloaded' ? 'The Grace Wavers' : 'Fallen';
-        ui.banner(title, `${npc.displayName}${ev.reason ? ` · ${ev.reason.replace(/_/g, ' ')}` : ''}`, 'red');
+        ui.notice(title, `${npc.displayName}${ev.reason ? ` · ${ev.reason.replace(/_/g, ' ')}` : ''}`, 'red');
         ui.log(`${name} has fallen${ev.reason ? ` · ${ev.reason.replace(/_/g, ' ')}` : ''}`, 'red', npc);
         this.answer(npc, 'sympathy', 1.4, 7);
         this.ctx.fight?.noteFall(npc);
@@ -604,7 +604,7 @@ export class Director {
   }
 
   spellBanner(npc, cmd, fx) {
-    this.ctx.ui.banner(fx.title, `/${cmd} · ${npc.displayName} · ${npc.region.project}`);
+    this.ctx.ui.notice(fx.title, `/${cmd} · ${npc.displayName} · ${npc.region.project}`);
     this.ctx.ui.log(`${npc.name.first} invokes /${cmd}`, 'gold', npc);
     npc.gesture('cast', fx.icon);
     for (let k = 0; k < 28; k++) {

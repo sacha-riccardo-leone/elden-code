@@ -10,6 +10,7 @@ import { rng, ramp, hashStr } from './pixel.js';
 import { Builder, BRICK_TILE, scaleCylUV } from './build.js';
 import { Flame } from './fire.js';
 import { plantedWeapons } from './weapons.js';
+import { GraceFigure } from './grace.js';
 
 const HUB_FLOOR = {
   stone: ['#403b38', '#47423e', '#3c3734', '#4d4742', '#433e3a'],
@@ -117,6 +118,8 @@ export class Hub extends Builder {
     }));
     this.gracePillar.position.set(tx, TOP + 3.75, tz);
     this.add(this.graceCore, this.graceHalo, this.gracePillar);
+    // and over it the grace itself, a figure of golden light far larger than any island's
+    this.graceFigure = new GraceFigure(this.group, tx, GY + 1.25, tz, 3.0);
     this.lights.grace = this.light(tx, 2.6, tz, '#ffb347', 14, 1.2);
     this.ambient(12, () => ({
       pos: [tx, GY - 0.4, tz], spread: [0.35, 0.3, 0.3], vel: [0, 0.9, 0], velSpread: [0.25, 0.35, 0.25],
@@ -266,7 +269,8 @@ export class Hub extends Builder {
     this.lights.table.intensity = 6 * candles;
     this.graceCore.material.opacity = 0.62 * gp;
     this.graceHalo.material.opacity = 0.12 * gp;
-    this.gracePillar.material.opacity = 0.55 + 0.25 * Math.sin(t * 1.1);
+    this.gracePillar.material.opacity = 0.4 + 0.18 * Math.sin(t * 1.1); // (soft, not to drown the figure in it)
+    this.graceFigure.update(dt, gp);
     for (const b of this.braziers) {
       // the light rises and falls with how much fire the flame's frame holds
       let f = flick(b.phase, 10);

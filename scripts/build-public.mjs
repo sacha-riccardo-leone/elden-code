@@ -80,6 +80,8 @@ write(path.join(OUT, 'js', 'mode.js'), [
 
 // the art grids the rigs load
 walk(path.join(CLIENT, 'assets'), (p) => p.endsWith('.json') && !p.endsWith('-sheet.json'), (p) => copy(p, path.join(OUT, rel(p))));
+// and the drawing of the grace itself (grace.js)
+copy(path.join(CLIENT, 'assets', 'fx', 'grace-core.png'), path.join(OUT, 'assets', 'fx', 'grace-core.png'));
 
 // Three.js: the build, and the addons the code imports with everything they import in turn
 const imports = (file) => [...fs.readFileSync(file, 'utf8').matchAll(/(?:import|export)[^'"]*?from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]/g)].map((m) => m[1] || m[2]);

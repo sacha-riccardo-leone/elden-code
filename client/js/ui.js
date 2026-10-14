@@ -91,14 +91,22 @@ export class UI {
     while (this.logEl.children.length > 7) this.logEl.lastChild.remove();
   }
 
-  banner(title, sub = '', tone = 'gold') {
-    this.bannerQueue.push({ title, sub, tone });
+  banner(title, sub = '', tone = 'gold', session = false) {
+    if (session && this.hushed?.()) return;
+    this.bannerQueue.push({ title, sub, tone, session });
     if (this.bannerQueue.length > 3) this.bannerQueue.shift();
     if (!this.bannerBusy) this.nextBanner();
   }
 
+  // A banner about a session (an island rising, a quest fulfilled or failed, a spell): never shown
+  // mid boss fight (main.js sets `hushed`), nor kept for after it; the message log still has it.
+  notice(title, sub = '', tone = 'gold') {
+    this.banner(title, sub, tone, true);
+  }
+
   nextBanner() {
-    const b = this.bannerQueue.shift();
+    let b = this.bannerQueue.shift();
+    while (b?.session && this.hushed?.()) b = this.bannerQueue.shift();
     if (!b) { this.bannerBusy = false; return; }
     this.bannerBusy = true;
     const h = this.bannerEl.querySelector('h2');

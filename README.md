@@ -15,8 +15,12 @@ Idle Tarnished sometimes cross the bridges to sit at the round table and talk wi
 from other projects. As in Elden Ring, a ring of weapons is planted in the table (swords,
 greatswords, katanas, a scimitar, an estoc, war axes, a spear, a halberd, a great hammer, each at
 its own angle; `client/js/weapons.js`), and the great Site of Grace floats at its heart, larger
-than any island's, a pillar of golden light rising from it. Taking a seat there rests at grace. When work calls and home is far, they fast travel: they dissolve into golden
-light and reappear at their region's Site of Grace.
+than any island's, a pillar of golden light rising from it. Taking a seat there rests at grace.
+Over every grace's light floats the grace itself, an almost human figure of golden light
+(`client/js/grace.js`, from a drawing in `client/assets/fx/grace-core.png`). It rises and sinks
+slowly, and the motes of light about it circle it and twinkle. The one over the Round Table is
+far larger. When work calls and home is far, they fast travel: they dissolve into golden light
+and reappear at their region's Site of Grace.
 
 | In Claude Code | In the world |
 |---|---|
@@ -232,6 +236,9 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
   - Enough damage in quick succession breaks his stance: he reels and takes more from every blow.
   - While you fight on the arena, the camera pulls back to keep him in view. Every click is a
     strike: nobody can be clicked, inspected or carried off until the fight is over.
+  - The sessions' banners across the screen (a region rising, a quest fulfilled or failed, an
+    incantation) don't show while you fight on the arena, and aren't kept for after it. Only the
+    fight's own banners do. The message log still lists everything.
   - A session that drew the enemy wounds it badly by fulfilling its next quest.
 - **Falling:**
   - A Tarnished who falls is out for good. It lies where it fell for a moment, then goes by grace

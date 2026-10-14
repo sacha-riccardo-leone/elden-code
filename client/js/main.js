@@ -157,6 +157,7 @@ ctx.rig = rig;
 const fight = new Fight(ctx);
 ctx.fight = fight;
 ui.canSummon = () => fight.canSummon();
+ui.hushed = () => fight.inBattle(); // no session banners mid boss fight
 document.getElementById('table-summon').addEventListener('click', () => {
   ui.closeTable();
   fight.start({ kind: 'summon' });
