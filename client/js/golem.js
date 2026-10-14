@@ -21,6 +21,9 @@
 //   fire  – it begins as the slam, but the pole goes into the ground and stays there. He shakes
 //           (two seconds), then spits fire from his chest while meteors rain down all over the
 //           arena (five seconds, nothing hurting him meanwhile), settles, and takes up his axe.
+// Hemmed in again soon after a slam, he doesn't slam again: he rolls out of the crowd into open
+// ground (a somersault over his axe, blows passing over him meanwhile), and turns back on them
+// with his other blows.
 // He says nothing.
 
 import { ARENA } from './config.js';
@@ -53,7 +56,10 @@ export const GOLEM = {
   // `aimed`: the share falling about a foe; `ripple`: the little one each makes where it lands
   meteor: { r: 1.6, every: [0.14, 0.24], fall: 0.9, aimed: 0.35, ripple: { amp: 0.16, length: 1.0, crests: 2, speed: 7, reach: 3.2 } },
   slamEvery: [15, 21],
-  fireEvery: [26, 36],
+  fireEvery: [18, 26],
+  // the roll: hemmed in (`crowd` foes within `near`) within `after` seconds of a slam, he rolls
+  // `dist` away instead of slamming again (not twice within `every`)
+  roll: { crowd: 3, near: 5, after: 15, every: 8, dist: 6.5 },
 };
 
 // His moves: drawings and how long each is held (`true`: fixed, else quicker when he's wounded);
@@ -71,9 +77,17 @@ export const GOLEM_MOVES = {
     steps: [['slam-1', 2, true], ['slam-2', 0.5, true], ['fire-1', 2, true], ['fire-2', 5, true], ['fire-3', 0.9, true], ['slam-3', 0.6, true]],
     danger: 3,
   },
+  // standing; bending, hands to the ground; over (his back to the sky); curled; pushing up, the
+  // axe planted; on his knees, leaning on it; standing. He travels in the middle five.
+  roll: {
+    steps: [['stand', 0.1, true], ['roll-1', 0.12, true], ['roll-2', 0.1, true], ['roll-3', 0.12, true], ['roll-4', 0.14, true], ['roll-5', 0.16, true], ['stand', 0.12, true]],
+    danger: -1,
+  },
 };
 
 const rand = (a, b) => a + Math.random() * (b - a);
+// how long he travels as he rolls: through its middle five drawings
+const ROLL_TRAVEL = GOLEM_MOVES.roll.steps.slice(1, 6).reduce((t, [, d]) => t + d, 0);
 const FIRE = ['#fff6c8', '#ffd24a', '#ff8a14', '#e0380a'];
 const STONE = ['#7a7068', '#4a423c', '#a49a8e'];
 
@@ -90,6 +104,8 @@ export class GolemMind {
     this.turnT = 0; // how long it has been behind him
     this.sinceTurn = 9; // since he last turned round
     this.walking = false;
+    this.lastSlam = -99; // (fight clock) when he last slammed
+    this.rollIn = 0; // till he may roll again
     this.heart = null; // felled: the circle by his chest { x, z, r, decal }
     this.axe = null; // his axe, planted in the ground (the fire)
     this.slamIn = rand(12, 16);
@@ -136,6 +152,7 @@ export class GolemMind {
   blow(n, ankleDmg, weight, heartDmg) {
     const b = this.b;
     if (!b.alive || b.state === 'enter' || b.lift > 2) return false;
+    if (b.attack?.kind === 'roll') return false; // (rolling, he's never where the blow lands)
     const reach = n.pos.x + n.body.facing * 1.5; // where the blow lands
     if (b.state === 'down' && this.heart) {
       const h = this.heart;
@@ -220,6 +237,7 @@ export class GolemMind {
     b.cd -= dt * fast;
     this.slamIn -= dt * fast;
     this.fireIn -= dt * fast;
+    this.rollIn -= dt;
     b.idleT += dt;
     this.sinceTurn += dt;
     if (this.weak) this.smoulder(dt);
@@ -248,14 +266,21 @@ export class GolemMind {
       const ax = Math.abs(dx);
       const inLane = Math.abs(dz) < b.kind.lane;
       let move = null;
+      const R = GOLEM.roll;
+      const hemmed = f.foesWithin(b, R.near) >= R.crowd;
+      // (hemmed in, he slams; but not again so soon after the last: he rolls out of the crowd
+      // instead, or, not yet able to roll again, turns his other blows on them)
+      const slammed = f.clock - this.lastSlam < R.after;
       if (this.fireIn <= 0) move = 'fire';
-      else if (this.slamIn <= 0 || f.foesWithin(b, 5) >= 3) move = 'slam';
+      else if (hemmed && slammed && this.rollIn <= 0) move = 'roll';
+      else if (!slammed && (this.slamIn <= 0 || hemmed)) move = 'slam';
       else if (ahead && inLane && ax < 7.5) move = Math.random() < 0.65 ? 'swing' : 'lunge';
       else if (ahead && inLane && ax < 15) move = 'lunge';
-      else if (b.idleT > 6) move = 'slam';
+      else if (b.idleT > 6 && !slammed) move = 'slam';
       if (move) {
         if (move === 'fire') { this.fireIn = rand(...GOLEM.fireEvery); this.slamIn = Math.max(this.slamIn, 8); }
-        if (move === 'slam') this.slamIn = rand(...GOLEM.slamEvery);
+        if (move === 'slam') { this.slamIn = rand(...GOLEM.slamEvery); this.lastSlam = f.clock; }
+        if (move === 'roll') this.rollIn = R.every;
         this.walking = false;
         this.begin(move);
         return false;
@@ -366,6 +391,14 @@ export class GolemMind {
       const reach = SPOTS.lunge[0] * this.px;
       a.shape = 'line';
       a.opt = { dir, from: -0.5, len: reach + GOLEM.lunge.air.speed * GOLEM.lunge.air.life, half: GOLEM.lunge.air.half };
+    } else if (kind === 'roll') {
+      // out of the crowd, rolling over in the way he faces
+      a.shape = 'none';
+      a.from = [b.pos.x, b.pos.y];
+      a.to = this.rollTo();
+      a.rolled = 0;
+      if (Math.abs(a.to[0] - b.pos.x) > 0.4) b.body.facing = a.to[0] > b.pos.x ? 1 : -1;
+      a.dir = b.body.facing;
     } else {
       // the slam, and the fire (which begins as one): shockwaves no running escapes; hop them
       [a.ix] = this.spot(SPOTS.slam);
@@ -398,6 +431,13 @@ export class GolemMind {
       }
     }
     if (a.kind === 'fire' && a.step === 3) this.spit(dt, a);
+    if (a.kind === 'roll' && a.step >= 1 && a.step <= 5) {
+      const span = ROLL_TRAVEL;
+      a.rolled = Math.min(span, a.rolled + dt);
+      const e = (1 - Math.cos((Math.PI * a.rolled) / span)) / 2; // (easing in and out)
+      b.pos.set(a.from[0] + (a.to[0] - a.from[0]) * e, a.from[1] + (a.to[1] - a.from[1]) * e);
+      if (Math.random() < dt * 14) this.dust(b.pos.x, b.pos.y, 1.2, 4);
+    }
     if (k >= 1) this.nextStep();
     return jitter;
   }
@@ -412,7 +452,7 @@ export class GolemMind {
     if (a.step >= steps.length) {
       b.endMove();
       b.state = 'ready';
-      b.cd = rand(1.2, 2.2);
+      b.cd = a.kind === 'roll' ? 0.35 : rand(1.2, 2.2);
       b.pose('idle');
       return;
     }
@@ -491,6 +531,11 @@ export class GolemMind {
         a.spit = 0;
         break;
       }
+      case 'roll:6':
+        this.slamIn = Math.max(this.slamIn, 6);
+        this.sinceTurn = GOLEM.turn.every;
+        this.retarget = 0;
+        break;
       case 'fire:5':
         // he takes it up again
         this.dropAxe();
@@ -498,6 +543,39 @@ export class GolemMind {
       default:
         break;
     }
+  }
+
+  // Where to roll to: away from the foes about him, into the most open ground within reach on
+  // the arena floor (across rather than up or down, as a roll reads best that way); against its
+  // edge, toward the middle.
+  rollTo() {
+    const b = this.b;
+    const R = GOLEM.roll;
+    const { cx, cz } = this.ctx.world.arena;
+    const foes = this.fight.foes();
+    let ax = 0;
+    let az = 0;
+    for (const n of foes) {
+      if (Math.hypot(n.pos.x - b.pos.x, n.pos.y - b.pos.y) > R.near + 1) continue;
+      ax += n.pos.x - b.pos.x;
+      az += n.pos.y - b.pos.y;
+    }
+    const away = Math.hypot(ax, az) > 0.5 ? Math.atan2(-az, -ax) : Math.random() * Math.PI * 2;
+    let best = null;
+    let bs = -Infinity;
+    for (let k = -4; k <= 4; k++) {
+      const ang = away + k * 0.3;
+      const x = b.pos.x + Math.cos(ang) * R.dist;
+      const z = b.pos.y + Math.sin(ang) * R.dist * 0.8;
+      if (Math.hypot(x - cx, z - cz) > ARENA.walkRadius - 2.5) continue;
+      const room = Math.min(8, ...foes.map((n) => Math.hypot(n.pos.x - x, n.pos.y - z)));
+      const s = room + Math.abs(Math.cos(ang)) * 3.5 - Math.abs(k) * 0.15;
+      if (s > bs) { bs = s; best = [x, z]; }
+    }
+    if (best) return best;
+    const d = Math.hypot(cx - b.pos.x, cz - b.pos.y) || 1;
+    const k = Math.min(R.dist, d) / d;
+    return [b.pos.x + (cx - b.pos.x) * k, b.pos.y + (cz - b.pos.y) * k];
   }
 
   // Where the axe (or the pole) strikes the ground: a crack, dust, a shake, and a shockwave.

@@ -8,7 +8,9 @@
 // one palette. The sheets draw him at different sizes, so each was sampled on its own grid to match
 // the idle (3.6 source px per art pixel): the fall at 0.37 of that (its frames enlarged 3x first,
 // they're drawn so small), the lunge at 0.65, the swing at 0.55, the slam and the lone axe at 0.80,
-// the fire at 0.85 (measured on the helmet's pompom, the axe, his shoulders).
+// the fire at 0.85 (measured on the helmet's pompom, the axe, his shoulders). His roll
+// (golem-roll-a/-b/-c.webp: bending, rolling over, curled, pushing up, kneeling on the axe; it
+// begins and ends on the idle drawing) at 1.03, 1.01, 1.05, 0.96 and 0.90.
 //
 // Every drawing stands on his planted back heel (HEELX) with its ground on the frame's bottom row;
 // his middle, where he stands in the world, is BODYX. His weak point, the cracked ankle, is on that
@@ -16,8 +18,8 @@
 
 import { Img, NONE, blit, region } from './core.js';
 
-const FRAME = { w: 600, h: 460 };
-const HEELX = 142;
+const FRAME = { w: 608, h: 460 };
+const HEELX = 150;
 const BODYX = HEELX + 58;
 const GROUND = FRAME.h - 1;
 
@@ -34,6 +36,11 @@ const ART = {
   // the lone axe, planted where the slam drove its pole into the ground (slam-2: 119 px in front of
   // his heel), its butt and the foot of its pole sunk out of sight below the cut
   axe: { heel: 34 - 119, ground: 339 },
+  // his roll, each drawing placed by the middle of his body (58 px in front of where a heel would
+  // be), since mid-roll he stands on no heel
+  'roll-1': { heel: 194 - 58, ground: 126 }, 'roll-2': { heel: 205 - 58, ground: 126 },
+  'roll-3': { heel: 186 - 58, ground: 154 }, 'roll-4': { heel: 97.5 - 58, ground: 258 },
+  'roll-5': { heel: 86 - 58, ground: 279 },
 };
 const STILLS = Object.keys(ART).filter((k) => k !== 'idle');
 
@@ -87,7 +94,7 @@ function prepare(art, more = {}) {
 }
 
 // Where a drawing's (x, y) lands in the frame: its heel on HEELX, its ground on the bottom row.
-const origin = (name, dx = 0, dy = 0) => [HEELX - ART[name].heel + dx, GROUND - ART[name].ground + dy];
+const origin = (name, dx = 0, dy = 0) => [Math.round(HEELX - ART[name].heel + dx), Math.round(GROUND - ART[name].ground + dy)];
 
 // A leg of the idle drawing, sheared: its foot `stride` px forward (and lifted `lift`), its hip still.
 function drawLeg(dst, leg, stride, lift, ox, oy) {
@@ -188,6 +195,7 @@ export default {
     rise: { frames: [...FALL].reverse(), fps: 3, once: true },
     collapse: { frames: FALL, fps: 4, once: true },
     down: { frames: G.down, fps: 2 },
+    stand: { frames: [G.idle[0]], fps: 1 }, // (the idle drawing as it is: his roll begins and ends on it)
     ...Object.fromEntries(STILLS.map((k) => [k, single(k)])),
   },
   groupFps: {},

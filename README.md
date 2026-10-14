@@ -331,6 +331,14 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
     then spits fire from his chest for five while meteors fall all over the arena, each marked
     on the floor before it lands. Nothing hurts him meanwhile. Then he settles and takes his axe
     back.
+  - **Roll:** hemmed in (three or more foes within 5 units) he slams, but not again within 15
+    seconds of the last slam. Hemmed in again sooner, he rolls out of the crowd instead (at most
+    every 8 seconds): a somersault over his axe, the user's seven drawings (standing, bending
+    with his hands to the ground, rolling over, curled up, pushing up with the axe planted, on
+    his knees leaning on it, standing; about 0.86 s), carrying him about 6.5 units into the most
+    open ground, across the arena rather than up or down it. Blows pass over him meanwhile. Then
+    he turns back on them with his swing, lunge or fire. Not yet able to roll again, he uses those
+    rather than slamming again.
   - Tuning (health, damage, how many ankle blows, the circle, the shockwaves, how often each
     attack comes) is the `GOLEM` table in `client/js/golem.js`. His size is `px` in
     `client/js/heroes/golem.js`.

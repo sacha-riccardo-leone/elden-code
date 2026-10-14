@@ -87,7 +87,8 @@ const rand = (a, b) => a + Math.random() * (b - a);
 // running `dir`-ward from (x, z), `from`..`len` along it and `half` either side, or a scatter of
 // discs (`spots`, each of radius r).
 function covers(shape, x, z, opt, px, pz, slack = 0.3) {
-  if (shape === 'wave') return false; // (the Golem's shockwaves: no running from them; they're hopped, golem.js)
+  // (the Golem's shockwaves: no running from them, they're hopped, golem.js; his roll: nothing to run from)
+  if (shape === 'wave' || shape === 'none') return false;
   if (shape === 'spots') return opt.spots.some(([sx, sz]) => Math.hypot(px - sx, pz - sz) <= opt.r + slack);
   if (shape === 'line') {
     const along = (px - x) * opt.dir;
