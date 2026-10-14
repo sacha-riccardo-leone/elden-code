@@ -183,7 +183,7 @@ body.day #area h2 {
   left: 50%;
   bottom: 16px;
   transform: translateX(-50%);
-  width: min(720px, 46vw);
+  width: calc(100vw - 48px); /* the whole world, from edge to edge of the view */
   height: 92px;
   pointer-events: none;
   transition: opacity 0.6s, visibility 0.6s;
@@ -400,14 +400,14 @@ body.in-battle .region-label { pointer-events: none; cursor: default; } /* mid-f
 #log {
   position: fixed;
   left: 22px;
-  bottom: 20px;
+  bottom: 62px; /* (above the names on the map strip) */
   margin: 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column-reverse;
   gap: 3px;
-  max-width: min(560px, calc(50vw - min(360px, 23vw) - 36px)); /* (clear of the map strip) */
+  max-width: min(560px, calc(100vw - 44px));
   pointer-events: none;
 }
 #log li {

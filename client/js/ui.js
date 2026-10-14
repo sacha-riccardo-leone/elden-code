@@ -115,7 +115,13 @@ export class UI {
 
   // A banner about a session (an island rising, a quest fulfilled or failed, a spell): never shown
   // mid boss fight (main.js sets `hushed`), nor kept for after it; the message log still has it.
-  notice(title, sub = '', tone = 'gold') {
+  // With `noticeGap` set (the public demo, main.js), no more than one in that many seconds, the rest
+  // left to the log; but an `important` one (an island rising) always shows.
+  notice(title, sub = '', tone = 'gold', important = false) {
+    const now = performance.now() / 1000;
+    if (!important && this.noticeGap && now - (this.lastNotice ?? -Infinity) < this.noticeGap) return;
+    if (!important && this.noticeGap && this.bannerQueue.some((b) => b.session)) return; // (one waiting already)
+    this.lastNotice = now;
     this.banner(title, sub, tone, true);
   }
 
@@ -192,15 +198,11 @@ export class UI {
   // The areas on the map, with live counts: Roundtable Hold and each risen island (director.js).
   setRegions(list) {
     if (!this.mapMarks) this.buildMap();
-    // the world's width: from the far edge of the westmost area to that of the eastmost
-    let min = Infinity;
-    let max = -Infinity;
-    for (const r of list) {
-      const half = r.area.walkRect && r.area.biome ? REGION.halfW : HUB.radius;
-      min = Math.min(min, r.area.cx - half);
-      max = Math.max(max, r.area.cx + half);
-    }
-    if (list.length) this.mapSpan = { min, max };
+    // the world's width, the same either side of the Hold (so it always sits in the very middle):
+    // out to the far edge of whichever island lies farthest east or west
+    let reach = HUB.radius;
+    for (const r of list) reach = Math.max(reach, Math.abs(r.area.cx) + (r.area.biome ? REGION.halfW : HUB.radius));
+    this.mapSpan = { min: -reach, max: reach };
     const seen = new Set();
     for (const r of list) {
       seen.add(r.area);
@@ -233,14 +235,22 @@ export class UI {
     for (const [area, b] of this.regionButtons) {
       if (!seen.has(area)) { b.btn.remove(); this.regionButtons.delete(area); }
     }
-    // names never run into one another: each as wide as the room to its neighbours allows
+    // names never run into one another: the Hold's always whole, the others each as wide as the
+    // room to their neighbours allows (half the gap to an island's, all but the Hold's own half)
     const width = this.regionsEl.clientWidth || 600;
     const marks = [...this.regionButtons.values()].sort((a, b) => a.area.cx - b.area.cx);
+    const hub = marks.find((b) => !b.area.biome);
+    if (hub) hub.name.style.maxWidth = 'none';
+    const hubHalf = hub ? hub.name.offsetWidth / 2 + 10 : 0;
+    const room = (b, o) => {
+      const gap = Math.abs(this.mapAt(o.area.cx) - this.mapAt(b.area.cx)) * width;
+      return o.area.biome ? gap / 2 : gap - hubHalf;
+    };
     marks.forEach((b, i) => {
-      const at = this.mapAt(b.area.cx);
-      const left = i > 0 ? at - this.mapAt(marks[i - 1].area.cx) : at * 2;
-      const right = i < marks.length - 1 ? this.mapAt(marks[i + 1].area.cx) - at : (1 - at) * 2;
-      b.name.style.maxWidth = `${Math.max(48, Math.floor(Math.min(left, right) * width - 8))}px`;
+      if (!b.area.biome) return;
+      const left = i > 0 ? room(b, marks[i - 1]) : this.mapAt(b.area.cx) * width + 40;
+      const right = i < marks.length - 1 ? room(b, marks[i + 1]) : (1 - this.mapAt(b.area.cx)) * width + 40;
+      b.name.style.maxWidth = `${Math.max(48, Math.floor(2 * Math.min(left, right) - 6))}px`;
     });
   }
 

@@ -12,6 +12,10 @@ import { Flame } from './fire.js';
 import { plantedWeapons } from './weapons.js';
 import { GraceFigure } from './grace.js';
 
+// The project banners at the Round Table: how far below the floor a new one's pole starts, and
+// how long it takes to rise and then for its flag to unfurl (seconds).
+const BANNER = { sink: 4.9, rise: 1.0, unfurl: 0.8 };
+
 const HUB_FLOOR = {
   stone: ['#403b38', '#47423e', '#3c3734', '#4d4742', '#433e3a'],
   dirt: ['#2b2622', '#2f2925', '#27221f'],
@@ -197,40 +201,78 @@ export class Hub extends Builder {
     });
   }
 
-  // One tall banner per project, arranged in an arc behind the round table.
+  // One tall banner per project whose island has risen (director.js), in an arc behind the round
+  // table. A new one grows in: its wooden pole and crossbar rise out of the ground, then the flag
+  // unfurls down from the bar. One whose island sinks rolls up and goes back into the ground, and
+  // the others close up or spread out to keep the arc even.
   setBanners(projects) {
     const key = projects.join('|');
     if (key === this.bannerProjects.join('|')) return;
     this.bannerProjects = projects.slice();
-    for (const b of this.banners) {
-      this.group.remove(b.root);
-      b.mesh.material.map?.dispose();
-    }
-    this.banners = [];
     const n = projects.length;
     projects.forEach((p, i) => {
+      let b = this.banners.find((x) => x.project === p && !x.leaving);
       const t = n === 1 ? 0.5 : i / (n - 1);
       const a = -Math.PI * (0.18 + t * 0.64);
-      const x = Math.cos(a) * 8.2;
-      const z = Math.sin(a) * 6.6;
-      const root = new THREE.Group();
-      root.position.set(x, 0, z);
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 4.6, 6), this.world.mat.wood);
-      pole.position.y = 2.3;
-      pole.castShadow = true;
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.08, 0.08), this.world.mat.wood);
-      bar.position.y = 4.4;
-      const finial = new THREE.Mesh(new THREE.OctahedronGeometry(0.14), this.world.mat.gold);
-      finial.position.y = 4.75;
-      const hue = hashStr(`proj:${p}`) % 360;
-      const tex = T.pixelTexture(T.bannerCanvas(ramp(hue, 0.42, 0.09, 0.44), hashStr(p) % 4));
-      const b = this.bannerMesh(tex, i * 1.3);
-      b.mesh.position.set(0, 4.36, 0.06);
-      root.add(pole, bar, finial, b.mesh);
-      this.group.add(root);
-      b.root = root;
-      b.project = p;
-      this.banners.push(b);
+      const at = [Math.cos(a) * 8.2, Math.sin(a) * 6.6];
+      if (!b) {
+        b = this.makeBanner(p, i);
+        b.root.position.set(at[0], -BANNER.sink, at[1]);
+        this.banners.push(b);
+      }
+      b.at = at;
+    });
+    for (const b of this.banners) if (!projects.includes(b.project)) b.leaving = true;
+  }
+
+  makeBanner(project, i) {
+    const root = new THREE.Group();
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 4.6, 6), this.world.mat.wood);
+    pole.position.y = 2.3;
+    pole.castShadow = true;
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.08, 0.08), this.world.mat.wood);
+    bar.position.y = 4.4;
+    const finial = new THREE.Mesh(new THREE.OctahedronGeometry(0.14), this.world.mat.gold);
+    finial.position.y = 4.75;
+    const hue = hashStr(`proj:${project}`) % 360;
+    const tex = T.pixelTexture(T.bannerCanvas(ramp(hue, 0.42, 0.09, 0.44), hashStr(project) % 4));
+    const b = this.bannerMesh(tex, i * 1.3);
+    b.mesh.position.set(0, 4.36, 0.06);
+    b.mesh.scale.set(0.3, 0.01, 1);
+    b.mesh.visible = false;
+    root.add(pole, bar, finial, b.mesh);
+    this.group.add(root);
+    return Object.assign(b, { root, project, age: 0, at: [0, 0], leaving: false, dust: false });
+  }
+
+  // Each banner growing in (or going), and sliding to its place in the arc.
+  stepBanners(dt) {
+    this.banners = this.banners.filter((b) => {
+      b.age = b.leaving ? Math.min(b.age, BANNER.rise + BANNER.unfurl) - dt * 1.5 : b.age + dt;
+      if (b.leaving && b.age <= 0) {
+        this.group.remove(b.root);
+        b.mesh.material.map?.dispose();
+        b.mesh.material.dispose();
+        b.root.traverse((o) => o.geometry?.dispose()); // (its wood and gold are everyone's)
+        return false;
+      }
+      const up = Math.max(0, Math.min(1, b.age / BANNER.rise));
+      const rolled = Math.max(0, Math.min(1, (b.age - BANNER.rise) / BANNER.unfurl));
+      const p = b.root.position;
+      p.y = -BANNER.sink * (1 - up) ** 3;
+      p.x += (b.at[0] - p.x) * Math.min(1, dt * 2.5);
+      p.z += (b.at[1] - p.z) * Math.min(1, dt * 2.5);
+      b.mesh.visible = rolled > 0.01;
+      b.mesh.scale.set(0.3 + 0.7 * rolled, Math.max(0.01, rolled), 1);
+      // the ground breaks as it comes up
+      if (!b.dust && !b.leaving && b.age > 0.02 && this.near) {
+        b.dust = true;
+        this.world.particles.emit({
+          pos: [p.x, 0.1, p.z], spread: [0.35, 0.05, 0.35], vel: [0, 1.4, 0], velSpread: [0.9, 0.6, 0.9],
+          color: ['#6a625a', '#8a8278', '#4a443e'], size: 0.08, life: 1.1, count: 22, drag: 1.2, intensity: 0.7,
+        });
+      }
+      return true;
     });
   }
 
@@ -298,6 +340,7 @@ export class Hub extends Builder {
         b.fire.scale.set(0.9 * f * lb, 1.15 * f * lb, 1);
       }
     });
+    this.stepBanners(dt);
     if (this.near) for (const b of this.banners) this.swayBanner(b, t);
   }
 }

@@ -16,6 +16,10 @@ from other projects. As in Elden Ring, a ring of weapons is planted in the table
 greatswords, katanas, a scimitar, an estoc, war axes, a spear, a halberd, a great hammer, each at
 its own angle; `client/js/weapons.js`), and the great Site of Grace floats at its heart, larger
 than any island's, a pillar of golden light rising from it. Taking a seat there rests at grace.
+Behind the table stands a banner for each island that has risen. When a new island rises, its
+banner's wooden pole and crossbar come up out of the ground, then the flag unfurls down from the
+bar. When an island sinks, its banner rolls up and goes back into the ground, and the others
+close up the arc.
 Over every grace's light floats the grace itself, an almost human figure of golden light
 (`client/js/grace.js`, from a drawing in `client/assets/fx/grace-core.png`). It rises and sinks
 slowly, and the motes of light about it circle it and twinkle. The one over the Round Table is
@@ -61,8 +65,9 @@ can **become any character**: click one and choose **Become …** in the fan ove
     takes wing…).
   - **M** shows the map of every island. **Z / X** travel by grace to the previous / next area,
     **H** to Roundtable Hold.
-  - **The map strip** (bottom centre) is one line as wide as the whole world. Each area's name
-    sits over its own place on it, and clicking a name takes you there by grace. A golden dot under
+  - **The map strip** (along the bottom of the screen) is one line as wide as the whole world,
+    with Roundtable Hold always in the very middle. Each area's name sits over its own place on it,
+    and clicking a name takes you there by grace. A golden dot under
     the line shows where you are, moving with you even between islands. An island only appears on
     it, and can only be reached by grace, once it has fully risen from the mist.
   - While a great enemy is abroad, the **Arena of Trials** shows over Roundtable Hold in shining
@@ -397,8 +402,11 @@ A version anyone can open, with no bridge and no real data: an endless world of 
     the web, planning with subagents, shipping through MCP tools. Slash commands, permission waits,
     model switches and compactions come up now and then.
   - New projects rise as islands, one at a time: the first 5 seconds after you appear, then at
-    least 30 seconds apart, time to look round each before the next. An island nobody has worked on for 45 seconds sinks back into the
-    mist, if it's the outermost on its side (the others hold up a bridge).
+    least a minute apart, time to look round each before the next. An island nobody has worked on
+    for 45 seconds sinks back into the mist, if it's the outermost on its side (the others hold up
+    a bridge).
+  - At most one banner about the sessions (a slash command, a quest fulfilled) shows in 40
+    seconds; the rest go to the message log only. An island rising always gets its banner.
   - Great enemies come oftener: the first after about two minutes, then every 5 to 9 minutes, at
     full strength. A run of failing tool calls or a session ending in failure can bring one too. As
     locally, it enters only once you reach the arena.

@@ -227,7 +227,7 @@ export class Director {
       if (!r.started && this.clock >= r.at) {
         r.started = true;
         r.region.startRise();
-        if (r.announce) this.ctx.ui.notice(r.region.project, `A new region rises from the mist · ${r.region.biome.name}`);
+        if (r.announce) this.ctx.ui.notice(r.region.project, `A new region rises from the mist · ${r.region.biome.name}`, 'gold', true);
         this.log(`${r.region.project}: ${r.region.biome.name} rises from the mist`, 'gold', { region: r.region });
       }
       if (r.started && r.region.risen) {
@@ -910,7 +910,8 @@ export class Director {
     this.statsTimer -= dt;
     if (this.statsTimer <= 0) {
       this.statsTimer = 0.5;
-      world.hub.setBanners(world.regionList().map((r) => r.project));
+      // a banner at the Round Table for each island that has risen (not one still under the mist)
+      world.hub.setBanners(world.regionList().filter((r) => r.risen && !r.sinking).map((r) => r.project));
       this.ctx.ui.setStats([...this.npcs.values()].filter((n) => !n.unbound).length, working, waiting);
       this.ctx.ui.setRegions([
         { area: world.hub, name: world.hub.name, color: '#d6b46e', total: visitors, working: 0, waiting: 0 },

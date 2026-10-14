@@ -215,7 +215,8 @@ if (PUBLIC_DEMO) {
   // Islands nobody works on any more sink back into the mist, and great enemies come oftener.
   document.body.classList.add('public-demo');
   director.retireAfter = 45;
-  director.riseGap = 30; // half a minute between islands, to look round each before the next
+  director.riseGap = 60; // a minute between islands, to look round each before the next
+  ui.noticeGap = 40; // and no more than one session banner in 40 seconds (the log has them all)
   director.notBefore = Infinity; // no island rises before thou art up (spawnPlayer)
   fight.pace({ first: 100 + Math.random() * 60, invasion: [5 * 60, 9 * 60], cooldown: 5 * 60 });
   ui.setStatus('demo', true);
