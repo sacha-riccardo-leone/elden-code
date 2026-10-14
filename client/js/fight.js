@@ -44,8 +44,8 @@ const SLAM = { r: 5.5 };
 // he leaps and lands, and, left facing only the Bandit Knight, his disbelief (*asterisks*: a sound
 // or a look rather than words).
 const SAYS = {
-  enter: ['Thy death is close at hand.', 'Another Tarnished, come to die.'],
-  stalk: ['*grunts*', '*heavy breathing*', 'Serve my will alone, O blade.', 'Thy death is close at hand.', '*a low, rumbling growl*', 'Kneel, Tarnished.'],
+  enter: ['Thy death resteth close at hand.', 'Another Tarnished, come to die.'],
+  stalk: ['*grunts*', '*heavy breathing*', 'Serve my will alone, O blade.', 'Thy death resteth close at hand.', '*a low, rumbling growl*', 'Kneel, Tarnished.'],
   leap: ['*grunts*'],
   alone: ['*looks in disbelief*', 'Coward…'],
 };

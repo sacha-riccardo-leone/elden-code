@@ -288,8 +288,8 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
     a shake of the camera, hurting everyone on the zone. Beset, he lands away from the crowd;
     otherwise he lands next to someone.
   - Below half health he grows wild, and his blows come quicker.
-  - He says little, in red over his head. He has a line as he enters ("Thy death is close at
-    hand."), and now and then another while he stalks ("Serve my will alone, O blade.", "*heavy
+  - He says little, in red over his head. He has a line as he enters ("Thy death resteth close
+    at hand."), and now and then another while he stalks ("Serve my will alone, O blade.", "*heavy
     breathing*"). He gives a grunt on some of his leaps and landings. Left facing nobody but the
     cowering Bandit Knight, he can't believe it: "*looks in disbelief*"… "Coward…".
 - **The fight:**
