@@ -30,7 +30,21 @@ function isSpear(x, y) {
 
 function prepare(art, more = {}) {
   const { src, code, ids } = art;
-  const spear = region(src, isSpear);
+  // The spear: its band, and whatever of it spills a pixel or few past either edge of the band and
+  // ends in air (the foot of its blade, a lick of its lightning). Left with the body, those hung
+  // in the air whenever the spear swung away; a longer run is the arm, which stays.
+  const spill = new Set();
+  for (let y = 50; y <= GROUND; y++) {
+    const edges = [[Math.ceil(axisX(y) - 3.5), -1], [Math.floor(axisX(y) + 7.5), 1]];
+    for (const [edge, step] of edges) {
+      if (src.get(edge, y) === NONE) continue;
+      let k = 0;
+      while (k < 5 && src.get(edge + step * (k + 1), y) !== NONE && !inHand(edge + step * (k + 1), y)) k++;
+      if (k && k <= 4 && src.get(edge + step * (k + 1), y) === NONE) for (let i = 1; i <= k; i++) spill.add(`${edge + step * i},${y}`);
+    }
+  }
+  const spearAt = (x, y) => isSpear(x, y) || spill.has(`${x},${y}`);
+  const spear = region(src, spearAt);
   // Rebuild the stretch of shaft hidden behind the fingers by repeating the rows just above
   // the hand, following the shaft's lean, so the spear is whole wherever the hand moves.
   const above = [HAND.y0 - 5, HAND.y0 - 4, HAND.y0 - 3, HAND.y0 - 2];
@@ -42,8 +56,8 @@ function prepare(art, more = {}) {
       if (v !== NONE && isSpear(x - shift, sy)) spear.set(x, y, v);
     }
   }
-  const legs = (r) => region(src, (x, y) => y >= HIP && x >= r.x0 && x <= r.x1 && !isSpear(x, y));
-  const taken = (x, y) => isSpear(x, y) || inHand(x, y)
+  const legs = (r) => region(src, (x, y) => y >= HIP && x >= r.x0 && x <= r.x1 && !spearAt(x, y));
+  const taken = (x, y) => spearAt(x, y) || inHand(x, y)
     || (y >= CAPE_LOW.y0 && x <= CAPE_LOW.x1)
     || (y >= HIP && ((x >= BACK_LEG.x0 && x <= BACK_LEG.x1) || (x >= FRONT_LEG.x0 && x <= FRONT_LEG.x1)));
   return {
@@ -54,10 +68,10 @@ function prepare(art, more = {}) {
     parts: {
       spear: rotatable(spear),
       hand: region(src, inHand),
-      capeLow: region(src, (x, y) => y >= CAPE_LOW.y0 && x <= CAPE_LOW.x1 && !isSpear(x, y)),
+      capeLow: region(src, (x, y) => y >= CAPE_LOW.y0 && x <= CAPE_LOW.x1 && !spearAt(x, y)),
       backLeg: legs(BACK_LEG),
       frontLeg: legs(FRONT_LEG),
-      head: region(src, (x, y) => y >= HEAD.y0 && y <= HEAD.y1 && x >= HEAD.x0 && x <= HEAD.x1 && !isSpear(x, y)),
+      head: region(src, (x, y) => y >= HEAD.y0 && y <= HEAD.y1 && x >= HEAD.x0 && x <= HEAD.x1 && !spearAt(x, y)),
       body: region(src, (x, y) => !taken(x, y)),
     },
     energy: {
