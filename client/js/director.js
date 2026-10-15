@@ -222,9 +222,23 @@ export class Director {
     }
   }
 
+  // While a great enemy is abroad (from the arena rising from the mist till it has sunk back, after
+  // the fight: fight.js) the Lands Between hold still: no island rises, none sinks. Islands
+  // whose sessions came meanwhile wait under the mist (their Tarnished at the Round Table), and
+  // rise once the fight is over, one after another as ever. (One already rising goes on.)
+  get worldPaused() {
+    return !!this.ctx.fight?.active;
+  }
+
   updateRises() {
+    const paused = this.worldPaused;
+    if (paused) this.pausedRises = true;
+    else if (this.pausedRises) {
+      this.pausedRises = false;
+      this.holdRisesUntil(Math.max(this.notBefore, this.clock + RISE_FIRST));
+    }
     for (const r of this.rises) {
-      if (!r.started && this.clock >= r.at) {
+      if (!r.started && !paused && this.clock >= r.at) {
         r.started = true;
         r.region.startRise();
         if (r.announce) this.ctx.ui.notice(r.region.project, `A new region rises from the mist · ${r.region.biome.name}`, 'gold', true);
@@ -245,6 +259,12 @@ export class Director {
   retireIslands() {
     if (!this.retireAfter) return;
     const { world, ui, nav } = this.ctx;
+    // (none sinks while a great enemy is abroad, and none counts as empty for everyone being away
+    // at the fight: their while alone starts afresh once it's over)
+    if (this.worldPaused) {
+      for (const r of world.regionList()) r.emptySince = null;
+      return;
+    }
     for (const r of world.regionList()) {
       if (r.sunk) {
         world.removeRegion(r);

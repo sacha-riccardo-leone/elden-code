@@ -108,6 +108,12 @@ one after another, 10 seconds apart, and as each one rises its hero gets up and 
 travelling by grace), taking up whatever the session is doing on arrival. When a session ends, its
 hero walks back to the Round Table to wait for the next one.
 
+While a great enemy is abroad, from the moment the Arena of Trials starts rising until it has sunk
+back after the fight, the Lands Between hold still: no island rises (so no new flag goes up in the
+Hold), and in the public demo none sinks. Islands whose sessions arrive meanwhile wait under the
+mist, their heroes seated at the Round Table, and rise once the fight is over, one after another at
+the usual pace (an island already rising when the enemy came finishes rising).
+
 Only the hand-drawn characters ever appear, each hero once. When every hero is already out on a
 quest, a **spectre** is called up for the new session instead (see below). (Should the spectre's art
 fail to load, the session waits, unseen, until a hero comes free.)
