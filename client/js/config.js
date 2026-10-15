@@ -146,7 +146,7 @@ export const CROWD = {
   // how heavy each is: the heavier, the less a shove moves them (and the more it slows thee)
   weight: {
     default: 1, champion: 2, runelord: 1.7, paladin: 1.6, twofold: 1.6, knight: 1.4,
-    ronin: 1, bloodbender: 0.9, bandit: 0.9, fortuna: 0.8, queen: 0.8,
+    ronin: 1, bloodbender: 0.9, bandit: 0.9, fortuna: 0.8, queen: 0.8, sorceress: 0.8,
   },
   playerWeight: 1.2,    // thine, as whoever thou art (NPCs never push thee; they go round)
   shove: 1.4,           // thy pace shoving someone of weight w: shove × playerWeight / (playerWeight + w) of thy own

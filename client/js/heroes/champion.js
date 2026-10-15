@@ -215,6 +215,7 @@ export default {
   id: 'champion',
   pair: 'twofold', // one hero with two forms: see twofold.js
   form: 'night',
+  via: 'dusk', // the drawing worn while becoming this form
   art: '/assets/hero/champion.json',
   extraArt: { hammer: '/assets/hero/champion-hammer.json', kneel: '/assets/hero/champion-kneel.json' },
   firstName: 'Ruadan',

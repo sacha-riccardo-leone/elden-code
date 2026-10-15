@@ -1,0 +1,24 @@
+{
+  "name": "Corisande, the Glintstone Witch (the mask)",
+  "frame": {
+    "w": 248,
+    "h": 362
+  },
+  "columns": 4,
+  "frames": 4,
+  "feet": {
+    "x": 124,
+    "y": 361
+  },
+  "animations": {
+    "shift": {
+      "frames": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "fps": 4
+    }
+  }
+}

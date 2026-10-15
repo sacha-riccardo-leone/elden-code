@@ -133,8 +133,10 @@ export function drawRotated(dst, part, deg, pivot, dx, dy) {
 //   dim   – [outer, inner] colours for an arc that's smouldering
 //   flare – [outer, inner] colours for an arc that flares
 //   crackle – { main, core, sparks: [...] } for fresh crackles drawn each frame
+//   faint – (optional) colours with a feeble glow of their own that never flickers
 // Each connected arc independently goes off (painted over with what's around it), dims, stays
-// lit or flares; then new crackles and sparks are drawn. Returns a glow map (1 hot, 2 core).
+// lit or flares; then new crackles and sparks are drawn. Returns a glow map (1 hot, 2 core,
+// 3 faint: rig.glowColors[2]).
 // Pixels listed in f.keep (frame indices, e.g. a glowing eye) glow steadily and never flicker.
 export function energy(f, spec, level, seed) {
   const r = rngFrom(seed);
@@ -241,6 +243,7 @@ export function energy(f, spec, level, seed) {
       glow.set(x, y, 1);
     }
   }
+  if (spec.faint) for (let k = 0; k < f.c.length; k++) if (!glow.c[k] && spec.faint.has(f.c[k])) glow.c[k] = 3;
   return glow;
 }
 

@@ -367,7 +367,7 @@ export class Fight {
     const [ax, az] = world.arena.point('grace');
     let k = 0;
     for (const n of director.npcs.values()) {
-      if (n.dead || n.piloted || n.forms || n.spectre || n.intent.kind === 'leave') continue; // (spectres only work)
+      if (n.dead || n.piloted || n.heroActor === 'twofold' || n.spectre || n.intent.kind === 'leave') continue; // (spectres only work)
       n.resume = n.intent.kind === 'fight' ? n.resume : n.intent;
       if (n.slot) n.releaseSlot();
       n.slot = null;

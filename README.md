@@ -164,6 +164,23 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
     change itself (`champion-to-queen.json` at dawn, `queen-to-champion.json` at dusk;
     `client/js/heroes/twofold.js`) holds for a moment. Then the other form bursts out under its
     own name, and the log tells it.
+- **Corisande, the Glintstone Witch** (Sorceress): one hero with two looks, rigged in
+  `client/js/heroes/sorceress.js`. Her sorcery is glintstone: the staff's crystal kindles
+  blue-white, motes wheel round it, stars rise from it, and a thrust of the staff looses a
+  glintstone pebble that streaks away and shatters. The staff's crystal glows strongly; the mask's
+  crystals glow too, but only faintly.
+  - **Bare-faced**, the mask under her arm: `sorceress.json` (+ `sorceress-kneel.json`).
+  - **Masked**: `sorceress-masked.json` (+ `sorceress-masked-kneel.json`).
+  - **The mask:** she puts it on to work her sorcery (once she's at her station, or channelling)
+    and to fight. She takes it off once she has been idle 12 seconds, and changes no more often
+    than every 6 seconds. Between the looks, glintstone light gathers and she holds the mask up over
+    her head, her staff standing by itself beside her (`sorceress-veil.json`). It takes under two
+    seconds and isn't logged. While thou art her, she leaves the mask as it is.
+  - Her drawings keep all their detail: they're sampled at twice the density of their drawn pixels,
+    so the finest touches (the light in her eyes) survive. Her grids are about twice the size of the
+    other heroes', and her scale is half theirs, so she stands as tall as them.
+  - She speaks as a scholar cast out of her academy: formal, condescending, calling everyone
+    "pupil".
 
 - **The spectres of the Noble Sorcerers** — `spectre.json`, rigged in `client/js/heroes/spectre.js`,
   coloured in `client/js/spectres.js`. Not heroes: they're called up only when every hero is busy,
@@ -194,9 +211,13 @@ powershell -ExecutionPolicy Bypass -File scripts/decode-image.ps1 stand.webp .el
 node scripts/extract-hero.mjs --name "Name" --colors 40 .elden/stand.bgra:1254x1254:client/assets/hero/name.json
 ```
 
-The extractor finds the art's pixel grid, drops the background and reduces the colours; give it
-several images to share one palette, `--palette existing.json` to match an existing hero's colours,
-or `:pitch=px,py` after an input when the art is soft and the grid needs setting by hand.
+The extractor finds the art's pixel grid, drops the background and reduces the colours (up to 91);
+give it several images to share one palette, `--palette existing.json` to match an existing hero's
+colours, or `:pitch=px,py` after an input when the art is soft and the grid needs setting by hand.
+An image with its own transparent background keeps every opaque pixel. Without one, the background
+is flooded in from the edges by colour. Art whose drawn pixels vary in size (AI-made sprites often
+draw fine details at half a pixel) keeps those details when sampled at half its pitch. That makes
+the grid twice as large, so the rig halves its scale (`px`) to match.
 
 ### Fire
 

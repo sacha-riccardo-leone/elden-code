@@ -582,6 +582,78 @@ const paladin = {
   },
 };
 
+// Corisande, the Glintstone Witch: a scholar cast out of her academy, arrogant and cold, sharp
+// with fools, and lonely under it. Formal old speech, backhanded compliments, mocking asides; she
+// calls everyone "pupil", and loves the stars more than any of them.
+const corisande = {
+  chatty: 0.75,
+  lines: {
+    hail: ['Ah, {name}. Thou art still alive. How unexpected.', 'Pupil {name}. Hast thou come to learn, or merely to loiter?', 'Hail, {name}. Do try to keep up.'],
+    ask_news: ['Well, {name}? Hath {otherProject} produced anything worth the reading?', 'And {otherProject}, pupil? Spare me the trivial parts.'],
+    tired: ['Even glintstone dims, given dull enough company…', 'My mind outruns this weary body. As ever.'],
+    hungry: ['A scholar starves gladly. Most days.', 'Bread, then. The stars will keep; my stomach will not.'],
+    bored: ['Idle hours. The academy called it a waste. For once, it was right.', 'Nothing to study. I may expire of tedium before thy quest is done.'],
+    muse: [
+      'Every bug is a lesson. Most refuse to learn it.',
+      'The stars make no mistakes. Programmers make little else.',
+      'A function that does one thing well. How rare. How lovely.',
+      'They cast me out for asking the right questions. The tests ask them still.',
+      'Read the error, pupil. It is telling thee everything.',
+      'Alone with my research again. Good. It is quieter.',
+    ],
+    compliment: ['Thy work is passable, {name}. Do not let it go to thy head.', 'Not entirely without talent, {name}. I am almost surprised.'],
+    challenge: ['A duel of sorcery, {name}? I could use the amusement.', 'Draw thy staff, pupil. I shall be gentle. Somewhat.'],
+    hail_back: ['Yes, {name}. I see thee.', '{name}. Hast thou finished the reading I set?'],
+    news_forged: ['I reshaped {n} file{s} of {project}. Each one improved, naturally.'],
+    news_read: ['I read {n} tome{s}. A few were even worth it.'],
+    news_rituals: ['{n} incantation{s}, cast precisely as written. Unlike some.'],
+    news_ravens: ['I sent {n} raven{s} to distant archives. They answer slowly.'],
+    news_spirits: ['{n} apprentice spirit{s} summoned. Obedient, at least.'],
+    news_prompts: ['The Voice hath consulted me {n} time{s}. As well it should.'],
+    news_hours: ['{n} hour{s} of study. Barely a beginning.'],
+    news_none: ['Nothing yet. The Voice deliberates, as lesser minds do.', '{project} waits upon me. Let it.'],
+    impressed: ['Hm. Better than I expected of thee, {name}. Which is to say, adequate.', 'Well done, pupil. Do not grow used to hearing it.'],
+    scoff: ['That is all? Novices do more before breakfast.', 'A meagre tally, {name}. The stars weep.'],
+    bye: ['Go, then. Study something.', 'Farewell, {name}. Try not to break anything.'],
+    rest_advice: ['Rest, {name}. A tired mind casts crooked sorcery.', 'Sleep, pupil. Thine errors grow louder by the hour.'],
+    thanks: ['Thou art welcome. Remember who helped thee.', 'Naturally.'],
+    food_reply: ['Eat, {name}. Fools think better on a full stomach. Slightly.', 'Take this crust and stop complaining.'],
+    idle_reply: ['Then sit, and I shall lecture. Thou needest it.', 'Idle? Then study. There is always more.'],
+    muse_reply: ['A clever thought, {name}. Wrong, but clever.', 'Hm. I reached that conclusion years ago.'],
+    compliment_reply: ['I know.', 'Flattery, pupil? It will not raise thy marks.'],
+    accept_duel: ['Very well. Watch closely; this is a lesson.', 'Come, then. Glintstone is a patient teacher.'],
+    decline_duel: ['Not today, {name}. I have no time to humiliate thee.', 'Spare me. I have real work.'],
+    quiet_reply: ['Silence. The first sign of wisdom, {name}. Perhaps the only one.', 'Nothing to say? At last.'],
+    depart: ['To {project}. Someone must do it properly.', 'The Voice calls. Mind my absence, pupils.'],
+    luck: ['Do not embarrass me out there, {name}.', 'Go, {name}. Think before thou castest.'],
+    back: ['I have returned. Try to contain thyselves.', 'Back. Wiser, as ever.'],
+    welcome: ['{name} returns, and in one piece. How novel.', 'Welcome back, pupil. What didst thou learn?'],
+    called: ['A summons. At last, something worthy of me.', 'The Voice requires me. Of course it does.'],
+    waiting: ['I await thy leave, Voice. Patiently. Mostly.', 'Permission? For this? Very well. I wait.'],
+    done: ['Finished. Flawlessly, as foretold.', 'Done. Thou mayst marvel now.'],
+    praise: ['Commendable, {name}. Do not let it be the only time.', 'Well cast, pupil.'],
+    sympathy: ['Up, {name}. Failure is merely instruction.', 'Rise, pupil. I did not teach thee to lie in the dirt.'],
+    struck: ['Touch me again, {name}, and learn what glintstone does to flesh.', 'Careful, pupil. I bite.'],
+    wave_reply: ['Yes, yes. Hello, {name}.', "*raises the staff a finger's breadth*"],
+    bow_reply: ['As thou shouldst.', '*inclines her head, barely*'],
+    cheer_reply: ['Restrain thyself. But yes. Good.', 'Huzzah, I suppose.'],
+    heart_reply: ['…Thou art strange, {name}.', '*looks away* Do not be absurd.'],
+    point_reply: ['Where? Speak plainly, pupil.', 'If it is a star, I want it.'],
+    pray_reply: ['Pray if thou must. I trust the stars.', '*watches, unimpressed*'],
+    solo: ['*studies the crystal of her staff*', 'The stars align… no. Not yet.', '*mutters a formula, then corrects it*', 'Hm. Interesting.'],
+    battle: [
+      'Watch closely, pupils. This is how it is done.',
+      '[fenrath]A beast. How tediously physical.', '[fenrath]Fangs and fury. No mind at all.',
+      '[golem]Stone and fire. Let us see what holds it together.', '[golem]Its heart is the lesson. Strike there.',
+    ],
+    victory: ['As I predicted.', 'Take notes. There will be a test.', '[fenrath]The beast is ash. Was there ever any doubt?', '[golem]Rubble. Glintstone outlasts stone.'],
+    flee: ['Back! Retreat is also strategy.', 'Fall back, fools!'],
+    cower: ['*shields herself behind the staff*'],
+    taunt: ['[fenrath]Come, cur. I have a lesson for thee.', '[golem]Lumbering stone! Is that all?'],
+    fallen: ['{name}! …Get up. That is an order.', '{name} falls. Avenge my pupil!'],
+  },
+};
+
 // Ysolde: mysterious, and hardly ever speaks. Mostly sighs, nods and silences.
 const ysolde = {
   chatty: 0.1,
@@ -698,6 +770,7 @@ const twofold = { chatty: 0.05, all: ['…'], lines: {} };
 export const VOICES = {
   tarnished, knight: maren, bloodbender: vael, bandit, fortuna, ronin, runelord, paladin, ysolde,
   champion: twofold, queen: twofold, 'twofold-dawn': twofold, 'twofold-dusk': twofold,
+  sorceress: corisande, 'sorceress-masked': corisande, 'sorceress-veil': corisande,
 };
 
 // Generic Tarnished who go by one of these names speak with that voice instead of the common one.

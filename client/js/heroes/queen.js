@@ -260,6 +260,7 @@ export default {
   id: 'queen',
   pair: 'twofold', // one hero with two forms: see twofold.js
   form: 'day',
+  via: 'dawn', // the drawing worn while becoming this form
   art: '/assets/hero/queen.json',
   extraArt: { kneel: '/assets/hero/queen-kneel.json' },
   firstName: 'Solenne',

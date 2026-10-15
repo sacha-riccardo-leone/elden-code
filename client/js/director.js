@@ -45,6 +45,11 @@ const LEAVE_AFTER = 2.5; // a newcomer sits at the Round Table at least this lon
 // The Twofold's change of form (seconds): the drawing of the change replaces the old form, then
 // the new form bursts out, then it's free to move again.
 const SHIFT = { change: 0.8, reveal: 3.4, end: 4.0 };
+// The Glintstone Witch's mask going on or coming off (seconds), the same way, only quicker. She
+// wears it to work her sorcery and to fight, takes it off once she has been idle `keep` seconds,
+// and changes no oftener than every `gap` seconds.
+const VEIL = { change: 0.3, reveal: 1.5, end: 1.9 };
+const MASK = { keep: 12, gap: 6 };
 
 // What a hand-drawn hero carries while no Claude Code session has taken them up.
 const idleSession = (sid) => ({ sid, project: null, state: 'idle', startedAt: 0, tools: {} });
@@ -78,8 +83,9 @@ export class Director {
   // The hand-drawn heroes live here from the start: seated at the Round Table before any island
   // exists, each waiting for a Claude Code session to take them up. A generic Tarnished only
   // appears when every hero is already out on a quest.
-  // A hero with more than one form (the Twofold: night, day and the two drawings of the change) is
-  // one actor wearing them in turn, starting with the form for the hour.
+  // A hero with more than one form (the Twofold: night, day and the two drawings of the change; the
+  // Glintstone Witch: masked, bare-faced and the drawing of her lifting the mask) is one actor
+  // wearing them in turn, starting with the form it wants (wantForm).
   start() {
     const [gx, gz] = HUB_LAYOUT.grace;
     const sheets = this.ctx.heroSheets || [];
@@ -91,14 +97,15 @@ export class Director {
     for (const sheet of sheets) {
       const id = sheet.rig.pair || sheet.hero;
       const own = forms.get(id);
-      if (this.heroes.has(id) || (own && !(own.night && own.day))) continue;
+      // (both of its forms, or not at all)
+      if (this.heroes.has(id) || (own && Object.values(own).filter((s) => !s.rig.shift).length < 2)) continue;
       const sid = `hero:${id}`;
       const npc = new Npc(this.ctx, idleSession(sid), { x: gx, z: gz + 2, region: this.ctx.world.hub });
       npc.heroActor = id;
       npc.unbound = true;
       if (own) {
         npc.forms = own;
-        npc.form = this.formNow();
+        npc.form = this.wantForm(npc);
       }
       npc.setHero(own ? own[npc.form] : sheet, { quiet: true });
       npc.setIntent({ kind: 'gather', leaveAt: Infinity, stagger: 0 });
@@ -113,48 +120,66 @@ export class Director {
     return (daylight ? daylight.amount ?? daylight.now() : 0) >= 0.5 ? 'day' : 'night';
   }
 
+  // The form a hero of two forms wants just now. The Twofold's turns with the hour; the Glintstone
+  // Witch wears her mask to work her sorcery (at her station, or channelling) and to fight, and
+  // takes it off once she has been idle a while.
+  wantForm(n) {
+    if (n.heroActor === 'twofold') return this.formNow();
+    const busy = !!n.fighter || (n.working && n.arrived);
+    if (busy) n.busyAt = this.clock;
+    return busy || this.clock - (n.busyAt ?? -Infinity) < MASK.keep ? 'masked' : 'bare';
+  }
+
   // Halfway through dusk or dawn the Twofold becomes its other form: golden light gathers, the
-  // drawing of the change holds a moment, then the other form bursts out under its own name.
+  // drawing of the change holds a moment, then the other form bursts out under its own name. The
+  // Glintstone Witch lifts her mask on or off in glintstone light, quicker and without a word in the
+  // log (she leaves it be while thou holdest her).
   updateForms(dt) {
-    const want = this.formNow();
     for (const n of this.heroes.values()) {
       if (!n.forms || n.dead) continue;
       if (n.shift) { this.stepShift(n, dt); continue; }
+      const want = this.wantForm(n);
       if (n.form === want || n.dragged || n.travel || n.fade < 1) continue;
-      n.shift = { to: want, t: 0, stage: 0, glow: 0 };
-      n.action = { kind: 'transform', anim: 'cast', t: 0, dur: SHIFT.end };
+      const twofold = n.heroActor === 'twofold';
+      if (!twofold && (n.piloted || this.clock - (n.shiftedAt ?? -Infinity) < MASK.gap)) continue;
+      const timing = twofold ? SHIFT : VEIL;
+      n.shift = { to: want, t: 0, stage: 0, glow: 0, timing, told: twofold };
+      n.shiftedAt = this.clock;
+      n.action = { kind: 'transform', anim: 'cast', t: 0, dur: timing.end };
       n.body.play('cast', true);
-      this.log(`${n.displayName} is wreathed in golden light…`, 'gold', n);
+      if (twofold) this.log(`${n.displayName} is wreathed in golden light…`, 'gold', n);
     }
   }
 
   stepShift(n, dt) {
     const s = n.shift;
+    const { timing } = s;
+    // the drawing between the two forms (the one leading into the new form)
+    const middle = n.forms[n.forms[s.to]?.rig.via];
     s.t += dt;
     s.glow -= dt;
     if (s.glow <= 0 && s.stage < 2) {
       s.glow = 0.12;
       this.ctx.particles.emit({
         pos: [n.pos.x, 1.3, n.pos.y], spread: [0.5, 1.1, 0.3], vel: [0, 1.1, 0], velSpread: [0.3, 0.4, 0.3],
-        color: ['#ffd75a', '#fff1c0', '#f0a020'], size: 0.07, life: 1.3, count: 6, drag: 0.6, intensity: 2.2,
+        color: middle?.rig.motes || ['#ffd75a', '#fff1c0', '#f0a020'], size: 0.07, life: 1.3, count: 6, drag: 0.6, intensity: 2.2,
       });
     }
-    if (s.stage === 0 && s.t >= SHIFT.change) {
+    if (s.stage === 0 && s.t >= timing.change) {
       s.stage = 1;
-      const middle = n.forms[s.to === 'day' ? 'dawn' : 'dusk'];
       if (middle) {
         n.setHero(middle, { quiet: true, keepName: true });
         n.body.play('idle', true);
       }
     }
-    if (s.stage === 1 && s.t >= SHIFT.reveal) {
+    if (s.stage === 1 && s.t >= timing.reveal) {
       s.stage = 2;
       n.setHero(n.forms[s.to]);
       n.form = s.to;
       n.body.play('idle', true);
-      this.log(`…and becomes ${n.displayName}`, 'gold', n);
+      if (s.told) this.log(`…and becomes ${n.displayName}`, 'gold', n);
     }
-    if (s.t >= SHIFT.end) n.shift = null;
+    if (s.t >= timing.end) n.shift = null;
   }
 
   // Maren the Stormbound: the player's own character, not a session's. While the player is someone

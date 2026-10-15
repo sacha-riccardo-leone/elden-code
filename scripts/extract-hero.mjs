@@ -13,7 +13,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+// one character per colour (never '.', which is transparent): up to 91 colours
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/!#$%&'()*,-:;<=>?@[]^_`{|}~";
 const W8 = [2, 4, 3]; // colour distance weights (r, g, b): the eye is most sensitive to green
 
 function args() {
@@ -58,9 +59,14 @@ function load({ file, w, h }) {
 }
 
 // Background: transparent pixels, plus everything reachable from the border through pixels
-// close to the border's dominant colour (the art has a dark outline that stops the flood).
+// close to the border's dominant colour (the art has a dark outline that stops the flood). An
+// image that brings its own transparency needs no more than that: flooding by colour from where
+// the art touches the edge (a staff, the boots) would eat its dark outlines and shading.
 function backgroundMask(img) {
   const { w, h, rgb, alpha } = img;
+  let clear = 0;
+  for (let i = 0; i < w * h; i++) if (alpha[i] < 128) clear++;
+  if (clear > w * h * 0.05) return Uint8Array.from(alpha, (a) => (a < 128 ? 1 : 0));
   const counts = new Map();
   const border = [];
   for (let x = 0; x < w; x++) border.push(x, (h - 1) * w + x);
