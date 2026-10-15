@@ -207,7 +207,10 @@ export class Crowd {
       if (cd < R) {
         const urgency = (1 - t / H) * (1 - cd / R) + (dist < r + o.r ? 1 : 0);
         const lateral = cx * px + cz * pz; // > 0: it'll be on its right
-        const side = Math.abs(lateral) < 0.2 * R ? 1 : lateral > 0 ? -1 : 1;
+        let side = Math.abs(lateral) < 0.2 * R ? 1 : lateral > 0 ? -1 : 1;
+        // (keeping to the right, but not into a wall or a table: round the other side, if it's
+        // more or less in the middle of the way and there's room there)
+        if (Math.abs(lateral) < 0.5 * R && this.walled(n, px * side, pz * side) && !this.walled(n, -px * side, -pz * side)) side = -side;
         sx += px * side * urgency;
         sz += pz * side * urgency;
       }
@@ -226,6 +229,12 @@ export class Crowd {
     const m = Math.hypot(vx, vz);
     if (m > 1) { vx /= m; vz /= m; }
     return [vx * speed, vz * speed];
+  }
+
+  // Whether there's no ground to step aside onto, a body's width toward (dx, dz) (a unit vector).
+  walled(n, dx, dz) {
+    const d = CROWD.radius + CROWD.avoidMargin;
+    return !this.ground(n.pos.x + dx * d, n.pos.y + dz * d, 0);
   }
 
   // How much of thy pace is left walking (ux, uz) into whoever's just ahead: shoving them slows

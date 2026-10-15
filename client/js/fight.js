@@ -387,6 +387,8 @@ export class Fight {
       if (n.action?.kind !== 'transform') n.action = null;
       n.intent = { kind: 'fight' };
       n.setSpirits(0); // (the spirit ashes of its work wait out the fight)
+      n.clearIcon(); // (and the signs over its head: the "!" of one kneeling at its gate comes back after)
+      n.clearPersistentIcon();
       n.fighter = {
         line: k, // their place in the line they wait in (lineSpot)
         hp: 100, down: 0, cd: rand(1.5, 4), angle: (k * 2.4) % (Math.PI * 2),

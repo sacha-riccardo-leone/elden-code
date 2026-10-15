@@ -13,6 +13,10 @@ import { nameFor, classTitle } from './lore.js';
 const SPEED = { wander: 1.25, rest: 2.3, visit: 2.0, journey: 2.7, urgent: 3.6 };
 const URGENT = new Set(['work', 'wait', 'channel', 'leave']);
 const SETTLED = new Set(['work', 'wait', 'rest', 'visit', 'gather']); // kept to a spot (its slot) once there
+const HOMEWARD = new Set(['work', 'wait', 'rest', 'channel', 'wander', 'journey']); // done at home (a journey: unless to the Hold)
+// Getting nowhere (`stalled`): no further than `dist` from where it was for `after` seconds; within
+// `near` of where it's going, it calls that arrived.
+const STALL = { dist: 0.8, after: 6, near: 2.5 };
 
 // One quad per sheet size, standing on its bottom edge. The normals point up toward the sky so
 // overhead and torch light reach the sprite's face.
@@ -439,7 +443,10 @@ export class Npc {
     // while the player holds this character (or it's fighting a great enemy, fight.js), what its
     // session wants waits until it's free again
     if (this.piloted || this.intent.kind === 'fight') { this.resume = intent; return; }
-    const same = this.intent.kind === intent.kind && this.intent.station === intent.station && this.intent.anim === intent.anim;
+    // a home still under the mist (or sinking back into it) can't be gone to: it waits at the Round
+    // Table instead, and sets out once its island has risen (director.updateGathering)
+    if (HOMEWARD.has(intent.kind) && intent.dest !== 'hub' && !this.unbound && !this.spectre && !this.homeUp()) intent = { kind: 'journey', dest: 'hub' };
+    const same = this.intent.kind === intent.kind && this.intent.station === intent.station && this.intent.anim === intent.anim && this.intent.dest === intent.dest;
     if (same && intent.kind !== 'wander') return;
     const keepSlot = (intent.kind === 'work' && intent.station === this.intent.station) || (intent.kind === 'gather' && this.slot?.hub);
     if (this.slot && !keepSlot) this.releaseSlot();
@@ -530,6 +537,15 @@ export class Npc {
     }
   }
 
+  // Whether its home stands above the mist, to be gone to: the Hold always; its island once it has
+  // risen, and not while it sinks back into the mist (nor once it's gone).
+  homeUp() {
+    const { world } = this.ctx;
+    const r = this.region;
+    if (!r || r === world.hub || !r.walkRect) return true;
+    return r.risen && !r.sinking && world.regions.get(r.project) === r;
+  }
+
   releaseSlot() {
     if (this.slot?.hub) this.ctx.world.hub.releaseSeat(this);
     else if (this.slot) this.ctx.director.releaseSlot(this.slot, this);
@@ -547,6 +563,7 @@ export class Npc {
     this.path = this.ctx.nav.path([this.pos.x, this.pos.y], [x, z]);
     this.arrived = false;
     this.yielding = null;
+    this.stall = null;
     this.stuckT = 0;
     this.wp = null;
     this.steerV = null;
@@ -555,7 +572,14 @@ export class Npc {
   // Dissolve into golden light and reappear at the Site of Grace nearest the destination.
   fastTravel(x, z) {
     const world = this.ctx.world;
-    const area = world.areaAt(x, z) || this.region;
+    let area = world.areaAt(x, z) || this.region;
+    // (never onto an island under the mist, sinking into it or gone: that would leave it standing
+    // on thin air; to the Hold instead)
+    const island = area !== world.hub && area !== world.arena;
+    if (island && (world.regions.get(area.project) !== area || !area.risen || area.sinking)) {
+      area = world.hub;
+      this.goal = null;
+    }
     const [gx, gz] = area === world.hub ? HUB_LAYOUT.grace : area.point('grace');
     const a = Math.random() * Math.PI * 2;
     const to = this.ctx.nav.clampToWalkable(gx + Math.cos(a) * 1.8, gz + 1.6 + Math.sin(a) * 0.6);
@@ -931,6 +955,7 @@ export class Npc {
   // (crowd.steer), plans a new way round anyone holding it up too long (`unstick`), and when two
   // block each other the one of lower rank gives way.
   followPath(dt) {
+    if (this.stalled(dt)) return false;
     if (this.yielding) return this.giveWay(dt);
     if (!this.path.length) return false;
     const crowd = this.ctx.crowd;
@@ -1005,6 +1030,29 @@ export class Npc {
     }
     if (Math.abs(vx) > 0.1) this.body.facing = vx > 0 ? 1 : -1;
     this.body.play('walk');
+    return true;
+  }
+
+  // However it tries, getting nowhere for a good while (wedged between a table and someone seated at
+  // it, say): the last stretch is let be, a longer way is gone by grace. True once it gives up.
+  stalled(dt) {
+    if (!this.path.length && !this.yielding) { this.stall = null; return false; }
+    const s = (this.stall ??= { x: this.pos.x, z: this.pos.y, t: 0 });
+    if (Math.hypot(this.pos.x - s.x, this.pos.y - s.z) > STALL.dist) {
+      s.x = this.pos.x;
+      s.z = this.pos.y;
+      s.t = 0;
+      return false;
+    }
+    s.t += dt;
+    if (s.t < STALL.after || !this.goal || this.dragged || this.fade < 0.99 || this.intent.kind === 'leave') return false;
+    this.stall = null;
+    this.yielding = null;
+    const [gx, gz] = this.goal;
+    if (Math.hypot(gx - this.pos.x, gz - this.pos.y) < STALL.near) {
+      this.path = [];
+      this.arrive();
+    } else this.fastTravel(gx, gz);
     return true;
   }
 

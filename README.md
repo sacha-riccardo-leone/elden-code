@@ -60,7 +60,8 @@ can **become any character**: click one and choose **Become …** in the fan ove
     **Space** dodges. **C** crouches. **Q**, in a fight against a great enemy, turns the camera's
     focus on it and back on you. **R** looses your ultimate once its bar is full.
   - **B** (or clicking yourself) opens your fan of gestures over your head (or **1–8**). Nearby
-    Tarnished may answer.
+    Tarnished may answer. There are no gestures while a great enemy is abroad: the fan folds away
+    and comes back once the fight is over.
   - **E** uses what you stand by (a prompt shows it): the forge, the scrolls, the war table, the
     ritual circle, the raven tower, the fog gate, a site of grace, and the Round Table. Each
     works as it does for the sessions' characters (the forge glows and throws sparks, a raven
@@ -97,9 +98,11 @@ can **become any character**: click one and choose **Become …** in the fan ove
     never sends anyone into a wall, off a ledge or off the walkable ground.
   - **NPCs never push you; they go round you.** They steer around anyone in their way, judging
     where others are heading as well as where they stand. Two meeting head on both keep to their
-    right.
+    right, unless a wall or a table is on that side: then they go round the other way.
   - **Held up for about 1.5 seconds,** an NPC plans a new path around the blocker. If two block
     each other in a narrow way, one gives way: it backs off and steps aside, then goes on.
+  - **Getting nowhere for 6 seconds** (wedged somewhere, however it tries), an NPC travels the rest
+    of the way by grace; a step from where it's going, it simply stops there.
   - **In a fight,** fighters keep some room between one another and you.
 
 Every time the world loads, the hand-drawn heroes are already seated at the Round Table in
@@ -109,11 +112,24 @@ one after another, 10 seconds apart, and as each one rises its hero gets up and 
 travelling by grace), taking up whatever the session is doing on arrival. When a session ends, its
 hero walks back to the Round Table to wait for the next one.
 
-While a great enemy is abroad, from the moment the Arena of Trials starts rising until it has sunk
-back after the fight, the Lands Between hold still: no island rises (so no new flag goes up in the
-Hold), and in the public demo none sinks. Islands whose sessions arrive meanwhile wait under the
-mist, their heroes seated at the Round Table, and rise once the fight is over, one after another at
-the usual pace (an island already rising when the enemy came finishes rising).
+While a great enemy is abroad, from the moment it's announced until the fight is over, the Lands
+Between hold still (`worldPaused` in `client/js/director.js`):
+
+- No island rises (so no new flag goes up in the Hold) and none sinks. An island already rising or
+  sinking when the enemy came finishes doing so.
+- No session's banner shows (see the fight's banners, below).
+- In the public demo, no session starts or ends.
+
+Islands whose sessions arrive meanwhile wait under the mist. Once the fight is over, their heroes
+wait for them at the Round Table, and the islands rise three seconds later, one after another at
+the usual pace. The world takes up again as soon as the fight is over, not when the arena has
+sunk: lingering on the arena afterwards holds nothing up.
+
+Nobody is ever sent to an island that isn't standing. A hero whose island is still under the mist,
+or sinking back into it, waits at the Round Table instead and sets out once it has risen. That
+holds whatever sends them: the end of a fight, letting go of them, or their session moving to
+another project. A new island never takes a place beyond one that is sinking, whose bridge it would
+need. An island sinking (or sunk) that a session comes back to rises again.
 
 Only the hand-drawn characters ever appear, each hero once. When every hero is already out on a
 quest, a **spectre** is called up for the new session instead (see below). (Should the spectre's art
@@ -318,11 +334,13 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
   - Fortuna, **Frostfall:** four great icicles drop on him one after another.
   - **Art:** each ult holds the character's own pose (raise, cast, strike, kneel) until their ult
     drawings replace it.
-- **Only the fight:** in the fight, a Tarnished's session works on unseen: no log lines about its
-  work, no incantations, signs or gestures, no spirit wisps and no small talk. It says only its
-  battle lines (taking up the charge, falling back, mourning the fallen, the victory). From the
-  moment the enemy is announced until it's over, the message log carries only the fight. What the
-  sessions did meanwhile is taken up again afterwards.
+- **Only the fight:** while a great enemy is abroad, every session works on unseen, the spectres at
+  work on their islands included: no log lines about the work, no incantations, signs or gestures,
+  no spirit wisps and no small talk. A fighter's signs are put away for the fight (the "!" of one
+  that was kneeling at its gate comes back after). Fighters say only their battle lines (taking up
+  the charge, falling back, mourning the fallen, the victory). From the moment the enemy is
+  announced until it's over, the message log carries only the fight. What the sessions did
+  meanwhile is taken up again afterwards.
 - **The others' health:** under your own health bar (top left), each fighter's name and health,
   in the order they lined up. The fallen stay greyed out and struck through.
 - **The enemy waits for you:** it enters only once you stand on the arena. Until then the others
@@ -433,8 +451,9 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
   - Every click is a strike: nobody can be clicked, inspected or carried off until the fight is
     over.
   - The sessions' banners across the screen (a region rising, a quest fulfilled or failed, an
-    incantation) don't show while you fight on the arena, and aren't kept for after it. Only the
-    fight's own banners do. The message log still lists everything.
+    incantation) don't show while a great enemy is abroad, and aren't kept for after it. Only the
+    fight's own banners do, and one of those never waits behind a session's: it cuts it short. The
+    message log still lists everything.
   - A session that drew the enemy wounds it badly by fulfilling its next quest.
 - **Falling:**
   - A Tarnished who falls is out for good. It lies where it fell for a moment, then goes by grace
@@ -545,7 +564,10 @@ A version anyone can open, with no bridge and no real data: an endless world of 
   - New projects rise as islands, one at a time: the first 5 seconds after you appear, then at
     least a minute apart, time to look round each before the next. An island nobody has worked on
     for 45 seconds sinks back into the mist, if it's the outermost on its side (the others hold up
-    a bridge).
+    a bridge). Islands sink one at a time, at least 20 seconds apart, so the world never shrinks
+    all at once.
+  - While a great enemy is abroad no session starts or ends. A session whose time comes meanwhile
+    ends a little while after the fight, each at its own moment.
   - At most one banner about the sessions (a slash command, a quest fulfilled) shows in 40
     seconds; the rest go to the message log only. An island rising always gets its banner.
   - Great enemies come oftener: the first after about two minutes, then every 5 to 9 minutes, at

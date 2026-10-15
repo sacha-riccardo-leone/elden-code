@@ -166,7 +166,7 @@ ctx.rig = rig;
 const fight = new Fight(ctx);
 ctx.fight = fight;
 ui.canSummon = () => fight.canSummon();
-ui.hushed = () => fight.inBattle(); // no session banners mid boss fight
+ui.hushed = () => director.worldPaused; // no session banners while the world holds still for a great enemy
 const crowd = new Crowd(ctx); // characters are solid
 ctx.crowd = crowd;
 const guide = new Guide(ctx); // the way to the arena, while a great enemy is abroad
@@ -194,10 +194,11 @@ new Input({
     interact: () => { if (ui.tableOpen) ui.closeTable(); else interact.press(); },
     dodge: () => pilot.dodge(),
     focus: () => fight.toggleFocus(), // Q: the camera on a great enemy, or back on thee
-    // B (or a click on thyself): thine own fan of gestures, over thy head
+    // B (or a click on thyself): thine own fan of gestures, over thy head (not while a great enemy
+    // is abroad: no gestures then, director.gesture)
     fan: () => {
       const me = pilot.npc;
-      if (!me) return;
+      if (!me || fight.hunting()) return;
       if (ui.fanOwner === me) { ui.closeFan(); return; }
       director.select(null);
       ui.openFan(me);
@@ -343,6 +344,7 @@ function step(dt) {
   crowd.resolve(wdt); // once everyone has moved: nobody stands inside anybody
   guide.update(wdt);
   document.body.classList.toggle('in-battle', fight.inBattle()); // (no labels to click mid-fight)
+  if (fight.hunting() && ui.fanOwner?.piloted) ui.closeFan(); // (thy gestures fold away as a great enemy comes)
   particles.update(wdt, t);
   ults.update(dt);
   ui.overview = rig.dist > 40;

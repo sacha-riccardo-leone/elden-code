@@ -41,6 +41,7 @@ const TALKERS = new Set(['wander', 'visit', 'gather']);
 const FIGHT_LINES = new Set(['battle', 'victory', 'flee', 'cower', 'taunt', 'fallen']);
 const RISE_FIRST = 3; // seconds before the first island rises from the mist
 const RISE_GAP = 10; // between islands rising one after another
+const SINK_GAP = 20; // between islands sinking one after another (the public demo, retireIslands)
 const LEAVE_AFTER = 2.5; // a newcomer sits at the Round Table at least this long
 // The Twofold's change of form (seconds): the drawing of the change replaces the old form, then
 // the new form bursts out, then it's free to move again.
@@ -75,8 +76,9 @@ export class Director {
     this.lastRise = -Infinity;
     this.riseGap = RISE_GAP;
     this.notBefore = 0; // no island rises before this (the public demo: not before the player is up)
-    this.retireAfter = 0;
-    this.waiting = new Map(); // sid -> session: sessions waiting, unseen, for a hero to come free // the public demo: seconds an island may stand empty before it sinks (0: never)
+    this.retireAfter = 0; // the public demo: seconds an island may stand empty before it sinks (0: never)
+    this.lastSink = -Infinity;
+    this.waiting = new Map(); // sid -> session: sessions waiting, unseen, for a hero to come free
     this.heroes = new Map(); // hero id -> the hand-drawn hero (bound to a session or not)
   }
 
@@ -222,24 +224,47 @@ export class Director {
   // ------------------------------------------------------------------------------------------
   // regions and slots
 
-  // Every island is born below the mist and rises a moment later, one after another.
+  // Every island is born below the mist and rises a moment later, one after another. One sinking
+  // back into it (or sunk) that a session calls home again rises again.
   regionOf(project, announce) {
     const { region, created } = this.ctx.world.regionFor(project || 'Unknown');
     if (created) {
       region.sink();
-      const at = Math.max(this.clock + RISE_FIRST, this.lastRise + this.riseGap, this.notBefore);
-      this.lastRise = at;
-      this.rises.push({ at, region, announce, started: false });
+      this.queueRise(region, announce);
       this.ctx.nav.sync();
       this.ctx.onWorldGrew?.();
+    } else if (region.sinking || region.sunk) {
+      this.revive(region, announce);
     }
     return region;
   }
 
-  // Islands may rise from `at` on, one after another: those already waiting are timed afresh.
+  // Its turn to rise: after those already waiting (`now`: at once, the world allowing).
+  queueRise(region, announce, now = false) {
+    this.rises = this.rises.filter((r) => r.region !== region);
+    const at = now ? this.clock : Math.max(this.clock + RISE_FIRST, this.lastRise + this.riseGap, this.notBefore);
+    if (!now) this.lastRise = at;
+    this.rises.push({ at, region, announce, started: false });
+  }
+
+  // An island going back into the mist that's wanted after all (`now`: to hold up the bridge of
+  // one beyond it): it rises again, from as deep as it had sunk.
+  revive(region, announce = false, now = false) {
+    region.sinking = false;
+    region.sunk = false;
+    region.emptySince = null;
+    region.sink(Math.max(0.01, -region.group.position.y));
+    this.queueRise(region, announce, now);
+    this.ctx.world.version += 1;
+    this.ctx.nav.sync();
+  }
+
+  // Islands may rise from `at` on, one after another: those already waiting are timed afresh
+  // (after any still rising).
   holdRisesUntil(at) {
     this.notBefore = at;
     this.lastRise = -Infinity;
+    for (const r of this.rises) if (r.started) this.lastRise = Math.max(this.lastRise, r.at);
     for (const r of this.rises) {
       if (r.started) continue;
       r.at = Math.max(at, this.lastRise + this.riseGap);
@@ -247,12 +272,15 @@ export class Director {
     }
   }
 
-  // While a great enemy is abroad (from the arena rising from the mist till it has sunk back, after
-  // the fight: fight.js) the Lands Between hold still: no island rises, none sinks. Islands
-  // whose sessions came meanwhile wait under the mist (their Tarnished at the Round Table), and
-  // rise once the fight is over, one after another as ever. (One already rising goes on.)
+  // While a great enemy is abroad (from his coming till the fight is over and everyone set free:
+  // fight.js) the Lands Between hold still: no island rises, none sinks, no session's banner shows
+  // (ui.js), and in the public demo no session starts or ends (demo.js). Islands whose sessions
+  // came meanwhile wait under the mist, their Tarnished at the Round Table once the fight is over,
+  // and rise a moment after it, one after another as ever. (One already rising or sinking goes on.)
+  // Not till the arena has sunk again: whoever lingers on it after the fight holds nothing up.
   get worldPaused() {
-    return !!this.ctx.fight?.active;
+    const fight = this.ctx.fight;
+    return !!fight && (fight.hunting() || fight.state === 'won');
   }
 
   updateRises() {
@@ -279,11 +307,22 @@ export class Director {
   }
 
   // The public demo lets an island nobody calls home any more sink back into the mist after a
-  // while: only the outermost on its side (the others hold up a bridge), and only once nobody
-  // stands on it or its bridge. With real sessions islands stay.
+  // while: only the outermost on its side (the others hold up a bridge), only once nobody stands
+  // on it or its bridge, and one at a time, a while apart (so that the world shrinks slowly, not
+  // all at once after everyone's been away at a fight). With real sessions islands stay.
   retireIslands() {
     if (!this.retireAfter) return;
-    const { world, ui, nav } = this.ctx;
+    const { world, nav } = this.ctx;
+    // one gone under is taken away (a great enemy abroad or not, so that its place is free again);
+    // but one beyond it, needing it to hold up its bridge, would be left in the air: it rises again
+    for (const r of world.regionList()) {
+      if (!r.sunk) continue;
+      if (!world.isOutermost(r)) { this.revive(r, false, true); continue; }
+      world.removeRegion(r);
+      nav.sync();
+      this.ctx.onWorldGrew?.();
+      this.log(`${r.project}: ${r.biome.name} sinks into the mist`, 'dim');
+    }
     // (none sinks while a great enemy is abroad, and none counts as empty for everyone being away
     // at the fight: their while alone starts afresh once it's over)
     if (this.worldPaused) {
@@ -291,20 +330,15 @@ export class Director {
       return;
     }
     for (const r of world.regionList()) {
-      if (r.sunk) {
-        world.removeRegion(r);
-        nav.sync();
-        this.ctx.onWorldGrew?.();
-        this.log(`${r.project}: ${r.biome.name} sinks into the mist`, 'dim');
-        continue;
-      }
       if (r.sinking || !r.risen) continue;
       const bridge = world.bridges.find((b) => b.region === r);
       const there = (n) => world.areaAt(n.pos.x, n.pos.y) === r
         || (bridge && n.pos.x >= bridge.x0 && n.pos.x <= bridge.x1 && n.pos.y >= bridge.z0 - 1 && n.pos.y <= bridge.z1 + 1);
       if ([...this.npcs.values()].some((n) => n.region === r || there(n))) { r.emptySince = null; continue; }
       r.emptySince ??= this.clock;
-      if (this.clock - r.emptySince >= this.retireAfter && world.isOutermost(r)) r.startSink();
+      if (this.clock - r.emptySince < this.retireAfter || !world.isOutermost(r) || this.clock < this.lastSink + SINK_GAP) continue;
+      r.startSink();
+      this.lastSink = this.clock;
     }
   }
 
@@ -317,10 +351,14 @@ export class Director {
     return { x, z, face: x < tx ? 1 : -1 };
   }
 
-  // Seated at the Round Table until their island has risen; then they set off home on foot.
+  // Seated at the Round Table until their island has risen; then they set off home on foot. (An
+  // island gone from under its session, as none should be, comes again.)
   updateGathering() {
+    const world = this.ctx.world;
     for (const n of this.npcs.values()) {
-      if (n.intent.kind !== 'gather' || n.unbound || n.action || n.dragged || n.inTalk || !n.region.risen) continue;
+      if (n.intent.kind !== 'gather' || n.unbound) continue;
+      if (n.region !== world.hub && world.regions.get(n.region.project) !== n.region) n.region = this.regionOf(n.region.project, true);
+      if (n.action || n.dragged || n.inTalk || !n.region.risen) continue;
       if (this.clock < n.intent.leaveAt || this.clock < (n.region.risenAt ?? 0) + n.intent.stagger) continue;
       n.setIntent({ kind: 'journey' });
       this.log(`${n.name.first} rises from the Round Table and sets out for ${n.region.project}`, 'dim', n);
@@ -527,9 +565,10 @@ export class Director {
 
   event(ev, session) {
     const ui = this.ctx.ui;
-    // While a great enemy is abroad the message log carries the fight alone; and a Tarnished in the
-    // fight (fight.js) works its session on unseen: no signs, gestures or words of its work, only its
-    // battle lines (remark). What its session does is still kept, for when the fight is over.
+    // While a great enemy is abroad the message log carries the fight alone, and everyone works their
+    // session on unseen (a Tarnished in the fight, fight.js, and a spectre at its island's work
+    // alike): no signs, gestures or words of the work, only battle lines (remark). What a session
+    // does is still kept, for when the fight is over.
     const quiet = !!this.ctx.fight?.hunting();
     const log = (...a) => { if (!quiet) this.log(...a); };
     if (ev.event === 'SessionEnd' || ev.event === 'Gone' || session.state === 'gone') {
@@ -548,7 +587,7 @@ export class Director {
     const name = npc.name.first;
     const now = performance.now() / 1000;
     const fighting = !!npc.fighter; // (in the fight: none of what follows shows)
-    const shown = !fighting;
+    const shown = !fighting && !quiet;
 
     switch (ev.event) {
       case 'SessionStart':
@@ -700,6 +739,7 @@ export class Director {
   gesture(npc, key) {
     const g = GESTURES.find((x) => x.key === key);
     if (!g || !npc || npc.dead) return;
+    if (this.ctx.fight?.hunting()) return; // (no gestures while a great enemy is abroad: only blows)
     if (key === 'rest') {
       npc.action = { kind: 'gesture', anim: 'sit', t: 0, dur: 6 };
       npc.body.play('sit', true);
@@ -864,6 +904,7 @@ export class Director {
     this.remarks = this.remarks.filter((r) => {
       if (this.clock < r.at) return true;
       const n = r.npc || this.bystander(r.to, r.radius, r.near);
+      if (n?.fighter && !FIGHT_LINES.has(r.intent)) return false; // (called to a fight meanwhile: battle lines only)
       if (n && !n.dead && !n.dragged && !n.travel && !n.talk && n.fade >= 1) this.utter(n, speak(n, r.intent, r.to));
       return false;
     });

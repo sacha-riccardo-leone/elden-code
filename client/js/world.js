@@ -434,10 +434,16 @@ export class World {
   regionFor(project) {
     let region = this.regions.get(project);
     if (region) return { region, created: false };
-    // the first free place in the chain (an island that sank leaves its place, the outermost, free)
-    const used = new Set([...this.regions.values()].map((r) => r.slot));
+    // the first free place in the chain (an island that sank leaves its place, the outermost, free);
+    // never beyond one sinking, whose going would leave the new one's bridge ending in the air
+    // (unless both ends of the chain are going at once: then the one it's beyond rises again,
+    // director.retireIslands)
+    const at = new Map([...this.regions.values()].map((r) => [r.slot, r]));
+    const stays = (s) => s === 0 || (at.has(s) && !at.get(s).sinking && !at.get(s).sunk);
+    const last = Math.max(0, ...at.keys()) + 2;
     let slot = 1;
-    while (used.has(slot)) slot += 1;
+    while (slot <= last && (at.has(slot) || !stays(innerSlot(slot)))) slot += 1;
+    if (slot > last) for (slot = 1; at.has(slot);) slot += 1;
     region = new Region(this, project, slot, this.pickBiome(project));
     this.regions.set(project, region);
     region.bridge = this.buildBridge(innerSlot(slot), slot, region);

@@ -120,11 +120,18 @@ export class Demo {
     this.tend();
   }
 
+  // While a great enemy is abroad the world holds still (director.worldPaused): no session starts,
+  // and none ends till a while after the fight.
+  held() {
+    return !!this.director.worldPaused;
+  }
+
   // Every few seconds: start a session when there are fewer than the world wants just now (the
   // number drifts slowly between three and seven), on an island already there or on a new one.
   async tend() {
     while (this.active && this.endless) {
       await sleep(rand(5000, 11000));
+      if (this.held()) continue;
       const live = this.phantoms.filter((ph) => ph.alive);
       const minutes = (Date.now() - this.born) / 60000;
       // (at its busiest a few more than there are heroes, so spectres are called up for the rest)
@@ -177,13 +184,17 @@ export class Demo {
     this.emit(ph, { event: 'SessionStart', source: 'startup', model: ph.s.model });
     await sleep(rand(4000, 9000));
     if (ph.fresh && Math.random() < 0.6) await this.turn(ph, 'init'); // a new project, a new oath
-    while (this.live(ph) && Date.now() < ph.until) {
+    for (;;) {
+      if (!this.live(ph)) return;
+      // (its time come while the world holds still: it ends a while after the fight instead, not
+      // with all the others the moment it's over)
+      if (this.held()) ph.until = Math.max(ph.until, Date.now() + rand(20, 120) * 1000);
+      if (Date.now() >= ph.until) break;
       await this.turn(ph);
       if (!this.live(ph)) return;
       // the person at the keyboard reads, thinks, types
       await sleep(this.endless ? rand(8000, 32000) : rand(15000, 45000));
     }
-    if (!this.live(ph)) return;
     ph.alive = false;
     this.emit(ph, { event: 'SessionEnd', reason: Math.random() < 0.8 ? 'prompt_input_exit' : 'other' });
     this.phantoms = this.phantoms.filter((p) => p !== ph);

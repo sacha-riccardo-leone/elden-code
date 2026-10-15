@@ -106,18 +106,29 @@ export class UI {
     while (this.logEl.children.length > 7) this.logEl.lastChild.remove();
   }
 
+  // One of the world's own (a great enemy coming, felled, prevailing) goes before any session's
+  // still waiting, and cuts one showing short.
   banner(title, sub = '', tone = 'gold', session = false) {
     if (session && this.hushed?.()) return;
+    if (!session) {
+      this.bannerQueue = this.bannerQueue.filter((b) => !b.session);
+      if (this.bannerShown?.session) {
+        clearTimeout(this.bannerTimer);
+        this.bannerBusy = false;
+      }
+    }
     this.bannerQueue.push({ title, sub, tone, session });
     if (this.bannerQueue.length > 3) this.bannerQueue.shift();
     if (!this.bannerBusy) this.nextBanner();
   }
 
   // A banner about a session (an island rising, a quest fulfilled or failed, a spell): never shown
-  // mid boss fight (main.js sets `hushed`), nor kept for after it; the message log still has it.
-  // With `noticeGap` set (the public demo, main.js), no more than one in that many seconds, the rest
-  // left to the log; but an `important` one (an island rising) always shows.
+  // while the world holds still for a great enemy (main.js sets `hushed`), nor kept for after it;
+  // the message log still has it. With `noticeGap` set (the public demo, main.js), no more than
+  // one in that many seconds, the rest left to the log; but an `important` one (an island rising)
+  // always shows.
   notice(title, sub = '', tone = 'gold', important = false) {
+    if (this.hushed?.()) return; // (nor does a hushed one take the place of the next)
     const now = performance.now() / 1000;
     if (!important && this.noticeGap && now - (this.lastNotice ?? -Infinity) < this.noticeGap) return;
     if (!important && this.noticeGap && this.bannerQueue.some((b) => b.session)) return; // (one waiting already)
@@ -128,6 +139,7 @@ export class UI {
   nextBanner() {
     let b = this.bannerQueue.shift();
     while (b?.session && this.hushed?.()) b = this.bannerQueue.shift();
+    this.bannerShown = b || null;
     if (!b) { this.bannerBusy = false; return; }
     this.bannerBusy = true;
     const h = this.bannerEl.querySelector('h2');
@@ -138,7 +150,7 @@ export class UI {
     this.bannerEl.classList.remove('show');
     void this.bannerEl.offsetWidth;
     this.bannerEl.classList.add('show');
-    setTimeout(() => this.nextBanner(), 3900);
+    this.bannerTimer = setTimeout(() => this.nextBanner(), 3900);
   }
 
   say(npc, text, duration = 3, tone = '') {
