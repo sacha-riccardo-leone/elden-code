@@ -1,5 +1,6 @@
 // Pointer and keyboard, for whoever thou art (Maren, or whoever thou hast become; pilot.js): WASD /
-// arrows walk (Shift runs), left click strikes, C crouches, B (or a click on thyself) opens thy fan
+// arrows walk (Shift runs), left click strikes (a mage casts), right click casts (whoever casts:
+// Fortuna, the mages), R looses thine ultimate once it's full, C crouches, B (or a click on thyself) opens thy fan
 // of gestures, number keys gesture, E uses what's in reach (interact.js), M shows the map. Click
 // another Tarnished to inspect it and open its fan, which offers to become them; drag it to carry
 // it elsewhere; scroll to zoom. Z/X travel by grace between areas, H to Roundtable Hold. In the
@@ -17,7 +18,7 @@ export class Input {
     this.travel = travel;
     this.battle = battle; // whether thou art fighting on the arena
     this.keys = keys; // held movement keys, read by the player every frame
-    this.actions = actions; // thine own: emote(key), attack(groundPoint), crouch(), fan(), interact()
+    this.actions = actions; // thine own: emote(key), attack(groundPoint), spell(groundPoint), ult(groundPoint), crouch(), fan(), interact()
     this.canvas = canvas;
     this.camera = camera;
     this.rig = rig;
@@ -73,6 +74,7 @@ export class Input {
   }
 
   move(e) {
+    this.pointer = { clientX: e.clientX, clientY: e.clientY }; // (where thou pointest: an aimed ultimate goes that way)
     const p = this.press;
     if (p) {
       const dist = Math.hypot(e.clientX - p.x, e.clientY - p.y);
@@ -113,6 +115,11 @@ export class Input {
       if (this.director.selected === npc) this.ui.showFan();
       return;
     }
+    // the right button: a spell toward where it was pressed
+    if (e.button === 2) {
+      if (!p.moved) this.actions.spell?.(this.groundAt(e));
+      return;
+    }
     if (p.moved || e.button !== 0) return;
     if (this.battle()) {
       // mid-fight, a click is a blow, even with a fan open (it just folds)
@@ -151,6 +158,7 @@ export class Input {
     if (e.code === 'KeyM' || e.key === '0') this.travel.overview();
     if (e.code === 'KeyC') this.actions.crouch();
     if (e.code === 'KeyQ') this.actions.focus();
+    if (e.code === 'KeyR') this.actions.ult?.(this.pointer ? this.groundAt(this.pointer) : null);
     if (e.code === 'KeyB') this.actions.fan();
     const n = Number(e.key);
     if (n >= 1 && n <= GESTURES.length) this.actions.emote(GESTURES[n - 1].key); // only thou gesturest

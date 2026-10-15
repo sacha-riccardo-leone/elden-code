@@ -876,7 +876,8 @@ export class Npc {
       this.body.play('lifted');
     } else {
       // spectres float above the ground; a fighter hopping a great enemy's shockwave is up in the air (fight.js)
-      if (this.hopLift > 0) this.lift = this.hopLift;
+      if (this.ultLift != null) this.lift = this.ultLift; // (borne up by an ultimate, ults.js)
+      else if (this.hopLift > 0) this.lift = this.hopLift;
       else this.lift += ((sp ? 0.35 : 0) - this.lift) * Math.min(1, dt * 12);
       if (this.travel) {
         this.stepTravel(dt);

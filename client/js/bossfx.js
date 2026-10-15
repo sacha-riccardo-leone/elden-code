@@ -20,7 +20,7 @@ const RED = {
   dark: [96, 6, 10],
 };
 
-function canvasOf(w, h, draw) {
+export function canvasOf(w, h, draw) {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
@@ -37,7 +37,7 @@ function canvasOf(w, h, draw) {
   return c;
 }
 
-function texture(canvas) {
+export function texture(canvas) {
   const t = new THREE.CanvasTexture(canvas);
   t.magFilter = THREE.NearestFilter;
   t.minFilter = THREE.NearestFilter;
@@ -166,7 +166,7 @@ function crackCanvas(seed) {
 
 // Light: drawn over what's behind it rather than added to it (added, it washes out to pink on the
 // bright stone of day), a little past white so the bloom catches it.
-const glowing = (map, opacity = 1) => new THREE.MeshBasicMaterial({
+export const glowing = (map, opacity = 1) => new THREE.MeshBasicMaterial({
   map, transparent: true, depthWrite: false, opacity, toneMapped: false, color: new THREE.Color(1.3, 1.05, 1.05),
 });
 

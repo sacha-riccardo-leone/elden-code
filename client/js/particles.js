@@ -20,6 +20,7 @@ const VERT = /* glsl */ `
 `;
 
 const FRAG = /* glsl */ `
+  uniform float uMask; // drawing a mask of what keeps its colour (post.js): white
   varying float vAlpha;
   varying vec3 vColor;
   void main() {
@@ -27,7 +28,7 @@ const FRAG = /* glsl */ `
     float d = max(abs(c.x), abs(c.y));
     float a = vAlpha * (1.0 - smoothstep(0.3, 0.5, d));
     if (a < 0.01) discard;
-    gl_FragColor = vec4(vColor * a, a);
+    gl_FragColor = uMask > 0.5 ? vec4(vec3(a), a) : vec4(vColor * a, a);
   }
 `;
 
@@ -62,7 +63,7 @@ export class Particles {
     this.material = new THREE.ShaderMaterial({
       vertexShader: VERT,
       fragmentShader: FRAG,
-      uniforms: { uScale: { value: 600 } },
+      uniforms: { uScale: { value: 600 }, uMask: { value: 0 } },
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,

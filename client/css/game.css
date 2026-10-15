@@ -952,6 +952,77 @@ body.in-battle .region-label { pointer-events: none; cursor: default; } /* mid-f
 .ally.fallen .ally-name { color: var(--muted); text-decoration: line-through; }
 .ally.fallen .ally-bar { opacity: 0.45; }
 #hp i { display: block; height: 100%; background: linear-gradient(#c43a2a, #7a160e); }
+
+/* ultimates (ults.js): thine under thy health (R once full), each ally's under its own, and the
+   name of one as it's loosed, while the world stands still */
+.ally-bars { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.ally-ult { height: 2px; background: rgba(8, 6, 8, 0.6); }
+.ally-ult i { display: block; height: 100%; background: #c9a45a; transition: width 0.25s; }
+.ally-ult.full i { background: #ffe9a8; box-shadow: 0 0 6px rgba(255, 220, 140, 0.9); }
+.ally.fallen .ally-ult { opacity: 0.3; }
+#ult {
+  position: fixed;
+  top: 121px;
+  left: 22px;
+  width: 210px;
+  height: 4px;
+  background: rgba(8, 6, 8, 0.75);
+  border: 1px solid rgba(201, 164, 90, 0.4);
+  pointer-events: none;
+}
+#ult[hidden] { display: none; }
+#ult i { display: block; height: 100%; background: linear-gradient(#e2c378, #9a7430); transition: width 0.2s; }
+#ult b {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  min-width: 18px;
+  padding: 1px 4px;
+  font: 600 11px var(--serif-title);
+  text-align: center;
+  color: #1a1410;
+  background: var(--gold-hi);
+  box-shadow: 0 0 10px rgba(255, 220, 140, 0.9);
+}
+#ult.full i { background: linear-gradient(#fff3c8, #e2b850); box-shadow: 0 0 8px rgba(255, 220, 140, 0.8); }
+#ult.full b { display: block; animation: ultReady 1.1s ease-in-out infinite; }
+@keyframes ultReady { 50% { box-shadow: 0 0 18px rgba(255, 230, 160, 1); } }
+body.in-battle #party { top: 133px; }
+#ult-title {
+  position: fixed;
+  left: 50%;
+  top: 9%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  z-index: 9;
+  animation: ultIn 0.35s ease-out both;
+}
+#ult-title[hidden] { display: none; }
+#ult-title .who {
+  font-family: var(--serif-title);
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #ece5d4;
+  text-shadow: 0 1px 3px #000;
+}
+#ult-title .name {
+  font-family: var(--serif-title);
+  font-size: 34px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ult, #ffd75a);
+  text-shadow: 0 0 18px var(--ult, #ffd75a), 0 2px 4px #000;
+}
+#ult-title.out { animation: ultOut 0.5s ease-in both; }
+@keyframes ultIn { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes ultOut { to { opacity: 0; transform: translate(-50%, -8px); } }
 #hurt {
   position: fixed;
   inset: 0;

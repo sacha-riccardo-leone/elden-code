@@ -31,6 +31,7 @@ import { SpriteBody } from './npc.js';
 import { AirWave, Decal, Meteor } from './bossfx.js';
 import { addRipple, rippleAt } from './ripple.js';
 import { SPOTS } from './heroes/golem.js';
+import { rootedAt } from './combat.js';
 
 export const GOLEM = {
   hp: 4500,
@@ -159,7 +160,7 @@ export class GolemMind {
       if (Math.hypot(n.pos.x - h.x, n.pos.y - h.z) <= h.r) {
         // from inside the circle: into the fire
         const [, hy] = this.spot(SPOTS.heart);
-        this.fight.hit(b, heartDmg, [h.x, hy + 0.3, b.pos.y + 0.2]);
+        this.fight.hit(b, heartDmg, [h.x, hy + 0.3, b.pos.y + 0.2], n);
         this.ctx.particles.emit({
           pos: [h.x, hy + 0.4, b.pos.y + 0.3], spread: [0.4, 0.3, 0.3], vel: [0, 2.6, 0], velSpread: [1.6, 1.4, 1],
           color: FIRE, size: 0.1, life: 0.7, count: 22, drag: 1.2, intensity: 2.8,
@@ -177,7 +178,9 @@ export class GolemMind {
     if (ahead > -0.4 && ahead < 1.5 + GOLEM.ankle.r && Math.abs(n.pos.y - b.pos.y) < GOLEM.ankle.r + 0.4) {
       const was = this.weak;
       this.ankle += weight;
-      this.fight.hit(b, ankleDmg, [ax, ay, b.pos.y + 0.2]);
+      this.fight.hit(b, ankleDmg, [ax, ay, b.pos.y + 0.2], n);
+      // (it takes little, but the blow counts in full toward the striker's ultimate)
+      this.fight.charge(n, this.fight.blowWorth(n) - ankleDmg);
       this.ctx.particles.emit({
         pos: [ax, ay, b.pos.y + 0.3], spread: [0.2, 0.2, 0.2], vel: [0, 1.6, 0], velSpread: [1.6, 1.2, 0.8],
         color: FIRE, size: 0.07, life: 0.5, count: 14, drag: 1.4, intensity: 2.6,
@@ -193,6 +196,42 @@ export class GolemMind {
       return true;
     }
     return false;
+  }
+
+  // Where a spell flies at him (fight.spellPoint): his cracked ankle while he stands, the fire in
+  // his chest as he lies felled, his middle as he falls or rises.
+  spellPoint() {
+    const b = this.b;
+    if (b.state === 'down' && this.heart) {
+      const [, hy] = this.spot(SPOTS.heart);
+      return [this.heart.x, hy + 0.3, b.pos.y + 0.2];
+    }
+    if (this.lying) return [b.pos.x, 1.2, b.pos.y + 0.2];
+    const [ax, ay] = this.spot(SPOTS.ankle);
+    return [ax, ay, b.pos.y + 0.2];
+  }
+
+  // A spell lands (fight.spellHit), `share` of an ordinary one (`player`: thine): on the cracked
+  // ankle as a blow there would (though it counts a little less toward felling him), and on the
+  // fire in his chest for half what a blow from inside the circle takes. Rolling, it misses him;
+  // lying but not yet open to it, the stone turns it.
+  spellBlow(n, share, player) {
+    const b = this.b;
+    if (!b.alive || b.state === 'enter' || b.lift > 2 || b.attack?.kind === 'roll') return false;
+    if (b.state === 'down' && this.heart) {
+      const [, hy] = this.spot(SPOTS.heart);
+      this.fight.hit(b, (player ? GOLEM.heart.player : GOLEM.heart.fighter) * 0.5 * share, [this.heart.x, hy + 0.3, b.pos.y + 0.2], n);
+      return true;
+    }
+    if (this.lying) { this.clang(b.pos.x, b.pos.y); return false; }
+    const [ax, ay] = this.spot(SPOTS.ankle);
+    const was = this.weak;
+    this.ankle += (player ? 1 : GOLEM.ankle.weight) * 0.7 * share;
+    const dmg = (player ? GOLEM.ankle.player : GOLEM.ankle.fighter) * share;
+    this.fight.hit(b, dmg, [ax, ay, b.pos.y + 0.2], n);
+    this.fight.charge(n, this.fight.blowWorth(n, true) * share - dmg);
+    if (!was && this.weak) this.tell('weak', 'The Golem\'s cracked ankle buckles: one more walk on it and it gives way', 'red');
+    return true;
   }
 
   // A blow turned by the stone: grey chips and a spark, and nothing more.
@@ -272,7 +311,7 @@ export class GolemMind {
       // instead, or, not yet able to roll again, turns his other blows on them)
       const slammed = f.clock - this.lastSlam < R.after;
       if (this.fireIn <= 0) move = 'fire';
-      else if (hemmed && slammed && this.rollIn <= 0) move = 'roll';
+      else if (hemmed && slammed && this.rollIn <= 0 && !rootedAt(b, f.clock)) move = 'roll'; // (not out of a pool of blood, combat.js)
       else if (!slammed && (this.slamIn <= 0 || hemmed)) move = 'slam';
       else if (ahead && inLane && ax < 7.5) move = Math.random() < 0.65 ? 'swing' : 'lunge';
       else if (ahead && inLane && ax < 15) move = 'lunge';

@@ -25,6 +25,7 @@ import { Interact } from './interact.js';
 import { Fight } from './fight.js';
 import { Crowd } from './crowd.js';
 import { Guide } from './guide.js';
+import { Ults } from './ults.js';
 import { PUBLIC_DEMO } from './mode.js';
 
 const canvas = document.getElementById('scene');
@@ -186,7 +187,9 @@ new Input({
   battle: () => fight.inBattle(),
   actions: {
     emote: (key) => pilot.npc && director.gesture(pilot.npc, key),
-    attack: (at) => pilot.attack(at ? at.x : null),
+    attack: (at) => pilot.attack(at),
+    spell: (at) => pilot.cast(at), // right click: a spell (Fortuna, the mages)
+    ult: (at) => fight.playerUlt(at), // R: thine ultimate, once full (ults.js)
     crouch: () => pilot.toggleCrouch(),
     interact: () => { if (ui.tableOpen) ui.closeTable(); else interact.press(); },
     dodge: () => pilot.dodge(),
@@ -202,6 +205,10 @@ new Input({
   },
 });
 const post = new Post(renderer, scene, camera);
+ctx.post = post;
+// ultimates: the world standing still and grey round whoever looses one (ults.js)
+const ults = new Ults(ctx);
+ctx.ults = ults;
 const daylight = new Daylight({ renderer, scene, world, post, ui }); // day and night take turns
 ctx.daylight = daylight;
 director.start(); // the heroes take their seats at the Round Table (the Twofold in the form for the hour)
@@ -285,6 +292,7 @@ function resize() {
   post.setSize(w, h, ratio);
   const bufferHeight = h * ratio;
   particles.setViewport(bufferHeight, camera.fov);
+  ults.particles.setViewport(bufferHeight, camera.fov);
 }
 window.addEventListener('resize', resize);
 resize();
@@ -298,9 +306,15 @@ let camMode = null; // in a fight on the arena: 'boss' (showing him) or 'thee' (
 let camBase = FOLLOW_DIST; // how far back the camera was before the fight took it over
 
 function step(dt) {
-  t += dt;
+  // an ultimate being loosed (ults.js): the world stands still (wdt) but for whoever looses it,
+  // and the camera closes on them
+  const wdt = ults.frozen ? 0 : dt;
+  t += wdt;
   const me = pilot.npc; // moved by the director with everyone else (its update asks the pilot)
-  if (me) {
+  const shot = ults.shot();
+  if (shot) {
+    rig.target.set(shot.at[0], shot.at[1], shot.at[2] - 0.6);
+  } else if (me) {
     if (overview && pilot.moving) endOverview();
     if (!overview) {
       // fighting a great enemy on the arena: the camera shows him as he enters, then follows thee
@@ -323,13 +337,14 @@ function step(dt) {
   // Thin the fog as the camera pulls back so the overview isn't swallowed by it.
   daylight.update();
   scene.fog.density = 0.0105 * Math.min(1, 30 / rig.dist) * daylight.fogDensity;
-  world.update(dt, t, camera, rig.dist, director.hubVisitors || 0);
-  director.update(dt, t);
-  fight.update(dt, t);
-  crowd.resolve(dt); // once everyone has moved: nobody stands inside anybody
-  guide.update(dt);
+  world.update(wdt, t, camera, rig.dist, director.hubVisitors || 0);
+  director.update(wdt, t);
+  fight.update(wdt, t);
+  crowd.resolve(wdt); // once everyone has moved: nobody stands inside anybody
+  guide.update(wdt);
   document.body.classList.toggle('in-battle', fight.inBattle()); // (no labels to click mid-fight)
-  particles.update(dt, t);
+  particles.update(wdt, t);
+  ults.update(dt);
   ui.overview = rig.dist > 40;
   ui.setFocusArea(world.areaAt(rig.cur.x, rig.cur.z), t);
   ui.updateLabels(areas());
@@ -359,7 +374,7 @@ requestAnimationFrame(frame);
 // Handy for poking at the scene from the dev console. advance(s) steps the simulation by s
 // seconds even when the tab is in the background (where requestAnimationFrame pauses).
 window.elden = {
-  scene, world, director, demo, rig, renderer, travel, nav, post, perf, daylight, fight,
+  scene, world, director, demo, rig, renderer, travel, nav, post, perf, daylight, fight, ults,
   pilot,
   get player() { return pilot.npc; },
   keys,

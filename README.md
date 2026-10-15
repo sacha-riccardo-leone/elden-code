@@ -56,8 +56,9 @@ can **become any character**: click one and choose **Become …** in the fan ove
   - **W A S D** or the arrow keys to walk, **Shift** to run; cross the bridges to other islands.
     The camera stays on you.
   - **Left click** strikes with the character's own attack (a Tarnished in front of you staggers;
-    it's all for show). **Space** dodges. **C** crouches. **Q**, in a fight against a great
-    enemy, turns the camera's focus on it and back on you.
+    it's all for show); a mage casts a spell instead. **Right click** casts as Fortuna or a mage.
+    **Space** dodges. **C** crouches. **Q**, in a fight against a great enemy, turns the camera's
+    focus on it and back on you. **R** looses your ultimate once its bar is full.
   - **B** (or clicking yourself) opens your fan of gestures over your head (or **1–8**). Nearby
     Tarnished may answer.
   - **E** uses what you stand by (a prompt shows it): the forge, the scrolls, the war table, the
@@ -262,9 +263,61 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
     failure, or a single quest running past ten minutes.
 
   After a fight, nothing but a summons brings another for six minutes.
-- **Who fights:** every Tarnished except the Twofold drops what it's doing and comes by grace to
-  fight. Their sessions keep running, and they go back to them by grace afterwards. You fight too,
-  as whoever you are.
+- **Who fights:** every Tarnished, the Twofold included, drops what it's doing and comes by grace
+  to fight. Their sessions keep running, and they go back to them by grace afterwards. You fight
+  too, as whoever you are.
+- **From afar or up close** (`client/js/combat.js`, effects in `client/js/spellfx.js`):
+  - **Mages** keep 6.5–9.5 units off the enemy, circle slowly, and cast. Each has a few spells in
+    its own light:
+    - Jorvik (the Rune Lord): a spinning golden rune, a volley of three that fan out and curve back
+      in, or a circle of runes under the enemy that bursts into a pillar of gold.
+    - Corisande: a glintstone pebble, a spray of three shards, or now and then a great shard.
+    - Vael: a gout of blood, blood spikes out of the floor, or a lash of blood that reaches the enemy
+      at once.
+    - Solenne: a lance of holy light, a spinning halo, or light falling on the enemy.
+  - **Up close:** Ruadan, Maren, Aurelion, Wynn and Ulric. Ulric still hides; his style only
+    matters when you play him.
+  - **Fortuna** does both, switching between her frost blade and frost cast from afar (a shard, or
+    ice out of the floor).
+  - **Playing them:** as a mage, a left click casts toward the pointer. The spell homes on the
+    enemy if he's within about 35° of where you point; otherwise it flies off into nothing. As
+    Fortuna, left click swings her blade and right click casts.
+  - **Against the Golem,** spells hit his cracked ankle while he stands (counting a little less
+    toward felling him than a blow there). While he lies felled they hit the fire in his chest, for
+    half what a blow from inside the golden circle does.
+- **Ultimates** (`client/js/ults.js`):
+  - **The meter:** each fighter's blows fill it: about 160 damage for the others, 520 for you. A
+    blow on the Golem's ankle counts in full, though it barely wounds him. Your meter is under
+    your health; the others' are thin gold lines under theirs.
+  - **Loosing one:** you press **R** once your meter is full. The others loose theirs when ready,
+    at least 12 seconds apart, never two at once.
+  - **The freeze:** the world stops and turns black and white, except whoever looses it. The camera
+    closes in, its name shows, and an aura of their own light shines round them (a glowing outline,
+    a light behind, motes swirling in). Then they strike, and the world moves and colours again,
+    about 2.4 seconds in all. If you aren't on the arena (fallen and resting at the Hold), an NPC's
+    ult simply fires, with no freeze.
+  - **Aimed ones** (Solenne's, Ulric's) go one of four ways: toward the pointer for you, and only
+    hit if the enemy stands in that line. The others walk into line first.
+  - Jorvik, **Flight of Tomes:** seven golden tomes take wing and dash into him, each spent as it
+    strikes.
+  - Corisande, **Glintstone Arrow:** a crystal arrow trailing light finds him.
+  - Vael, **Crimson Mire:** a pool of blood under him for 7 seconds. He's slowed to a third, can't
+    leave it or leap or roll away, and bleeds until 4 seconds after it dries.
+  - Solenne, **Wall of Dawn** (aimed): a tall curved wall of golden light strikes him once, hard,
+    and drives him back.
+  - Ruadan, **Hammerfall:** he leaps high and lands hammer first at the enemy's feet in a burst of
+    gold.
+  - Maren, **Red Storm:** red lightning rains around him, ending in one great bolt.
+  - Aurelion, **Radiant Verdict:** a great slash of light dazes him for 5 seconds, unable to fight
+    or move.
+  - Wynn, **Iaijutsu:** after a breath, Wynn cuts through him from every side while he's held still.
+    The cuts hang in the air, and nothing lands until Wynn is back where he began, blade sheathed.
+    Then it all lands at once.
+  - Ulric, **Tenfold Spears** (aimed): ten spears stick in him, poison him for 4 seconds, then fall
+    away.
+  - Fortuna, **Frostfall:** four great icicles drop on him one after another.
+  - **Art:** each ult holds the character's own pose (raise, cast, strike, kneel) until their ult
+    drawings replace it.
 - **Only the fight:** in the fight, a Tarnished's session works on unseen: no log lines about its
   work, no incantations, signs or gestures, no spirit wisps and no small talk. It says only its
   battle lines (taking up the charge, falling back, mourning the fallen, the victory). From the

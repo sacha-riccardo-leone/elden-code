@@ -2,9 +2,13 @@
 //
 // One comes when summoned at the Round Table, invades by itself now and then, and answers a Claude
 // Code session in trouble: tool calls failing one after another, a session ending in failure, or a
-// single quest dragging on. The arena rises from the mist, and every Tarnished (all but the
-// Twofold, who stand above such things) drops what it's doing and comes to fight; thou too, as
-// whoever thou art. Thy blows and everyone's wear it down; a session that summoned it fells it at
+// single quest dragging on. The arena rises from the mist, and every Tarnished drops what it's
+// doing and comes to fight; thou too, as whoever thou art. The mages keep their distance and cast
+// (the Rune Lord, the Glintstone Witch, Vael, the Eternal Queen), the rest close in with blade,
+// spear or hammer, and Fortuna does both (combat.js; thou, as a mage, castest with a click, and as
+// Fortuna with the right button). Every blow that lands fills the striker's ultimate, loosed (R,
+// for thee) in a moment when the world stands still (ults.js). Thy blows and everyone's wear it
+// down; a session that summoned it fells it at
 // once by fulfilling its next quest. A Tarnished who falls is out of the fight for good: it goes by
 // grace to the Hold and rests there until the fight is over. Fall thyself, and thou choosest one of
 // the fighters still standing to carry on as; when nobody is left standing on the arena, the fight
@@ -27,6 +31,7 @@ import { Crescent, Decal, Spike } from './bossfx.js';
 import { GOLEM, GOLEM_MOVES, GolemMind } from './golem.js';
 import { setFoe } from './voices.js';
 import { clearRipples, rippleAt, stepRipples } from './ripple.js';
+import { styleOf, castSpell, muzzleOf, SPELL, ULT, RANGED, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause } from './combat.js';
 
 // reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
 // lane: how far out of his line (in depth) a swing or a lunge still catches someone
@@ -225,6 +230,8 @@ export class Fight {
     this.introUntil = 0; // till then, as he enters, it shows him
     this.boss = null;
     this.fx = []; // his magic, living on by itself: flying crescents, lances, fading light, cracks
+    // (and the Tarnished's spells and ultimates, spellfx.js: they're handed this to live in)
+    this.fxCtx = { scene: ctx.scene, particles: ctx.particles, add: (e) => this.fx.push(e) };
     this.cause = null;
     this.quietUntil = 0;
     this.trigger = { ...TRIGGER }; // (the public demo quickens it: pace())
@@ -242,6 +249,8 @@ export class Fight {
       bossDmg: document.querySelector('#boss .dmg'),
       hp: document.getElementById('hp'),
       hpBar: document.querySelector('#hp i'),
+      ult: document.getElementById('ult'),
+      ultBar: document.querySelector('#ult i'),
       party: document.getElementById('party'),
       focusHint: document.getElementById('focus-hint'),
       hurt: document.getElementById('hurt'),
@@ -361,13 +370,13 @@ export class Fight {
   // ------------------------------------------------------------------------------------------
   // everyone to the arena, and home again
 
-  // Every Tarnished but the Twofold (and whoever thou art) drops what it's doing and comes.
+  // Every Tarnished (but whoever thou art) drops what it's doing and comes.
   gather() {
     const { director, world } = this.ctx;
     const [ax, az] = world.arena.point('grace');
     let k = 0;
     for (const n of director.npcs.values()) {
-      if (n.dead || n.piloted || n.heroActor === 'twofold' || n.spectre || n.intent.kind === 'leave') continue; // (spectres only work)
+      if (n.dead || n.piloted || n.spectre || n.intent.kind === 'leave') continue; // (spectres only work)
       n.resume = n.intent.kind === 'fight' ? n.resume : n.intent;
       if (n.slot) n.releaseSlot();
       n.slot = null;
@@ -383,6 +392,8 @@ export class Fight {
         hp: 100, down: 0, cd: rand(1.5, 4), angle: (k * 2.4) % (Math.PI * 2),
         ring: 4.6 + (k % 3) * 0.8, dir: k % 2 ? 1 : -1, mode: 'circle', modeT: 0, vx: 0, vz: 0, speed: 0,
         coward: n.hero?.hero === 'bandit', // the Bandit Knight (Patches, really) never fights: he keeps his distance, and whines
+        ult: 0, // its ultimate, filling with every blow that lands (ults.js)
+        ranged: Math.random() < 0.5, // (Fortuna: frost from afar next, or her blade)
       };
       k += 1;
       if (n.travel) continue;
@@ -433,12 +444,13 @@ export class Fight {
     if (b.mind) return b.mind.playerBlow(p); // (the Golem: only his weak points, golem.js)
     const ahead = (b.pos.x - p.pos.x) * p.body.facing;
     if (ahead < -0.6 || ahead > b.kind.reach + b.kind.radius || Math.abs(b.pos.y - p.pos.y) > b.kind.depth) return false;
-    this.hit(b, DAMAGE.player);
+    this.hit(b, DAMAGE.player, null, p);
     return true;
   }
 
-  // A blow wounds him (`at`: where it shows, if not his middle).
-  hit(b, n, at = null) {
+  // A blow wounds him (`at`: where it shows, if not his middle); `src`, whoever struck it, has
+  // its ultimate filled by what it took (`charge`: not by an ultimate's own wounds, nor a poison's).
+  hit(b, n, at = null, src = null, charge = true) {
     const dealt = b.damage(n);
     if (!dealt) return;
     this.dmgShown = this.clock < this.dmgUntil ? this.dmgShown + Math.round(dealt) : Math.round(dealt);
@@ -447,6 +459,105 @@ export class Fight {
       pos: at || [b.pos.x, 2.2, b.pos.y], spread: [0.5, 0.8, 0.3], vel: [0, 1.4, 0], velSpread: [1.4, 1, 0.8],
       color: ['#ff6a4a', '#ffd2a8', '#a01818'], size: 0.07, life: 0.6, count: 10, drag: 1.2, intensity: 2.2,
     });
+    if (charge) this.charge(src, dealt);
+  }
+
+  // Fills src's ultimate by `amount` (what its blow took; or, where his stone takes little, what
+  // the blow was worth: golem.js).
+  charge(src, amount) {
+    if (!src || amount <= 0) return;
+    const pilot = this.ctx.pilot;
+    if (src === pilot.npc) pilot.ult = Math.min(1, (pilot.ult || 0) + amount / ULT.player);
+    else if (src.fighter && !src.fighter.dead) src.fighter.ult = Math.min(1, src.fighter.ult + amount / ULT.npc);
+  }
+
+  // What an ordinary blow (or spell) of n's is worth, toward its ultimate.
+  blowWorth(n, spell = false) {
+    const mine = n === this.ctx.pilot.npc;
+    return spell ? (mine ? SPELL.player : SPELL.npc) : mine ? DAMAGE.player : DAMAGE.fighter;
+  }
+
+  // The point of him a spell flies at: his middle (the Golem: his cracked ankle while he stands,
+  // the fire in his chest as he lies felled), and his middle at a height, for the ultimates.
+  spellPoint() {
+    const b = this.boss;
+    if (!b) return [0, 0, 0];
+    return b.mind?.spellPoint ? b.mind.spellPoint() : [b.pos.x, b.lift + 2.2, b.pos.y + 0.2];
+  }
+
+  bossPoint(up = 2) {
+    const b = this.boss;
+    return b ? [b.pos.x, b.lift + up, b.pos.y + 0.2] : [0, 0, 0];
+  }
+
+  // A spell lands on him: as a blow, but from afar (the Golem: on his ankle, or the fire in his
+  // chest, golem.js). `share`: how much of an ordinary spell it is; `player`: thine.
+  spellHit(n, share, at, player = false) {
+    const b = this.boss;
+    if (!b || !b.alive) return;
+    if (b.mind) b.mind.spellBlow(n, share, player);
+    else this.hit(b, share * (player ? SPELL.player : SPELL.npc), at ? [at.x, at.y, at.z] : null, n);
+  }
+
+  // An ultimate wounds him, wherever he stands and whatever he is (but spitting fire, untouchable).
+  ultHit(n, amount, at = null) {
+    const b = this.boss;
+    if (!b || !b.alive) return;
+    this.hit(b, amount, at ? [at.x, at.y, at.z] : null, n, false);
+  }
+
+  // A fighter mage's spell: its own blow played (the staff swung, the fist clenched), the spell
+  // loosed at its turn (update, castFrom).
+  startCast(n) {
+    const def = n.body.sheet.anims.hammer;
+    n.action = { kind: 'fightCast', anim: 'hammer', t: 0, dur: def.frames.length / def.fps, hitAt: (n.body.sheet.hits?.hammer ?? 2) / def.fps, hit: false };
+    n.body.facing = this.boss.pos.x > n.pos.x ? 1 : -1;
+    n.body.play('hammer', true);
+    n.fighter.vx = 0;
+    n.fighter.vz = 0;
+  }
+
+  castFrom(n) {
+    if (!this.boss?.alive) return;
+    castSpell(this.fxCtx, n, { target: () => this.spellPoint(), hit: (at, share) => this.spellHit(n, share, at) });
+  }
+
+  // Thy spell (pilot.js), toward where thou pointest: it finds him if he's that way (within a
+  // little), else flies on into nothing.
+  playerCast(n, at) {
+    const b = this.boss;
+    const from = muzzleOf(n);
+    let dir = [n.body.facing, 0];
+    if (at) {
+      const dx = at.x - from[0];
+      const dz = at.z - from[2];
+      const d = Math.hypot(dx, dz);
+      if (d > 0.2) dir = [dx / d, dz / d];
+    }
+    let target = null;
+    if (b && b.alive && b.state !== 'enter' && this.state === 'fighting' && this.inArena(n)) {
+      const bx = b.pos.x - n.pos.x;
+      const bz = b.pos.y - n.pos.y;
+      const bd = Math.hypot(bx, bz) || 1;
+      if (bd < RANGED.reach + 4 && (bx * dir[0] + bz * dir[1]) / bd > 0.8) target = () => this.spellPoint();
+    }
+    castSpell(this.fxCtx, n, { target, dir, hit: (p, share) => this.spellHit(n, share, p, true) });
+  }
+
+  // R: thine ultimate, full, loosed (an aimed one toward the pointer, one of the four ways: it
+  // finds him only if he stands in that line).
+  playerUlt(at) {
+    const { pilot, ults } = this.ctx;
+    const n = pilot.npc;
+    if (!n || pilot.dead || (pilot.ult || 0) < 1 || !this.inArena(n) || !ults?.ready(n, true)) return false;
+    if (n.travel || n.shift || (n.action && !['attack', 'cast', 'hurt', 'crouch', 'use', 'gesture'].includes(n.action.kind))) return false;
+    let dir = null;
+    if (ults.of(n)?.aim) {
+      const dx = (at ? at.x : n.pos.x + n.body.facing) - n.pos.x;
+      const dz = (at ? at.z : n.pos.y) - n.pos.y;
+      dir = Math.abs(dx) >= Math.abs(dz) ? [Math.sign(dx) || n.body.facing, 0] : [0, Math.sign(dz)];
+    }
+    return ults.start(n, { dir, player: true });
   }
 
   // A blow lands on thee.
@@ -616,7 +727,22 @@ export class Fight {
   // the enemy's mind
 
   stepBoss(b, dt, t) {
-    b.t += dt;
+    // what the ultimates do to him (combat.js): bleeding, poisoned, knocked back, kept in a pool;
+    // held still or dazed, he does nothing; slowed, everything he does is slow
+    const now = this.clock;
+    stepStatus(b, now, dt, { hit: (amount, src) => this.hit(b, amount, null, src, false), shift: (dx, dz) => this.shift(b, dx, dz), particles: this.ctx.particles });
+    const held = heldAt(b, now) && b.alive;
+    const dazed = held && now < b.status.stunUntil;
+    const pace = paceAt(b, now);
+    const bdt = held ? 0 : dt * pace;
+    if (dazed && Math.random() < dt * 14) {
+      const a = now * 5 + Math.random();
+      this.ctx.particles.emit({
+        pos: [b.pos.x + Math.cos(a) * 1.1, b.lift + b.body.sheet.head * b.body.sheet.px * 0.85, b.pos.y + Math.sin(a) * 0.4], spread: [0.05, 0.05, 0.05],
+        vel: [0, 0.3, 0], velSpread: [0.2, 0.1, 0.2], color: ['#fff3c4', '#ffd75a'], size: 0.09, life: 0.5, count: 1, drag: 1, intensity: 2.6,
+      });
+    }
+    b.t += bdt;
     b.posture = Math.max(0, b.posture - dt * 40);
     const fast = b.hp < b.max / 2 ? 1.25 : 1; // wounded, he grows wild
     let moving = false;
@@ -652,10 +778,14 @@ export class Fight {
         if (b.t >= 3.2) b.state = 'gone';
         break;
       case 'attack':
-        jitter = b.mind ? b.mind.stepMove(dt, t, fast) : this.stepMove(b, dt, t, fast);
+        if (!held) jitter = b.mind ? b.mind.stepMove(bdt, t, fast) : this.stepMove(b, bdt, t, fast);
         break;
       case 'ready': {
-        moving = b.mind ? b.mind.think(dt, fast) : this.think(b, dt, fast);
+        if (held) {
+          if (dazed) b.pose(b.body.sheet.anims.stagger ? 'stagger' : 'idle');
+          break;
+        }
+        moving = b.mind ? b.mind.think(bdt, fast) : this.think(b, bdt, fast);
         // now and then, between blows, a word or a sound (from those that speak)
         const stalk = b.kind.says.stalk;
         b.talkIn = (b.talkIn ?? rand(10, 16)) - dt;
@@ -666,12 +796,13 @@ export class Fight {
         break;
       }
       default:
-        b.mind?.stepState(dt); // (the Golem falling, felled, getting up)
+        b.mind?.stepState(bdt); // (the Golem falling, felled, getting up)
         break;
     }
     // where he's been standing: rooted too long and he'll want to leap elsewhere
     if (b.pos.distanceTo(b.anchor) > 3) { b.anchor.copy(b.pos); b.anchorT = 0; } else b.anchorT += dt;
-    b.body.tick(dt, moving ? 0.8 * fast : 0.7);
+    // (held, he's still as stone; dazed, he sways; slowed, all of him is slow)
+    b.body.tick(held ? (dazed ? dt * 0.4 : 0) : dt * pace, moving ? 0.8 * fast : 0.7);
     b.body.place(b.pos.x + jitter + b.body.facing * b.offset, rippleAt(b.pos.x, b.pos.y), b.pos.y, b.lift);
     // his shadow: wide and deep (he's long, and heavy), a little smaller the higher he leaps (and
     // longer, the Golem lying on his face)
@@ -698,8 +829,10 @@ export class Fight {
     const dz = tgt.pos.y - b.pos.y;
     if (Math.abs(dx) > 0.4) b.body.facing = dx > 0 ? 1 : -1;
     const close = this.foesWithin(b, 4.2);
-    // beset (crowded, or battered) or rooted: he leaps elsewhere
+    // beset (crowded, or battered) or rooted: he leaps elsewhere (not out of a pool of blood, combat.js)
     const beset = close >= 3 || b.taken(5) > 250;
+    const stuck = rootedAt(b, this.clock);
+    if (stuck) b.leapCd = Math.max(b.leapCd, 0.5);
     if (b.leapCd <= 0 && b.cd <= 0.6 && (beset || b.anchorT > 12)) {
       this.begin(b, 'leap', beset);
       return false;
@@ -993,6 +1126,31 @@ export class Fight {
           f.whine = near ? rand(3, 5) : rand(4.5, 8);
           this.ctx.director.remark(n, near ? 'flee' : Math.random() < 0.6 ? 'cower' : 'taunt');
         }
+      } else if (f.ult >= 1 && this.ctx.ults?.ready(n)) {
+        // its ultimate full: loosed (ults.js); an aimed one only from his line, level with him,
+        // so it walks into that first
+        const ults = this.ctx.ults;
+        if (!ults.of(n).aim) { ults.start(n); return false; }
+        const side = Math.sign(n.pos.x - b.pos.x) || 1;
+        goal = [b.pos.x + side * 6.5, b.pos.y];
+        speed = 4.6;
+        const ax = Math.abs(n.pos.x - b.pos.x);
+        if (Math.abs(n.pos.y - b.pos.y) < 0.6 && ax > 3 && ax < 11) {
+          ults.start(n, { dir: [-side, 0] });
+          return false;
+        }
+      } else if (styleOf(n).range === 'far' || (styleOf(n).range === 'both' && f.ranged && b.state !== 'down')) {
+        // a mage (or Fortuna, casting): well off him, going slowly round, a spell now and then
+        // (combat.js)
+        f.cd -= dt;
+        goal = standOff(b, n, f, dt);
+        speed = 3.6;
+        if (f.cd <= 0 && dist < RANGED.reach && b.lift < 3) {
+          this.startCast(n);
+          f.cd = castPause();
+          if (styleOf(n).range === 'both') f.ranged = Math.random() < 0.5;
+          return false;
+        }
       } else {
         f.cd -= dt;
         // (the Golem's weak points: where to strike, if anywhere just now, golem.js)
@@ -1018,6 +1176,7 @@ export class Fight {
             f.cd = felled ? rand(0.7, 1.3) : rand(2, 4.5);
             f.vx = 0;
             f.vz = 0;
+            if (styleOf(n).range === 'both') f.ranged = Math.random() < 0.5; // (Fortuna: frost next, or the blade again)
             return false;
           }
         } else if (f.mode === 'retreat') {
@@ -1275,13 +1434,16 @@ export class Fight {
       case 'fighting': {
         const b = this.boss;
         this.stepBoss(b, dt, t);
-        // the fighters' blows land at the turn of their swing
+        // the fighters' blows land at the turn of their swing (a mage's spell is loosed there)
         for (const n of director.npcs.values()) {
           const a = n.action;
           if (a?.kind === 'fightAttack' && !a.hit && a.t >= a.hitAt) {
             a.hit = true;
             if (b.mind) b.mind.fighterBlow(n);
-            else if (b.lift < 2 && Math.hypot(b.pos.x - n.pos.x, b.pos.y - n.pos.y) < b.kind.reach + b.kind.radius + 0.4) this.hit(b, DAMAGE.fighter);
+            else if (b.lift < 2 && Math.hypot(b.pos.x - n.pos.x, b.pos.y - n.pos.y) < b.kind.reach + b.kind.radius + 0.4) this.hit(b, DAMAGE.fighter, null, n);
+          } else if (a?.kind === 'fightCast' && !a.hit && a.t >= a.hitAt) {
+            a.hit = true;
+            this.castFrom(n);
           }
         }
         if (b.state === 'gone' || !b.alive) {
@@ -1432,6 +1594,7 @@ export class Fight {
 
   end() {
     clearRipples();
+    this.ctx.ults?.finish(); // (an ultimate under way ends with it)
     this.release();
     this.state = 'ending';
     this.t = 0;
@@ -1451,9 +1614,15 @@ export class Fight {
     }
     const pilot = this.ctx.pilot;
     // the floating hint, once he's been shown, till thou'st used it once (Q, or a click on it)
-    el.focusHint.hidden = !(this.facing(pilot.npc) && this.clock >= this.introUntil && !this.focusLearned);
+    el.focusHint.hidden = !(this.facing(pilot.npc) && this.clock >= this.introUntil && !this.focusLearned) || !!this.ctx.ults?.active;
     el.hp.hidden = !(this.active || pilot.hp < pilot.maxHp);
     el.hpBar.style.width = `${(100 * pilot.hp) / pilot.maxHp}%`;
+    // thine ultimate, under thy health, while thou fightest: R once it's full
+    const me = pilot.npc;
+    const ult = pilot.ult || 0;
+    el.ult.hidden = !(this.state === 'fighting' && me && !pilot.dead && this.inArena(me) && this.ctx.ults?.of(me));
+    el.ultBar.style.width = `${100 * ult}%`;
+    el.ult.classList.toggle('full', ult >= 1);
     this.updateParty();
   }
 
@@ -1474,18 +1643,28 @@ export class Fight {
         const name = document.createElement('span');
         name.className = 'ally-name';
         name.textContent = n.name.first;
+        const bars = document.createElement('div');
+        bars.className = 'ally-bars';
         const bar = document.createElement('div');
         bar.className = 'ally-bar';
         const fill = document.createElement('i');
         bar.append(fill);
-        div.append(name, bar);
-        row = { el: div, fill };
+        // (and its ultimate, filling, under its health)
+        const ult = document.createElement('div');
+        ult.className = 'ally-ult';
+        const charge = document.createElement('i');
+        ult.append(charge);
+        bars.append(bar, ult);
+        div.append(name, bars);
+        row = { el: div, fill, ult, charge };
         this.partyRows.set(n, row);
       }
       if (el.children[i] !== row.el) el.insertBefore(row.el, el.children[i] || null);
       const f = n.fighter;
       row.el.classList.toggle('fallen', !!f.dead);
       row.fill.style.width = `${Math.max(0, f.hp)}%`;
+      row.charge.style.width = `${100 * (f.ult || 0)}%`;
+      row.ult.classList.toggle('full', (f.ult || 0) >= 1);
     });
   }
 }

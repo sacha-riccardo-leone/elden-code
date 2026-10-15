@@ -10,7 +10,11 @@
 // while it changes form at dusk and dawn.
 //
 // The player also has health (for fights against great enemies, fight.js) and a dodge (Space): a
-// quick dash that no blow can touch.
+// quick dash that no blow can touch. A mage casts its spells with a click (and Fortuna, who also
+// has her blade, with the right button; combat.js), and an ultimate, once full, is loosed with R
+// (ults.js).
+
+import { styleOf } from './combat.js';
 
 const WALK = 3.4;
 const RUN = 6.2;
@@ -37,6 +41,7 @@ export class Pilot {
     this.maxHp = 100;
     this.dead = false;
     this.dodgeReady = 0;
+    this.ult = 0; // thine ultimate, filling as thy blows land (fight.js, ults.js)
   }
 
   // Take hold of `npc`, letting go of whoever was held before.
@@ -155,16 +160,31 @@ export class Pilot {
     });
   }
 
-  // One blow (the character's own strike) toward where the click landed; whoever stands in front
-  // staggers.
-  attack(targetX = null) {
+  // One blow (the character's own strike) toward where the click landed (`at`, on the ground);
+  // whoever stands in front staggers. A mage casts instead (cast).
+  attack(at = null) {
     const n = this.npc;
     if (this.busy(n)) return;
-    if (targetX != null && Math.abs(targetX - n.pos.x) > 0.2) n.body.facing = targetX > n.pos.x ? 1 : -1;
+    if (styleOf(n).range === 'far') { this.cast(at); return; }
+    if (at && Math.abs(at.x - n.pos.x) > 0.2) n.body.facing = at.x > n.pos.x ? 1 : -1;
     const def = n.body.sheet.anims.hammer;
     n.action = {
       kind: 'attack', anim: 'hammer', t: 0, dur: def.frames.length / def.fps,
       hitAt: (n.body.sheet.hits?.hammer ?? 2) / def.fps, hit: false,
+    };
+    n.body.play('hammer', true);
+  }
+
+  // A spell toward where the click landed (right click; a mage's left click too): for those who
+  // cast (combat.js), Fortuna among them. It's loosed at the turn of the character's blow (drive).
+  cast(at = null) {
+    const n = this.npc;
+    if (this.busy(n) || styleOf(n).range === 'near') return;
+    if (at && Math.abs(at.x - n.pos.x) > 0.2) n.body.facing = at.x > n.pos.x ? 1 : -1;
+    const def = n.body.sheet.anims.hammer;
+    n.action = {
+      kind: 'cast', anim: 'hammer', t: 0, dur: def.frames.length / def.fps,
+      hitAt: (n.body.sheet.hits?.hammer ?? 2) / def.fps, hit: false, at,
     };
     n.body.play('hammer', true);
   }
@@ -210,7 +230,7 @@ export class Pilot {
     const h = this.heading();
     const going = !!(h.x || h.z);
     // setting off cuts a gesture or a crouch short (not a blow, nor rising from grace, nor a change of form)
-    if (going && n.action && !['spawn', 'attack', 'transform', 'dodge', 'hurt'].includes(n.action.kind) && !n.shift && !this.dead) n.action = null;
+    if (going && n.action && !['spawn', 'attack', 'cast', 'ult', 'transform', 'dodge', 'hurt'].includes(n.action.kind) && !n.shift && !this.dead) n.action = null;
     let moving = false;
     if (n.action) {
       const a = n.action;
@@ -235,6 +255,11 @@ export class Pilot {
           pos: [n.pos.x + n.body.facing * 1.7, 1.1, n.pos.y], spread: [0.25, 0.3, 0.2], vel: [n.body.facing * 1.5, 0.8, 0],
           velSpread: [1, 1, 0.6], color: [...burst, burst[0]], size: 0.06, life: 0.5, count: 18, drag: 1.5, intensity: 2.6,
         });
+      }
+      // thy spell, loosed at the turn of the blow (fight.js)
+      if (a.kind === 'cast' && !a.hit && a.t >= a.hitAt) {
+        a.hit = true;
+        this.ctx.fight?.playerCast(n, a.at);
       }
       if (a.t >= a.dur) n.action = null;
     } else if (going && !n.shift && !this.dead) {
