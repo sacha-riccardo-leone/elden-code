@@ -26,6 +26,7 @@ import { Fight } from './fight.js';
 import { Crowd } from './crowd.js';
 import { Guide } from './guide.js';
 import { Ults } from './ults.js';
+import { Companions } from './companions.js';
 import { PUBLIC_DEMO } from './mode.js';
 import { started, markReady } from './gate.js';
 
@@ -166,6 +167,9 @@ const interact = new Interact(ctx);
 ctx.rig = rig;
 const fight = new Fight(ctx);
 ctx.fight = fight;
+// as a great enemy comes, whom thou takest with thee (companions.js): the arena rises after
+const companions = new Companions(ctx);
+ctx.companions = companions;
 ui.canSummon = () => fight.canSummon();
 ui.hushed = () => director.worldPaused; // no session banners while the world holds still for a great enemy
 const crowd = new Crowd(ctx); // characters are solid
@@ -173,7 +177,7 @@ ctx.crowd = crowd;
 const guide = new Guide(ctx); // the way to the arena, while a great enemy is abroad
 document.getElementById('table-summon').addEventListener('click', () => {
   ui.closeTable();
-  fight.start({ kind: 'summon' });
+  fight.call({ kind: 'summon' }); // (thy companions first: companions.js)
 });
 document.getElementById('table-sit').addEventListener('click', () => {
   ui.closeTable();
@@ -186,7 +190,7 @@ document.getElementById('table-leave').addEventListener('click', () => ui.closeT
 let entered = false; // (thou'st set out from the title screen: begin)
 new Input({
   canvas, camera, rig, director, ui, travel, keys,
-  active: () => entered, // (no keys reach the world while the title screen stands over it)
+  active: () => entered && !companions.shown, // (no keys reach the world under the title screen, nor while thou choosest thy companions)
   battle: () => fight.inBattle(),
   actions: {
     emote: (key) => pilot.npc && director.gesture(pilot.npc, key),

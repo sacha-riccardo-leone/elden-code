@@ -27,7 +27,7 @@
 import * as THREE from 'three';
 import { Particles } from './particles.js';
 import { Aura, Missile, Wall, Pool, Slash, Cut, Drop, Bolt, Burst, StuckSpear, TEX, motesOf } from './spellfx.js';
-import { ULT, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt } from './combat.js';
+import { ULT, ultPower, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt } from './combat.js';
 
 // The moments of one: grey within `grey`, the aura from `aura`, the blow at `release`, colour back
 // within `back` of it; the camera this close meanwhile.
@@ -336,7 +336,7 @@ export class Ults {
     // loosed, the world going on as it was
     if (!player && !fight.facing(this.ctx.pilot.npc)) {
       if (n.fighter) n.fighter.ult = 0;
-      u.run({ fight, fx: fight.fxCtx, n, b, dir, hit: (share, at) => fight.ultHit(n, share * ULT.npcPower, at) });
+      u.run({ fight, fx: fight.fxCtx, n, b, dir, hit: (share, at) => fight.ultHit(n, share * ultPower(b), at) });
       this.lastEnd = this.clock;
       return true;
     }
@@ -409,7 +409,7 @@ export class Ults {
     // (the pose held: let go of it, unless the ultimate carries them on itself)
     n.action = { kind: 'ult', anim: a.u.pose[0], t: 0, dur: 0.35 };
     if (!b || !b.alive) return;
-    const power = a.player ? ULT.playerPower : ULT.npcPower;
+    const power = ultPower(b, a.player);
     a.u.run({ fight, fx: fight.fxCtx, n, b, dir: a.dir, hit: (share, at) => fight.ultHit(n, share * power, at) });
     rig.shake?.(0.15);
   }

@@ -2,14 +2,17 @@
 //
 // One comes when summoned at the Round Table, invades by itself now and then, and answers a Claude
 // Code session in trouble: tool calls failing one after another, a session ending in failure, or a
-// single quest dragging on. The arena rises from the mist, and every Tarnished drops what it's
-// doing and comes to fight; thou too, as whoever thou art. The mages keep their distance and cast
+// single quest dragging on. As it comes, thou choosest who fights beside thee (up to four, or more
+// if thou wilt: companions.js), and only once thou callest for the fight does the arena rise from
+// the mist; then thy companions drop what they're doing and come, thou too, as whoever thou art
+// (the others carry on with their work). The mages keep their distance and cast
 // (the Rune Lord, the Glintstone Witch, Vael, the Eternal Queen), the rest close in with blade,
 // spear or hammer, and Fortuna does both (combat.js; thou, as a mage, castest with a click, and as
 // Fortuna with the right button). Every blow that lands fills the striker's ultimate, loosed (R,
 // for thee) in a moment when the world stands still (ults.js). Thy blows and everyone's wear it
-// down; a session that summoned it fells it at
-// once by fulfilling its next quest. A Tarnished who falls is out of the fight for good: it goes by
+// down, but whoever keeps wounding Fenrath from afar draws him: he goes for them, and comes down
+// on them with his leap (HUNT). A session that summoned it fells it at once by fulfilling its next
+// quest. A Tarnished who falls is out of the fight for good: it goes by
 // grace to the Hold and rests there until the fight is over. Fall thyself, and thou choosest one of
 // the fighters still standing to carry on as; when nobody is left standing on the arena, the fight
 // is lost. (The Bandit Knight, Elden Ring's Patches in all but name, never fights: he keeps as far
@@ -31,12 +34,17 @@ import { Crescent, Decal, Spike } from './bossfx.js';
 import { GOLEM, GOLEM_MOVES, GolemMind } from './golem.js';
 import { setFoe } from './voices.js';
 import { clearRipples, rippleAt, stepRipples } from './ripple.js';
-import { styleOf, castSpell, muzzleOf, SPELL, ULT, RANGED, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause } from './combat.js';
+import { styleOf, castSpell, muzzleOf, SPELL, RANGED, ultFill, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause } from './combat.js';
 
 // reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
 // lane: how far out of his line (in depth) a swing or a lunge still catches someone
-const BOSS = { hp: 3000, speed: 2.2, reach: 3.0, radius: 2.0, lane: 1.3 };
-const DAMAGE = { player: 55, fighter: 12, quest: 0.5 }; // quest: the share of its health a fulfilled quest takes
+const BOSS = { hp: 8000, speed: 2.2, reach: 3.0, radius: 2.0, lane: 1.3 };
+const DAMAGE = { player: 55, fighter: 16, quest: 0.5 }; // quest: the share of its health a fulfilled quest takes
+// Whoever keeps wounding Fenrath from afar (`from` metres off, or more) draws him: what they've
+// dealt him so lately (halving every `half` seconds), `per` metre for each point, brings them up
+// to `most` metres nearer in his eyes (target); past `leap` of it, and `far` off, he comes down on
+// them with his leap (think).
+const HUNT = { from: 5.5, half: 5, per: 0.04, most: 8, leap: 60, far: 7 };
 const HURT = { swing: 22, lunge: 28, slam: 34, leap: 30 }; // to thee (of 100); fighters take as much
 // Each move: its drawings and how long each is held (seconds; `true`: fixed, else it quickens
 // when he's wounded); `danger`: the last step during which it can still be escaped.
@@ -61,7 +69,17 @@ const SAYS = {
 const pickOf = (list) => list[Math.floor(Math.random() * list.length)];
 const LEAP = { r: 3.2, height: 7, cooldown: 10 };
 
-// The great enemies (Fight.start picks one by chance, of those whose art loaded): his art
+// Why one came, as the banner and the window choosing companions say it.
+const WHY = {
+  summon: () => 'Summoned at the Round Table',
+  invasion: () => 'It came of its own accord',
+  errors: (c) => (c.npc ? `Drawn by ${c.npc.name.first}'s failing rites` : 'Drawn by failing rites'),
+  failure: (c) => (c.npc ? `Drawn by ${c.npc.name.first}'s fall` : 'Drawn by a fall'),
+  long: (c) => (c.npc ? `Drawn by ${c.npc.name.first}'s endless quest` : 'Drawn by an endless quest'),
+};
+const whyOf = (cause) => WHY[cause.kind]?.(cause) || '';
+
+// The great enemies (Fight.call picks one by chance, of those whose art loaded): his art
 // (ctx[sheet]), health, pace and bulk (reach/radius/lane as BOSS's; depth: how far out of his
 // line, in depth, thy blow still lands on him; spacing: how far off he stands to strike; crowd:
 // his circle on the floor, crowd.js; shadow: its size), his moves, the camera as it frames him
@@ -76,6 +94,7 @@ const KINDS = {
     sheet: 'golemSheet', hp: GOLEM.hp, speed: GOLEM.speed, reach: 3.4, radius: 2.0, lane: 1.6, depth: 2.2, spacing: 4.4,
     crowd: CROWD.golemRadius, shadow: [4.4, 3.0], cam: { far: BOSS_CAM.far * 1.3, y: 3.6 }, moves: GOLEM_MOVES, says: {},
     Mind: GolemMind,
+    ultFill: 0.6, // (his stone takes little from blows: ultimates, which wound him whole, fill sooner)
   },
 };
 const TRIGGER = {
@@ -233,6 +252,8 @@ export class Fight {
     // (and the Tarnished's spells and ultimates, spellfx.js: they're handed this to live in)
     this.fxCtx = { scene: ctx.scene, particles: ctx.particles, add: (e) => this.fx.push(e) };
     this.cause = null;
+    this.calling = null; // one coming, while thou choosest thy companions: { cause, kind, at }
+    this.companions = new Set(); // those thou took with thee into the fight
     this.quietUntil = 0;
     this.trigger = { ...TRIGGER }; // (the public demo quickens it: pace())
     this.nextInvasion = rand(...this.trigger.invasion);
@@ -290,6 +311,7 @@ export class Fight {
     if (!this.kinds().length) return 'No great enemy walks these lands';
     if (this.state === 'ending') return 'The arena is still settling';
     if (this.active) return 'A great enemy is already abroad';
+    if (this.calling) return 'A great enemy is already coming';
     return true;
   }
 
@@ -301,13 +323,44 @@ export class Fight {
   // ------------------------------------------------------------------------------------------
   // what brings one
 
-  start(cause) {
+  // One is coming (summoned at the Round Table, or of its own accord): first, whom thou takest with
+  // thee (companions.js, which tells who it is and why it came). The arena rises only once thou
+  // callest for the fight. Turned down, a summons is simply let be; one that came of its own accord,
+  // turned down or left unanswered as long as it would wait on the arena (update), turns away.
+  call(cause) {
     // only the user's own great enemies ever come: without their art (it failed to load), none do
+    const kinds = this.kinds();
+    if (this.active || this.calling || !kinds.length) return false;
+    const kind = pickOf(kinds); // (an even chance of either)
+    const rig = this.ctx[KINDS[kind].sheet]?.rig;
+    const foe = rig ? [rig.firstName, rig.epithet].filter(Boolean).join(', ') : 'A great enemy';
+    const call = { cause, kind, at: this.clock };
+    this.calling = call;
+    this.ctx.companions.ask({ foe, why: whyOf(cause) }).then((party) => {
+      if (this.calling !== call) return;
+      this.calling = null;
+      if (party) this.start(cause, party, kind);
+      else if (cause.kind !== 'summon') this.turnAway();
+    });
+    return true;
+  }
+
+  // Unanswered: it goes its way, and the Lands Between are left in peace a while.
+  turnAway() {
+    const { ui, world } = this.ctx;
+    ui.banner('The Great Enemy Turns Away', 'No challenger came', 'red');
+    ui.log('No challenger came: the great enemy turns away', 'dim', { region: world.arena });
+    this.quietUntil = this.clock + this.trigger.cooldown;
+  }
+
+  // The fight is called: the arena rises, and `party` (thy companions) will come to it.
+  start(cause, party = [], kind = null) {
     const kinds = this.kinds();
     if (this.active || !kinds.length) return false;
     const { ui, world } = this.ctx;
-    this.kind = pickOf(kinds); // (an even chance of either)
+    this.kind = kinds.includes(kind) ? kind : pickOf(kinds);
     setFoe(this.kind); // (the Tarnished's lines about him, voices.js)
+    this.companions = new Set(party);
     this.cause = cause;
     this.fallen = 0;
     this.cowardsAlone = null;
@@ -315,14 +368,7 @@ export class Fight {
     this.state = 'rising';
     this.t = 0;
     world.arena.raise();
-    const why = {
-      summon: 'Summoned at the Round Table',
-      invasion: 'It came of its own accord',
-      errors: cause.npc ? `Drawn by ${cause.npc.name.first}'s failing rites` : 'Drawn by failing rites',
-      failure: cause.npc ? `Drawn by ${cause.npc.name.first}'s fall` : 'Drawn by a fall',
-      long: cause.npc ? `Drawn by ${cause.npc.name.first}'s endless quest` : 'Drawn by an endless quest',
-    }[cause.kind] || '';
-    ui.banner('A Great Enemy Approaches', `${why} · Face it in the Arena of Trials`, 'red');
+    ui.banner('A Great Enemy Approaches', `${whyOf(cause)} · Face it in the Arena of Trials`, 'red');
     ui.log('The Arena of Trials rises north of Roundtable Hold', 'red', { region: world.arena });
     return true;
   }
@@ -335,12 +381,12 @@ export class Fight {
     this.failures.set(npc.sid, list);
     if (list.length >= this.trigger.failures && this.auto()) {
       this.failures.delete(npc.sid);
-      this.start({ kind: 'errors', npc, sid: npc.sid });
+      this.call({ kind: 'errors', npc, sid: npc.sid });
     }
   }
 
   noteFall(npc) {
-    if (this.auto()) this.start({ kind: 'failure', npc, sid: npc.sid });
+    if (this.auto()) this.call({ kind: 'failure', npc, sid: npc.sid });
   }
 
   // From the director: a quest was fulfilled. If it's the session that brought the enemy, it reels.
@@ -352,7 +398,7 @@ export class Fight {
   }
 
   auto() {
-    return !this.active && this.clock >= this.quietUntil;
+    return !this.active && !this.calling && this.clock >= this.quietUntil;
   }
 
   watchQuests() {
@@ -363,20 +409,20 @@ export class Fight {
       if (now - start < this.trigger.longQuest || this.longDone.has(key)) continue;
       this.longDone.add(key);
       const npc = d.npcs.get(sid);
-      if (npc && this.auto()) this.start({ kind: 'long', npc, sid });
+      if (npc && this.auto()) this.call({ kind: 'long', npc, sid });
     }
   }
 
   // ------------------------------------------------------------------------------------------
   // everyone to the arena, and home again
 
-  // Every Tarnished (but whoever thou art) drops what it's doing and comes.
+  // Thy companions drop what they're doing and come (thou, whoever thou art, comest on foot).
   gather() {
     const { director, world } = this.ctx;
     const [ax, az] = world.arena.point('grace');
     let k = 0;
     for (const n of director.npcs.values()) {
-      if (n.dead || n.piloted || n.spectre || n.intent.kind === 'leave') continue; // (spectres only work)
+      if (!this.companions.has(n) || n.dead || n.piloted || n.spectre || n.intent.kind === 'leave') continue;
       n.resume = n.intent.kind === 'fight' ? n.resume : n.intent;
       if (n.slot) n.releaseSlot();
       n.slot = null;
@@ -462,6 +508,19 @@ export class Fight {
       color: ['#ff6a4a', '#ffd2a8', '#a01818'], size: 0.07, life: 0.6, count: 10, drag: 1.2, intensity: 2.2,
     });
     if (charge) this.charge(src, dealt);
+    if (charge && src && !b.mind) this.pelted(b, src, dealt);
+  }
+
+  // How much `n` has lately wounded him from afar (what it dealt, halving every HUNT.half seconds).
+  peltOf(b, n) {
+    const p = b.pelt?.get(n);
+    return p ? p.v * 0.5 ** ((this.clock - p.at) / HUNT.half) : 0;
+  }
+
+  pelted(b, n, dealt) {
+    if (Math.hypot(n.pos.x - b.pos.x, n.pos.y - b.pos.y) < HUNT.from) return;
+    if (!b.pelt) b.pelt = new Map();
+    b.pelt.set(n, { v: this.peltOf(b, n) + dealt, at: this.clock });
   }
 
   // Fills src's ultimate by `amount` (what its blow took; or, where his stone takes little, what
@@ -469,8 +528,8 @@ export class Fight {
   charge(src, amount) {
     if (!src || amount <= 0) return;
     const pilot = this.ctx.pilot;
-    if (src === pilot.npc) pilot.ult = Math.min(1, (pilot.ult || 0) + amount / ULT.player);
-    else if (src.fighter && !src.fighter.dead) src.fighter.ult = Math.min(1, src.fighter.ult + amount / ULT.npc);
+    if (src === pilot.npc) pilot.ult = Math.min(1, (pilot.ult || 0) + amount / ultFill(this.boss, true));
+    else if (src.fighter && !src.fighter.dead) src.fighter.ult = Math.min(1, src.fighter.ult + amount / ultFill(this.boss));
   }
 
   // What an ordinary blow (or spell) of n's is worth, toward its ultimate.
@@ -713,13 +772,15 @@ export class Fight {
     return this.foes().filter((n) => Math.hypot(n.pos.x - b.pos.x, (n.pos.y - b.pos.y) * 1.15) < r).length;
   }
 
-  // The nearest foe (thee a little more than the others).
+  // The nearest foe (thee a little more than the others); and to Fenrath, whoever has been
+  // wounding him from afar, the more the more they've dealt (HUNT).
   target(b) {
     const me = this.ctx.pilot.npc;
     let best = null;
     let bd = Infinity;
     for (const n of this.foes()) {
-      const d = Math.hypot(n.pos.x - b.pos.x, n.pos.y - b.pos.y) * (n === me ? 0.6 : 1);
+      let d = Math.hypot(n.pos.x - b.pos.x, n.pos.y - b.pos.y) * (n === me ? 0.6 : 1);
+      if (!b.mind) d -= Math.min(HUNT.most, this.peltOf(b, n) * HUNT.per);
       if (d < bd) { bd = d; best = n; }
     }
     return best;
@@ -831,12 +892,14 @@ export class Fight {
     const dz = tgt.pos.y - b.pos.y;
     if (Math.abs(dx) > 0.4) b.body.facing = dx > 0 ? 1 : -1;
     const close = this.foesWithin(b, 4.2);
-    // beset (crowded, or battered) or rooted: he leaps elsewhere (not out of a pool of blood, combat.js)
+    // beset (crowded, or battered) or rooted: he leaps elsewhere (not out of a pool of blood,
+    // combat.js); wounded again and again from afar: he comes down on whoever's doing it
     const beset = close >= 3 || b.taken(5) > 250;
+    const prey = this.peltOf(b, tgt) >= HUNT.leap && Math.hypot(dx, dz) > HUNT.far ? tgt : null;
     const stuck = rootedAt(b, this.clock);
     if (stuck) b.leapCd = Math.max(b.leapCd, 0.5);
-    if (b.leapCd <= 0 && b.cd <= 0.6 && (beset || b.anchorT > 12)) {
-      this.begin(b, 'leap', beset);
+    if (b.leapCd <= 0 && b.cd <= 0.6 && (beset || prey || b.anchorT > 12)) {
+      this.begin(b, 'leap', beset && !prey, prey);
       return false;
     }
     if (b.cd <= 0) {
@@ -878,7 +941,7 @@ export class Fight {
   }
 
   // A move begins: what it covers is known from the start (the fighters see it coming).
-  begin(b, kind, beset = false) {
+  begin(b, kind, beset = false, prey = null) {
     const dir = b.body.facing;
     const a = { kind, step: -1, t: 0, dir, x: b.pos.x, z: b.pos.y, shape: 'disc', opt: { r: SLAM.r } };
     if (kind === 'swing') {
@@ -888,7 +951,7 @@ export class Fight {
       a.shape = 'line';
       a.opt = { dir, from: -0.5, len: SPIKE.slide + SPIKE.from + SPIKE.len, half: BOSS.lane };
     } else if (kind === 'leap') {
-      [a.x, a.z] = this.landing(b, beset);
+      [a.x, a.z] = this.landing(b, beset, prey);
       a.from = b.pos.clone();
       a.opt = { r: LEAP.r };
       if (Math.abs(a.x - b.pos.x) > 0.4) b.body.facing = a.x > b.pos.x ? 1 : -1;
@@ -901,9 +964,17 @@ export class Fight {
   }
 
   // Where to leap: beset, away from the crowd; rooted, onto someone's doorstep (they'll have to
-  // step aside); never just beside where he stands.
-  landing(b, beset) {
+  // step aside); after whoever's been wounding him from afar, right on top of them (a step short:
+  // they've a moment to get out from under him); never just beside where he stands.
+  landing(b, beset, prey = null) {
     const { cx, cz } = this.ctx.world.arena;
+    for (let i = 0; prey && i < 12; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const r = 0.8 + Math.random() * 1.2;
+      const x = prey.pos.x + Math.cos(ang) * r;
+      const z = prey.pos.y + Math.sin(ang) * r;
+      if (Math.hypot(x - cx, z - cz) <= ARENA.walkRadius - 2.5) return [x, z];
+    }
     const foes = this.foes();
     let best = null;
     let bs = -Infinity;
@@ -1376,11 +1447,14 @@ export class Fight {
       } else if (n.hopLift) n.hopLift = 0;
     }
 
+    // one that came of its own accord waits no longer for thee to choose than it would on the arena
+    const c = this.calling;
+    if (c && c.cause.kind !== 'summon' && this.clock - c.at > this.trigger.noShow) this.ctx.companions.close();
     // what may bring one
     if (this.state === 'idle') {
       if (this.clock >= this.nextInvasion) {
         this.nextInvasion = this.clock + rand(...this.trigger.invasion);
-        if (this.auto()) this.start({ kind: 'invasion' });
+        if (this.auto()) this.call({ kind: 'invasion' });
       }
       this.watchTimer = (this.watchTimer || 0) - dt;
       if (this.watchTimer <= 0) { this.watchTimer = 5; this.watchQuests(); }

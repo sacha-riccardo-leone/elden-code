@@ -293,22 +293,40 @@ Extract all of a sheet's frames in one run so they share a palette, and pack the
 ## Great enemies
 
 Boss fights happen in the **Arena of Trials**, a wide ring of broken pillars (radius 19). It rises
-from the mist north of Roundtable Hold, with a bridge from the Hold, when a fight begins. It sinks again only once the fight is over and
-everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
+from the mist north of Roundtable Hold, with a bridge from the Hold, once you call for the fight.
+It sinks again only once the fight is over and everyone has left it, you included
+(`client/js/fight.js`, `client/js/arena.js`).
 
 - **What brings one:**
   - **Summoned:** at the Round Table (**E**).
   - **Invasions:** by itself every 20–40 minutes.
+  - However it comes, you choose your companions first (below).
   - **A struggling session:** three failed tool calls within two minutes, a session ending in
     failure, or a single quest running past ten minutes.
 
   After a fight, nothing but a summons brings another for six minutes.
-- **Who fights:** every Tarnished, the Twofold included, drops what it's doing and comes by grace
-  to fight. Their sessions keep running, and they go back to them by grace afterwards. You fight
-  too, as whoever you are.
+- **Choose your companions** (`client/js/companions.js`): however one comes, a window opens first.
+  - It names who is coming and why ("Fenrath, the Crimson Fang · Summoned at the Round Table"), over
+    four tall slots, each a **+**.
+  - **+** opens the catalogue of heroes. Each card shows its portrait (from the hero's own art), class
+    and style, how it fights, its ultimate, its manner, and where it is now. One already chosen is
+    greyed out. The one you're playing isn't there: you always fight.
+  - A chosen hero fills its slot as a large portrait. Clicking it changes them, and **Empty slot**
+    under it frees the slot.
+  - **Add slot** adds another, up to as many as there are heroes to take.
+  - **Start fight** works with any number chosen, none included. It raises the arena; the Round
+    Table's "Summon a great enemy" only opens this window now.
+  - **× or Esc** turns it down: a summons is simply let be; an enemy that came by itself turns
+    away. Left unanswered for two and a half minutes, it turns away too.
+  - Your last companions are in their slots again the next time.
+- **Who fights:** only your companions drop what they're doing and come by grace. Everyone else
+  goes on with their work (quietly: the fight still has the log and the screen to itself). Their
+  sessions keep running, and they go back to them by grace afterwards. You fight too, as whoever
+  you are.
 - **From afar or up close** (`client/js/combat.js`, effects in `client/js/spellfx.js`):
-  - **Mages** keep 6.5–9.5 units off the enemy, circle slowly, and cast. Each has a few spells in
-    its own light:
+  - **Mages** keep 6.5–9.5 units off the enemy, circle slowly, and cast. A spell is safer than a
+    blade but does less (yours 22, a blade blow 55; a companion's 7, its blow 16), and Fenrath goes
+    after whoever keeps wounding him from afar. Each has a few spells in its own light:
     - Jorvik (the Rune Lord): a spinning golden rune, a volley of three that fan out and curve back
       in, or a circle of runes under the enemy that bursts into a pillar of gold.
     - Corisande: a glintstone pebble, a spray of three shards, or now and then a great shard.
@@ -326,9 +344,12 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
     toward felling him than a blow there). While he lies felled they hit the fire in his chest, for
     half what a blow from inside the golden circle does.
 - **Ultimates** (`client/js/ults.js`):
-  - **The meter:** each fighter's blows fill it: about 160 damage for the others, 520 for you. A
-    blow on the Golem's ankle counts in full, though it barely wounds him. Your meter is under
-    your health; the others' are thin gold lines under theirs.
+  - **The meter:** each fighter's blows fill it, measured against the enemy's health: a fifth of
+    it for you (1,600 against Fenrath), a twenty-fifth for the others, so that a fight brings a few
+    ultimates, not one every few blows. An ultimate hits about as hard against either enemy, for
+    its share of his health. A blow on the Golem's ankle counts in full, though it barely wounds
+    him, and against the Golem, whose fight leans on ultimates, meters fill sooner. Your meter is
+    under your health; the others' are thin gold lines under theirs.
   - **Loosing one:** you press **R** once your meter is full. The others loose theirs when ready,
     at least 12 seconds apart, never two at once.
   - **The freeze:** the world stops and turns black and white, except whoever looses it. The camera
@@ -398,8 +419,12 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
   Guardian Golem. If one's art fails to load, only the other comes. The Tarnished's battle lines
   fit whichever came (Ulric has his own jokes for each).
 - **Fenrath, the Crimson Fang** (`client/js/heroes/boss.js`, effects in `client/js/bossfx.js`).
-  He walks into his target's lane and strikes along it. Every blow shows itself before it lands:
-  step out of the way, or dodge through it with **Space**.
+  He has 8,000 health: about two minutes with four companions. He walks into his target's lane and
+  strikes along it. Every blow shows itself before it lands: step out of the way, or dodge through
+  it with **Space**.
+  - **His target:** whoever is nearest (you a little more than the others), but whoever keeps
+    wounding him from afar draws him: the more they've dealt lately, the nearer they seem to him.
+    A mage pelting him won't stay out of reach for long.
   - **Swing:** he raises the greatsword and cuts. A crescent of red light flies on down his lane
     for half a second, striking each person it passes once.
   - **Lunge:** he thrusts and slides forward. A lance of red light runs along the blade and well past
@@ -411,7 +436,8 @@ everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`).
     and trembles for a second, and a danger zone marks where he will land. Then he leaps: his
     shadow runs along the ground beneath him. He lands with a crack in the stone, flying debris and
     a shake of the camera, hurting everyone on the zone. Beset, he lands away from the crowd;
-    otherwise he lands next to someone.
+    otherwise he lands next to someone. Wounded again and again from afar by someone more than seven
+    units off, he leaps right onto them, a step short.
   - Below half health he grows wild, and his blows come quicker.
   - He says little, in red over his head. He has a line as he enters ("Thy death resteth close
     at hand."), and now and then another while he stalks ("Serve my will alone, O blade.", "*heavy
@@ -597,7 +623,8 @@ A version anyone can open, with no bridge and no real data: an endless world of 
     seconds; the rest go to the message log only. An island rising always gets its banner.
   - Great enemies come oftener: the first after about two minutes, then every 5 to 9 minutes, at
     full strength. A run of failing tool calls or a session ending in failure can bring one too. As
-    locally, it enters only once you reach the arena.
+    locally, the window choosing companions opens first (left unanswered, the enemy turns away), and
+    it enters only once you reach the arena.
   - Everything else works as locally: become anyone, fight, the Round Table. There is no
     **Summon phantoms** or event log: the page is marked as the demo's from its first moment
     (`scripts/build-public.mjs`), before any script runs.
@@ -663,6 +690,7 @@ client/js/grace.js      the grace itself, the figure of golden light floating ov
 client/js/interact.js   E: using the stations and the Round Table
 client/js/arena.js      the Arena of Trials, north of the Hold
 client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the fighters, thy health
+client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes
 client/js/golem.js      the Guardian Golem's fight: his weak points, his fall, shockwaves, fire
 client/js/ripple.js     the arena floor rippling like water under the Golem's shockwaves
 client/js/bossfx.js     the enemies' effects: crescent, lance, floor marks, the air shock, meteors

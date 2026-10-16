@@ -1050,6 +1050,194 @@ body.in-battle #party { top: 133px; }
 #table-menu button:disabled { opacity: 0.45; cursor: default; }
 #table-summon { color: #f0c27a; border-color: rgba(220, 120, 80, 0.6); }
 
+/* choosing who fights beside thee as a great enemy comes (companions.js): the slots, a "+" or a
+   companion's portrait each, and the catalogue of heroes over them */
+#companions {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(4, 3, 6, 0.62);
+}
+#companions[hidden] { display: none; }
+#companions .panel {
+  position: relative;
+  width: min(1060px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 22px 26px;
+  background: var(--panel);
+  border: 1px solid rgba(201, 164, 90, 0.45);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.7);
+  text-align: center;
+  animation: panelIn 0.25s ease-out;
+}
+#companions h2 {
+  margin: 0 28px;
+  font-family: var(--serif-title);
+  font-weight: 500;
+  font-size: 22px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-hi);
+}
+#companions .foe { margin: 6px 0 0; font-style: italic; font-size: 16px; color: var(--muted); }
+#companions .foe b {
+  font-family: var(--serif-title);
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: #e07a62;
+}
+#companions .slots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin: 18px 0 16px;
+}
+#companions .slot { display: grid; gap: 8px; width: 160px; }
+#companions .pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 290px;
+  padding: 10px 6px 12px;
+  background: linear-gradient(180deg, rgba(36, 28, 18, 0.5), rgba(10, 9, 12, 0.9));
+  border: 1px solid var(--gold-line);
+  color: var(--gold);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+#companions .pick:hover,
+#companions .pick:focus-visible {
+  border-color: var(--gold);
+  background: linear-gradient(180deg, rgba(60, 46, 26, 0.6), rgba(16, 13, 14, 0.92));
+  outline: none;
+}
+#companions .pick .plus {
+  margin: auto;
+  font-family: var(--serif-title);
+  font-size: 56px;
+  line-height: 1;
+  opacity: 0.75;
+}
+#companions .pick:hover .plus,
+#companions .pick:focus-visible .plus { opacity: 1; color: var(--gold-hi); }
+/* (drawn from the hero's own art, pixel for pixel) */
+#companions .pick img {
+  margin-bottom: 10px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 5px 6px rgba(0, 0, 0, 0.65));
+}
+#companions .pick .who {
+  font-family: var(--serif-title);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  color: var(--gold-hi);
+}
+#companions .pick .what { margin-top: 2px; font-size: 13px; font-style: italic; color: var(--muted); }
+#companions .slot .empty,
+#companions .actions button,
+#companions .back {
+  font-family: var(--serif-title);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 7px 10px;
+  background: rgba(10, 9, 12, 0.7);
+  border: 1px solid var(--gold-line);
+  color: var(--gold);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+#companions .slot .empty:hover:not(:disabled),
+#companions .actions button:hover:not(:disabled),
+#companions .back:hover {
+  background: rgba(40, 32, 20, 0.85);
+  color: var(--gold-hi);
+  border-color: var(--gold);
+}
+#companions button:disabled { opacity: 0.4; cursor: default; }
+#companions .actions { display: flex; justify-content: center; gap: 12px; }
+#companions .actions .start { padding: 10px 24px; font-size: 13px; color: #f0c27a; border-color: rgba(220, 120, 80, 0.6); }
+#companions .close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+}
+#companions .close:hover { color: var(--gold-hi); }
+#companions .panel button:focus-visible { outline: 1px solid var(--gold-hi); outline-offset: 2px; }
+/* the catalogue, over the slots in the same window */
+#companions .catalog {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 18px 22px;
+  background: rgba(12, 10, 15, 0.985);
+  text-align: left;
+}
+#companions .catalog[hidden] { display: none; }
+/* (the window grows to show more of the catalogue at once) */
+#companions .panel.cataloguing { min-height: min(660px, 100%); }
+#companions .catalog-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+#companions .catalog h3 {
+  margin: 0;
+  font-family: var(--serif-title);
+  font-weight: 500;
+  font-size: 17px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold-hi);
+}
+#companions .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 10px; }
+#companions .hero {
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+  text-align: left;
+  background: rgba(10, 9, 12, 0.7);
+  border: 1px solid rgba(201, 164, 90, 0.28);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+#companions .hero:hover:not(:disabled),
+#companions .hero:focus-visible { border-color: var(--gold); background: rgba(40, 32, 20, 0.85); outline: none; }
+#companions .hero:disabled { opacity: 0.45; }
+#companions .hero .face { flex: 0 0 72px; display: flex; align-items: flex-end; justify-content: center; }
+#companions .hero .face img { image-rendering: pixelated; }
+#companions .hero .about { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+#companions .hero .name { font-family: var(--serif-title); font-size: 15px; letter-spacing: 0.06em; color: var(--gold-hi); }
+#companions .hero .name small { font-family: var(--serif); font-style: italic; font-size: 14px; letter-spacing: 0; color: var(--muted); }
+#companions .hero .tags { font-family: var(--serif-title); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+#companions .hero .line { font-size: 15px; line-height: 1.3; }
+#companions .hero .ult b { font-weight: 700; color: var(--gold-hi); }
+#companions .hero .manner { font-style: italic; color: var(--muted); }
+#companions .hero .where { margin-top: auto; padding-top: 4px; font-size: 13px; color: var(--muted); }
+@media (max-width: 720px) {
+  #companions { padding: 10px; }
+  #companions .panel { padding: 18px 12px; }
+  #companions h2 { font-size: 17px; }
+  #companions .slots { gap: 10px; }
+  #companions .slot { width: calc(50% - 5px); }
+  #companions .pick { height: 236px; }
+  #companions .pick img { max-height: 160px; width: auto; }
+  #companions .list { grid-template-columns: 1fr; }
+}
+
 /* the public demo (mode.js): no bridge, so nothing that needs one */
 .public-only { display: none; }
 body.public-demo .public-only { display: block; }
