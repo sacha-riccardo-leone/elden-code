@@ -1,7 +1,8 @@
 // The title screen, the way into the Lands Between: a pixel-art take on Elden Ring's own. The
 // Elden Code wordmark in cracked gold over a faint sigil, embers drifting up out of the dark, and
-// one way in: "Start your Tarnished journey (With Claude)". It's all drawn on one small canvas and
-// scaled up whole, so the wordmark, the sigil and the words share one grid of big square pixels.
+// one way in, small, as "Press any button" is: "Start your Tarnished journey (With Claude)". It's
+// all drawn on small canvases scaled up whole, so that every pixel is a crisp square: the wordmark
+// and the sigil on a grid of big ones, the way in and the loading sign on one of half the size.
 //
 // The world loads behind it meanwhile (main.js). Set out before it's ready and a sign turns at the
 // bottom right until it is (gate.js); then the title crumbles away, pixel by pixel from the middle
@@ -11,8 +12,10 @@ import { started, ready, setOut } from './gate.js';
 
 const root = document.getElementById('title');
 const canvas = document.getElementById('title-canvas');
+const fineCanvas = document.getElementById('title-fine'); // (the small words: the way in, loading)
 const button = document.getElementById('title-start');
 const ctx = canvas.getContext('2d');
+const fctx = fineCanvas.getContext('2d');
 const still = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 const LABEL = ['Start your Tarnished journey', '(With Claude)'];
@@ -388,6 +391,17 @@ function build() {
   const cy = Math.round(h * (portrait ? 0.36 : 0.4));
   const R = Math.round(Math.min(h * 0.3, w * (portrait ? 0.44 : 0.3)));
   const next = { w, h, k: s / dpr, portrait, cx, cy, R, tmp: blank(w, h), seen: [window.innerWidth, window.innerHeight, dpr] };
+  next.main = { ctx, w, h, tmp: next.tmp };
+  // the grid of half-size pixels the small words are drawn on
+  const fs = Math.max(1, Math.round(s / 2));
+  const fw = Math.ceil((iw * dpr) / fs);
+  const fh = Math.ceil((ih * dpr) / fs);
+  fineCanvas.width = fw;
+  fineCanvas.height = fh;
+  fineCanvas.style.width = `${(fw * fs) / dpr}px`;
+  fineCanvas.style.height = `${(fh * fs) / dpr}px`;
+  fctx.imageSmoothingEnabled = false;
+  next.fine = { ctx: fctx, w: fw, h: fh, k: fs / dpr, tmp: blank(fw, fh) };
   next.sigil = sigil(next);
   next.bg = paintBackground(w, h, next);
   Object.assign(next, paintSigil(w, h, next.sigil));
@@ -421,57 +435,65 @@ function buildWords(N) {
   // (the sigil's lines pass behind these words, not through the gaps between them)
   N.holes = [{ x: sx - 3, y: sy - 2, w: sub.w + 6, h: sub.h + 4 }];
   Object.assign(N, paintSigil(w, h, N.sigil, N.holes));
-  // the way in, low on the screen
-  let labelSize = Math.max(10, Math.round(size * (portrait ? 0.5 : 0.38)));
-  let a = spaced(LABEL[0], 700, labelSize);
-  while (a.w > w - 24 && labelSize > 8) a = spaced(LABEL[0], 700, --labelSize);
-  const b = spaced(LABEL[1], 700, Math.max(8, Math.round(labelSize * 0.86)));
-  const ly = Math.round(h * (portrait ? 0.76 : 0.8));
-  const idle = paintLabel(w, h, [a, b], cx, ly, PAL.words);
+  // the way in, low on the screen and small (a quarter of its width; most of a phone's), on the
+  // grid of half-size pixels
+  const F = N.fine;
+  // (cut a little finer than big words, or small letters close up: an H becomes a B)
+  const fit = F.w * (portrait ? 0.8 : 0.27);
+  let labelSize = 13;
+  let a = spaced(LABEL[0], 700, labelSize, 0.47);
+  while (a.w > fit && labelSize > 10) a = spaced(LABEL[0], 700, --labelSize, 0.47);
+  const b = spaced(LABEL[1], 700, Math.max(9, labelSize - 1), 0.47);
+  const fx = Math.floor(F.w / 2);
+  const ly = Math.round(F.h * (portrait ? 0.76 : 0.8));
+  const idle = paintLabel(F.w, F.h, [a, b], fx, ly, PAL.words);
   N.label = idle.layer;
-  N.labelLit = paintLabel(w, h, [a, b], cx, ly, PAL.lit).layer;
+  N.labelLit = paintLabel(F.w, F.h, [a, b], fx, ly, PAL.lit).layer;
   N.labelRect = idle.rect;
   N.labelLine = idle.a;
-  N.glow = paintGlow(w, h, idle.a, false);
-  N.glowLit = paintGlow(w, h, idle.a, true);
+  N.glow = paintGlow(F.w, F.h, idle.a, false);
+  N.glowLit = paintGlow(F.w, F.h, idle.a, true);
   // the loading sign's word, at the bottom right
-  const lw = spaced('Loading', 500, Math.max(8, Math.round(labelSize * 0.86)));
-  N.loadingRect = { x: w - lw.w - 22, y: h - lw.h - 8, w: lw.w, h: lw.h };
-  N.loadingWord = paint(w, h, (put) => paintWord(put, lw, N.loadingRect.x, N.loadingRect.y, PAL.words, { shadow: 1 }));
+  const lw = spaced('Loading', 700, Math.max(9, labelSize - 1), 0.47);
+  N.loadingRect = { x: F.w - lw.w - 26, y: F.h - lw.h - 12, w: lw.w, h: lw.h };
+  N.loadingWord = paint(F.w, F.h, (put) => paintWord(put, lw, N.loadingRect.x, N.loadingRect.y, PAL.words, { shadow: 1 }));
 }
 
 function placeButton() {
   if (!L?.labelRect) return;
   const { x, y, w, h } = L.labelRect;
-  button.style.left = `${x * L.k}px`;
-  button.style.top = `${y * L.k}px`;
-  button.style.width = `${w * L.k}px`;
-  button.style.height = `${h * L.k}px`;
+  const { k } = L.fine;
+  button.style.left = `${x * k}px`;
+  button.style.top = `${y * k}px`;
+  button.style.width = `${w * k}px`;
+  button.style.height = `${h * k}px`;
 }
 
-// Draws a layer, `level` of it (0..1) shown in a dithered pattern, at `alpha`.
-function draw(layer, level = 1, alpha = 1) {
+// Draws a layer onto grid `S` (the big pixels, or the fine ones), `level` of it (0..1) shown in a
+// dithered pattern, at `alpha`.
+function draw(layer, level = 1, alpha = 1, S = L.main) {
   if (!layer || level <= 0 || alpha <= 0) return;
-  ctx.globalAlpha = alpha;
+  const g = S.ctx;
+  g.globalAlpha = alpha;
   if (level >= 1) {
-    ctx.drawImage(layer, 0, 0);
+    g.drawImage(layer, 0, 0);
   } else {
-    const t = L.tmp.getContext('2d');
+    const t = S.tmp.getContext('2d');
     t.globalCompositeOperation = 'source-over';
-    t.clearRect(0, 0, L.w, L.h);
+    t.clearRect(0, 0, S.w, S.h);
     t.drawImage(layer, 0, 0);
     t.globalCompositeOperation = 'destination-in';
     t.fillStyle = patterns[clamp(Math.round(level * 16), 1, 15)];
-    t.fillRect(0, 0, L.w, L.h);
+    t.fillRect(0, 0, S.w, S.h);
     t.globalCompositeOperation = 'source-over';
-    ctx.drawImage(L.tmp, 0, 0);
+    g.drawImage(S.tmp, 0, 0);
   }
-  ctx.globalAlpha = 1;
+  g.globalAlpha = 1;
 }
 
-const px = (x, y, c, a = 1) => {
-  ctx.fillStyle = css(c, a);
-  ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+const px = (x, y, c, a = 1, g = ctx) => {
+  g.fillStyle = css(c, a);
+  g.fillRect(Math.round(x), Math.round(y), 1, 1);
 };
 
 // Embers drifting up from the bowl and out of the dark below, flickering as they go.
@@ -561,20 +583,22 @@ function shine() {
   ctx.drawImage(L.tmp, 0, 0);
 }
 
-// The loading sign: a ring of points, a bright one running round it, and the word beside it.
+// The loading sign (on the fine grid): a ring of points, a bright one running round it, and the
+// word beside it.
 function loadingSign(level) {
   if (level <= 0 || !L.loadingRect) return;
-  draw(L.loadingWord, level);
+  const F = L.fine;
+  draw(L.loadingWord, level, 1, F);
   const r = L.loadingRect;
-  const cx = L.w - 12;
+  const cx = F.w - 14;
   const cy = r.y + Math.floor(r.h / 2);
-  const n = 10;
-  const head = Math.floor(st.t * 12) % n;
+  const n = 12;
+  const head = Math.floor(st.t * 14) % n;
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2 - Math.PI / 2;
     const behind = (head - i + n) % n;
     const c = behind === 0 ? PAL.spark : behind < 3 ? PAL.embers[1] : behind < 5 ? PAL.embers[3] : PAL.halo;
-    px(cx + Math.round(Math.cos(a) * 4), cy + Math.round(Math.sin(a) * 4), c, level);
+    px(cx + Math.round(Math.cos(a) * 5), cy + Math.round(Math.sin(a) * 5), c, level, fctx);
   }
 }
 
@@ -629,7 +653,10 @@ function frame(dt) {
   draw(L.logo, logo);
   if (logo >= 1) shine();
   draw(L.sub, intro(INTRO.sub, true));
-  // the way in: once it's taken, it flares and goes, and the loading sign comes if need be
+  // the way in (on the fine grid): once it's taken, it flares and goes, and the loading sign
+  // comes if need be
+  const F = L.fine;
+  fctx.clearRect(0, 0, F.w, F.h);
   let label = intro(INTRO.label, true);
   if (label >= 1 && !st.menu && st.setOutAt == null) {
     st.menu = true;
@@ -640,20 +667,21 @@ function frame(dt) {
   if (st.setOutAt != null) {
     const since = t - st.setOutAt;
     label = since < 0.14 ? 1 : clamp(1 - (since - 0.14) / 0.4, 0, 1);
-    draw(L.glowLit, label, since < 0.14 ? 1 : 0.8);
-    draw(since < 0.14 ? L.labelLit : L.label, label);
+    draw(L.glowLit, label, since < 0.14 ? 1 : 0.8, F);
+    draw(since < 0.14 ? L.labelLit : L.label, label, 1, F);
     const waiting = st.bothAt == null ? clamp((since - 0.3) / 0.3, 0, 1) : clamp(1 - (t - st.bothAt) / 0.25, 0, 1);
     loadingSign(waiting);
   } else if (label > 0) {
     const pulse = still ? 1 : 0.82 + 0.18 * Math.sin(t * 2.2);
-    draw(lit ? L.glowLit : L.glow, label, lit ? 1 : pulse);
-    draw(lit ? L.labelLit : L.label, label);
+    draw(lit ? L.glowLit : L.glow, label, lit ? 1 : pulse, F);
+    draw(lit ? L.labelLit : L.label, label, 1, F);
     if (lit && label >= 1) {
       // the marks either side of it, as by a chosen menu entry
       const a = L.labelLine;
       const y = a.y + Math.floor(a.h / 2);
       for (const [x, dir] of [[a.x - 7, 1], [a.x + a.w + 6, -1]]) {
-        px(x, y, PAL.lit[1]); px(x + dir, y, PAL.lit[0]); px(x, y - 1, PAL.lit[2]); px(x, y + 1, PAL.lit[2]); px(x - dir, y, PAL.lit[2]);
+        px(x, y, PAL.lit[1], 1, fctx); px(x + dir, y, PAL.lit[0], 1, fctx);
+        px(x, y - 1, PAL.lit[2], 1, fctx); px(x, y + 1, PAL.lit[2], 1, fctx); px(x - dir, y, PAL.lit[2], 1, fctx);
       }
     }
   }

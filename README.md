@@ -13,11 +13,12 @@ The page opens on a pixel-art title screen in the manner of Elden Ring's (`clien
   - A faint sigil behind them: a line straight down through three rings and a wide bowl, sparks
     running along its lines.
   - Embers drifting up out of the dark, and a band of light sweeping the wordmark now and then.
-  - One way in, low on the screen, on a streak of light: **Start your Tarnished journey (With
-    Claude)**.
-- **How it's drawn:** on one small canvas scaled up whole, so that every pixel is the same crisp
-  square, about four screen pixels across on a 1080p screen. The words are Cinzel cut to whole
-  pixels, outlined and shaded. Things fade in and out in dithered patterns, and a key or click
+  - One way in, small and low on the screen as Elden Ring's "Press any button" is, on a streak of
+    light: **Start your Tarnished journey (With Claude)**.
+- **How it's drawn:** on small canvases scaled up whole, so that every pixel is a crisp square:
+  the wordmark and the sigil about four screen pixels across on a 1080p screen, the way in and the
+  loading sign on a grid of half that. The words are Cinzel cut to whole pixels, outlined and
+  shaded. Things fade in and out in dithered patterns, and a key or click
   shows the intro at once.
 - **Setting out:** click it, or press Enter.
   - The world loads behind the title meanwhile, sessions already taking up their heroes (locally).
@@ -311,8 +312,9 @@ It sinks again only once the fight is over and everyone has left it, you include
   - **+** opens the catalogue of heroes. Each card shows its portrait (from the hero's own art), class
     and style, how it fights, its ultimate, its manner, and where it is now. One already chosen is
     greyed out. The one you're playing isn't there: you always fight.
-  - A chosen hero fills its slot as a large portrait. Clicking it changes them, and **Empty slot**
-    under it frees the slot.
+  - A chosen hero stands in its slot, large, idling (its own idle animation). Every hero is as tall
+    as the others, by their height in the world; whatever sticks out past the slot (Wynn's katana)
+    is cut off by it. Clicking them changes them, and **Empty slot** under it frees the slot.
   - **Add slot** adds another, up to as many as there are heroes to take.
   - **Start fight** works with any number chosen, none included. It raises the arena; the Round
     Table's "Summon a great enemy" only opens this window now.

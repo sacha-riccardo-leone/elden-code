@@ -2,8 +2,8 @@
 // middle of the screen: "Choose your companions", who is coming and why, and four tall slots (more
 // with "Add slot", up to as many heroes as there are to take). Each empty slot is a "+" that opens
 // the catalogue of heroes: how each fights, its ultimate, its manner, and where it is just now.
-// A chosen one shows in its slot as its portrait, drawn large from its own art; "Empty slot" under
-// it frees the slot again, and a click on the portrait changes it. "Start fight", with however many
+// A chosen one stands in its slot, large, idling in its own art; "Empty slot" under it frees the
+// slot again, and a click on it changes it. "Start fight", with however many
 // companions are chosen (none at all included), raises the arena; × or Esc turns the enemy down.
 // The companions chosen last are in their slots again the next time.
 
@@ -75,53 +75,56 @@ const el = (tag, cls, text) => {
   return e;
 };
 
-// A hero's standing drawing (the first frame of its idle pose), cut to the pixels it fills: an
-// image to show anywhere, and its height in the world (heroes are drawn at different scales: shown
-// by their height, they come out as tall as one another as they stand in the Lands Between).
-const portraits = new WeakMap();
-function portrait(sheet) {
-  let p = portraits.get(sheet);
-  if (p) return p;
-  const def = sheet.anims.idle || Object.values(sheet.anims)[0];
-  const i = def.frames[0];
-  const sx = (i % sheet.cols) * sheet.frameW;
-  const sy = Math.floor(i / sheet.cols) * sheet.frameH;
-  const W = sheet.frameW;
-  const H = sheet.frameH;
-  const d = sheet.color.getContext('2d').getImageData(sx, sy, W, H).data;
-  let x0 = W;
-  let y0 = H;
-  let x1 = -1;
-  let y1 = -1;
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      if (!d[(y * W + x) * 4 + 3]) continue;
-      if (x < x0) x0 = x;
-      if (x > x1) x1 = x;
-      if (y < y0) y0 = y;
-      if (y > y1) y1 = y;
-    }
+// A hero standing in a window of its own (a slot, or a card in the catalogue): its idle pose, played
+// over and over (or, `still`, its first drawing), on a canvas the window's size. Every hero comes out
+// as tall as the others, by its height in the world (heroes are drawn at different scales), feet on
+// the window's floor; whatever sticks out past its edges (a katana, a staff) is cut off by them.
+const TALL = 2.35; // the world units a window's height spans
+class Figure {
+  constructor(sheet, { still = false } = {}) {
+    this.sheet = sheet;
+    this.still = still;
+    this.canvas = el('canvas', 'figure');
+    this.canvas.setAttribute('aria-hidden', 'true');
+    this.g = this.canvas.getContext('2d');
+    this.shown = -1;
+    this.offset = Math.random() * 10; // (no two idling in step)
   }
-  if (x1 < 0) { x0 = 0; y0 = 0; x1 = W - 1; y1 = H - 1; }
-  const c = document.createElement('canvas');
-  c.width = x1 - x0 + 1;
-  c.height = y1 - y0 + 1;
-  c.getContext('2d').drawImage(sheet.color, sx + x0, sy + y0, c.width, c.height, 0, 0, c.width, c.height);
-  p = { url: c.toDataURL(), w: c.width, h: c.height, tall: c.height * sheet.px };
-  portraits.set(sheet, p);
-  return p;
-}
 
-// The portrait as an image `perUnit` screen pixels to the world's unit, no larger than `maxW` x `maxH`.
-function face(sheet, perUnit, maxW, maxH) {
-  const p = portrait(sheet);
-  const k = Math.min(perUnit * sheet.px, maxW / p.w, maxH / p.h);
-  const img = el('img');
-  img.src = p.url;
-  img.alt = '';
-  img.width = Math.round(p.w * k);
-  img.height = Math.round(p.h * k);
-  return img;
+  draw(t) {
+    const c = this.canvas;
+    const dpr = window.devicePixelRatio || 1;
+    const box = c.getBoundingClientRect();
+    if (!box.width || !box.height) return;
+    const W = Math.round(box.width * dpr);
+    const H = Math.round(box.height * dpr);
+    const s = this.sheet;
+    const def = s.anims.idle || Object.values(s.anims)[0];
+    const i = this.still ? def.frames[0] : def.frames[Math.floor((t + this.offset) * def.fps) % def.frames.length];
+    if (c.width === W && c.height === H && i === this.shown) return;
+    if (c.width !== W || c.height !== H) {
+      c.width = W;
+      c.height = H;
+    }
+    this.shown = i;
+    const k = ((H * 0.97) / TALL) * s.px; // (screen pixels to the art's)
+    const fw = s.frameW * k;
+    const fh = s.frameH * k;
+    const sx = (i % s.cols) * s.frameW;
+    const sy = Math.floor(i / s.cols) * s.frameH;
+    const dx = Math.round((W - fw) / 2);
+    const dy = Math.round(H * 0.97 - fh);
+    const g = this.g;
+    g.imageSmoothingEnabled = false;
+    g.clearRect(0, 0, W, H);
+    g.drawImage(s.color, sx, sy, s.frameW, s.frameH, dx, dy, fw, fh);
+    // (and what of it glows, glowing)
+    g.globalCompositeOperation = 'lighter';
+    g.globalAlpha = 0.45;
+    g.drawImage(s.glow, sx, sy, s.frameW, s.frameH, dx, dy, fw, fh);
+    g.globalCompositeOperation = 'source-over';
+    g.globalAlpha = 1;
+  }
 }
 
 // Who a hero is, to remember it by: its hero (the Twofold whatever its form), or Maren.
@@ -143,6 +146,8 @@ export class Companions {
     this.roster = [];
     this.picking = -1; // the slot the catalogue is open for
     this.done = null;
+    this.figures = []; // the companions idling in their slots
+    this.raf = 0;
     this.root.querySelector('.close').addEventListener('click', () => this.close());
     this.root.querySelector('.back').addEventListener('click', () => this.closeCatalog());
     this.addBtn.addEventListener('click', () => this.addSlot());
@@ -178,7 +183,20 @@ export class Companions {
     this.root.hidden = false;
     this.shown = true;
     this.startBtn.focus({ preventScroll: true });
+    this.idle();
     return new Promise((resolve) => { this.done = resolve; });
+  }
+
+  // The companions in their slots idle while the window is open.
+  idle() {
+    cancelAnimationFrame(this.raf);
+    const loop = () => {
+      if (!this.shown) return;
+      const t = performance.now() / 1000;
+      for (const f of this.figures) f.draw(t);
+      this.raf = requestAnimationFrame(loop);
+    };
+    loop();
   }
 
   // Turned down (×, Esc, or left unanswered: fight.js).
@@ -195,6 +213,7 @@ export class Companions {
 
   finish(party) {
     this.shown = false;
+    cancelAnimationFrame(this.raf);
     this.root.hidden = true;
     this.picking = -1;
     const done = this.done;
@@ -211,13 +230,16 @@ export class Companions {
   // The slots, each a "+" or its companion's portrait, with "Empty slot" under it; "Add slot" only
   // while there are heroes left over for another.
   render() {
+    this.figures = [];
     this.slotsEl.replaceChildren(...this.slots.map((n, i) => {
       const slot = el('div', 'slot');
       const pick = el('button', n ? 'pick chosen' : 'pick');
       pick.type = 'button';
       if (n) {
         const art = ROSTER[heroKey(n)] || {};
-        pick.append(face(n.hero, 96, 148, 206), el('span', 'who', n.name.first), el('span', 'what', art.style || n.title || ''));
+        const figure = new Figure(n.hero);
+        this.figures.push(figure);
+        pick.append(figure.canvas, el('span', 'who', n.name.first), el('span', 'what', art.style || n.title || ''));
         pick.setAttribute('aria-label', `${n.displayName}: change companion`);
       } else {
         pick.append(el('span', 'plus', '+'));
@@ -237,11 +259,14 @@ export class Companions {
     }));
     this.addBtn.disabled = this.slots.length >= this.roster.length;
     this.addBtn.title = this.addBtn.disabled ? 'There are no more heroes to take' : '';
+    const t = performance.now() / 1000;
+    for (const f of this.figures) f.draw(t);
   }
 
   // The catalogue, for slot `i`: every hero there is to take, one already chosen elsewhere greyed.
   openCatalog(i) {
     this.picking = i;
+    const faces = [];
     this.list.replaceChildren(...this.roster.map((n) => {
       const key = heroKey(n);
       const art = ROSTER[key] || { style: n.title || '', fights: '', manner: '' };
@@ -251,7 +276,9 @@ export class Companions {
       card.type = 'button';
       card.disabled = taken;
       const thumb = el('span', 'face');
-      thumb.append(face(n.hero, 52, 72, 112));
+      const figure = new Figure(n.hero, { still: true });
+      faces.push(figure);
+      thumb.append(figure.canvas);
       const about = el('span', 'about');
       const name = el('span', 'name', n.name.first);
       if (n.name.epithet) name.append(el('small', null, ` ${n.name.epithet}`));
@@ -274,6 +301,7 @@ export class Companions {
     this.catalog.hidden = false;
     this.panel.classList.add('cataloguing');
     this.catalog.scrollTop = 0;
+    for (const f of faces) f.draw(0);
     this.list.querySelector('.hero:not(:disabled)')?.focus({ preventScroll: true });
   }
 

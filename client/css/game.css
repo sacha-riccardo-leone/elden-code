@@ -1127,9 +1127,13 @@ body.in-battle #party { top: 133px; }
 }
 #companions .pick:hover .plus,
 #companions .pick:focus-visible .plus { opacity: 1; color: var(--gold-hi); }
-/* (drawn from the hero's own art, pixel for pixel) */
-#companions .pick img {
-  margin-bottom: 10px;
+/* the companion, idling in its own art (companions.js, Figure): as tall as the others, whatever
+   sticks out past the slot cut off by it */
+#companions .pick .figure {
+  display: block;
+  width: 100%;
+  height: 206px;
+  margin-bottom: 8px;
   image-rendering: pixelated;
   filter: drop-shadow(0 5px 6px rgba(0, 0, 0, 0.65));
 }
@@ -1217,8 +1221,8 @@ body.in-battle #party { top: 133px; }
 #companions .hero:hover:not(:disabled),
 #companions .hero:focus-visible { border-color: var(--gold); background: rgba(40, 32, 20, 0.85); outline: none; }
 #companions .hero:disabled { opacity: 0.45; }
-#companions .hero .face { flex: 0 0 72px; display: flex; align-items: flex-end; justify-content: center; }
-#companions .hero .face img { image-rendering: pixelated; }
+#companions .hero .face { flex: 0 0 72px; display: flex; align-items: flex-end; }
+#companions .hero .face .figure { display: block; width: 72px; height: 112px; image-rendering: pixelated; }
 #companions .hero .about { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 #companions .hero .name { font-family: var(--serif-title); font-size: 15px; letter-spacing: 0.06em; color: var(--gold-hi); }
 #companions .hero .name small { font-family: var(--serif); font-style: italic; font-size: 14px; letter-spacing: 0; color: var(--muted); }
@@ -1234,7 +1238,7 @@ body.in-battle #party { top: 133px; }
   #companions .slots { gap: 10px; }
   #companions .slot { width: calc(50% - 5px); }
   #companions .pick { height: 236px; }
-  #companions .pick img { max-height: 160px; width: auto; }
+  #companions .pick .figure { height: 150px; }
   #companions .list { grid-template-columns: 1fr; }
 }
 
