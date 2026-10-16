@@ -75,15 +75,17 @@ const el = (tag, cls, text) => {
   return e;
 };
 
-// A hero standing in a window of its own (a slot, or a card in the catalogue): its idle pose, played
-// over and over (or, `still`, its first drawing), on a canvas the window's size. Every hero comes out
-// as tall as the others, by its height in the world (heroes are drawn at different scales), feet on
-// the window's floor; whatever sticks out past its edges (a katana, a staff) is cut off by them.
-const TALL = 2.35; // the world units a window's height spans
+// A hero standing in a box of its own (a slot, or a card in the catalogue): its idle pose, played
+// over and over (or, `still`, its first drawing). Every hero comes out as tall as the others, by its
+// height in the world (heroes are drawn at different scales: they stand 2.6 to 3.1 units, hats and
+// raised blades included), `tall` world units to the box's height, feet on the canvas's floor. In a
+// slot the canvas reaches past the box (game.css), so that the hero stands out of it: drawn over its
+// frame, head and blade beyond its edges.
 class Figure {
-  constructor(sheet, { still = false } = {}) {
+  constructor(sheet, { still = false, tall = 3.1 } = {}) {
     this.sheet = sheet;
     this.still = still;
+    this.tall = tall;
     this.canvas = el('canvas', 'figure');
     this.canvas.setAttribute('aria-hidden', 'true');
     this.g = this.canvas.getContext('2d');
@@ -107,13 +109,15 @@ class Figure {
       c.height = H;
     }
     this.shown = i;
-    const k = ((H * 0.97) / TALL) * s.px; // (screen pixels to the art's)
+    // (the box the hero stands in, CSS pixels: a slot's, which it stands out of; a card's figure, its own)
+    const room = (this.still ? 0 : c.parentElement?.clientHeight) || box.height;
+    const k = ((room * dpr) / this.tall) * s.px; // (screen pixels to the art's)
     const fw = s.frameW * k;
     const fh = s.frameH * k;
     const sx = (i % s.cols) * s.frameW;
     const sy = Math.floor(i / s.cols) * s.frameH;
     const dx = Math.round((W - fw) / 2);
-    const dy = Math.round(H * 0.97 - fh);
+    const dy = Math.round(H - fh - 2 * dpr);
     const g = this.g;
     g.imageSmoothingEnabled = false;
     g.clearRect(0, 0, W, H);
@@ -276,7 +280,7 @@ export class Companions {
       card.type = 'button';
       card.disabled = taken;
       const thumb = el('span', 'face');
-      const figure = new Figure(n.hero, { still: true });
+      const figure = new Figure(n.hero, { still: true, tall: 3.25 });
       faces.push(figure);
       thumb.append(figure.canvas);
       const about = el('span', 'about');

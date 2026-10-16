@@ -1095,11 +1095,13 @@ body.in-battle #party { top: 133px; }
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 14px;
-  margin: 18px 0 16px;
+  gap: 26px;
+  margin: 58px 0 16px; /* (room above for the heroes standing out of their slots) */
 }
 #companions .slot { display: grid; gap: 8px; width: 160px; }
 #companions .pick {
+  position: relative;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1127,16 +1129,21 @@ body.in-battle #party { top: 133px; }
 }
 #companions .pick:hover .plus,
 #companions .pick:focus-visible .plus { opacity: 1; color: var(--gold-hi); }
-/* the companion, idling in its own art (companions.js, Figure): as tall as the others, whatever
-   sticks out past the slot cut off by it */
+/* the companion, idling in its own art (companions.js, Figure), as tall as the others, standing
+   out of its slot: drawn over the frame, feet just above its name, head and blade reaching past
+   the edges (and over its neighbours, if need be) */
 #companions .pick .figure {
-  display: block;
-  width: 100%;
-  height: 206px;
-  margin-bottom: 8px;
+  position: absolute;
+  left: -56px;
+  top: -112px;
+  width: calc(100% + 112px);
+  height: calc(100% + 112px - 58px);
+  z-index: 2;
+  pointer-events: none;
   image-rendering: pixelated;
-  filter: drop-shadow(0 5px 6px rgba(0, 0, 0, 0.65));
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.7));
 }
+#companions .pick.chosen { padding-bottom: 12px; }
 #companions .pick .who {
   font-family: var(--serif-title);
   font-size: 15px;
@@ -1188,6 +1195,7 @@ body.in-battle #party { top: 133px; }
 #companions .catalog {
   position: absolute;
   inset: 0;
+  z-index: 5; /* (over the companions standing out of their slots) */
   overflow: auto;
   padding: 18px 22px;
   background: rgba(12, 10, 15, 0.985);
@@ -1235,10 +1243,10 @@ body.in-battle #party { top: 133px; }
   #companions { padding: 10px; }
   #companions .panel { padding: 18px 12px; }
   #companions h2 { font-size: 17px; }
-  #companions .slots { gap: 10px; }
+  #companions .slots { gap: 10px; row-gap: 50px; margin-top: 50px; }
   #companions .slot { width: calc(50% - 5px); }
   #companions .pick { height: 236px; }
-  #companions .pick .figure { height: 150px; }
+  #companions .pick .figure { left: -24px; top: -84px; width: calc(100% + 48px); height: calc(100% + 84px - 54px); }
   #companions .list { grid-template-columns: 1fr; }
 }
 

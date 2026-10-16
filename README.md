@@ -312,9 +312,10 @@ It sinks again only once the fight is over and everyone has left it, you include
   - **+** opens the catalogue of heroes. Each card shows its portrait (from the hero's own art), class
     and style, how it fights, its ultimate, its manner, and where it is now. One already chosen is
     greyed out. The one you're playing isn't there: you always fight.
-  - A chosen hero stands in its slot, large, idling (its own idle animation). Every hero is as tall
-    as the others, by their height in the world; whatever sticks out past the slot (Wynn's katana)
-    is cut off by it. Clicking them changes them, and **Empty slot** under it frees the slot.
+  - A chosen hero stands in its slot, large, idling (its own idle animation), and stands out of it:
+    drawn over the frame, feet just above its name, head (hat, crown, staff) and blade reaching past
+    the edges. Every hero is as tall as the others, by their height in the world. Clicking them
+    changes them, and **Empty slot** under it frees the slot.
   - **Add slot** adds another, up to as many as there are heroes to take.
   - **Start fight** works with any number chosen, none included. It raises the arena; the Round
     Table's "Summon a great enemy" only opens this window now.
