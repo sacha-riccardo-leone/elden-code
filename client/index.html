@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/css/game.css">
   <script type="importmap">{"imports":{"three":"/vendor/three/build/three.module.js","three/addons/":"/vendor/three/addons/"}}</script>
 </head>
-<body>
+<body class="on-title">
   <canvas id="scene" aria-label="The courtyard of Claude Code sessions"></canvas>
   <div id="bubbles" aria-live="polite"></div>
   <div id="label" class="label" hidden></div>
@@ -69,12 +69,6 @@
     <p class="hint">Its fan above it: become them · drag to carry · Esc to close</p>
   </aside>
 
-  <div id="empty">
-    <p>The Lands lie empty.</p>
-    <p class="small">Start a Claude Code session to raise a Tarnished, or</p>
-    <button id="empty-demo" type="button">Summon phantoms</button>
-  </div>
-
   <section id="keys" hidden>
     <button id="keys-close" type="button" aria-label="Close">×</button>
     <h3>Controls</h3>
@@ -121,6 +115,13 @@
     <p class="small">Read-only: nothing here can send anything back to Claude Code.</p>
   </section>
 
+  <!-- the title screen (title.js): the world loads behind it, and shows once thou settest out -->
+  <section id="title" aria-label="Elden Code">
+    <canvas id="title-canvas" aria-hidden="true"></canvas>
+    <button id="title-start" type="button" disabled>Start your Tarnished journey<br>(With Claude)</button>
+  </section>
+
+  <script type="module" src="/js/title.js"></script>
   <script type="module" src="/js/main.js"></script>
 </body>
 </html>

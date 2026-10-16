@@ -63,7 +63,6 @@ export class UI {
     this.fanOwner = null; // whose head the fan of gestures opens over (a Tarnished, or Maren)
     this.labelEl = $('#label');
     this.bubbleLayer = $('#bubbles');
-    this.emptyEl = $('#empty');
     this.regionsEl = $('#regions');
     this.areaEl = $('#area');
     this.labelsEl = $('#region-labels');
@@ -172,7 +171,6 @@ export class UI {
     if (waiting) parts.push(`${waiting} await${waiting === 1 ? 's' : ''} thee`);
     this.statsEl.textContent = parts.join(' · ');
     this.statsEl.dataset.waiting = waiting ? '1' : '';
-    this.emptyEl.hidden = total > 0;
   }
 
   // The map strip at the bottom: one line as wide as the whole world (the Hold and every island

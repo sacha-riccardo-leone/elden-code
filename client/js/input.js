@@ -14,8 +14,9 @@ import { MOVE_KEYS } from './pilot.js';
 const DRAG_THRESHOLD = 6;
 
 export class Input {
-  constructor({ canvas, camera, rig, director, ui, travel, keys, actions, battle = () => false }) {
+  constructor({ canvas, camera, rig, director, ui, travel, keys, actions, active = () => true, battle = () => false }) {
     this.travel = travel;
+    this.active = active; // whether the world is being played (not while the title screen stands over it)
     this.battle = battle; // whether thou art fighting on the arena
     this.keys = keys; // held movement keys, read by the player every frame
     this.actions = actions; // thine own: emote(key), attack(groundPoint), spell(groundPoint), ult(groundPoint), crouch(), fan(), interact()
@@ -141,6 +142,7 @@ export class Input {
   }
 
   key(e) {
+    if (!this.active()) return;
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (MOVE_KEYS.has(e.code)) {

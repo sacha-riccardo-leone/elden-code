@@ -123,8 +123,7 @@ body.day #area h2 {
   gap: 10px;
 }
 #controls button,
-#controls a,
-#empty button {
+#controls a {
   font-family: var(--serif-title);
   font-size: 11px;
   letter-spacing: 0.14em;
@@ -138,15 +137,13 @@ body.day #area h2 {
   transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 #controls button:hover,
-#controls a:hover,
-#empty button:hover {
+#controls a:hover {
   background: rgba(40, 32, 20, 0.85);
   color: var(--gold-hi);
   border-color: var(--gold);
 }
 #controls button:focus-visible,
 #controls a:focus-visible,
-#empty button:focus-visible,
 .fan-btn:focus-visible {
   outline: 1px solid var(--gold-hi);
   outline-offset: 2px;
@@ -750,31 +747,7 @@ body.in-battle .region-label { pointer-events: none; cursor: default; } /* mid-f
   color: var(--muted);
 }
 
-/* ---------------------------------------------------------------- empty state & help */
-
-#empty {
-  position: fixed;
-  left: 50%;
-  bottom: 16%;
-  transform: translateX(-50%);
-  text-align: center;
-  text-shadow: 0 1px 3px #000, 0 0 16px rgba(0, 0, 0, 0.9);
-}
-#empty p {
-  margin: 0 0 4px;
-  font-family: var(--serif-title);
-  font-size: 20px;
-  letter-spacing: 0.1em;
-  color: var(--gold);
-}
-#empty p.small {
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 17px;
-  letter-spacing: 0;
-  color: var(--ink);
-  margin-bottom: 12px;
-}
+/* ---------------------------------------------------------------- help */
 
 #help {
   position: fixed;
@@ -1081,8 +1054,7 @@ body.in-battle #party { top: 133px; }
 .public-only { display: none; }
 body.public-demo .public-only { display: block; }
 body.public-demo #demo-btn,
-body.public-demo a[href="/debug"],
-body.public-demo #empty { display: none !important; }
+body.public-demo a[href="/debug"] { display: none !important; }
 
 /* fallen mid-fight: whom to carry on as (fight.js) */
 #carry {
@@ -1206,3 +1178,46 @@ body.public-demo #empty { display: none !important; }
   pointer-events: none;
 }
 #perf[hidden] { display: none; }
+
+/* ---------------------------------------------------------------- the title screen (title.js) */
+
+#title {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  background: #060505;
+}
+/* (crumbling away into the world) */
+#title.leaving { background: transparent; pointer-events: none; }
+/* drawn small and scaled up whole: every pixel stays a crisp square */
+#title canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+/* the way in is drawn on the canvas; this is where it's clicked (its words, for screen readers) */
+#title-start {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: transparent;
+  font-size: 1px;
+  overflow: hidden;
+  cursor: pointer;
+}
+#title-start:disabled { cursor: default; }
+#title-start:focus { outline: none; } /* (the canvas lights it) */
+
+/* until thou'st set out and the world is ready, nothing of the game shows over the title; then
+   its buttons and panels come in softly */
+body.on-title > :not(#title):not(#scene):not(script) { visibility: hidden !important; }
+body.hud-in > :is(#hud, #controls, #regions, #log) { animation: hudIn 1.6s ease both; }
+@keyframes hudIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

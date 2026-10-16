@@ -3,6 +3,30 @@
 Your Claude Code sessions, alive in a dark-fantasy HD-2D world. Each session on this machine
 walks in as a Tarnished; what it does in Claude Code, it does in its project's region.
 
+## The title screen
+
+The page opens on a pixel-art title screen in the manner of Elden Ring's (`client/js/title.js`):
+
+- **What it shows:**
+  - The **ELDEN CODE** wordmark in cracked gold, each word's first letter standing taller, with
+    *The Lands Between Sessions* under it.
+  - A faint sigil behind them: a line straight down through three rings and a wide bowl, sparks
+    running along its lines.
+  - Embers drifting up out of the dark, and a band of light sweeping the wordmark now and then.
+  - One way in, low on the screen, on a streak of light: **Start your Tarnished journey (With
+    Claude)**.
+- **How it's drawn:** on one small canvas scaled up whole, so that every pixel is the same crisp
+  square, about four screen pixels across on a 1080p screen. The words are Cinzel cut to whole
+  pixels, outlined and shaded. Things fade in and out in dithered patterns, and a key or click
+  shows the intro at once.
+- **Setting out:** click it, or press Enter.
+  - The world loads behind the title meanwhile, sessions already taking up their heroes (locally).
+  - If it isn't ready yet, a loading sign turns at the bottom right until it is (`client/js/gate.js`).
+  - Then the title crumbles away, pixel by pixel from the middle out, as Maren rises at grace.
+- **Nothing of the game shows until then:** no buttons, log or map strip, and no keys reach the
+  world.
+- **Online:** the public demo never shows **Summon phantoms**: its sessions are made up already.
+
 ## The Lands Between Sessions
 
 Every project gets its own **region**: a floating island with its own walled keep and stations,
@@ -534,9 +558,10 @@ npm start                 # http://127.0.0.1:7777
 npm run hooks:install     # once: tell Claude Code to report to the world
 ```
 
-Then open <http://127.0.0.1:7777>. New Claude Code sessions (CLI or the desktop app's Code
-tab) appear while the bridge is running. **Summon phantoms** fills the world with fake
-sessions if you just want to watch; `npm run simulate` pushes fake sessions through the real hook.
+Then open <http://127.0.0.1:7777> and set out from the title screen. New Claude Code sessions
+(CLI or the desktop app's Code tab) appear while the bridge is running. **Summon phantoms** (top
+right, once you're in) fills the world with fake sessions if you just want to watch (`?demo` in the
+address does it as you set out); `npm run simulate` pushes fake sessions through the real hook.
 The raw event stream is at <http://127.0.0.1:7777/debug>.
 
 **Performance.** The 3D view is drawn into at most ~1.6 megapixels and stretched over the
@@ -573,7 +598,11 @@ A version anyone can open, with no bridge and no real data: an endless world of 
   - Great enemies come oftener: the first after about two minutes, then every 5 to 9 minutes, at
     full strength. A run of failing tool calls or a session ending in failure can bring one too. As
     locally, it enters only once you reach the arena.
-  - Everything else works as locally: become anyone, fight, the Round Table.
+  - Everything else works as locally: become anyone, fight, the Round Table. There is no
+    **Summon phantoms** or event log: the page is marked as the demo's from its first moment
+    (`scripts/build-public.mjs`), before any script runs.
+  - The world (its sessions, the first great enemy's countdown) starts as you set out from the
+    title screen, not while it stands.
 - **How it's built:** `client/js/mode.js` says which world the page shows. `npm run build:public`
   copies the game to `dist/elden-code-demo` with that switch set to the public demo, plus only what
   the page loads (the art grids, the parts of Three.js it imports, the two fonts) and a
@@ -616,6 +645,8 @@ server/bridge.js        localhost HTTP + SSE server, static files
 server/events.js        allowlist validation
 server/registry.js      per-session state for late joiners
 scripts/                install/uninstall hooks, simulator
+client/js/title.js      the title screen: the pixel-art wordmark, sigil and embers, the way in, loading
+client/js/gate.js       where the title and the world meet: set out, and ready
 client/js/sprites.js    procedural pixel-art characters (base body + equipment layers)
 client/js/world.js      sky, far skyline, mist, islands, bridges, pooled lights
 client/js/daylight.js   day and night: the clock, and how every light, colour and the grade change

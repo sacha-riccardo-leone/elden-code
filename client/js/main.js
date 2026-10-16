@@ -27,6 +27,7 @@ import { Crowd } from './crowd.js';
 import { Guide } from './guide.js';
 import { Ults } from './ults.js';
 import { PUBLIC_DEMO } from './mode.js';
+import { started, markReady } from './gate.js';
 
 const canvas = document.getElementById('scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
@@ -182,8 +183,10 @@ document.getElementById('table-sit').addEventListener('click', () => {
   me.body.play('sit', true);
 });
 document.getElementById('table-leave').addEventListener('click', () => ui.closeTable());
+let entered = false; // (thou'st set out from the title screen: begin)
 new Input({
   canvas, camera, rig, director, ui, travel, keys,
+  active: () => entered, // (no keys reach the world while the title screen stands over it)
   battle: () => fight.inBattle(),
   actions: {
     emote: (key) => pilot.npc && director.gesture(pilot.npc, key),
@@ -220,7 +223,6 @@ const demo = new Demo(director);
 // bridge
 
 let connected = false;
-let firstSnapshot = true;
 if (PUBLIC_DEMO) {
   // The public demo: no bridge and no real data, an endless world of made-up sessions instead.
   // Islands nobody works on any more sink back into the mist, and great enemies come oftener.
@@ -231,16 +233,11 @@ if (PUBLIC_DEMO) {
   director.notBefore = Infinity; // no island rises before thou art up (spawnPlayer)
   fight.pace({ first: 100 + Math.random() * 60, invasion: [5 * 60, 9 * 60], cooldown: 5 * 60 });
   ui.setStatus('demo', true);
-  demo.startWorld();
 } else {
+  // (the sessions take up their heroes behind the title already: they're at the Round Table when
+  // thou comest in)
   connect({
-    onSnapshot: (sessions) => {
-      director.snapshot(sessions);
-      if (firstSnapshot) {
-        firstSnapshot = false;
-        spawnPlayer();
-      }
-    },
+    onSnapshot: (sessions) => director.snapshot(sessions),
     onEvent: (ev, session) => director.event(ev, session),
     onStatus: (ok) => {
       connected = ok;
@@ -255,7 +252,6 @@ const toggleDemo = () => {
   ui.setStatus(connected, demo.active);
 };
 document.getElementById('demo-btn').addEventListener('click', toggleDemo);
-document.getElementById('empty-demo').addEventListener('click', toggleDemo);
 // The two panels at the top right: the controls menu and "how it works"; one at a time, Esc closes.
 const keysPanel = document.getElementById('keys');
 const keysBtn = document.getElementById('keys-btn');
@@ -277,9 +273,6 @@ document.getElementById('help-close').addEventListener('click', () => {
   help.hidden = true;
   helpBtn.setAttribute('aria-expanded', 'false');
 });
-if (new URLSearchParams(window.location.search).has('demo')) setTimeout(toggleDemo, 600);
-// Without the bridge there is no snapshot: Maren arrives anyway.
-setTimeout(spawnPlayer, 1500);
 
 function resize() {
   const w = window.innerWidth;
@@ -371,7 +364,6 @@ function frame(now) {
     if (frameErrors++ % 300 === 0) console.error('A frame failed (the world carries on):', err);
   }
 }
-requestAnimationFrame(frame);
 
 // Handy for poking at the scene from the dev console. advance(s) steps the simulation by s
 // seconds even when the tab is in the background (where requestAnimationFrame pauses).
@@ -385,3 +377,30 @@ window.elden = {
     post.render(0, t);
   },
 };
+
+// The title screen (title.js) stands over all this. Behind it the camera waits where thou'lt rise
+// and draws one frame (so that what it shows is ready to be drawn, shaders and all); then the
+// world is ready (gate.js), and once thou settest out it begins: thou risest at grace, the public
+// demo's sessions start, and time runs.
+function begin() {
+  entered = true;
+  spawnPlayer();
+  if (PUBLIC_DEMO) demo.startWorld();
+  else if (new URLSearchParams(window.location.search).has('demo')) setTimeout(toggleDemo, 600);
+  last = performance.now();
+  requestAnimationFrame(frame);
+}
+try {
+  nav.sync();
+  const [gx, gz] = nav.clampToWalkable(HUB_LAYOUT.grace[0] + 1.6, HUB_LAYOUT.grace[1] + 1.8);
+  rig.flyTo(gx, gz, FOLLOW_DIST);
+  rig.target.set(gx, 0.8, gz - 0.6);
+  rig.snap();
+  step(0);
+  if (window.innerWidth && window.innerHeight) post.render(0, t); // (a page out of sight has nothing to draw into)
+} catch (err) {
+  console.error('Warming up the first frame failed (the world carries on):', err);
+}
+markReady();
+await started;
+begin();
