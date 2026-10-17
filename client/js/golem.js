@@ -32,6 +32,7 @@ import { AirWave, Decal, Meteor } from './bossfx.js';
 import { addRipple, rippleAt } from './ripple.js';
 import { SPOTS } from './heroes/golem.js';
 import { rootedAt } from './combat.js';
+import { Spark } from './spellfx.js';
 
 export const GOLEM = {
   hp: 4500,
@@ -91,6 +92,7 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const ROLL_TRAVEL = GOLEM_MOVES.roll.steps.slice(1, 6).reduce((t, [, d]) => t + d, 0);
 const FIRE = ['#fff6c8', '#ffd24a', '#ff8a14', '#e0380a'];
 const STONE = ['#7a7068', '#4a423c', '#a49a8e'];
+const STONE_SPARK = '#cfc6b8'; // (a blow turned by the stone: its spark, grey)
 
 export class GolemMind {
   constructor(fight, b) {
@@ -160,7 +162,7 @@ export class GolemMind {
       if (Math.hypot(n.pos.x - h.x, n.pos.y - h.z) <= h.r) {
         // from inside the circle: into the fire
         const [, hy] = this.spot(SPOTS.heart);
-        this.fight.hit(b, heartDmg, [h.x, hy + 0.3, b.pos.y + 0.2], n);
+        this.fight.hit(b, heartDmg, [h.x, hy + 0.3, b.pos.y + 0.2], n, true, 'blow');
         this.ctx.particles.emit({
           pos: [h.x, hy + 0.4, b.pos.y + 0.3], spread: [0.4, 0.3, 0.3], vel: [0, 2.6, 0], velSpread: [1.6, 1.4, 1],
           color: FIRE, size: 0.1, life: 0.7, count: 22, drag: 1.2, intensity: 2.8,
@@ -168,7 +170,7 @@ export class GolemMind {
         return true;
       }
       // the stone of his back: nothing
-      if (Math.abs(reach - b.pos.x) < 5 && Math.abs(n.pos.y - b.pos.y) < 2.4) { this.clang(reach, n.pos.y); return true; }
+      if (Math.abs(reach - b.pos.x) < 5 && Math.abs(n.pos.y - b.pos.y) < 2.4) { this.clang(reach, n.pos.y, n); return true; }
       return false;
     }
     if (this.lying) return false;
@@ -178,7 +180,7 @@ export class GolemMind {
     if (ahead > -0.4 && ahead < 1.5 + GOLEM.ankle.r && Math.abs(n.pos.y - b.pos.y) < GOLEM.ankle.r + 0.4) {
       const was = this.weak;
       this.ankle += weight;
-      this.fight.hit(b, ankleDmg, [ax, ay, b.pos.y + 0.2], n);
+      this.fight.hit(b, ankleDmg, [ax, ay, b.pos.y + 0.2], n, true, 'blow');
       // (it takes little, but the blow counts in full toward the striker's ultimate)
       this.fight.charge(n, this.fight.blowWorth(n) - ankleDmg);
       this.ctx.particles.emit({
@@ -191,7 +193,7 @@ export class GolemMind {
     // anywhere else on him: the stone turns it
     const front = (b.pos.x - n.pos.x) * n.body.facing;
     if (front > -0.6 && front < b.kind.reach + b.kind.radius && Math.abs(b.pos.y - n.pos.y) < b.kind.depth) {
-      this.clang(reach, n.pos.y);
+      this.clang(reach, n.pos.y, n);
       this.tell('stone', 'Stone turns thy blows: strike the Golem\'s cracked ankle, low on his back leg');
       return true;
     }
@@ -220,7 +222,7 @@ export class GolemMind {
     if (!b.alive || b.state === 'enter' || b.lift > 2 || b.attack?.kind === 'roll') return false;
     if (b.state === 'down' && this.heart) {
       const [, hy] = this.spot(SPOTS.heart);
-      this.fight.hit(b, (player ? GOLEM.heart.player : GOLEM.heart.fighter) * 0.5 * share, [this.heart.x, hy + 0.3, b.pos.y + 0.2], n);
+      this.fight.hit(b, (player ? GOLEM.heart.player : GOLEM.heart.fighter) * 0.5 * share, [this.heart.x, hy + 0.3, b.pos.y + 0.2], n, true, 'spell');
       return true;
     }
     if (this.lying) { this.clang(b.pos.x, b.pos.y); return false; }
@@ -228,18 +230,23 @@ export class GolemMind {
     const was = this.weak;
     this.ankle += (player ? 1 : GOLEM.ankle.weight) * 0.7 * share;
     const dmg = (player ? GOLEM.ankle.player : GOLEM.ankle.fighter) * share;
-    this.fight.hit(b, dmg, [ax, ay, b.pos.y + 0.2], n);
+    this.fight.hit(b, dmg, [ax, ay, b.pos.y + 0.2], n, true, 'spell');
     this.fight.charge(n, this.fight.blowWorth(n, true) * share - dmg);
     if (!was && this.weak) this.tell('weak', 'The Golem\'s cracked ankle buckles: one more walk on it and it gives way', 'red');
     return true;
   }
 
-  // A blow turned by the stone: grey chips and a spark, and nothing more.
-  clang(x, z) {
+  // A blow turned by the stone: grey chips and a spark, and nothing more: no flash, no holding
+  // still. The striker (`n`) bounces off it: its drawing thrown back the way it came, past the
+  // lunge its blow began (npc.js).
+  clang(x, z, n = null) {
     this.ctx.particles.emit({
       pos: [x, 1.2, z + 0.2], spread: [0.2, 0.3, 0.2], vel: [0, 1.2, 0], velSpread: [1.4, 1, 0.8],
       color: [...STONE, '#ffe6b0'], size: 0.06, life: 0.4, count: 10, drag: 1.6, intensity: 1.2,
     });
+    if (!n) return;
+    this.fight.fx.push(new Spark(this.fight.fxCtx, { color: STONE_SPARK, at: [x, 1.2, z + 0.3], dir: n.body.facing, size: 1.1 }));
+    n.body.knock((n.body.sheet.lunge?.attack || 0) + 0.2, -n.body.facing);
   }
 
   // Where a fighter goes to strike, and whether it's there: beside the cracked ankle (behind him),

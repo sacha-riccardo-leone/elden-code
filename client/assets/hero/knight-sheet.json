@@ -1,14 +1,14 @@
 {
   "name": "Stormbound Knight",
   "frame": {
-    "w": 192,
-    "h": 140
+    "w": 216,
+    "h": 180
   },
   "columns": 8,
-  "frames": 46,
+  "frames": 56,
   "feet": {
-    "x": 96,
-    "y": 139
+    "x": 108,
+    "y": 179
   },
   "animations": {
     "idle": {
@@ -131,6 +131,26 @@
         45
       ],
       "fps": 2.5
+    },
+    "storm": {
+      "frames": [
+        46,
+        47,
+        48,
+        49
+      ],
+      "fps": 8
+    },
+    "thrust": {
+      "frames": [
+        50,
+        51,
+        52,
+        53,
+        54,
+        55
+      ],
+      "fps": 9
     }
   }
 }

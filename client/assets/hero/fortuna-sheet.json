@@ -1,14 +1,14 @@
 {
   "name": "Fortuna, the Four-armed Beauty",
   "frame": {
-    "w": 180,
-    "h": 152
+    "w": 296,
+    "h": 180
   },
   "columns": 8,
-  "frames": 46,
+  "frames": 58,
   "feet": {
-    "x": 90,
-    "y": 151
+    "x": 148,
+    "y": 179
   },
   "animations": {
     "idle": {
@@ -131,6 +131,33 @@
         45
       ],
       "fps": 2.5
+    },
+    "frostfall": {
+      "frames": [
+        46,
+        47,
+        48,
+        49
+      ],
+      "fps": 8
+    },
+    "blade": {
+      "frames": [
+        50,
+        51,
+        52,
+        53,
+        54
+      ],
+      "fps": 9
+    },
+    "frost": {
+      "frames": [
+        55,
+        56,
+        57
+      ],
+      "fps": 9
     }
   }
 }

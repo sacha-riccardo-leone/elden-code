@@ -1,14 +1,16 @@
 // The Stormbound Knight: plate, ragged violet cape, a spear wreathed in red lightning.
-// Source art: assets/hero/knight.json (66x135, from knight-stand.webp).
+// Source art: assets/hero/knight.json (66x135, from knight-stand.webp); drawn whole, her Red Storm
+// (knight-ult.json, from ult-maren.png) and her thrust (knight-attack.json, from atk-maren.png).
 
-import { Img, NONE, region, blit, erase, rotatable, drawRotated, prepareStill, composeStill } from './core.js';
+import { Img, NONE, region, blit, erase, rotatable, drawRotated, prepareStill, composeStill, held } from './core.js';
 
-const FRAME = { w: 192, h: 140 };
-const OX = 96 - 34; // source x 34 (centre of the feet) lands on the frame's centre column
-const OY = 139 - 131; // source row 131 (the ground) lands on the frame's last row
+// (room above her for the spear raised to the sky, and ahead of her for the thrust)
+const FRAME = { w: 216, h: 180 };
 
 // Anatomy, in source-grid coordinates.
 const GROUND = 131;
+const OX = FRAME.w / 2 - 34; // source x 34 (centre of the feet) lands on the frame's centre column
+const OY = FRAME.h - 1 - GROUND; // the ground lands on the frame's last row
 const HIP = 110;
 const PIVOT = { x: 52.5, y: 97.5 }; // centre of the hand gripping the spear
 const HAND = { x0: 48, x1: 57, y0: 92, y1: 102 };
@@ -188,12 +190,18 @@ anim('stagger', [0, 1].map((i) => ({ lean: -2 - i, spear: -10 - i * 4, sway: 2, 
 anim('collapse', [{ still: true, head: [2, 3], sway: 2, light: 0 }]);
 anim('lifted', [0, 1].map((i) => ({ sway: -3 + i, spear: -8, legs: { front: { dangle: -2 - i }, back: { dangle: -3 } }, light: 1 })));
 anim('talk', [0, 1].map((i) => ({ spear: i ? 8 : 2, bob: i, light: 1 })));
+// drawn whole (core.js, composeDrawn), each set by her body's middle: the Red Storm, the spear
+// raised to the sky, its lightning crackling while she holds it; the thrust (wind-up, lunge,
+// recovery), the lightning flaring along the shaft as it lands (each drawing twice, so that its
+// lightning crackles on while it's held: anims.attack)
+anim('storm', [0, 1, 2, 3].map(() => ({ drawn: 'ult', mid: 54, ground: 174, light: 2 })));
+anim('thrust', [0, 0, 1, 1, 2, 2].map((i) => ({ drawn: 'attack', frame: i, mid: 60, ground: [106, 106, 101][i], light: [1, 2, 1][i] })));
 
 const G = groups;
 export default {
   id: 'knight',
   art: '/assets/hero/knight.json',
-  extraArt: { kneel: '/assets/hero/knight-kneel.json' },
+  extraArt: { kneel: '/assets/hero/knight-kneel.json', ult: '/assets/hero/knight-ult.json', attack: '/assets/hero/knight-attack.json' },
   firstName: 'Maren',
   epithet: 'the Stormbound',
   title: 'Knight',
@@ -201,7 +209,8 @@ export default {
   cols: 8,
   px: 2.4 / 81, // world units per art pixel: he stands ~2.4 units, a head taller than the rest
   head: 82, // art pixels from the ground to the top of the helm
-  hits: { hammer: 3, cast: 1, send: 1 },
+  hits: { hammer: 3, cast: 1, send: 1, attack: 4 },
+  lunge: { attack: 0.35 }, // (her drawing thrown forward as the thrust lands, springing back: npc.js)
   glowIntensity: 1.1,
   glowColors: [[170, 18, 12], [210, 120, 110]],
   seed: 9001,
@@ -214,6 +223,9 @@ export default {
     idle: { frames: G.idle, fps: 5 },
     walk: { frames: G.walk, fps: 9 },
     hammer: { frames: G.strike, fps: 8 },
+    // (in eighteenths of a second: the wind-up 4, the lunge 6, the recovery 4)
+    attack: { frames: held(G.thrust, [2, 2, 3, 3, 2, 2]), fps: 18 },
+    ult: { frames: G.storm, fps: 8 },
     read: { frames: G.study, fps: 1.4 },
     cast: { frames: G.cast, fps: 6 },
     send: { frames: G.raise, fps: 4 },
@@ -232,5 +244,5 @@ export default {
     kneelBow: { frames: [G.kneel[0], ...G.rest, G.rest[1], G.kneel[0]], fps: 2, once: true },
   },
   // Playback rates for the named groups in previews and exports.
-  groupFps: { idle: 5, walk: 9, strike: 8, cast: 6, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5 },
+  groupFps: { idle: 5, walk: 9, strike: 8, cast: 6, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, storm: 8, thrust: 9 },
 };

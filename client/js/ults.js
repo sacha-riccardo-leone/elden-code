@@ -30,10 +30,29 @@ import { Aura, Missile, Wall, Pool, Slash, Cut, Drop, Bolt, Burst, StuckSpear, T
 import { ULT, ultPower, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt } from './combat.js';
 
 // The moments of one: grey within `grey`, the aura from `aura`, the blow at `release`, colour back
-// within `back` of it; the camera this close meanwhile.
-const CINE = { grey: 0.3, aura: 0.45, release: 1.85, back: 0.55, close: 7.5 };
+// within `back` of it; the camera this close meanwhile (or as far back as a tall pose needs to be
+// seen whole: `fit` world units away for each unit of its height).
+const CINE = { grey: 0.3, aura: 0.45, release: 1.85, back: 0.55, close: 7.5, fit: 2.6 };
 
 const rand = (a, b) => a + Math.random() * (b - a);
+
+// How tall a pose stands (the frames of `anim` on body's sheet): from the feet to the top of the
+// drawing, in world units (a spear raised to the sky counts).
+function poseHeight(body, anim) {
+  const s = body.sheet;
+  const W = s.frameW * s.cols;
+  let top = s.frameH;
+  for (const i of s.anims[anim]?.frames || []) {
+    const ox = (i % s.cols) * s.frameW;
+    const oy = Math.floor(i / s.cols) * s.frameH;
+    for (let y = 0; y < top; y++) {
+      let ink = false;
+      for (let x = 0; x < s.frameW && !ink; x++) ink = s.alpha[((oy + y) * W + ox + x) * 4 + 3] > 0;
+      if (ink) top = y;
+    }
+  }
+  return (s.frameH - top) * s.px;
+}
 
 // what runs as a fight effect (fight.fx): step(dt) → still going?
 const effect = (step, dispose = () => {}) => ({ step, dispose });
@@ -154,7 +173,7 @@ export const ULTS = {
     },
   },
   knight: {
-    name: 'Red Storm', pose: ['send'],
+    name: 'Red Storm', pose: ['ult'],
     run({ fight, fx, b, hit }) {
       let t = 0;
       let k = 0;
@@ -164,12 +183,13 @@ export const ULTS = {
         while (k < times.length && t >= times[k]) {
           const a = Math.random() * Math.PI * 2;
           const r = Math.sqrt(Math.random()) * 2.6;
-          fx.add(new Bolt(fx, { x: b.pos.x + Math.cos(a) * r, z: b.pos.y + Math.sin(a) * r * 0.7, k, onHit: (at) => hit(1, at) }));
+          // (her bolts, drawn at twice her own pixel size: tall enough to fall from out of sight)
+          fx.add(new Bolt(fx, { x: b.pos.x + Math.cos(a) * r, z: b.pos.y + Math.sin(a) * r * 0.7, k, life: 0.3, art: 'maren-bolt', px: 0.06, onHit: (at) => hit(1, at) }));
           fight.ctx.rig?.shake?.(0.12);
           k += 1;
         }
         if (t < 2) return true;
-        fx.add(new Bolt(fx, { x: b.pos.x, z: b.pos.y + 0.1, wide: true, height: 18, life: 0.4, onHit: (at) => hit(14, at) }));
+        fx.add(new Bolt(fx, { x: b.pos.x, z: b.pos.y + 0.1, wide: true, height: 18, life: 0.5, art: 'maren-great-bolt', px: 0.075, onHit: (at) => hit(14, at) }));
         fx.add(new Burst(fx, { school: 'storm', at: [b.pos.x, 1.5, b.pos.y], size: 4.4, sparks: 70 }));
         fight.ctx.rig?.shake?.(0.75);
         return false;
@@ -278,17 +298,20 @@ export const ULTS = {
     },
   },
   fortuna: {
-    name: 'Frostfall', pose: ['send'],
-    run({ fx, b, hit }) {
+    name: 'Frostfall', pose: ['ult'],
+    run({ fx, n, b, hit }) {
+      // (her great icicles, drawn as tall as she is at her own pixel size, shattering at twice it)
+      const px = n.body.sheet.px;
       const icicle = TEX.shard('frost', 34, 6);
       [0, 0.35, 0.7, 1.05].forEach((delay, i) => {
         const x = b.pos.x + (i - 1.5) * 0.6;
         const z = b.pos.y + (i % 2 ? 0.3 : -0.2);
         const d = new Drop(fx, {
-          school: 'frost', x, z, map: icicle, w: 3.4, h: 0.68, span: 3.4, height: 6.5, dur: 0.5, delay,
+          school: 'frost', x, z, art: 'fortuna-icicle', px, shatter: 'fortuna-shatter', shatterPx: px * 2,
+          map: icicle, w: 3.4, h: 0.68, span: 3.4, height: 6.5, dur: 0.5, delay,
           onHit: (at) => hit(i === 3 ? 11.5 : 5.5, at),
         });
-        d.mesh.rotation.z = -Math.PI / 2; // (the shard points along x: turned to point down)
+        if (!d.drawn) d.mesh.rotation.z = -Math.PI / 2; // (the shard points along x: turned to point down)
         fx.add(d);
       });
     },
@@ -345,7 +368,8 @@ export class Ults {
     const key = heroKey(n);
     const color = styleOf(n).color;
     const aura = new Aura(this.ctx.scene, this.particles, n.body, color, { radius: key === 'sorceress' ? 4.5 : 2.5 });
-    this.active = { n, u, key, t: 0, dir, player, aura, released: false, saved: rig.distGoal };
+    const tall = Math.max(2.5, poseHeight(n.body, u.pose[0]));
+    this.active = { n, u, key, t: 0, dir, player, aura, released: false, saved: rig.distGoal, tall };
     // (everyone else, and him, hide it where they stand in front of it: they stay grey)
     const others = [...this.ctx.director.npcs.values()].filter((o) => o !== n && !o.dead && o.body?.mesh).map((o) => o.body.mesh);
     post.spot = { desat: 0, meshes: [n.body.mesh, ...aura.meshes, this.particles.points], occluders: [...others, b.body.mesh] };
@@ -362,12 +386,13 @@ export class Ults {
     return true;
   }
 
-  // Where the camera looks, while it's on whoever looses one: their middle, close.
+  // Where the camera looks, while it's on whoever looses one: their middle, close (a tall pose, a
+  // little below its middle, from far enough back to show it whole above the bars at the bottom).
   shot() {
     const a = this.active;
     if (!a || a.released) return null;
     const p = a.n.pos;
-    return { at: [p.x, 1.25 + (a.n.lift || 0), p.y], dist: CINE.close };
+    return { at: [p.x, Math.max(1.25, a.tall * 0.42) + (a.n.lift || 0), p.y], dist: Math.max(CINE.close, a.tall * CINE.fit) };
   }
 
   update(dt) {
@@ -380,7 +405,7 @@ export class Ults {
     if (!fight.boss || a.n.dead || !a.n.body?.mesh?.parent) { this.finish(); return; }
     a.t += dt;
     if (!a.released) {
-      rig.distGoal = CINE.close;
+      rig.distGoal = this.shot().dist;
       const [anim, hold] = a.u.pose;
       const body = a.n.body;
       if (hold != null) {

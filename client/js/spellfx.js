@@ -18,6 +18,7 @@ import * as THREE from 'three';
 import { rng } from './pixel.js';
 import { canvasOf, texture } from './bossfx.js';
 import { rippling } from './ripple.js';
+import { fxArt } from './fxart.js';
 
 // Each school's light, white-hot to dark: [core, hot, mid, deep, dark].
 export const LIGHT = {
@@ -347,6 +348,27 @@ function burstCanvas(pal, seed) {
   });
 }
 
+// Where a blow strikes home: sharp lines flung out the way it went (toward +x, a few back), white
+// at the heart and the striker's own light (`rgb`) at the tips: 0 the flash, 1 the lines flying
+// apart, 2 their tips dying. The heart sits at (8, 12).
+const SPARK_RAYS = [[-0.95, 9], [-0.5, 12], [-0.15, 15], [0.2, 13], [0.55, 10], [0.95, 7], [2.5, 5], [-2.6, 4]];
+function sparkCanvas(rgb, frame) {
+  const white = [255, 255, 255];
+  const pale = rgb.map((v) => Math.round(v + (255 - v) * 0.55));
+  return canvasOf(32, 24, (put) => {
+    const [cx, cy] = [8, 12];
+    for (const [a, len] of SPARK_RAYS) {
+      const L = frame === 0 ? len * 0.6 : len;
+      const r0 = frame === 0 ? 0 : frame === 1 ? L * 0.35 : L * 0.8;
+      for (let r = r0; r <= L; r += 0.5) {
+        const k = r / L;
+        put(cx + Math.cos(a) * r, cy + Math.sin(a) * r, frame === 2 ? rgb : k < 0.45 ? white : k < 0.75 ? pale : rgb);
+      }
+    }
+    if (frame === 0) for (let y = -1; y <= 1; y++) for (let x = -1; x <= 1; x++) put(cx + x, cy + y, white);
+  });
+}
+
 // A ring of light on the floor, seen from above.
 function ringCanvas(pal) {
   return canvasOf(64, 64, (put) => {
@@ -421,6 +443,7 @@ const TEX = {
   tome: (frame) => once(`tome:${frame}`, () => texture(tomeCanvas(frame))),
   spear: () => once('spear', () => texture(spearCanvas())),
   burst: (school) => once(`burst:${school}`, () => texture(burstCanvas(LIGHT[school], 2))),
+  spark: (color, frame) => once(`spark:${color}:${frame}`, () => texture(sparkCanvas([1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16)), frame))),
   ring: (school) => once(`ring:${school}`, () => texture(ringCanvas(LIGHT[school]))),
   pool: () => once('pool', () => texture(poolCanvas(17))),
   glow: () => once('glow', () => new THREE.CanvasTexture(glowCanvas())),
@@ -561,12 +584,20 @@ export class Beam {
 }
 
 // Something rising out of the floor at (x, z): the floor marked first (`warn` seconds), then it
-// thrusts up (`map`, w x h), strikes (onHit) and sinks away.
+// thrusts up (`map`, w x h), strikes (onHit) and sinks away. Drawn by hand (`art`, fxart.js), it
+// plays its own frames instead (breaking through, half, full, cracking apart), `px` world units to
+// its pixel, its foot on (x, z).
 export class Rise {
-  constructor(fx, { school, x, z, map, w, h, mark = null, markSize = 2.4, warn = 0.45, life = 0.7, onHit = null }) {
+  constructor(fx, { school, x, z, map, w, h, art = null, px = 0.02, mark = null, markSize = 2.4, warn = 0.45, life = 0.7, onHit = null }) {
     this.fx = fx;
     this.mark = floor(fx.scene, mark || TEX.ring(school), x, z, markSize, 0);
-    this.mesh = plane(fx.scene, map, w, h);
+    const sheet = art && fxArt(art);
+    if (sheet) {
+      [w, h] = [sheet.w * px, sheet.h * px];
+      this.frames = sheet.frames;
+      this.dx = (sheet.w / 2 - sheet.foot[0]) * px;
+    }
+    this.mesh = plane(fx.scene, sheet ? sheet.frames[0] : map, w, h);
     this.mesh.visible = false;
     Object.assign(this, { x, z, w, h, warn, life, onHit, school, t: 0, struck: false });
   }
@@ -588,10 +619,19 @@ export class Rise {
         color: motesOf(this.school), size: 0.08, life: 0.6, count: 24, drag: 1.4, intensity: 2.6,
       });
     }
-    // up fast, then down slowly
-    const up = k < 0.2 ? k / 0.2 : Math.max(0, 1 - (k - 0.55) / 0.45);
-    this.mesh.scale.y = Math.max(0.01, up);
-    this.mesh.position.set(this.x, (this.h * this.mesh.scale.y) / 2, this.z + 0.05);
+    if (this.frames) {
+      // through the floor and up in two quick steps, standing a while, then cracking and gone
+      const n = this.frames.length;
+      const i = k < 0.07 ? 0 : k < 0.14 ? 1 : k < 0.55 ? Math.min(2, n - 1) : n - 1;
+      this.mesh.material.map = this.frames[i];
+      this.mesh.material.opacity = k < 0.75 ? 1 : Math.max(0, 1 - (k - 0.75) / 0.25);
+      this.mesh.position.set(this.x + this.dx, this.h / 2, this.z + 0.05);
+    } else {
+      // up fast, then down slowly
+      const up = k < 0.2 ? k / 0.2 : Math.max(0, 1 - (k - 0.55) / 0.45);
+      this.mesh.scale.y = Math.max(0.01, up);
+      this.mesh.position.set(this.x, (this.h * this.mesh.scale.y) / 2, this.z + 0.05);
+    }
     this.mark.material.opacity = Math.max(0, 1 - k);
     return k < 1;
   }
@@ -602,12 +642,22 @@ export class Rise {
   }
 }
 
-// Lightning out of the sky onto (x, z): there a moment, a flash on the floor where it lands.
+// Lightning out of the sky onto (x, z): there a moment, a flash on the floor where it lands. Drawn
+// by hand (`art`, fxart.js), its frames play out over its life, `px` world units to its pixel and
+// its strike on (x, z), every other one mirrored; else it's drawn here, `height` tall.
 export class Bolt {
-  constructor(fx, { school = 'storm', x, z, k = 0, wide = false, height = 14, life = 0.22, onHit = null }) {
-    const w = wide ? 2.6 : 1.3;
-    this.mesh = plane(fx.scene, TEX.bolt(school, k, wide), w, height, { order: 8 });
-    this.mesh.position.set(x, height / 2, z + 0.1);
+  constructor(fx, { school = 'storm', x, z, k = 0, wide = false, height = 14, life = 0.22, art = null, px = 0.06, onHit = null }) {
+    const sheet = art && fxArt(art);
+    if (sheet) {
+      const flip = k % 2 ? -1 : 1;
+      this.mesh = plane(fx.scene, sheet.frames[0], sheet.w * px, sheet.h * px, { order: 8 });
+      this.mesh.scale.x = flip;
+      this.mesh.position.set(x + (sheet.w / 2 - sheet.foot[0]) * px * flip, (sheet.h / 2) * px - 0.05, z + 0.1);
+      this.frames = sheet.frames;
+    } else {
+      this.mesh = plane(fx.scene, TEX.bolt(school, k, wide), wide ? 2.6 : 1.3, height, { order: 8 });
+      this.mesh.position.set(x, height / 2, z + 0.1);
+    }
     this.mark = floor(fx.scene, TEX.ring(school), x, z, wide ? 4.2 : 2.2, 1);
     Object.assign(this, { fx, life, t: 0 });
     onHit?.(new THREE.Vector3(x, 0.5, z));
@@ -620,7 +670,13 @@ export class Bolt {
   step(dt) {
     this.t += dt;
     const k = this.t / this.life;
-    this.mesh.material.opacity = k < 0.6 ? (Math.floor(this.t * 40) % 2 ? 1 : 0.65) : Math.max(0, 1 - (k - 0.6) / 0.4);
+    if (this.frames) {
+      // (the strike, the flash, the fading: its own frames do the flickering)
+      this.mesh.material.map = this.frames[Math.min(this.frames.length - 1, Math.floor(k * this.frames.length))];
+      this.mesh.material.opacity = k < 0.85 ? 1 : Math.max(0, 1 - (k - 0.85) / 0.15);
+    } else {
+      this.mesh.material.opacity = k < 0.6 ? (Math.floor(this.t * 40) % 2 ? 1 : 0.65) : Math.max(0, 1 - (k - 0.6) / 0.4);
+    }
     this.mark.material.opacity = Math.max(0, 1 - k);
     return k < 1;
   }
@@ -629,6 +685,31 @@ export class Bolt {
     drop(this.fx.scene, this.mesh);
     drop(this.fx.scene, this.mark);
   }
+}
+
+// A blow striking home at `at`: a spark of sharp lines in the striker's light (`color`, '#rrggbb')
+// flung the way the blow went (`dir`, -1 or 1), `size` world units tall, three frames in a flash;
+// drawn over whatever it strikes (it would be lost inside him).
+export class Spark {
+  constructor(fx, { color, at, dir = 1, size = 1, life = 0.16 }) {
+    const w = (size * 32) / 24;
+    this.mesh = plane(fx.scene, TEX.spark(color, 0), w, size, { order: 9 });
+    this.mesh.material.depthTest = false;
+    this.mesh.scale.x = dir;
+    // (its heart, 8 of its 32 columns in, on the spot)
+    this.mesh.position.set(at[0] + (w / 2 - (w * 8.5) / 32) * dir, at[1], at[2]);
+    Object.assign(this, { fx, color, life, t: 0 });
+  }
+
+  step(dt) {
+    this.t += dt;
+    const frame = Math.floor((this.t / this.life) * 3);
+    if (frame > 2) return false;
+    this.mesh.material.map = TEX.spark(this.color, frame);
+    return true;
+  }
+
+  dispose() { drop(this.fx.scene, this.mesh); }
 }
 
 // A burst where something strikes home: a flash of rays, a ring spreading on the floor, sparks.
@@ -820,10 +901,16 @@ export class Cut {
 // Something dropping out of the sky onto (x, z) (an icicle), landing after `dur` and shattering.
 // (`span`: how tall it stands as drawn, turned upright.)
 export class Drop {
-  constructor(fx, { school = 'frost', x, z, map, w, h, span = h, height = 12, dur = 0.5, delay = 0, onHit = null }) {
-    this.mesh = plane(fx.scene, map, w, h, { order: 7 });
+  constructor(fx, { school = 'frost', x, z, map, w, h, span = h, art = null, px = 0.02, shatter = null, shatterPx = px, height = 12, dur = 0.5, delay = 0, onHit = null }) {
+    const sheet = art && fxArt(art);
+    if (sheet) {
+      [w, h] = [sheet.w * px, sheet.h * px];
+      span = h;
+    }
+    this.drawn = !!sheet;
+    this.mesh = plane(fx.scene, sheet ? sheet.frames[0] : map, w, h, { order: 7 });
     this.mesh.visible = false;
-    Object.assign(this, { fx, school, x, z, span, height, dur, delay, onHit, t: 0 });
+    Object.assign(this, { fx, school, x, z, span, height, dur, delay, onHit, shatter, shatterPx, t: 0 });
   }
 
   step(dt) {
@@ -834,9 +921,35 @@ export class Drop {
     this.mesh.position.set(this.x, this.span / 2 + this.height * (1 - k * k), this.z + 0.1);
     if (k >= 1) {
       this.onHit?.(new THREE.Vector3(this.x, 0.5, this.z));
-      this.fx.add(new Burst(this.fx, { school: this.school, at: [this.x, 0.8, this.z], size: 2.6, sparks: 34 }));
+      // (drawn, it bursts into its own shards; the flash under them smaller)
+      const splash = this.shatter && fxArt(this.shatter);
+      if (splash) this.fx.add(new Splash(this.fx, { art: this.shatter, x: this.x, z: this.z + 0.15, px: this.shatterPx, flip: Math.random() < 0.5 }));
+      this.fx.add(new Burst(this.fx, { school: this.school, at: [this.x, 0.8, this.z], size: splash ? 1.6 : 2.6, sparks: 34 }));
       return false;
     }
+    return true;
+  }
+
+  dispose() { drop(this.fx.scene, this.mesh); }
+}
+
+// A drawn effect (fxart.js) played once where something lands (an icicle's shatter): its frames at
+// `fps`, `px` world units to its pixel, its foot on (x, z), mirrored or not.
+export class Splash {
+  constructor(fx, { art, x, z, px, fps = 14, flip = false }) {
+    const sheet = fxArt(art);
+    const s = flip ? -1 : 1;
+    this.mesh = plane(fx.scene, sheet.frames[0], sheet.w * px, sheet.h * px, { order: 8 });
+    this.mesh.scale.x = s;
+    this.mesh.position.set(x + (sheet.w / 2 - sheet.foot[0]) * px * s, (sheet.h / 2) * px - 0.05, z);
+    Object.assign(this, { fx, frames: sheet.frames, fps, t: 0 });
+  }
+
+  step(dt) {
+    this.t += dt;
+    const i = Math.floor(this.t * this.fps);
+    if (i >= this.frames.length) return false;
+    this.mesh.material.map = this.frames[i];
     return true;
   }
 

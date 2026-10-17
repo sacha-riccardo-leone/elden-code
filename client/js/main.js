@@ -10,10 +10,12 @@ import { Input } from './input.js';
 import { Post } from './post.js';
 import { Perf } from './perf.js';
 import { CameraRig } from './camera.js';
+import { SPRING } from './npc.js';
 import { connect } from './net.js';
 import { Demo } from './demo.js';
 import { loadHeroSheets } from './heroes/index.js';
 import { loadSheet } from './heroes/core.js';
+import { loadFxArt } from './fxart.js';
 import bossRig from './heroes/boss.js';
 import golemRig from './heroes/golem.js';
 import spectreRig from './heroes/spectre.js';
@@ -58,6 +60,7 @@ const [allHeroes, fireArt, bossSheet, golemSheet, spectreSheet] = await Promise.
   loadSheet(bossRig).catch((err) => { console.warn('Boss art unavailable', err); return null; }),
   loadSheet(golemRig).catch((err) => { console.warn('Golem art unavailable', err); return null; }),
   loadSheet(spectreRig).catch((err) => { console.warn('Spectre art unavailable', err); return null; }),
+  loadFxArt(), // (the effects drawn for the ultimates, fxart.js: kept there)
 ]);
 world.fireArt = fireArt; // (each island lights its own when it's built, region.js)
 world.hub.lightFires(fireArt);
@@ -305,9 +308,11 @@ let camBase = FOLLOW_DIST; // how far back the camera was before the fight took 
 
 function step(dt) {
   // an ultimate being loosed (ults.js): the world stands still (wdt) but for whoever looses it,
-  // and the camera closes on them
-  const wdt = ults.frozen ? 0 : dt;
+  // and the camera closes on them; a heavy blow landing (fight.js, hit-stop) holds it still a
+  // moment too
+  const wdt = fight.held(dt) || ults.frozen ? 0 : dt;
   t += wdt;
+  SPRING.t += wdt; // (the drawings' lunges and knocks keep the world's time, npc.js)
   const me = pilot.npc; // moved by the director with everyone else (its update asks the pilot)
   const shot = ults.shot();
   if (shot) {

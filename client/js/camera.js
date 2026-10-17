@@ -53,10 +53,17 @@ export class CameraRig {
     this.shakeAmt = Math.max(this.shakeAmt || 0, amount);
   }
 
+  // A push the way a blow goes (`dx` world units along x), springing straight back: the view
+  // itself moves, not where it looks from.
+  punch(dx) {
+    this.punchX = Math.abs(dx) > Math.abs(this.punchX || 0) ? dx : this.punchX;
+  }
+
   apply() {
     const p = this.pitch();
-    this.camera.position.set(this.cur.x, this.cur.y + Math.sin(p) * this.dist, this.cur.z + Math.cos(p) * this.dist);
-    this.camera.lookAt(this.cur);
+    const ox = this.punchX || 0;
+    this.camera.position.set(this.cur.x + ox, this.cur.y + Math.sin(p) * this.dist, this.cur.z + Math.cos(p) * this.dist);
+    this.camera.lookAt(this.cur.x + ox, this.cur.y, this.cur.z);
     if (this.shakeAmt > 0.002) {
       this.camera.position.x += (Math.random() - 0.5) * this.shakeAmt;
       this.camera.position.y += (Math.random() - 0.5) * this.shakeAmt;
@@ -76,6 +83,7 @@ export class CameraRig {
     this.cur.lerp(this.target, k);
     this.dist += (this.distGoal - this.dist) * (1 - Math.exp(-dt * 6));
     if (this.shakeAmt) this.shakeAmt *= Math.exp(-dt * 7);
+    if (this.punchX) this.punchX = Math.abs(this.punchX) < 0.002 ? 0 : this.punchX * Math.exp(-dt * 16);
     this.apply();
   }
 }

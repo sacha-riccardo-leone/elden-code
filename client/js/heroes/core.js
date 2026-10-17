@@ -32,14 +32,20 @@ export function rngFrom(seed) {
 }
 
 // addColor(hex) lets a rig bring in colours the drawing lacks (a brighter glow for an effect it
-// draws); they are appended after the art's own palette entries.
+// draws); they are appended after the art's own palette entries. Art that holds several frames
+// (scripts/pack-frames.mjs: a drawn attack) gives them all as `frames`; `src` is the first.
 export function parseArt(json) {
-  const { w, h, alphabet, rows } = json;
+  const { alphabet } = json;
   const palette = [...json.palette];
-  const src = new Img(w, h);
-  rows.forEach((row, y) => {
-    for (let x = 0; x < w; x++) if (row[x] !== '.') src.set(x, y, alphabet.indexOf(row[x]));
-  });
+  const grid = ({ w, h, rows }) => {
+    const img = new Img(w, h);
+    rows.forEach((row, y) => {
+      for (let x = 0; x < w; x++) if (row[x] !== '.') img.set(x, y, alphabet.indexOf(row[x]));
+    });
+    return img;
+  };
+  const frames = (json.frames || [json]).map(grid);
+  const src = frames[0];
   const code = (ch) => alphabet.indexOf(ch);
   const ids = (s) => new Set([...s].map(code));
   const addColor = (hex) => {
@@ -48,7 +54,7 @@ export function parseArt(json) {
     palette.push(hex);
     return palette.length - 1;
   };
-  return { src, palette, code, ids, addColor };
+  return { src, frames, palette, code, ids, addColor };
 }
 
 // Copy of the pixels of `src` for which test(x, y) holds.
@@ -313,6 +319,27 @@ export function composeStill(still, p, frame) {
   return f;
 }
 
+// An animation's steps: each of `frames` held for as many steps as `counts` says (a drawn blow's
+// wind-up lingering, the blow itself quick).
+export const held = (frames, counts) => frames.flatMap((f, i) => Array(counts[i]).fill(f));
+
+// ---------------------------------------------------------------------------------------------
+// Drawn poses: a pose drawn whole on the hero's own palette (an ultimate's, the frames of a blow;
+// assets/hero/<id>-<name>.json, in the rig's extraArt), set in the frame as it is: frame `p.frame`
+// of it (if it holds several), its column `p.mid` on the frame's centre column and its row
+// `p.ground` (or else its lowest) on the frame's last row. Its magic lives as the rig's own does.
+
+export function composeDrawn(art, p, frame) {
+  const src = art.frames[p.frame || 0];
+  let ground = p.ground;
+  for (let y = src.h - 1; ground == null && y >= 0; y--) {
+    for (let x = 0; x < src.w; x++) if (src.get(x, y) !== NONE) { ground = y; break; }
+  }
+  const f = new Img(frame.w, frame.h);
+  blit(f, src, Math.round(frame.w / 2 - p.mid), frame.h - 1 - ground);
+  return f;
+}
+
 // ---------------------------------------------------------------------------------------------
 // sheets
 
@@ -321,7 +348,8 @@ function hexRgb(hex) {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-// `extras` holds the hero's other hand-drawn poses ({ kneel: json }), parsed for rig.prepare.
+// `extras` holds the hero's other hand-drawn poses ({ kneel: json }), parsed for rig.prepare; a
+// pose that names one of them (`drawn`) is that drawing, set in the frame (composeDrawn).
 export function buildFrames(rig, json, extras = {}) {
   const art = parseArt(json);
   const more = Object.fromEntries(Object.entries(extras).map(([k, j]) => [k, parseArt(j)]));
@@ -329,7 +357,7 @@ export function buildFrames(rig, json, extras = {}) {
   return {
     palette: art.palette,
     frames: rig.poses.map((p, i) => {
-      const f = rig.compose(ctx, p);
+      const f = p.drawn ? composeDrawn(more[p.drawn], p, rig.frame) : rig.compose(ctx, p);
       const glow = energy(f, ctx.energy, p.light ?? 1, rig.seed + i * 7919);
       return { color: f, glow };
     }),
@@ -401,5 +429,6 @@ export async function loadSheet(rig) {
     head: rig.head,
     hits: rig.hits,
     glowIntensity: rig.glowIntensity,
+    lunge: rig.lunge,
   };
 }

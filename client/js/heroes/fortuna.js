@@ -1,10 +1,13 @@
 // Fortuna, the Four-armed Beauty: a blue-skinned witch under a great white hat. Her upper hands
 // hold a frost orb and drip ice; the lower ones grip a frost blade and rest open.
-// Source art: assets/hero/fortuna.json (122x151, from fortuna-src.webp).
+// Source art: assets/hero/fortuna.json (122x151, from fortuna-src.webp); drawn whole, her Frostfall
+// (fortuna-ult.json, from ult-fortuna.png), her blade (fortuna-attack.json, from
+// atk-fortuna-blade.png) and her frost cast (fortuna-spell.json, from atk-fortuna-spell.png).
 
-import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill } from './core.js';
+import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill, held } from './core.js';
 
-const FRAME = { w: 180, h: 152 };
+// (room above her for the greatsword raised to the sky, and either side for its swing)
+const FRAME = { w: 296, h: 180 };
 const MID = 46; // source column under the middle of her skirts
 const GROUND = 149;
 const OX = FRAME.w / 2 - MID;
@@ -274,12 +277,25 @@ anim('stagger', seq(2, (i) => ({ lean: -2 - i, sword: -10 - i * 4, sway: 2, hem:
 anim('collapse', [{ still: true, head: [2, 3], sway: 2, light: 0 }]);
 anim('lifted', seq(2, (i) => ({ sway: -3 + i, hem: -2 - i, sword: -6 - i * 4, float: i, ice: 1 - i, light: 1 })));
 anim('talk', seq(2, (i) => ({ orb: i, float: 1 + i, bob: i, light: 1 })));
+// drawn whole (core.js, composeDrawn), each set where her skirts stand: Frostfall, all four arms
+// and the greatsword raised to the sky, the frost on it flickering while she holds it; the blade
+// (raised behind her, the slash, the follow-through: the first and the last drawn twice, so that
+// their frost flickers on while they're held, anims.attack) and the frost cast (the orb drawn back,
+// thrust out flaring, the arm returning), the frost flaring as each lands
+anim('frostfall', seq(4, () => ({ drawn: 'ult', mid: 58, light: 2 })));
+anim('blade', [0, 0, 1, 2, 2].map((i) => ({ drawn: 'attack', frame: i, mid: [122, 81, 129][i], light: [1, 2, 1][i] })));
+anim('frost', seq(3, (i) => ({ drawn: 'spell', frame: i, mid: [54, 50, 53][i], light: [1, 2, 1][i] })));
 
 const G = groups;
 export default {
   id: 'fortuna',
   art: '/assets/hero/fortuna.json',
-  extraArt: { kneel: '/assets/hero/fortuna-kneel.json' },
+  extraArt: {
+    kneel: '/assets/hero/fortuna-kneel.json',
+    ult: '/assets/hero/fortuna-ult.json',
+    attack: '/assets/hero/fortuna-attack.json',
+    spell: '/assets/hero/fortuna-spell.json',
+  },
   firstName: 'Fortuna',
   epithet: 'the Four-armed Beauty',
   title: 'Witch',
@@ -288,7 +304,8 @@ export default {
   cols: 8,
   px: 1.95 / 104, // world units per art pixel: her eyes sit a little below the knight's visor
   head: 140, // art pixels from the ground to the top of the hat
-  hits: { hammer: 4, cast: 1, send: 1 },
+  hits: { hammer: 4, cast: 1, send: 1, attack: 4, spell: 1 },
+  lunge: { attack: 0.35 }, // (her drawing thrown forward as the slash lands, springing back: npc.js)
   glowIntensity: 0.95,
   glowColors: [[24, 96, 210], [140, 196, 250]],
   seed: 4404,
@@ -300,6 +317,10 @@ export default {
     idle: { frames: G.idle, fps: 5 },
     walk: { frames: G.walk, fps: 8 },
     hammer: { frames: G.strike, fps: 8 },
+    // (in eighteenths of a second: raised 4, the slash 2, the follow-through 5)
+    attack: { frames: held(G.blade, [2, 2, 2, 2, 3]), fps: 18 },
+    spell: { frames: G.frost, fps: 9 },
+    ult: { frames: G.frostfall, fps: 8 },
     read: { frames: G.study, fps: 1.4 },
     cast: { frames: G.cast, fps: 6 },
     send: { frames: G.raise, fps: 4 },
@@ -317,5 +338,5 @@ export default {
     stagger: { frames: [...G.stagger, G.idle[0]], fps: 4, once: true },
     kneelBow: { frames: [G.kneel[0], ...G.rest, G.rest[1], G.kneel[0]], fps: 2, once: true },
   },
-  groupFps: { idle: 5, walk: 8, strike: 8, cast: 6, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5 },
+  groupFps: { idle: 5, walk: 8, strike: 8, cast: 6, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, frostfall: 8, blade: 9, frost: 9 },
 };

@@ -31,10 +31,11 @@ import * as THREE from 'three';
 import { ARENA, HUB, HUB_LAYOUT, CROWD, LINE, BOSS_CAM } from './config.js';
 import { SpriteBody } from './npc.js';
 import { Crescent, Decal, Spike } from './bossfx.js';
+import { Spark } from './spellfx.js';
 import { GOLEM, GOLEM_MOVES, GolemMind } from './golem.js';
 import { setFoe } from './voices.js';
 import { clearRipples, rippleAt, stepRipples } from './ripple.js';
-import { styleOf, castSpell, muzzleOf, SPELL, RANGED, ultFill, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause } from './combat.js';
+import { styleOf, blow, castSpell, muzzleOf, SPELL, RANGED, ultFill, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause } from './combat.js';
 
 // reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
 // lane: how far out of his line (in depth) a swing or a lunge still catches someone
@@ -46,6 +47,21 @@ const DAMAGE = { player: 55, fighter: 16, quest: 0.5 }; // quest: the share of i
 // them with his leap (think).
 const HUNT = { from: 5.5, half: 5, per: 0.04, most: 8, leap: 60, far: 7 };
 const HURT = { swing: 22, lunge: 28, slam: 34, leap: 30 }; // to thee (of 100); fighters take as much
+// How a blow shows (impact): how far his drawing is knocked back (world units: by thy blow, by
+// another's, by a spell or an ultimate's, by a heavy one), how long the world holds still (seconds:
+// for thy blow, thy spell, a heavy one), how far the view is pushed, how hard it shakes on a heavy
+// one, and what makes an ultimate's blow heavy (its share of his health). Struck thyself (wounded):
+// thy drawing knocked back, the world held, the view pushed and shaken (a fighter: knocked back).
+const IMPACT = {
+  knock: { mine: 0.2, blow: 0.1, spell: 0.1, ult: 0.15, heavy: 0.32 },
+  stop: { blow: 0.055, spell: 0.035, heavy: 0.11 },
+  punch: { blow: 0.12, spell: 0.06, ult: 0, heavy: 0.22 },
+  shake: 0.18,
+  heavy: 0.02,
+  lag: 0.55, // (seconds the chunk he just lost waits, white, on his bar after the last wound…)
+  most: 1.4, // (…and at most after the first)
+  wounded: { knock: 0.25, stop: 0.08, punch: 0.2, shake: 0.22 },
+};
 // Each move: its drawings and how long each is held (seconds; `true`: fixed, else it quickens
 // when he's wounded); `danger`: the last step during which it can still be escaped.
 const MOVES = {
@@ -262,6 +278,8 @@ export class Fight {
     this.t = 0;
     this.clock = 0;
     this.lagHp = 0;
+    this.lastHurt = -9; // when he was last wounded (the chunk lost waits a moment on his bar)
+    this.stop = 0; // the world held still a moment for a blow (hit-stop: held), in real seconds
     this.ui = {
       boss: document.getElementById('boss'),
       bossName: document.querySelector('#boss h4'),
@@ -492,23 +510,67 @@ export class Fight {
     if (b.mind) return b.mind.playerBlow(p); // (the Golem: only his weak points, golem.js)
     const ahead = (b.pos.x - p.pos.x) * p.body.facing;
     if (ahead < -0.6 || ahead > b.kind.reach + b.kind.radius || Math.abs(b.pos.y - p.pos.y) > b.kind.depth) return false;
-    this.hit(b, DAMAGE.player, null, p);
+    this.hit(b, DAMAGE.player, null, p, true, 'blow');
     return true;
   }
 
   // A blow wounds him (`at`: where it shows, if not his middle); `src`, whoever struck it, has
   // its ultimate filled by what it took (`charge`: not by an ultimate's own wounds, nor a poison's).
-  hit(b, n, at = null, src = null, charge = true) {
+  // `how` it was dealt ('blow', 'spell', 'ult'; none for a bleeding or a poison) shows on him (impact).
+  hit(b, n, at = null, src = null, charge = true, how = null) {
+    const steady = b.state !== 'staggered';
+    if (this.lagHp - b.hp < 0.5) this.chunkSince = this.clock; // (a new chunk on his bar begins)
     const dealt = b.damage(n);
     if (!dealt) return;
     this.dmgShown = this.clock < this.dmgUntil ? this.dmgShown + Math.round(dealt) : Math.round(dealt);
     this.dmgUntil = this.clock + 1.6;
+    this.lastHurt = this.clock;
+    if (how) this.impact(b, src, at, how, dealt, steady && b.state === 'staggered');
     this.ctx.particles.emit({
       pos: at || [b.pos.x, 2.2, b.pos.y], spread: [0.5, 0.8, 0.3], vel: [0, 1.4, 0], velSpread: [1.4, 1, 0.8],
       color: ['#ff6a4a', '#ffd2a8', '#a01818'], size: 0.07, life: 0.6, count: 10, drag: 1.2, intensity: 2.2,
     });
     if (charge) this.charge(src, dealt);
     if (charge && src && !b.mind) this.pelted(b, src, dealt);
+  }
+
+  // How a blow on him shows (IMPACT): he flashes white and his drawing is knocked back the way it
+  // went, and a spark flies where a blade or a fist struck; thine (and the great blows of an
+  // ultimate, and the one that breaks his stance) besides hold the world still a moment, as he
+  // shudders, and jolt the view the way the blow went. `broke`: it broke his stance.
+  impact(b, src, at, how, dealt, broke) {
+    const me = this.ctx.pilot.npc;
+    const mine = !!src && src === me;
+    const dir = src ? Math.sign(b.pos.x - src.pos.x) || src.body.facing : 1; // (the way the blow went)
+    const heavy = broke || (how === 'ult' && dealt >= b.max * IMPACT.heavy);
+    b.body.flash();
+    b.body.knock(heavy ? IMPACT.knock.heavy : mine ? IMPACT.knock.mine : IMPACT.knock[how] ?? IMPACT.knock.blow, dir);
+    if (how === 'blow' && src) {
+      // (where the blade meets him: between the striker and him, a little nearer him, at the height
+      // of the striker's middle)
+      const spot = at ? [at[0], at[1], at[2] + 0.3] : [src.pos.x + (b.pos.x - src.pos.x) * 0.6, 1.3 + (src.lift || 0), (src.pos.y + b.pos.y) / 2 + 0.3];
+      this.fx.push(new Spark(this.fxCtx, { color: styleOf(src).color, at: spot, dir, size: mine ? 1.7 : 1.2 }));
+    }
+    const stop = heavy ? IMPACT.stop.heavy : mine ? IMPACT.stop[how] ?? 0 : 0;
+    if (stop) {
+      this.hitStop(stop);
+      b.body.shudder(stop);
+      if (how === 'blow') src?.body.stretch(); // (the striker held at full stretch meanwhile)
+    }
+    if (mine || heavy) this.ctx.rig?.punch?.(dir * (heavy ? IMPACT.punch.heavy : IMPACT.punch[how] ?? 0));
+    if (heavy) this.ctx.rig?.shake?.(IMPACT.shake);
+  }
+
+  // The world holds still `secs` seconds (of real time) as a blow lands (main.js asks held).
+  hitStop(secs) {
+    this.stop = Math.max(this.stop, secs);
+  }
+
+  // Whether the world is held still for a blow just now (counting down the real time `dt`).
+  held(dt) {
+    if (this.stop <= 0) return false;
+    this.stop -= dt;
+    return true;
   }
 
   // How much `n` has lately wounded him from afar (what it dealt, halving every HUNT.half seconds).
@@ -557,23 +619,21 @@ export class Fight {
     const b = this.boss;
     if (!b || !b.alive) return;
     if (b.mind) b.mind.spellBlow(n, share, player);
-    else this.hit(b, share * (player ? SPELL.player : SPELL.npc), at ? [at.x, at.y, at.z] : null, n);
+    else this.hit(b, share * (player ? SPELL.player : SPELL.npc), at ? [at.x, at.y, at.z] : null, n, true, 'spell');
   }
 
   // An ultimate wounds him, wherever he stands and whatever he is (but spitting fire, untouchable).
   ultHit(n, amount, at = null) {
     const b = this.boss;
     if (!b || !b.alive) return;
-    this.hit(b, amount, at ? [at.x, at.y, at.z] : null, n, false);
+    this.hit(b, amount, at ? [at.x, at.y, at.z] : null, n, false, 'ult');
   }
 
   // A fighter mage's spell: its own blow played (the staff swung, the fist clenched), the spell
   // loosed at its turn (update, castFrom).
   startCast(n) {
-    const def = n.body.sheet.anims.hammer;
-    n.action = { kind: 'fightCast', anim: 'hammer', t: 0, dur: def.frames.length / def.fps, hitAt: (n.body.sheet.hits?.hammer ?? 2) / def.fps, hit: false };
     n.body.facing = this.boss.pos.x > n.pos.x ? 1 : -1;
-    n.body.play('hammer', true);
+    blow(n, 'fightCast', { spell: true });
     n.fighter.vx = 0;
     n.fighter.vz = 0;
   }
@@ -630,6 +690,14 @@ export class Fight {
     this.ui.hurt.classList.remove('flash');
     void this.ui.hurt.offsetWidth;
     this.ui.hurt.classList.add('flash');
+    // (thy drawing white a moment and knocked back, the world held still, the view jolted)
+    const away = this.boss ? Math.sign(n.pos.x - this.boss.pos.x) || -n.body.facing : -n.body.facing;
+    const W = IMPACT.wounded;
+    n.body.flash();
+    n.body.knock(W.knock, away);
+    this.hitStop(W.stop);
+    this.ctx.rig?.punch?.(away * W.punch);
+    this.ctx.rig?.shake?.(W.shake);
     if (pilot.hp <= 0) {
       pilot.dead = true;
       n.action = { kind: 'gesture', anim: 'collapse', t: 0, dur: Infinity };
@@ -651,6 +719,9 @@ export class Fight {
     const f = n.fighter;
     if (!f || f.dead || n.travel) return;
     f.hp -= dmg;
+    // (its drawing white a moment and knocked back)
+    n.body.flash();
+    n.body.knock(IMPACT.wounded.knock * 0.7, this.boss ? Math.sign(n.pos.x - this.boss.pos.x) || -n.body.facing : -n.body.facing);
     if (f.hp <= 0) {
       // fallen for good: a moment where they fell, then by grace to the Hold, out of this fight
       f.dead = true;
@@ -1239,11 +1310,9 @@ export class Fight {
           // (felled, they stay in the circle, striking again after a breath)
           const felled = b.state === 'down';
           if ((spot ? spot.ready && (!felled || f.cd <= 0) : dist < b.kind.reach + b.kind.radius + 0.2) && b.lift < 1) {
-            const def = n.body.sheet.anims.hammer;
-            n.action = { kind: 'fightAttack', anim: 'hammer', t: 0, dur: def.frames.length / def.fps, hitAt: (n.body.sheet.hits?.hammer ?? 2) / def.fps, hit: false };
             const faceX = spot ? spot.face : b.pos.x;
             n.body.facing = faceX > n.pos.x ? 1 : -1;
-            n.body.play('hammer', true);
+            blow(n, 'fightAttack');
             f.mode = felled ? 'engage' : 'retreat';
             f.modeT = 0;
             f.cd = felled ? rand(0.7, 1.3) : rand(2, 4.5);
@@ -1516,7 +1585,7 @@ export class Fight {
           if (a?.kind === 'fightAttack' && !a.hit && a.t >= a.hitAt) {
             a.hit = true;
             if (b.mind) b.mind.fighterBlow(n);
-            else if (b.lift < 2 && Math.hypot(b.pos.x - n.pos.x, b.pos.y - n.pos.y) < b.kind.reach + b.kind.radius + 0.4) this.hit(b, DAMAGE.fighter, null, n);
+            else if (b.lift < 2 && Math.hypot(b.pos.x - n.pos.x, b.pos.y - n.pos.y) < b.kind.reach + b.kind.radius + 0.4) this.hit(b, DAMAGE.fighter, null, n, true, 'blow');
           } else if (a?.kind === 'fightCast' && !a.hit && a.t >= a.hitAt) {
             a.hit = true;
             this.castFrom(n);
@@ -1684,7 +1753,12 @@ export class Fight {
     if (b) {
       el.bossName.textContent = b.name;
       el.bossHp.style.width = `${(100 * b.hp) / b.max}%`;
-      this.lagHp = Math.max(b.hp, this.lagHp - dt * b.max * 0.25);
+      // (the chunk he just lost: white a moment after the last wound, then drawn down to his health;
+      // never held longer than IMPACT.most, however the blows keep coming)
+      const quiet = this.clock - this.lastHurt > IMPACT.lag;
+      const long = this.clock - (this.chunkSince ?? -9) > IMPACT.most;
+      if (quiet || long) this.lagHp += (b.hp - this.lagHp) * Math.min(1, dt * 7);
+      this.lagHp = Math.max(b.hp, this.lagHp);
       el.bossLag.style.width = `${(100 * this.lagHp) / b.max}%`;
       el.bossDmg.textContent = this.clock < this.dmgUntil ? String(this.dmgShown) : '';
     }

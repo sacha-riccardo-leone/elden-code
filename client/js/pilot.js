@@ -14,7 +14,7 @@
 // has her blade, with the right button; combat.js), and an ultimate, once full, is loosed with R
 // (ults.js).
 
-import { styleOf } from './combat.js';
+import { styleOf, blow } from './combat.js';
 
 const WALK = 3.4;
 const RUN = 6.2;
@@ -41,6 +41,7 @@ export class Pilot {
     this.maxHp = 100;
     this.dead = false;
     this.dodgeReady = 0;
+    this.blowReady = 0; // when thy next blow (or spell) may come (paced)
     this.ult = 0; // thine ultimate, filling as thy blows land (fight.js, ults.js)
   }
 
@@ -164,29 +165,30 @@ export class Pilot {
   // whoever stands in front staggers. A mage casts instead (cast).
   attack(at = null) {
     const n = this.npc;
-    if (this.busy(n)) return;
     if (styleOf(n).range === 'far') { this.cast(at); return; }
+    if (this.busy(n) || !this.paced(n)) return;
     if (at && Math.abs(at.x - n.pos.x) > 0.2) n.body.facing = at.x > n.pos.x ? 1 : -1;
-    const def = n.body.sheet.anims.hammer;
-    n.action = {
-      kind: 'attack', anim: 'hammer', t: 0, dur: def.frames.length / def.fps,
-      hitAt: (n.body.sheet.hits?.hammer ?? 2) / def.fps, hit: false,
-    };
-    n.body.play('hammer', true);
+    blow(n, 'attack');
+  }
+
+  // Whether thy next blow (or spell) may come yet; if so, when the one after it may. A drawn blow
+  // (combat.js, blow) is over far sooner than the rig's old strike, but thy blows still come at
+  // that strike's pace: the great enemies are measured against it.
+  paced(n) {
+    const now = performance.now() / 1000;
+    if (now < this.blowReady) return false;
+    const old = n.body.sheet.anims.hammer;
+    this.blowReady = now + (old ? old.frames.length / old.fps : 0);
+    return true;
   }
 
   // A spell toward where the click landed (right click; a mage's left click too): for those who
   // cast (combat.js), Fortuna among them. It's loosed at the turn of the character's blow (drive).
   cast(at = null) {
     const n = this.npc;
-    if (this.busy(n) || styleOf(n).range === 'near') return;
+    if (this.busy(n) || styleOf(n).range === 'near' || !this.paced(n)) return;
     if (at && Math.abs(at.x - n.pos.x) > 0.2) n.body.facing = at.x > n.pos.x ? 1 : -1;
-    const def = n.body.sheet.anims.hammer;
-    n.action = {
-      kind: 'cast', anim: 'hammer', t: 0, dur: def.frames.length / def.fps,
-      hitAt: (n.body.sheet.hits?.hammer ?? 2) / def.fps, hit: false, at,
-    };
-    n.body.play('hammer', true);
+    blow(n, 'cast', { spell: true, at });
   }
 
   // Kneel down (C), and get up again (C, or setting off).

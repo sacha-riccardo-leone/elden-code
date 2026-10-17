@@ -831,7 +831,7 @@ body.in-battle .region-label { pointer-events: none; cursor: default; } /* mid-f
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 #boss .bar i { position: absolute; left: 0; top: 0; bottom: 0; }
-#boss .lag { background: #d8b860; }
+#boss .lag { background: #f2ecdc; } /* the chunk he just lost (fight.js, updateUi) */
 #boss .hp { background: linear-gradient(#b8301f, #6e120c); }
 #boss .dmg {
   position: absolute;

@@ -174,9 +174,12 @@ Hand-drawn characters replace the procedural look. The Stormbound Knight is Mare
 other heroes live at Roundtable Hold and each takes up one session at a time (see above). There is no procedural sorcerer: Vael is the sorcerer.
 
 - **The Stormbound Knight** — `client/assets/hero/knight.json` (+ `knight-kneel.json`), rigged in
-  `client/js/heroes/knight.js`.
+  `client/js/heroes/knight.js`. Her Red Storm pose (`knight-ult.json`) and her spear thrust
+  (`knight-attack.json`, three frames) are drawn whole.
 - **Fortuna, the Four-armed Beauty** — `fortuna.json` (+ `fortuna-kneel.json`), rigged in
   `client/js/heroes/fortuna.js` (frost blade, floating orb, dripping ice; finer pixels than the knight).
+  Her Frostfall pose (`fortuna-ult.json`), her blade (`fortuna-attack.json`) and her frost cast
+  (`fortuna-spell.json`) are drawn whole.
 - **The Ronin of the Iron Kasa** — `ronin.json` (+ `ronin-kneel.json`), rigged in
   `client/js/heroes/ronin.js` (curved blade with a slash trail and a running glint, walking legs).
 - **Vael, the Crimson Weaver** — `bloodbender.json` (+ `bloodbender-kneel.json`), rigged in
@@ -242,7 +245,12 @@ Each hero's art is a standing pose and a kneeling pose, stored as palette-indexe
 rig cuts the standing pose into parts (cape, legs, body, head, hand, weapon) and composes every
 animation frame by moving parts on whole pixels, rotating the weapon RotSprite-style and making its
 magic flicker. Kneeling, resting, praying and collapsing use the kneeling drawing, which breathes,
-bows its head and sways its cape. `npm run heroes` exports each hero as `<id>-sheet.png` +
+bows its head and sways its cape. Fight poses can be drawn whole too: an ultimate's pose, or the
+three frames of a blow (`<id>-ult.json`, `<id>-attack.json`, listed in the rig's `extraArt`). A pose
+that names one (`drawn`) is set in the frame as it is, its body's middle on the frame's centre and
+its feet on the ground line, and its magic flickers as the rig's own does (`composeDrawn`,
+`client/js/heroes/core.js`). The frame grows to hold them (Maren's raised spear). `npm run heroes`
+exports each hero as `<id>-sheet.png` +
 `<id>-sheet.json` (grid and animations), a glow map, and an animated GIF per animation in
 `client/assets/hero/`. Preview them at <http://127.0.0.1:7777/dev/hero.html?hero=ronin>.
 
@@ -260,6 +268,32 @@ An image with its own transparent background keeps every opaque pixel. Without o
 is flooded in from the edges by colour. Art whose drawn pixels vary in size (AI-made sprites often
 draw fine details at half a pixel) keeps those details when sampled at half its pitch. That makes
 the grid twice as large, so the rig halves its scale (`px`) to match.
+
+Image generators drift from a hero's colours (gold comes back yellow, wine red comes back bright
+red, a navy robe royal blue), so put a new pose back on its hero's palette before extracting it:
+
+```
+node scripts/recolor-sprite.mjs art-in/ult-aurelion-1-raise.png paladin
+```
+
+Each material (outline, greys, reds, golds, blues…) takes the tonal range of the hero's master sprite
+and the nearest colours of the hero's palette, matched in CIELAB. A flat white or black fallback
+background becomes transparent, and so does a painted grey-and-white checkerboard, enclosed pockets
+of it included. The result is written next to the input as `…-recoloured.png`.
+
+A weapon drifts on its own (Corisande's staff came back orange while her gold trim barely moved), so
+pass its cut-out, the weapon alone at the master's size, as the art prompts attach it:
+
+```
+node scripts/recolor-sprite.mjs art-in/ult-corisande.png sorceress-masked --weapon "character references/weapons/corisande-staff.png"
+```
+
+The weapon is found where the cut-out's colours dominate and matched against the cut-out alone. New
+light with no counterpart in the master, such as Aurelion's giant blade, goes in a
+`--light x1,y1,x2,y2,r` band (a segment and a radius in the image's pixels): it keeps its own
+brightness on the palette's brightest colours. The hero is the art grid's name: `knight` (Maren),
+`fortuna`, `ronin` (Wynn), `bloodbender` (Vael), `runelord` (Jorvik), `paladin` (Aurelion), `bandit`
+(Ulric), `champion` (Ruadan), `queen` (Solenne) or `sorceress-masked` (Corisande).
 
 ### Fire
 
@@ -290,6 +324,26 @@ node scripts/pack-frames.mjs client/assets/fx/fire.json "Fire" "source note" .el
 ```
 
 Extract all of a sheet's frames in one run so they share a palette, and pack them in frame order.
+
+The fight art (an ultimate's pose, a blow's frames, its effects) comes as images of their own in
+`art-in/` (see `art-prompts.md` for what each holds). A pose goes back on its hero's palette, at
+the size that matches the hero's standing pose: pass `:pitch=px,py` when the drawing's pixels are
+finer or softer than the master's. A sheet laid out in a grid (a blow's three frames in a 2 x 2
+grid, an effect's frames in a row) is split by its cells:
+
+```
+node scripts/split-sheet.mjs .elden/atk.bgra 1536x1024 .elden/frames/atk --grid 2x2
+node scripts/extract-hero.mjs --name "Name, thrust" --palette client/assets/hero/knight.json --keep .elden/frames/atk-1.bgra:880x624:.elden/frames/atk-1.json:pitch=5.2,5.2 …
+node scripts/pack-frames.mjs client/assets/hero/knight-attack.json "Name, thrust" "source note" .elden/frames/atk-1.json …
+```
+
+With `--grid`, each figure stays with the cell that holds most of it (a cape or a spear point that
+strays over a cell's edge comes along), and every frame comes out the size of a cell plus the same
+margin, at the same place relative to its cell. `--keep` keeps each grid whole, and frames given
+one pitch come out the same size and in register; `pack-frames.mjs` then cuts them down together
+to the area any of them uses. Effects are packed the same way with their own colours (`--colors`)
+into `client/assets/fx/` and loaded by `client/js/fxart.js`; an effect whose art is missing draws
+itself as before. Name a dump after its image (`atk-maren.png.bgra`) and the art's notes say so.
 
 ## Great enemies
 
@@ -339,10 +393,37 @@ It sinks again only once the fight is over and everyone has left it, you include
   - **Up close:** Ruadan, Maren, Aurelion, Wynn and Ulric. Ulric still hides; his style only
     matters when you play him.
   - **Fortuna** does both, switching between her frost blade and frost cast from afar (a shard, or
-    ice out of the floor).
+    ice out of the floor), both drawn (`fortuna-shard.json`, `fortuna-spikes.json`) at her own
+    pixel size.
   - **Playing them:** as a mage, a left click casts toward the pointer. The spell homes on the
     enemy if he's within about 35° of where you point; otherwise it flies off into nothing. As
     Fortuna, left click swings her blade and right click casts.
+  - **Blows:** a hero with a drawn blow plays it, three frames landing on the second, each held as
+    long as suits it (Maren's lunge a third of a second; Fortuna's slash a ninth, her follow-through
+    lingering); the others swing their rig's strike. As Maren's and Fortuna's blows land, their
+    drawing (not where they stand, nor their shadow) is thrown forward a third of a unit in a flash
+    and springs back, a little past and settling (`lunge`, `client/js/npc.js`). However quick a
+    drawn blow is, your blows come
+    no faster than the old strike's pace (`blowReady`, `client/js/pilot.js`), so the enemies'
+    health still fits.
+  - **How a hit lands** (`impact` and `IMPACT`, `client/js/fight.js`):
+    - Every blow, spell and ultimate that wounds the enemy turns his whole drawing white for a
+      blink (never more than three times a second, however many strike him) and knocks it a few
+      pixels back, away from the striker, springing back. Only the drawing moves, never where he is.
+    - A blade or a fist that strikes him throws a spark of sharp lines in the striker's own colour,
+      pointing the way the blow went (`Spark`, `client/js/spellfx.js`).
+    - Your own blows hold the whole world still for a split second (hit-stop: 0.055 s for a blow,
+      less for a spell), while he shudders and your drawing stays at full stretch, and they push
+      the view a little the way the blow went. The heavy ones (the blow that breaks his stance, an
+      ultimate's great blow) hold it twice as long, knock him further and shake the view, whoever
+      struck them. Your companions' everyday blows never hold the world still.
+    - His health bar keeps what he just lost in white a moment (until half a second after the last
+      wound, at most 1.4 seconds), then drains it.
+    - A blow the Golem's stone turns does nothing of this: no flash, no hold, a grey spark, and the
+      striker's drawing bounces back off him instead of lunging forward.
+    - Struck yourself, your drawing flashes white and is knocked back, the world holds a moment and
+      the view jolts, on top of the red edges of the screen; a companion struck flashes and is
+      knocked back.
   - **Against the Golem,** spells hit his cracked ankle while he stands (counting a little less
     toward felling him than a blow there). While he lies felled they hit the fire in his chest, for
     half what a blow from inside the golden circle does.
@@ -356,8 +437,9 @@ It sinks again only once the fight is over and everyone has left it, you include
   - **Loosing one:** you press **R** once your meter is full. The others loose theirs when ready,
     at least 12 seconds apart, never two at once.
   - **The freeze:** the world stops and turns black and white, except whoever looses it. The camera
-    closes in, its name shows, and an aura of their own light shines round them (a glowing outline,
-    a light behind, motes swirling in). Then they strike, and the world moves and colours again,
+    closes in (far enough back to show a tall pose whole, Maren's spear raised to the sky), its name
+    shows, and an aura of their own light shines round them (a glowing outline, a light behind,
+    motes swirling in). Then they strike, and the world moves and colours again,
     about 2.4 seconds in all. If you aren't on the arena (fallen and resting at the Hold), an NPC's
     ult simply fires, with no freeze.
   - **Aimed ones** (Solenne's, Ulric's) go one of four ways: toward the pointer for you, and only
@@ -371,7 +453,9 @@ It sinks again only once the fight is over and everyone has left it, you include
     and drives him back.
   - Ruadan, **Hammerfall:** he leaps high and lands hammer first at the enemy's feet in a burst of
     gold.
-  - Maren, **Red Storm:** red lightning rains around him, ending in one great bolt.
+  - Maren, **Red Storm:** red lightning rains around him, ending in one great bolt (drawn bolts,
+    `maren-bolt.json` and `maren-great-bolt.json`, at twice her pixel size so they fall from out
+    of sight).
   - Aurelion, **Radiant Verdict:** a great slash of light dazes him for 5 seconds, unable to fight
     or move.
   - Wynn, **Iaijutsu:** after a breath, Wynn cuts through him from every side while he's held still.
@@ -379,9 +463,11 @@ It sinks again only once the fight is over and everyone has left it, you include
     Then it all lands at once.
   - Ulric, **Tenfold Spears** (aimed): ten spears stick in him, poison him for 4 seconds, then fall
     away.
-  - Fortuna, **Frostfall:** four great icicles drop on him one after another.
-  - **Art:** each ult holds the character's own pose (raise, cast, strike, kneel) until their ult
-    drawings replace it.
+  - Fortuna, **Frostfall:** four great icicles drop on him one after another, each as tall as she
+    is, and shatter (`fortuna-icicle.json`, `fortuna-shatter.json`).
+  - **Art:** Maren and Fortuna hold their drawn poses, Maren's spear raised to the sky, its lightning
+    crackling, Fortuna's four arms and greatsword raised, the frost flickering. The others hold their
+    own rig's pose (raise, cast, strike, kneel) until their ult drawings replace it.
 - **Only the fight:** while a great enemy is abroad, every session works on unseen, the spectres at
   work on their islands included: no log lines about the work, no incantations, signs or gestures,
   no spirit wisps and no small talk. A fighter's signs are put away for the fight (the "!" of one

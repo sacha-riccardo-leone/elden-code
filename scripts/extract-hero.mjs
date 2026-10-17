@@ -6,9 +6,12 @@
 // Input images are raw 32-bit BGRA dumps (see scripts/decode-image.ps1, which uses the Windows
 // image codecs, so WebP/PNG/JPEG all work without any npm packages).
 //
-//   node scripts/extract-hero.mjs --name "Name" [--colors 40 | --palette hero.json]
+//   node scripts/extract-hero.mjs --name "Name" [--colors 40 | --palette hero.json] [--keep]
 //        in.bgra:WxH:out.json [more.bgra:WxH:more.json ...]
 //   per input, optional ":pitch=px,py,ox,oy" overrides the detected grid.
+// Each grid is cut down to the art and a pixel round it, unless --keep: then every input keeps its
+// whole canvas, its grid starting within half a pixel of the corner, so frames split from one sheet
+// (scripts/split-sheet.mjs --grid) and given one pitch come out the same size and still in register.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -19,9 +22,10 @@ const W8 = [2, 4, 3]; // colour distance weights (r, g, b): the eye is most sens
 
 function args() {
   const a = process.argv.slice(2);
-  const opts = { name: 'Hero', colors: 40, palette: null, inputs: [] };
+  const opts = { name: 'Hero', colors: 40, palette: null, keep: false, inputs: [] };
   for (let i = 0; i < a.length; i++) {
     if (a[i] === '--name') opts.name = a[++i];
+    else if (a[i] === '--keep') opts.keep = true;
     else if (a[i] === '--colors') opts.colors = Number(a[++i]);
     else if (a[i] === '--palette') opts.palette = JSON.parse(fs.readFileSync(a[++i], 'utf8')).palette;
     else {
@@ -185,10 +189,14 @@ function median(values) {
   return values[values.length >> 1];
 }
 
-function sampleCells(img, mask, [px, py, ox, oy]) {
+function sampleCells(img, mask, [px, py, ox, oy], keep = false) {
   const { w, h, rgb } = img;
-  const cols = Math.floor((w - ox) / px);
-  const rows = Math.floor((h - oy) / py);
+  // (kept whole: the grid starts within half a pixel of the corner, and the count depends on the
+  // pitch alone)
+  if (keep && ox > px / 2) ox -= px;
+  if (keep && oy > py / 2) oy -= py;
+  const cols = keep ? Math.floor((w - px / 2) / px) : Math.floor((w - ox) / px);
+  const rows = keep ? Math.floor((h - py / 2) / py) : Math.floor((h - oy) / py);
   const cells = [];
   let spread = 0;
   let counted = 0;
@@ -260,6 +268,13 @@ function kmeans(points, k, seed = 11) {
   return centres.map((c) => c.map(Math.round)).sort((a, b) => lum(a) - lum(b));
 }
 
+// The image an input was decoded from, for the notes: a dump named after it (stand.png.bgra), or
+// else (stand.bgra) taken to be a WebP.
+const sourceName = (file) => {
+  const name = path.basename(file).replace(/\.bgra$/, '');
+  return /\.(png|webp|jpe?g|gif)$/i.test(name) ? name : `${name}.webp`;
+};
+
 const opts = args();
 const sampled = opts.inputs.map((input) => {
   const img = load(input);
@@ -273,7 +288,7 @@ const sampled = opts.inputs.map((input) => {
     grid = [px, py, findOffset(img, mask, 'x', px), findOffset(img, mask, 'y', py)];
     if (!Number.isNaN(sx)) fit = ` (grid sharpness ${sx.toFixed(2)} / ${sy.toFixed(2)}; below ~0.5 the art is soft, check it by eye)`;
   }
-  const s = sampleCells(img, mask, grid);
+  const s = sampleCells(img, mask, grid, opts.keep);
   console.log(`${path.basename(input.file)}: grid ${grid.map((v) => v.toFixed(3)).join(', ')}${fit} → ${s.cols}x${s.rows} cells, cell spread ${s.spread.toFixed(1)}`);
   return { input, grid, ...s };
 });
@@ -301,6 +316,7 @@ for (const s of sampled) {
     x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
   });
   x0 = Math.max(0, x0 - 1); y0 = Math.max(0, y0 - 1); x1 = Math.min(s.cols - 1, x1 + 1); y1 = Math.min(s.rows - 1, y1 + 1);
+  if (opts.keep) [x0, y0, x1, y1] = [0, 0, s.cols - 1, s.rows - 1];
   const rows = [];
   let opaque = 0;
   for (let y = y0; y <= y1; y++) {
@@ -315,7 +331,7 @@ for (const s of sampled) {
   const g = s.grid.map((v) => +v.toFixed(3));
   const json = {
     name: opts.name,
-    source: `${path.basename(s.input.file).replace(/\.bgra$/, '.webp')}, resampled on its ${g[0]} x ${g[1]} px art grid (offset ${g[2]}, ${g[3]}; cells ${x0}..${x1} x ${y0}..${y1}) and reduced to ${palette.length} colours`,
+    source: `${sourceName(s.input.file)}, resampled on its ${g[0]} x ${g[1]} px art grid (offset ${g[2]}, ${g[3]}; cells ${x0}..${x1} x ${y0}..${y1}) and reduced to ${palette.length} colours`,
     w: x1 - x0 + 1,
     h: y1 - y0 + 1,
     alphabet: ALPHABET,

@@ -84,7 +84,18 @@ function pixelTex(canvas) {
 export const SPRITE_LIGHT = { lit: { value: 1 }, self: { value: 1 }, glow: { value: 1 } };
 
 // A billboard driven by a sprite sheet: { color, glow, alpha, frameW, frameH, cols, rows,
-// anims, px (world units per pixel), head (pixels to the top of the head), hits }.
+// anims, px (world units per pixel), head (pixels to the top of the head), hits, lunge }.
+// How a blow shows on the drawing alone (not the one it stands for, nor its shadow):
+//   lunge – as an animation named in the sheet's `lunge` reaches the step where its blow lands
+//           (`hits`), the drawing is thrown that many world units the way it faces
+//   knock – struck, it's thrown back the way the blow went (knock)
+// both out in a flash and back like a spring, a little past and settling; and, struck, it flashes
+// white a moment (flash) and shudders while the world holds still for the blow (shudder).
+// The springs run on the world's own time (SPRING, kept by main.js), so they hold still with it.
+const LUNGE = { out: 0.05, period: 0.6, decay: 0.15, done: 0.7 };
+const FLASH = { long: 0.055, every: 0.34 }; // (no more than three flashes a second: no strobing)
+export const SPRING = { t: 0 };
+const realNow = () => performance.now() / 1000;
 export class SpriteBody {
   constructor(scene, sheet, { spirit = false } = {}) {
     this.sheet = sheet;
@@ -107,13 +118,17 @@ export class SpriteBody {
       this.mat.depthWrite = false;
     }
     // Keep sprites legible in the dark: a floor of self-light proportional to their own colour.
+    // (And, struck, all of it white a moment: flash.)
+    this.flashU = { value: 0 };
     this.mat.onBeforeCompile = (shader) => {
       shader.uniforms.uSelfLight = { value: spirit ? 0.15 : 0.32 };
       shader.uniforms.uLit = SPRITE_LIGHT.lit;
       shader.uniforms.uSelfScale = SPRITE_LIGHT.self;
       shader.uniforms.uGlowScale = SPRITE_LIGHT.glow;
+      shader.uniforms.uFlash = this.flashU;
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nuniform float uSelfLight, uLit, uSelfScale, uGlowScale;')
+        .replace('#include <common>', '#include <common>\nuniform float uSelfLight, uLit, uSelfScale, uGlowScale, uFlash;')
+        .replace('#include <dithering_fragment>', '#include <dithering_fragment>\ngl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(1.0), uFlash);')
         .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance *= uGlowScale;\ntotalEmissiveRadiance += diffuseColor.rgb * uSelfLight * uSelfScale;')
         .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\nreflectedLight.directDiffuse *= uLit;\nreflectedLight.indirectDiffuse *= uLit;');
     };
@@ -170,7 +185,66 @@ export class SpriteBody {
     const changed = i !== a.index;
     a.index = i;
     this.setFrame(frame, this.facing);
+    const lunge = this.sheet.lunge?.[a.name];
+    if (changed && lunge && this.sheet.hits?.[a.name] === i) this.lunge = { at: this.stretchAt === SPRING.t ? SPRING.t - LUNGE.out : SPRING.t, reach: lunge };
     return changed ? i : null;
+  }
+
+  // Its lunge shown at full stretch from now on, as the world holds still on its blow: the lunge
+  // under way, or the one its blow begins this very moment (tick).
+  stretch() {
+    if (this.lunge && SPRING.t - this.lunge.at < LUNGE.out) this.lunge.at = SPRING.t - LUNGE.out;
+    this.stretchAt = SPRING.t;
+  }
+
+  // Struck: thrown back `reach` world units the way the blow went (`dir`, -1 or 1).
+  knock(reach, dir) {
+    this.knocked = { at: SPRING.t, reach: reach * (dir || 1) };
+  }
+
+  // Struck: white a moment (and not again within FLASH.every, however many blows land).
+  flash(long = FLASH.long) {
+    const now = realNow();
+    if (now - (this.flashedAt ?? -9) < FLASH.every) return;
+    this.flashedAt = now;
+    this.flashUntil = now + long;
+  }
+
+  // Struck: a shudder, a pixel either way, for `long` seconds of real time (so that it goes on
+  // while the world holds still for the blow).
+  shudder(long) {
+    this.shudderUntil = realNow() + long;
+  }
+
+  // Where a spring (a lunge, a knock) stands just now, in world units: out in a flash, then back,
+  // a little past and settling; null once it's done.
+  static spring(k) {
+    const { out, period, decay, done } = LUNGE;
+    const t = SPRING.t - k.at;
+    if (t >= out + done) return null;
+    const s = t - out;
+    return s < 0 ? k.reach * (1 - (t / out - 1) ** 2) : k.reach * Math.exp(-s / decay) * Math.cos((2 * Math.PI * s) / period);
+  }
+
+  // How far the drawing stands from its place just now (world units, in whole pixels of its art,
+  // so that it stays crisp): its lunge the way it faces, its knock, its shudder. (Its flash, too,
+  // is kept up here.)
+  offset() {
+    let d = 0;
+    if (this.lunge) {
+      const v = SpriteBody.spring(this.lunge);
+      if (v == null) this.lunge = null; else d += v * this.facing;
+    }
+    if (this.knocked) {
+      const v = SpriteBody.spring(this.knocked);
+      if (v == null) this.knocked = null; else d += v;
+    }
+    const px = this.sheet.px;
+    d = Math.round(d / px) * px;
+    const now = realNow();
+    if (now < (this.shudderUntil ?? 0)) d += Math.floor(now * 40) % 2 ? px : -px;
+    this.flashU.value = now < (this.flashUntil ?? 0) ? 1 : 0;
+    return d;
   }
 
   // The step of the current animation where its blow lands (hammer strike, spell, raven).
@@ -180,7 +254,7 @@ export class SpriteBody {
   }
 
   place(x, y, z, lift = 0) {
-    this.mesh.position.set(x, y + lift, z);
+    this.mesh.position.set(x + this.offset(), y + lift, z);
     this.blob.position.set(x, y + 0.015, z + 0.05);
     const s = 1 - Math.min(0.5, lift * 0.35);
     this.blob.scale.set(s, s, 1);

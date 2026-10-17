@@ -10,6 +10,7 @@
 // and knock him back.
 
 import { Missile, Beam, Rise, Burst, TEX, motesOf } from './spellfx.js';
+import { lookOf } from './fxart.js';
 
 // By hero id (a hero of two looks fights as whichever it wears). `muzzle`: where a mage's spells
 // leave from, [ahead, up] of its feet in world units (the orb, the crystal, the fist, the ring).
@@ -51,6 +52,18 @@ const pick = (list) => {
   for (const x of list) { r -= x.weight; if (r <= 0) return x; }
   return list[list.length - 1];
 };
+
+// One blow of n's (`kind`: the action it is, as pilot.js and fight.js tell them apart), played
+// whole: its own drawn attack (a spell: its drawn cast, if it has one besides), else its rig's
+// strike; the blow lands, or the spell is loosed, at the step its sheet says (`hitAt`). `more`
+// goes into the action as it is.
+export function blow(n, kind, { spell = false, ...more } = {}) {
+  const sheet = n.body.sheet;
+  const anim = spell && sheet.anims.spell ? 'spell' : sheet.anims.attack ? 'attack' : 'hammer';
+  const def = sheet.anims[anim];
+  n.action = { kind, anim, t: 0, dur: def.frames.length / def.fps, hitAt: (sheet.hits?.[anim] ?? 2) / def.fps, hit: false, ...more };
+  n.body.play(anim, true);
+}
 
 // Where a spell of n's leaves from, in the world.
 export function muzzleOf(n) {
@@ -98,10 +111,13 @@ const SPELLS = {
     { weight: 2, cast: (c) => c.missile({ map: TEX.halo(), w: 0.9, h: 0.42, speed: 10, spin: 0.01 }) },
     { weight: 1.5, cast: (c) => c.rise({ map: TEX.pillar('holy'), w: 1.5, h: 6, mark: TEX.circle('holy', 0), markSize: 2.6, share: 1.4 }) },
   ],
-  // Fortuna, from afar: a frost shard, or ice out of the floor
+  // Fortuna, from afar: a frost shard, or ice out of the floor (both drawn at her own pixel size)
   frost: [
-    { weight: 3, cast: (c) => c.missile({ map: TEX.shard('frost', 20, 3), w: 0.85, h: 0.38, speed: 13 }) },
-    { weight: 2, cast: (c) => c.rise({ map: TEX.spikes('frost', Math.floor(Math.random() * 3)), w: 2.2, h: 1.9, share: 1.2 }) },
+    { weight: 3, cast: (c) => c.missile({ ...lookOf('fortuna-shard', c.px, { map: TEX.shard('frost', 20, 3), w: 0.85, h: 0.38 }), speed: 13 }) },
+    {
+      weight: 2,
+      cast: (c) => c.rise({ art: 'fortuna-spikes', px: c.px, map: TEX.spikes('frost', Math.floor(Math.random() * 3)), w: 2.2, h: 1.9, share: 1.2 }),
+    },
   ],
 };
 
@@ -119,6 +135,7 @@ export function castSpell(fx, n, { target, dir, hit }) {
     hit(at, share);
   };
   const c = {
+    px: n.body.sheet.px, // (the caster's pixel size, for spells drawn to match it)
     missile: ({ side = 0, share = 1, size = 1, ...o }) => {
       // (fanned out to one side at first: it comes round onto him)
       const away = side ? [from[0] - n.body.facing * 0.2, from[1], from[2] + side * 0.08] : from;
