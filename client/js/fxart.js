@@ -16,6 +16,10 @@ const ART = {
   'vael-orb': '/assets/fx/vael-orb.json',
   'vael-spikes': '/assets/fx/vael-spikes.json',
   'vael-lash': '/assets/fx/vael-lash.json',
+  'jorvik-tome': '/assets/fx/jorvik-tome.json',
+  'jorvik-runes': '/assets/fx/jorvik-runes.json',
+  'jorvik-pillar': '/assets/fx/jorvik-pillar.json',
+  'jorvik-circle': '/assets/fx/jorvik-circle.json',
 };
 
 const sheets = new Map();
@@ -60,11 +64,14 @@ export async function loadFxArt() {
 
 export const fxArt = (key) => sheets.get(key) || null;
 
-// A drawn effect as the look of something flying, `px` world units to its pixel: its first frame
-// ({ map, w, h }), or all its frames to flip through at `fps` ({ frames, fps, w, h }); or
+// A drawn effect as the look of something flying, `px` world units to its pixel: one of its frames
+// (`pick`: the k-th of a sheet of designs, Jorvik's runes; { map, w, h }), or its frames to flip
+// through at `fps` (`order`: the frames' order, a flap there and back; { frames, fps, w, h }); or
 // `fallback` without its art.
-export function lookOf(key, px, fallback, fps = 0) {
+export function lookOf(key, px, fallback, { fps = 0, pick = 0, order = null } = {}) {
   const s = sheets.get(key);
   if (!s) return fallback;
-  return fps ? { frames: s.frames, fps, w: s.w * px, h: s.h * px } : { map: s.frames[0], w: s.w * px, h: s.h * px };
+  const size = { w: s.w * px, h: s.h * px };
+  if (fps) return { frames: order ? order.map((k) => s.frames[k]) : s.frames, fps, ...size };
+  return { map: s.frames[pick % s.frames.length], ...size };
 }

@@ -1,0 +1,28 @@
+{
+  "name": "Golden runes",
+  "source": "fx-jorvik-runes.png: 4 rune designs in a row (not an animation: one design each), split with split-sheet.mjs --grid 4x1, each sampled on an 18 px grid (Jorvik's own pixel size) and reduced to 8 shared colours; all frames cut to columns 3..18 and rows 9..45 of their 20 x 56 grids",
+  "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/!#$%&'()*,-:;<=>?@[]^_`{|}~",
+  "palette": ["#995901", "#a05e01", "#c9890d", "#f6b91f", "#fac333", "#fbda88", "#fcedc6", "#fefcf9"],
+  "frames": [
+    {
+      "w": 16,
+      "h": 37,
+      "rows": ["................", "........A.......", "........DB......", ".......AHA......", ".......AHA......", ".......AHA......", ".......AHA......", "...A...AHA......", "..BA...DHDB...D.", "..DA..CHHHD...D.", ".BDA.CHHBGHD..EB", ".BHAAHHD.AHHD.FB", ".DHBADHEBDHDB.ED", ".AFDAADHEHDA.DHC", "..BFD.ADHDB.DHC.", "...BHD.BHB.DHC..", "....AHD.HADHB...", ".B...DDAHBDD...A", ".AC..DDDHDDD..BA", "..AC.DHAHAHD.BD.", "...BCBEHHHEABE..", "...BD.ADHDA.BD..", "...BB..BHB..BD..", "..BHHB.AHB..EHD.", "..ADD..AHA..BDA.", "...AA..AHA..AD..", "...BB..AHA..AD..", "...BB..AHA..AD..", "...AA..AHA..AA..", "....A..AHA......", "......BDHDB.....", "......DHHHD.....", "......ADHDA.....", ".......DHD......", ".......BDA......", "........C.......", "........A......."]
+    },
+    {
+      "w": 16,
+      "h": 37,
+      "rows": ["................", "........A.......", "........B.......", "........G.......", ".......CHB......", "......BDDGA.....", ".....BDDADEA....", "..AA.BDHBGDA.AA.", "..DA..BDHEA..BDA", ".DHD...AHB...DHD", "..CHDB.AHB..DHD.", "...BHE.BHA.DHC..", "....AHDAHBDHB...", ".....BHDHDHC....", "......CHHHB.....", "...B...DHD...A..", "..AA...BHA...BA.", ".ADDB..BHA..BDDA", "..AEDA.AHA.ADDB.", "...AEDABHABDDA..", "....AEAAHABEB...", ".....ABBHAAA....", ".....AADHDAA....", "......DHDHD.....", ".....DHD.DHD....", ".....BDHCHDB....", "......ADHEA.....", ".......AHA......", ".......AHA......", ".......EHE......", ".......DHD......", ".......AHA......", ".......AHA......", ".......AHA......", ".......AHA......", "........D.......", "........A......."]
+    },
+    {
+      "w": 16,
+      "h": 37,
+      "rows": ["................", "........A.......", "........D.......", ".......BHA......", "......AEDEA.....", ".....ADGAHD.....", "......BDHDA.....", "....A..AHA..A...", "....C...H...A...", "....D...H...D...", "...DD...H...FD..", "..AHB..BHB..BHB.", "..DD..BFHEB..DD.", ".AHB.BGDHDEA.BHB", ".DE.BGDAHBDFB.ED", ".AHDFDBBHBBDEDHA", "..AHDA.DHD.BDHB.", "...BHD..H..DHA..", "....CHDBHADHB...", ".....CHDHDHA....", "..B...CHHHB...A.", "..DB...DHD...AD.", "..DD...DHD..BDD.", "..AEDB.AHB.BEDB.", "...ADA.AHA.CDB..", "....DB.AHB.CD...", "....DB.BHB.CD...", "....DB.DDD.AD...", "....A.DDAED.A...", "......BDEDA.....", ".......BHA......", ".......AHA......", ".......AHA......", ".......DHD......", ".......AHA......", "........D.......", "........A......."]
+    },
+    {
+      "w": 16,
+      "h": 37,
+      "rows": [".......A........", ".......A........", "......AD........", "......DHA.......", "......DHD.......", "......BHHD......", ".A....BHDHD.....", ".DD...AH.BHD....", ".DHD..BHBDGD....", "..AHD.AHDFB.....", "...BHDAHHB......", "....BHDHB.......", ".....AHHB.......", "......DHD...A...", ".....DHDHD..DB..", "....DHD.DHD.DHB.", "....BDHDHD...ED.", ".....BDHD....DD.", "..AB..BHD...DHC.", ".ADGB.AHHEBDHD..", "BEDHB.AHDHDHD...", "ADBHB.BHADHD....", "A.AHB.AHB.DHD...", "..AEHBBHB..DHD..", "...ADHBHB...DHA.", "....BDHHB...AHA.", ".....ADHB...AEA.", "......AHA....DA.", "......AHB....CB.", "......AHA....C..", "......DHD....A..", ".....DHDHD......", ".....DHAHDA.....", ".....AEHFA......", "......CHD.......", "......ADB.......", ".......A........"]
+    }
+  ]
+}

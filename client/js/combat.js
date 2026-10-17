@@ -15,7 +15,7 @@ import { lookOf } from './fxart.js';
 // By hero id (a hero of two looks fights as whichever it wears). `muzzle`: where a mage's spells
 // leave from, [ahead, up] of its feet in world units (the orb, the crystal, the fist, the ring).
 export const STYLES = {
-  runelord: { range: 'far', school: 'rune', color: '#ffc94a', muzzle: [1.06, 2.32] },
+  runelord: { range: 'far', school: 'rune', color: '#ffc94a', muzzle: [2.0, 0.75] }, // (the orb, thrust out: heroes/runelord.js)
   sorceress: { range: 'far', school: 'glintstone', color: '#6fc3ff', muzzle: [0.72, 2.68] },
   bloodbender: { range: 'far', school: 'blood', color: '#ff3a4a', muzzle: [0.5, 1.04] },
   queen: { range: 'far', school: 'holy', color: '#ffd75a', muzzle: [0.54, 1.01] },
@@ -77,15 +77,29 @@ export function muzzleOf(n) {
 const SPELLS = {
   // the Rune Lord: a rune flung spinning, a volley of three that fan out and come round onto him,
   // or a circle of runes under him and a pillar of gold out of it
+  // (all drawn: his runes at his own pixel size, the volley's smaller; the pillar out of a drawn
+  // circle of runes)
   rune: [
-    { weight: 3, cast: (c) => c.missile({ map: TEX.glyph(Math.floor(Math.random() * 4)), w: 0.46, h: 0.58, speed: 11, spin: 6 }) },
+    {
+      weight: 3,
+      cast: (c) => {
+        const k = Math.floor(Math.random() * 4);
+        c.missile({ ...lookOf('jorvik-runes', c.px, { map: TEX.glyph(k), w: 0.46, h: 0.58 }, { pick: k }), speed: 11, spin: 6 });
+      },
+    },
     {
       weight: 2,
       cast: (c) => [-1, 0, 1].forEach((s, i) => c.missile({
-        map: TEX.glyph(i), w: 0.34, h: 0.42, speed: 9.5, spin: 7, rise: 2 + i, side: s * 3.2, delay: i * 0.08, share: 0.45,
+        ...lookOf('jorvik-runes', c.px * 0.7, { map: TEX.glyph(i), w: 0.34, h: 0.42 }, { pick: i }),
+        speed: 9.5, spin: 7, rise: 2 + i, side: s * 3.2, delay: i * 0.08, share: 0.45,
       })),
     },
-    { weight: 1.5, cast: (c) => c.rise({ map: TEX.pillar('rune'), w: 1.3, h: 5.5, mark: TEX.circle('rune', 6), markSize: 2.8, share: 1.4 }) },
+    {
+      weight: 1.5,
+      cast: (c) => c.rise({
+        art: 'jorvik-pillar', px: c.px, markArt: 'jorvik-circle', map: TEX.pillar('rune'), w: 1.3, h: 5.5, mark: TEX.circle('rune', 6), markSize: 2.8, share: 1.4,
+      }),
+    },
   ],
   // the Glintstone Witch: a glintstone pebble, a spray of shards, or now and then a great shard
   glintstone: [
@@ -101,7 +115,7 @@ const SPELLS = {
   // Vael: a gout of blood, spikes of blood out of the floor under him, or a lash of blood reaching
   // him at once
   blood: [
-    { weight: 3, cast: (c) => c.missile({ ...lookOf('vael-orb', c.px * 0.8, { map: TEX.orb('blood', 6), w: 0.5, h: 0.5 }, 10), speed: 11, wobble: 0.06 }) },
+    { weight: 3, cast: (c) => c.missile({ ...lookOf('vael-orb', c.px * 0.8, { map: TEX.orb('blood', 6), w: 0.5, h: 0.5 }, { fps: 10 }), speed: 11, wobble: 0.06 }) },
     {
       weight: 2,
       cast: (c) => c.rise({ art: 'vael-spikes', px: c.px, map: TEX.spikes('blood', Math.floor(Math.random() * 3)), w: 2.2, h: 1.85, share: 1.2 }),

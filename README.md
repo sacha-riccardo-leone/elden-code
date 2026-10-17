@@ -188,7 +188,10 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
   drawn whole.
 - **The Rune Lord, of the Golden Rune** — `runelord.json` (+ `runelord-kneel.json`), rigged in
   `client/js/heroes/runelord.js` (the staff's orb kindles, golden runes wheel round it, and a
-  blow of the staff sends a ring of runes across the ground).
+  blow of the staff sends a ring of runes across the ground). His Flight of Tomes pose
+  (`runelord-ult.json`) and his staff cast (`runelord-attack.json`) are drawn whole; his palette
+  has no light of its own, so the orb drawn on the staff is kindled as his rig's orb is (`drawn`:
+  a rig may touch up its drawn poses, `client/js/heroes/core.js`).
 - **Aurelion, the Radiant Oath** (Holy Knight) — `paladin.json` (+ `paladin-kneel.json`), rigged in
   `client/js/heroes/paladin.js` (the sword leaves a radiant arc, light bursts from the raised blade,
   and a pillar of light falls on it; kneeling, he prays under a beam of light).
@@ -390,7 +393,8 @@ It sinks again only once the fight is over and everyone has left it, you include
     blade but does less (yours 22, a blade blow 55; a companion's 7, its blow 16), and Fenrath goes
     after whoever keeps wounding him from afar. Each has a few spells in its own light:
     - Jorvik (the Rune Lord): a spinning golden rune, a volley of three that fan out and curve back
-      in, or a circle of runes under the enemy that bursts into a pillar of gold.
+      in, or a circle of runes under the enemy that bursts into a pillar of gold, all drawn
+      (`jorvik-runes.json`, four designs; `jorvik-circle.json`; `jorvik-pillar.json`).
     - Corisande: a glintstone pebble, a spray of three shards, or now and then a great shard.
     - Vael: a gout of blood, blood spikes out of the floor, or a lash of blood that reaches the enemy
       at once, all drawn (`vael-orb.json`, `vael-spikes.json`, `vael-lash.json`; the lash stretched
@@ -453,7 +457,8 @@ It sinks again only once the fight is over and everyone has left it, you include
   - **Aimed ones** (Solenne's, Ulric's) go one of four ways: toward the pointer for you, and only
     hit if the enemy stands in that line. The others walk into line first.
   - Jorvik, **Flight of Tomes:** seven golden tomes take wing and dash into him, each spent as it
-    strikes.
+    strikes. The tomes are drawn (`jorvik-tome.json`), beating their covers, and keep upright as
+    they fly.
   - Corisande, **Glintstone Arrow:** a crystal arrow trailing light finds him.
   - Vael, **Crimson Mire:** a pool of blood under him for 7 seconds. He's slowed to a third, can't
     leave it or leap or roll away, and bleeds until 4 seconds after it dries. The pool is drawn
@@ -474,10 +479,11 @@ It sinks again only once the fight is over and everyone has left it, you include
     away.
   - Fortuna, **Frostfall:** four great icicles drop on him one after another, each as tall as she
     is, and shatter (`fortuna-icicle.json`, `fortuna-shatter.json`).
-  - **Art:** Maren, Fortuna and Vael hold their drawn poses: Maren's spear raised to the sky, its
-    lightning crackling; Fortuna's four arms and greatsword raised, the frost flickering; Vael's
-    clawed hand raised, blood streaming up his arm. The others hold their own rig's pose (raise,
-    cast, strike, kneel) until their ult drawings replace it.
+  - **Art:** Maren, Fortuna, Vael and Jorvik hold their drawn poses: Maren's spear raised to the
+    sky, its lightning crackling; Fortuna's four arms and greatsword raised, the frost flickering;
+    Vael's clawed hand raised, blood streaming up his arm; Jorvik's staff thrust high, runes
+    wheeling round its blazing orb. The others hold their own rig's pose (raise, cast, strike,
+    kneel) until their ult drawings replace it.
 - **Only the fight:** while a great enemy is abroad, every session works on unseen, the spectres at
   work on their islands included: no log lines about the work, no incantations, signs or gestures,
   no spirit wisps and no small talk. A fighter's signs are put away for the fight (the "!" of one

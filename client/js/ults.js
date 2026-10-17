@@ -28,6 +28,7 @@ import * as THREE from 'three';
 import { Particles } from './particles.js';
 import { Aura, Missile, Wall, Pool, Slash, Cut, Drop, Bolt, Burst, StuckSpear, TEX, motesOf } from './spellfx.js';
 import { ULT, ultPower, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt } from './combat.js';
+import { lookOf } from './fxart.js';
 
 // The moments of one: grey within `grey`, the aura from `aura`, the blow at `release`, colour back
 // within `back` of it; the camera this close meanwhile (or as far back as a tall pose needs to be
@@ -63,14 +64,16 @@ const effect = (step, dispose = () => {}) => ({ step, dispose });
 
 export const ULTS = {
   runelord: {
-    name: 'Flight of Tomes', pose: ['send'],
+    name: 'Flight of Tomes', pose: ['ult'],
     run({ fight, fx, n, hit }) {
+      // (his tomes drawn at his own pixel size, their covers beating there and back)
+      const look = lookOf('jorvik-tome', n.body.sheet.px, { frames: [TEX.tome(0), TEX.tome(1), TEX.tome(2), TEX.tome(1)], fps: 12, w: 0.8, h: 0.62 }, { fps: 14, order: [0, 1, 2, 3, 2, 1] });
       for (let i = 0; i < 7; i++) {
         const a = (i / 6 - 0.5) * 2.6;
         const from = [n.pos.x + Math.sin(a) * 1.5, 2.3 + Math.cos(a) * 0.9, n.pos.y + 0.1];
         const up = 1.4 + (i % 3) * 0.6;
         fx.add(new Missile(fx, {
-          frames: [TEX.tome(0), TEX.tome(1), TEX.tome(2), TEX.tome(1)], fps: 12, w: 0.8, h: 0.62, from,
+          ...look, upright: true, from,
           to: () => fight.bossPoint(up), speed: 8.5, turn: 4, rise: 2.5, delay: i * 0.11, life: 5, trail: motesOf('rune'),
           onHit: (at) => {
             hit(3.2, at);

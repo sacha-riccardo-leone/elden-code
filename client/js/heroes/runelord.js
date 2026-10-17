@@ -2,11 +2,14 @@
 // mantle, and a staff whose claw holds a dark orb. When he works his sorcery the orb kindles,
 // golden runes circle it, and a blow of the staff sends a ring of runes across the ground.
 // Source art: assets/hero/runelord.json (92x102, from runelord-stand.webp) and
-// runelord-kneel.json (94x93, from runelord-kneel.webp).
+// runelord-kneel.json (94x93, from runelord-kneel.webp); drawn whole, his Flight of Tomes
+// (runelord-ult.json, from ult-jorvik.png) and his staff cast (runelord-attack.json, from
+// atk-jorvik.png).
 
-import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill } from './core.js';
+import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill, held } from './core.js';
 
-const FRAME = { w: 120, h: 112 };
+// (room above him for the staff raised high, and ahead of him for the staff thrust out)
+const FRAME = { w: 184, h: 160 };
 const MID = 45; // source column between the boots
 const GROUND = 100;
 const OX = FRAME.w / 2 - MID;
@@ -93,6 +96,7 @@ function prepare(art, more = {}) {
   const kneelArt = more.kneel;
   return {
     colors,
+    lum,
     orb: orbOf(src, ORB),
     kneelOrb: kneelArt ? orbOf(kneelArt.src, KNEEL_ORB) : [],
     still: kneelArt && prepareStill(kneelArt, {
@@ -151,6 +155,27 @@ function kindle(f, orb, level, colors, dx, dy) {
     else continue;
     f.set(x + dx, y + dy, v);
   }
+}
+
+// A drawn pose's orb (p.orb: [x, y, r] in the drawing), kindled as his own orb is: by brightness,
+// all of it within the circle but its dark outline (level 1: only a glint); and runes wheeling
+// round it (p.runes, p.phase).
+function drawn({ colors, lum }, f, p) {
+  if (!p.orb) return;
+  const [cx, cy, r] = p.orb;
+  const [dx, dy] = f.at;
+  const level = p.kindle || 0;
+  for (let y = Math.floor(cy - r); y <= cy + r; y++) {
+    for (let x = Math.floor(cx - r); x <= cx + r; x++) {
+      if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) > r) continue;
+      const v = f.get(x + dx, y + dy);
+      if (v === NONE) continue;
+      const l = lum(v);
+      const c = level >= 2 ? (l > 170 ? colors.hot : l > 100 ? colors.gold : l > 45 ? colors.deep : null) : l > 170 ? colors.gold : null;
+      if (c != null) f.set(x + dx, y + dy, c);
+    }
+  }
+  if (p.runes) runeCircle(f, cx + dx, cy + dy, 13, 6, p.runes, p.phase || 0, colors);
 }
 
 function glyph(f, k, x, y, colors) {
@@ -267,12 +292,26 @@ anim('stagger', seq(2, (i) => ({ lean: -2 - i, staff: -6 - i * 4, sway: 2, legs:
 anim('collapse', [{ still: true, head: [2, 3], sway: 2, light: 0 }]);
 anim('lifted', seq(2, (i) => ({ sway: -3 + i, staff: -6 - i * 3, legs: { front: { dangle: -2 - i }, back: { dangle: -3 } }, light: 1 })));
 anim('talk', seq(2, (i) => ({ lift: i, bob: i, orb: i, light: 1 })));
+// drawn whole (core.js, composeDrawn), each set by his crown (where it stands as he stands), the
+// orb on the staff kindled (drawn): the Flight of Tomes, the staff thrust high, the free hand
+// raised, runes wheeling about the blazing orb while he holds it; the cast (the staff raised in
+// both hands, thrust out as the orb blazes, back upright), each drawing twice, so that its light
+// stirs on while it's held
+anim('tomes', seq(4, (i) => ({ drawn: 'ult', mid: 54, ground: 154, orb: [95, 8, 6], kindle: 2, runes: 5, phase: (i / 4) * (TURN / 5), light: 2 })));
+anim('staffcast', [0, 0, 1, 1, 2, 2].map((i) => ({
+  drawn: 'attack', frame: i, mid: [78, 70, 76][i], ground: [104, 104, 99][i],
+  orb: [[121, 9, 7], [146, 75, 7], [116, 8, 5]][i], kindle: [2, 2, 1][i], light: [1, 2, 1][i],
+})));
 
 const G = groups;
 export default {
   id: 'runelord',
   art: '/assets/hero/runelord.json',
-  extraArt: { kneel: '/assets/hero/runelord-kneel.json' },
+  extraArt: {
+    kneel: '/assets/hero/runelord-kneel.json',
+    ult: '/assets/hero/runelord-ult.json',
+    attack: '/assets/hero/runelord-attack.json',
+  },
   epithet: 'of the Golden Rune',
   title: 'Rune Lord',
   burst: ['#ffc94a', '#fff3c4'],
@@ -280,18 +319,23 @@ export default {
   cols: 8,
   px: 2.1 / 82, // world units per art pixel: his eyes sit level with the knight's visor
   head: 99, // art pixels from the ground to the tips of the crown
-  hits: { hammer: 3, cast: 1, send: 2 },
+  hits: { hammer: 3, cast: 1, send: 2, attack: 4 },
+  lunge: { attack: 0.35 }, // (his drawing thrown forward as the staff thrusts out: npc.js)
   glowIntensity: 1.15,
   glowColors: [[210, 140, 30], [255, 236, 170]],
   seed: 5150,
   prepare,
   compose,
+  drawn,
   poses,
   groups,
   anims: {
     idle: { frames: G.idle, fps: 4 },
     walk: { frames: G.walk, fps: 9 },
     hammer: { frames: G.strike, fps: 8 },
+    // (in eighteenths of a second: the staff raised 4, the thrust 3, upright again 4)
+    attack: { frames: held(G.staffcast, [2, 2, 2, 1, 2, 2]), fps: 18 },
+    ult: { frames: G.tomes, fps: 8 },
     read: { frames: G.study, fps: 1.4 },
     cast: { frames: G.cast, fps: 6 },
     send: { frames: G.raise, fps: 5 },
@@ -309,5 +353,5 @@ export default {
     stagger: { frames: [...G.stagger, G.idle[0]], fps: 4, once: true },
     kneelBow: { frames: [G.kneel[0], ...G.rest, G.rest[1], G.kneel[0]], fps: 2, once: true },
   },
-  groupFps: { idle: 4, walk: 9, strike: 8, cast: 6, raise: 5, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5 },
+  groupFps: { idle: 4, walk: 9, strike: 8, cast: 6, raise: 5, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, tomes: 8, staffcast: 9 },
 };

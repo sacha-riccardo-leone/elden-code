@@ -467,11 +467,12 @@ function drop(scene, mesh) {
   mesh.material.dispose();
   mesh.geometry.dispose();
 }
-// A mark on the floor, `size` across (bending with it where it ripples).
+// A mark on the floor, `size` across (or [across, deep]), bending with it where it ripples.
 function floor(scene, map, x, z, size, opacity = 1) {
   const mat = rippling(lit(map, opacity));
-  const seg = Math.max(1, Math.min(32, Math.ceil(size / 0.5)));
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size, size, seg, seg), mat);
+  const [w, d] = Array.isArray(size) ? size : [size, size];
+  const seg = Math.max(1, Math.min(32, Math.ceil(Math.max(w, d) / 0.5)));
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, d, seg, seg), mat);
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.set(x, 0.04, z);
   mesh.renderOrder = 3;
@@ -486,10 +487,12 @@ const screenAngle = (dx, dy, dz) => Math.atan2(dy * 0.9 - dz * 0.42, dx);
 // Something flying. `to()`: where it's going, followed as it moves (homing), or `dir` [dx, dz]
 // to fly straight on that way. Reaching its mark (within `near`), it calls onHit and is done; it
 // gives up after `life` seconds. `trail`: particle colours left behind it; `spin`: it turns as it
-// flies rather than pointing the way it goes; `frames`: textures it flips through.
+// flies rather than pointing the way it goes; `upright`: it keeps upright, facing the way it goes
+// and leaning a little with its climb or fall (a tome beating its covers); `frames`: textures it
+// flips through.
 export class Missile {
   constructor(fx, { map, w, h, from, to = null, dir = null, speed = 10, turn = 7, near = 0.5, life = 3,
-    trail = null, trailRate = 40, trailSize = 0.06, spin = 0, frames = null, fps = 10, onHit = null, onEnd = null, delay = 0, rise = 0, wobble = 0 }) {
+    trail = null, trailRate = 40, trailSize = 0.06, spin = 0, upright = false, frames = null, fps = 10, onHit = null, onEnd = null, delay = 0, rise = 0, wobble = 0 }) {
     this.fx = fx;
     this.mesh = plane(fx.scene, frames ? frames[0] : map, w, h);
     this.mesh.visible = delay <= 0;
@@ -498,7 +501,7 @@ export class Missile {
     const d = Math.hypot(tx - from[0], ty - from[1], tz - from[2]) || 1;
     // (it may set off upward first, and curve onto its mark)
     this.vel = new THREE.Vector3(((tx - from[0]) / d) * speed, ((ty - from[1]) / d) * speed + rise, ((tz - from[2]) / d) * speed);
-    Object.assign(this, { to, dir, speed, turn, near, life, trail, trailRate, trailSize, spin, frames, fps, onHit, onEnd, delay, wobble, t: 0, done: false });
+    Object.assign(this, { to, dir, speed, turn, near, life, trail, trailRate, trailSize, spin, upright, frames, fps, onHit, onEnd, delay, wobble, t: 0, done: false });
     this.mesh.position.copy(this.pos);
   }
 
@@ -528,7 +531,12 @@ export class Missile {
     const wob = this.wobble ? Math.sin(this.t * 14) * this.wobble : 0;
     this.mesh.position.set(this.pos.x, this.pos.y + wob, this.pos.z);
     if (this.spin) this.mesh.rotation.z += this.spin * dt;
-    else this.mesh.rotation.z = screenAngle(this.vel.x, this.vel.y, this.vel.z);
+    else if (this.upright) {
+      const way = this.vel.x < 0 ? -1 : 1;
+      const a = screenAngle(this.vel.x * way, this.vel.y, this.vel.z);
+      this.mesh.scale.x = way;
+      this.mesh.rotation.z = way * Math.max(-0.45, Math.min(0.45, a));
+    } else this.mesh.rotation.z = screenAngle(this.vel.x, this.vel.y, this.vel.z);
     if (this.frames) this.mesh.material.map = this.frames[Math.floor(this.t * this.fps) % this.frames.length];
     if (this.trail && Math.random() < dt * this.trailRate) {
       this.fx.particles.emit({
@@ -598,11 +606,14 @@ export class Beam {
 // Something rising out of the floor at (x, z): the floor marked first (`warn` seconds), then it
 // thrusts up (`map`, w x h), strikes (onHit) and sinks away. Drawn by hand (`art`, fxart.js), it
 // plays its own frames instead (breaking through, half, full, cracking apart), `px` world units to
-// its pixel, its foot on (x, z).
+// its pixel, its foot on (x, z); its mark may be drawn too (`markArt`, `markSize` across).
 export class Rise {
-  constructor(fx, { school, x, z, map, w, h, art = null, px = 0.02, mark = null, markSize = 2.4, warn = 0.45, life = 0.7, onHit = null }) {
+  constructor(fx, { school, x, z, map, w, h, art = null, px = 0.02, mark = null, markArt = null, markSize = 2.4, warn = 0.45, life = 0.7, onHit = null }) {
     this.fx = fx;
-    this.mark = floor(fx.scene, mark || TEX.ring(school), x, z, markSize, 0);
+    const drawnMark = markArt && fxArt(markArt);
+    this.mark = drawnMark
+      ? floor(fx.scene, drawnMark.frames[0], x, z, [markSize, (markSize * drawnMark.h) / drawnMark.w], 0)
+      : floor(fx.scene, mark || TEX.ring(school), x, z, markSize, 0);
     const sheet = art && fxArt(art);
     if (sheet) {
       [w, h] = [sheet.w * px, sheet.h * px];

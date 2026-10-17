@@ -327,7 +327,9 @@ export const held = (frames, counts) => frames.flatMap((f, i) => Array(counts[i]
 // Drawn poses: a pose drawn whole on the hero's own palette (an ultimate's, the frames of a blow;
 // assets/hero/<id>-<name>.json, in the rig's extraArt), set in the frame as it is: frame `p.frame`
 // of it (if it holds several), its column `p.mid` on the frame's centre column and its row
-// `p.ground` (or else its lowest) on the frame's last row. Its magic lives as the rig's own does.
+// `p.ground` (or else its lowest) on the frame's last row (`f.at`: where the drawing's corner
+// landed). Its magic lives as the rig's own does; a rig may touch it up besides (rig.drawn: the
+// Rune Lord kindles the orb drawn on his staff).
 
 export function composeDrawn(art, p, frame) {
   const src = art.frames[p.frame || 0];
@@ -336,7 +338,8 @@ export function composeDrawn(art, p, frame) {
     for (let x = 0; x < src.w; x++) if (src.get(x, y) !== NONE) { ground = y; break; }
   }
   const f = new Img(frame.w, frame.h);
-  blit(f, src, Math.round(frame.w / 2 - p.mid), frame.h - 1 - ground);
+  f.at = [Math.round(frame.w / 2 - p.mid), frame.h - 1 - ground];
+  blit(f, src, ...f.at);
   return f;
 }
 
@@ -358,6 +361,7 @@ export function buildFrames(rig, json, extras = {}) {
     palette: art.palette,
     frames: rig.poses.map((p, i) => {
       const f = p.drawn ? composeDrawn(more[p.drawn], p, rig.frame) : rig.compose(ctx, p);
+      if (p.drawn) rig.drawn?.(ctx, f, p);
       const glow = energy(f, ctx.energy, p.light ?? 1, rig.seed + i * 7919);
       return { color: f, glow };
     }),
