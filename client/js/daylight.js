@@ -33,6 +33,9 @@ const LOOK = {
   spriteLit: [1, 0.62],
   spriteSelf: [1, 0.15],
   spriteGlow: [1, 0.5],
+  // how white a character struck turns (npc.js, flash): pale by night, well under the bloom's
+  // threshold, so that it reads as a white silhouette, not a light going off
+  spriteFlash: [0.42, 0.95],
   bloomThreshold: [0.9, 1.35],
   bloomStrength: [0.6, 0.42],
   vignette: [0.45, 0.24],
@@ -117,6 +120,7 @@ export class Daylight {
     SPRITE_LIGHT.lit.value = num('spriteLit');
     SPRITE_LIGHT.self.value = num('spriteSelf');
     SPRITE_LIGHT.glow.value = num('spriteGlow');
+    SPRITE_LIGHT.flash.value = num('spriteFlash');
     world.uDay.value = d;
     world.skyUniforms.uDusk.value = dusk;
     world.mistUniforms.uDusk.value = dusk;

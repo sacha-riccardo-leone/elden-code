@@ -3,19 +3,39 @@
 // animation file: { name, source, alphabet, palette, frames: [{ w, h, rows }] }.
 // Frames all of one size (extracted with --keep, so in register) are cut down together to the
 // area any of them uses, so they stay in register; the source note says where that area was.
+// A frame drawn off-centre in its cell (it would jump from one frame to the next) is moved back
+// first with --shift k:dx,dy (frame k, counted from 1, moved dx art pixels right and dy down).
 //
-//   node scripts/pack-frames.mjs out.json "Name" "source note" frame-1.json frame-2.json …
+//   node scripts/pack-frames.mjs out.json "Name" "source note" [--shift 3:2,0 …] frame-1.json frame-2.json …
 
 import fs from 'node:fs';
 
-const [out, name, source, ...inputs] = process.argv.slice(2);
+const [out, name, source, ...rest] = process.argv.slice(2);
+const shifts = new Map();
+const inputs = [];
+for (let i = 0; i < rest.length; i++) {
+  if (rest[i] === '--shift') {
+    const [k, d] = rest[++i].split(':');
+    shifts.set(Number(k), d.split(',').map(Number));
+  } else inputs.push(rest[i]);
+}
 const grids = inputs.map((f) => JSON.parse(fs.readFileSync(f, 'utf8')));
 const { alphabet, palette } = grids[0];
 for (const g of grids) {
   if (g.palette.join() !== palette.join()) throw new Error('frames must share one palette (extract them in one run)');
 }
-let frames = grids.map(({ w, h, rows }) => ({ w, h, rows }));
+let frames = grids.map(({ w, h, rows }, i) => {
+  const [dx, dy] = shifts.get(i + 1) || [0, 0];
+  if (!dx && !dy) return { w, h, rows };
+  const blank = '.'.repeat(w);
+  const moved = rows.map((_, y) => {
+    const row = rows[y - dy] ?? blank;
+    return dx >= 0 ? ('.'.repeat(dx) + row).slice(0, w) : (row + '.'.repeat(-dx)).slice(-dx);
+  });
+  return { w, h, rows: moved };
+});
 let note = source;
+if (shifts.size) note += `; frames moved back into register: ${[...shifts].map(([k, [dx, dy]]) => `frame ${k} by ${dx}, ${dy}`).join(', ')}`;
 const { w: W, h: H } = frames[0];
 const even = frames.every((f) => f.w === W && f.h === H);
 if (even) {

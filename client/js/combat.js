@@ -101,9 +101,12 @@ const SPELLS = {
   // Vael: a gout of blood, spikes of blood out of the floor under him, or a lash of blood reaching
   // him at once
   blood: [
-    { weight: 3, cast: (c) => c.missile({ map: TEX.orb('blood', 6), w: 0.5, h: 0.5, speed: 11, wobble: 0.06 }) },
-    { weight: 2, cast: (c) => c.rise({ map: TEX.spikes('blood', Math.floor(Math.random() * 3)), w: 2.2, h: 1.85, share: 1.2 }) },
-    { weight: 1.5, cast: (c) => c.beam({ width: 0.3, share: 0.9 }) },
+    { weight: 3, cast: (c) => c.missile({ ...lookOf('vael-orb', c.px * 0.8, { map: TEX.orb('blood', 6), w: 0.5, h: 0.5 }, 10), speed: 11, wobble: 0.06 }) },
+    {
+      weight: 2,
+      cast: (c) => c.rise({ art: 'vael-spikes', px: c.px, map: TEX.spikes('blood', Math.floor(Math.random() * 3)), w: 2.2, h: 1.85, share: 1.2 }),
+    },
+    { weight: 1.5, cast: (c) => c.beam({ width: 0.3, share: 0.9, art: 'vael-lash' }) },
   ],
   // the Eternal Queen: a lance of holy light, a halo thrown spinning, or light falling on him
   holy: [
@@ -152,9 +155,9 @@ export function castSpell(fx, n, { target, dir, hit }) {
       const [x, , z] = target ? target() : [from[0] + dir[0] * 6, 0, from[2] + dir[1] * 6];
       fx.add(new Rise(fx, { school, x, z, ...o, onHit: target ? (at) => land(at, share) : null }));
     },
-    beam: ({ share = 1, width }) => {
+    beam: ({ share = 1, width, art = null }) => {
       const to = target ? target() : [from[0] + dir[0] * 9, from[1], from[2] + dir[1] * 9];
-      fx.add(new Beam(fx, { school, from, to, width, onHit: target ? (at) => land(at, share) : null }));
+      fx.add(new Beam(fx, { school, from, to, width, art, onHit: target ? (at) => land(at, share) : null }));
     },
   };
   pick(list).cast(c);

@@ -7,17 +7,21 @@
 // With --grid CxR the sheet is C cells across and R down, read left to right, then top to bottom
 // (a 2 x 2 grid with its last cell empty holds three frames). Each connected figure, and each loose
 // bit, belongs to the cell that holds most of it, so a cape or a spear point that strays over a
-// cell's edge stays with its own frame. Every frame comes out the size of a cell plus the same
-// margin all round (as much as the farthest stray needs), at the same place relative to its cell,
-// so the frames keep their places from cell to cell; empty cells are skipped.
+// cell's edge stays with its own frame. With --near besides, a loose bit (a drop of blood, a spark)
+// goes with the figure nearest to it instead (each cell's biggest piece, and any other big one, are
+// figures), so a spray flung into the next cell stays with the one who flung it; leave it off for
+// frames made only of scattered bits. Every frame comes out the size of a cell plus the same margin
+// all round (as much as the farthest stray needs), at the same place relative to its cell, so the
+// frames keep their places from cell to cell; empty cells are skipped.
 //
-//   node scripts/split-sheet.mjs sheet.bgra WxH out/prefix [--blobs | --grid CxR]
+//   node scripts/split-sheet.mjs sheet.bgra WxH out/prefix [--blobs | --grid CxR [--near]]
 //   → out/prefix-1.bgra, out/prefix-2.bgra, … ; prints "out/prefix-1.bgra:WxH  (x0,y0 on the sheet)"
 
 import fs from 'node:fs';
 import path from 'node:path';
 
 const [file, dims, prefix, mode, layout] = process.argv.slice(2);
+const near = process.argv.includes('--near');
 const [W, H] = dims.split('x').map(Number);
 const buf = fs.readFileSync(file);
 if (buf.length !== W * H * 4) throw new Error(`${file}: expected ${W}x${H} BGRA`);
@@ -124,7 +128,7 @@ function splitGrid(C, R) {
   const ch = Math.floor(H / R);
   const cellAt = (x, y) => Math.min(R - 1, Math.floor(y / ch)) * C + Math.min(C - 1, Math.floor(x / cw));
   const { lab, blobs } = label();
-  // each figure to the cell holding most of it
+  // each piece to the cell holding most of it
   const votes = blobs.map(() => new Map());
   for (let i = 0; i < W * H; i++) {
     if (lab[i] < 0) continue;
@@ -132,6 +136,37 @@ function splitGrid(C, R) {
     votes[lab[i]].set(c, (votes[lab[i]].get(c) || 0) + 1);
   }
   const cellOf = votes.map((v) => [...v.entries()].sort((a, b) => b[1] - a[1])[0][0]);
+  if (near) {
+    // (--near) the figures: each cell's biggest piece, and any other big one; every other piece
+    // goes with the figure nearest to it: every pixel of the sheet learns the nearest figure
+    // (spreading out from all of them at once), and a piece goes where most of its pixels point
+    const biggest = Math.max(...blobs.map((b) => b.n));
+    const top = new Map();
+    blobs.forEach((b, id) => { if (!top.has(cellOf[id]) || b.n > blobs[top.get(cellOf[id])].n) top.set(cellOf[id], id); });
+    const figure = blobs.map((b, id) => b.n >= biggest * 0.05 || top.get(cellOf[id]) === id);
+    const nearest = new Int32Array(W * H).fill(-1);
+    const queue = new Int32Array(W * H);
+    let head = 0;
+    let tail = 0;
+    for (let i = 0; i < W * H; i++) if (lab[i] >= 0 && figure[lab[i]]) { nearest[i] = lab[i]; queue[tail++] = i; }
+    while (head < tail) {
+      const i = queue[head++];
+      const x = i % W;
+      for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) {
+        if (j < 0 || j >= W * H || nearest[j] >= 0) continue;
+        nearest[j] = nearest[i];
+        queue[tail++] = j;
+      }
+    }
+    const pull = blobs.map(() => new Map());
+    for (let i = 0; i < W * H; i++) {
+      if (lab[i] < 0 || figure[lab[i]]) continue;
+      pull[lab[i]].set(nearest[i], (pull[lab[i]].get(nearest[i]) || 0) + 1);
+    }
+    blobs.forEach((b, id) => {
+      if (!figure[id]) cellOf[id] = cellOf[[...pull[id].entries()].sort((a, c) => c[1] - a[1])[0][0]];
+    });
+  }
   const used = [...new Set(cellOf)].sort((a, b) => a - b);
   for (let i = 0; i < W * H; i++) if (lab[i] >= 0) owner[i] = used.indexOf(cellOf[lab[i]]);
   // the margin every frame gets: as far as any figure strays out of its cell

@@ -1,11 +1,14 @@
 // Vael, the Crimson Weaver: a masked sorcerer in blood-soaked wraps and a hooded shawl. Blood magic coils
 // around one fist; it spins, flares and lashes out like a whip.
 // Source art: assets/hero/bloodbender.json (70x102, from bloodbender-stand.webp) and
-// bloodbender-kneel.json (70x77, from bloodbender-kneel.webp).
+// bloodbender-kneel.json (70x77, from bloodbender-kneel.webp); drawn whole, his Crimson Mire
+// (bloodbender-ult.json, from ult-vael.png) and his cast (bloodbender-attack.json, from
+// atk-vael.png).
 
-import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill } from './core.js';
+import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill, held } from './core.js';
 
-const FRAME = { w: 124, h: 104 };
+// (room above him for the arm raised high and the blood streaming up it)
+const FRAME = { w: 124, h: 140 };
 const MID = 37; // source column between the boots
 const GROUND = 100;
 const OX = FRAME.w / 2 - MID;
@@ -203,12 +206,23 @@ anim('stagger', seq(2, (i) => ({ lean: -2 - i, reach: -2 - i, swirl: 30 + i * 30
 anim('collapse', [{ still: true, head: [2, 3], sway: 2, light: 0 }]);
 anim('lifted', seq(2, (i) => ({ sway: -3 + i, hem: -2 + i, swirl: i * 20, legs: { front: { dangle: -2 - i }, back: { dangle: -3 } }, light: 1 })));
 anim('talk', seq(2, (i) => ({ lift: i, bob: i, swirl: i * 12, light: 1 })));
+// drawn whole (core.js, composeDrawn), each set where his boots stand: the Crimson Mire, one arm
+// raised high and clawed, blood streaming up it, the other pointing down and dripping, the blood
+// alive while he holds it; the cast (the fist drawn back in its coil of blood, thrust out as the
+// blood bursts from the palm, lowered, dripping), each drawing twice, so that its blood stirs on
+// while it's held (anims.attack)
+anim('mire', seq(4, () => ({ drawn: 'ult', mid: 49, ground: 134, light: 2 })));
+anim('bloodcast', [0, 0, 1, 1, 2, 2].map((i) => ({ drawn: 'attack', frame: i, mid: [45, 49, 51][i], ground: [98, 99, 98][i], light: [1, 2, 1][i] })));
 
 const G = groups;
 export default {
   id: 'bloodbender',
   art: '/assets/hero/bloodbender.json',
-  extraArt: { kneel: '/assets/hero/bloodbender-kneel.json' },
+  extraArt: {
+    kneel: '/assets/hero/bloodbender-kneel.json',
+    ult: '/assets/hero/bloodbender-ult.json',
+    attack: '/assets/hero/bloodbender-attack.json',
+  },
   firstName: 'Vael',
   epithet: 'the Crimson Weaver',
   title: 'Sorcerer',
@@ -217,7 +231,8 @@ export default {
   cols: 8,
   px: 2.05 / 80, // world units per art pixel: about the Ronin's build
   head: 99, // art pixels from the ground to the top of the hood
-  hits: { hammer: 3, cast: 1, send: 1 },
+  hits: { hammer: 3, cast: 1, send: 1, attack: 4 },
+  lunge: { attack: 0.35 }, // (his drawing thrown forward as the blood bursts from his palm: npc.js)
   glowIntensity: 1.1,
   glowColors: [[150, 8, 14], [240, 70, 60]],
   seed: 6602,
@@ -229,6 +244,9 @@ export default {
     idle: { frames: G.idle, fps: 5 },
     walk: { frames: G.walk, fps: 9 },
     hammer: { frames: G.strike, fps: 9 },
+    // (in eighteenths of a second: the fist drawn back 4, the burst 3, lowered 4)
+    attack: { frames: held(G.bloodcast, [2, 2, 2, 1, 2, 2]), fps: 18 },
+    ult: { frames: G.mire, fps: 8 },
     read: { frames: G.study, fps: 1.4 },
     cast: { frames: G.cast, fps: 7 },
     send: { frames: G.raise, fps: 5 },
@@ -246,5 +264,5 @@ export default {
     stagger: { frames: [...G.stagger, G.idle[0]], fps: 4, once: true },
     kneelBow: { frames: [G.kneel[0], ...G.rest, G.rest[1], G.kneel[0]], fps: 2, once: true },
   },
-  groupFps: { idle: 5, walk: 9, strike: 9, cast: 7, raise: 5, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5 },
+  groupFps: { idle: 5, walk: 9, strike: 9, cast: 7, raise: 5, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, mire: 8, bloodcast: 9 },
 };

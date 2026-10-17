@@ -12,6 +12,10 @@ const ART = {
   'fortuna-spikes': '/assets/fx/fortuna-spikes.json',
   'fortuna-icicle': '/assets/fx/fortuna-icicle.json',
   'fortuna-shatter': '/assets/fx/fortuna-shatter.json',
+  'vael-pool': '/assets/fx/vael-pool.json',
+  'vael-orb': '/assets/fx/vael-orb.json',
+  'vael-spikes': '/assets/fx/vael-spikes.json',
+  'vael-lash': '/assets/fx/vael-lash.json',
 };
 
 const sheets = new Map();
@@ -56,9 +60,11 @@ export async function loadFxArt() {
 
 export const fxArt = (key) => sheets.get(key) || null;
 
-// A drawn effect's first frame as the look of something flying ({ map, w, h }, `px` world units to
-// its pixel), or `fallback` without its art.
-export function lookOf(key, px, fallback) {
+// A drawn effect as the look of something flying, `px` world units to its pixel: its first frame
+// ({ map, w, h }), or all its frames to flip through at `fps` ({ frames, fps, w, h }); or
+// `fallback` without its art.
+export function lookOf(key, px, fallback, fps = 0) {
   const s = sheets.get(key);
-  return s ? { map: s.frames[0], w: s.w * px, h: s.h * px } : fallback;
+  if (!s) return fallback;
+  return fps ? { frames: s.frames, fps, w: s.w * px, h: s.h * px } : { map: s.frames[0], w: s.w * px, h: s.h * px };
 }

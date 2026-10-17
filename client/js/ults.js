@@ -99,11 +99,11 @@ export const ULTS = {
     },
   },
   bloodbender: {
-    name: 'Crimson Mire', pose: ['cast'],
+    name: 'Crimson Mire', pose: ['ult'],
     run({ fight, fx, n, b }) {
       const now = fight.clock;
       const r = 3.2;
-      fx.add(new Pool(fx, { x: b.pos.x, z: b.pos.y, r, life: 7 }));
+      fx.add(new Pool(fx, { x: b.pos.x, z: b.pos.y, r, life: 7, art: 'vael-pool' }));
       const s = statusOf(b);
       s.slowUntil = now + 7;
       s.slow = 0.35;

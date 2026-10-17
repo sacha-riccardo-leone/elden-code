@@ -555,7 +555,7 @@ export class Fight {
     if (stop) {
       this.hitStop(stop);
       b.body.shudder(stop);
-      if (how === 'blow') src?.body.stretch(); // (the striker held at full stretch meanwhile)
+      src?.body.stretch(); // (the striker, or the caster whose spell lands as it's cast, held at full stretch meanwhile)
     }
     if (mine || heavy) this.ctx.rig?.punch?.(dir * (heavy ? IMPACT.punch.heavy : IMPACT.punch[how] ?? 0));
     if (heavy) this.ctx.rig?.shake?.(IMPACT.shake);

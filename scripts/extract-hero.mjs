@@ -143,6 +143,8 @@ function findPitch(img, mask, axis) {
   const top = Math.max(...R.slice(4, 62));
   let base = 0;
   for (let k = 4; k < 62 && !base; k++) if (R[k] >= 0.75 * top && R[k] >= R[k - 1] && R[k] >= R[k + 1]) base = k;
+  // (no clear first peak, as in soft art with few hard steps: the highest one, wherever it is)
+  if (!base) base = Math.max(4, R.indexOf(top, 4));
   let num = 0;
   let den = 0;
   for (let k = 1; k * base < 60; k++) {

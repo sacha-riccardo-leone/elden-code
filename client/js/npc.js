@@ -81,7 +81,7 @@ function pixelTex(canvas) {
 // Shared by every sprite and set by daylight.js (all 1 at night). By day the sun already lights
 // the characters, so they take its light more gently (lit), need little of the self-light that
 // keeps them legible in the dark (self), and their magic glows less (glow).
-export const SPRITE_LIGHT = { lit: { value: 1 }, self: { value: 1 }, glow: { value: 1 } };
+export const SPRITE_LIGHT = { lit: { value: 1 }, self: { value: 1 }, glow: { value: 1 }, flash: { value: 0.42 } };
 
 // A billboard driven by a sprite sheet: { color, glow, alpha, frameW, frameH, cols, rows,
 // anims, px (world units per pixel), head (pixels to the top of the head), hits, lunge }.
@@ -126,9 +126,10 @@ export class SpriteBody {
       shader.uniforms.uSelfScale = SPRITE_LIGHT.self;
       shader.uniforms.uGlowScale = SPRITE_LIGHT.glow;
       shader.uniforms.uFlash = this.flashU;
+      shader.uniforms.uFlashWhite = SPRITE_LIGHT.flash; // (how white, by day or by night: daylight.js)
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nuniform float uSelfLight, uLit, uSelfScale, uGlowScale, uFlash;')
-        .replace('#include <dithering_fragment>', '#include <dithering_fragment>\ngl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(1.0), uFlash);')
+        .replace('#include <common>', '#include <common>\nuniform float uSelfLight, uLit, uSelfScale, uGlowScale, uFlash, uFlashWhite;')
+        .replace('#include <dithering_fragment>', '#include <dithering_fragment>\ngl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(uFlashWhite), uFlash);')
         .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance *= uGlowScale;\ntotalEmissiveRadiance += diffuseColor.rgb * uSelfLight * uSelfScale;')
         .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\nreflectedLight.directDiffuse *= uLit;\nreflectedLight.indirectDiffuse *= uLit;');
     };

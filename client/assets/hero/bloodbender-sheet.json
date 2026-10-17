@@ -2,13 +2,13 @@
   "name": "Bloodbender",
   "frame": {
     "w": 124,
-    "h": 104
+    "h": 140
   },
   "columns": 8,
-  "frames": 46,
+  "frames": 56,
   "feet": {
     "x": 62,
-    "y": 103
+    "y": 139
   },
   "animations": {
     "idle": {
@@ -131,6 +131,26 @@
         45
       ],
       "fps": 2.5
+    },
+    "mire": {
+      "frames": [
+        46,
+        47,
+        48,
+        49
+      ],
+      "fps": 8
+    },
+    "bloodcast": {
+      "frames": [
+        50,
+        51,
+        52,
+        53,
+        54,
+        55
+      ],
+      "fps": 9
     }
   }
 }

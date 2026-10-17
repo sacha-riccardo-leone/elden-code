@@ -549,16 +549,22 @@ export class Missile {
   dispose() { drop(this.fx.scene, this.mesh); }
 }
 
-// A lance of light from `from` to `to`, there at once, flickering a moment and fading.
+// A lance of light from `from` to `to`, there at once, flickering a moment and fading. Drawn by
+// hand (`art`, fxart.js: a lash of blood), it's stretched evenly from the one to the other, its
+// thick end at `from`, and plays its frames out over its life.
 export class Beam {
-  constructor(fx, { school, from, to, width = 0.32, life = 0.3, onHit = null }) {
+  constructor(fx, { school, from, to, width = 0.32, life = 0.3, art = null, onHit = null }) {
     const [x0, y0, z0] = from;
     const [x1, y1, z1] = to;
     const len = Math.hypot(x1 - x0, y1 - y0, z1 - z0);
-    const map = TEX.beam(school).clone();
-    map.needsUpdate = true;
-    map.repeat.set(Math.max(1, len / 1.4), 1);
-    this.mesh = plane(fx.scene, map, len, width, { order: 7 });
+    const sheet = art && fxArt(art);
+    const map = sheet ? sheet.frames[0] : TEX.beam(school).clone();
+    if (!sheet) {
+      map.needsUpdate = true;
+      map.repeat.set(Math.max(1, len / 1.4), 1);
+    }
+    this.frames = sheet?.frames || null;
+    this.mesh = plane(fx.scene, map, len, sheet ? (len * sheet.h) / sheet.w : width, { order: 7 });
     this.mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2 + 0.05);
     this.mesh.rotation.z = screenAngle(x1 - x0, y1 - y0, z1 - z0);
     this.fx = fx;
@@ -571,6 +577,12 @@ export class Beam {
   step(dt) {
     this.t += dt;
     const k = this.t / this.life;
+    if (this.frames) {
+      // (the lash snapping out, its own frames, then fading)
+      this.mesh.material.map = this.frames[Math.min(this.frames.length - 1, Math.floor(k * this.frames.length))];
+      this.mesh.material.opacity = k < 0.7 ? 1 : Math.max(0, 1 - (k - 0.7) / 0.3);
+      return this.t < this.life;
+    }
     this.mesh.material.opacity = Math.max(0, 1 - k * k);
     this.mesh.scale.y = 1 + 0.25 * Math.sin(this.t * 70);
     this.map.offset.x -= dt * 6;
@@ -578,7 +590,7 @@ export class Beam {
   }
 
   dispose() {
-    this.map.dispose();
+    if (!this.frames) this.map.dispose();
     drop(this.fx.scene, this.mesh);
   }
 }
@@ -788,10 +800,15 @@ export class Wall {
 
 // A pool of blood on the floor at (x, z), `r` across its middle, for `life` seconds: it spreads,
 // bubbles, and dries away at the end.
+// Drawn by hand (`art`, fxart.js) it spreads in its first frame, then bubbles between the others,
+// a little wider than `r` for the splashes round its rim.
 export class Pool {
-  constructor(fx, { x, z, r = 3.2, life = 7, onStep = null }) {
-    const mat = rippling(new THREE.MeshBasicMaterial({ map: TEX.pool(), transparent: true, depthWrite: false, opacity: 0.95, toneMapped: false }));
-    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(r * 2, r * 2, 16, 16), mat);
+  constructor(fx, { x, z, r = 3.2, life = 7, art = null, onStep = null }) {
+    const sheet = art && fxArt(art);
+    const mat = rippling(new THREE.MeshBasicMaterial({ map: sheet ? sheet.frames[0] : TEX.pool(), transparent: true, depthWrite: false, opacity: 0.95, toneMapped: false }));
+    const w = sheet ? r * 2.2 : r * 2;
+    this.frames = sheet?.frames || null;
+    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, sheet ? (w * sheet.h) / sheet.w : w, 16, 16), mat);
     this.mesh.rotation.x = -Math.PI / 2;
     this.mesh.position.set(x, 0.045, z);
     this.mesh.renderOrder = 3;
@@ -805,7 +822,13 @@ export class Pool {
     this.t += dt;
     const k = this.t / this.life;
     const spread = Math.min(1, this.t / 0.45);
-    this.mesh.scale.setScalar(0.2 + 0.8 * spread);
+    if (this.frames) {
+      // (its first drawing is already the small one, spreading: it grows less)
+      this.mesh.scale.setScalar(0.6 + 0.4 * spread);
+      this.mesh.material.map = spread < 1 ? this.frames[0] : this.frames[1 + (Math.floor(this.t / 0.5) % (this.frames.length - 1))];
+    } else {
+      this.mesh.scale.setScalar(0.2 + 0.8 * spread);
+    }
     this.mesh.material.opacity = 0.95 * Math.min(1, (1 - k) / 0.15);
     if (Math.random() < dt * 10) {
       const a = Math.random() * Math.PI * 2;

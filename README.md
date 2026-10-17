@@ -184,6 +184,8 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
   `client/js/heroes/ronin.js` (curved blade with a slash trail and a running glint, walking legs).
 - **Vael, the Crimson Weaver** — `bloodbender.json` (+ `bloodbender-kneel.json`), rigged in
   `client/js/heroes/bloodbender.js` (blood magic that spins round the fist and lashes like a whip).
+  His Crimson Mire pose (`bloodbender-ult.json`) and his cast (`bloodbender-attack.json`) are
+  drawn whole.
 - **The Rune Lord, of the Golden Rune** — `runelord.json` (+ `runelord-kneel.json`), rigged in
   `client/js/heroes/runelord.js` (the staff's orb kindles, golden runes wheel round it, and a
   blow of the staff sends a ring of runes across the ground).
@@ -339,7 +341,10 @@ node scripts/pack-frames.mjs client/assets/hero/knight-attack.json "Name, thrust
 
 With `--grid`, each figure stays with the cell that holds most of it (a cape or a spear point that
 strays over a cell's edge comes along), and every frame comes out the size of a cell plus the same
-margin, at the same place relative to its cell. `--keep` keeps each grid whole, and frames given
+margin, at the same place relative to its cell. Add `--near` when a figure flings loose bits into
+the next cell (Vael's spray of blood): each loose bit then goes with the figure nearest to it.
+Leave it off for frames made only of scattered bits, or whose bits trail behind them toward the
+previous cell (Vael's orb). `--keep` keeps each grid whole, and frames given
 one pitch come out the same size and in register; `pack-frames.mjs` then cuts them down together
 to the area any of them uses. Effects are packed the same way with their own colours (`--colors`)
 into `client/assets/fx/` and loaded by `client/js/fxart.js`; an effect whose art is missing draws
@@ -388,7 +393,8 @@ It sinks again only once the fight is over and everyone has left it, you include
       in, or a circle of runes under the enemy that bursts into a pillar of gold.
     - Corisande: a glintstone pebble, a spray of three shards, or now and then a great shard.
     - Vael: a gout of blood, blood spikes out of the floor, or a lash of blood that reaches the enemy
-      at once.
+      at once, all drawn (`vael-orb.json`, `vael-spikes.json`, `vael-lash.json`; the lash stretched
+      evenly from his palm to wherever it strikes).
     - Solenne: a lance of holy light, a spinning halo, or light falling on the enemy.
   - **Up close:** Ruadan, Maren, Aurelion, Wynn and Ulric. Ulric still hides; his style only
     matters when you play him.
@@ -410,6 +416,8 @@ It sinks again only once the fight is over and everyone has left it, you include
     - Every blow, spell and ultimate that wounds the enemy turns his whole drawing white for a
       blink (never more than three times a second, however many strike him) and knocks it a few
       pixels back, away from the striker, springing back. Only the drawing moves, never where he is.
+      The white is pale by night, under what the bloom lights up, so it reads as a silhouette and
+      not as a light going off (`spriteFlash`, `client/js/daylight.js`).
     - A blade or a fist that strikes him throws a spark of sharp lines in the striker's own colour,
       pointing the way the blow went (`Spark`, `client/js/spellfx.js`).
     - Your own blows hold the whole world still for a split second (hit-stop: 0.055 s for a blow,
@@ -448,7 +456,8 @@ It sinks again only once the fight is over and everyone has left it, you include
     strikes.
   - Corisande, **Glintstone Arrow:** a crystal arrow trailing light finds him.
   - Vael, **Crimson Mire:** a pool of blood under him for 7 seconds. He's slowed to a third, can't
-    leave it or leap or roll away, and bleeds until 4 seconds after it dries.
+    leave it or leap or roll away, and bleeds until 4 seconds after it dries. The pool is drawn
+    (`vael-pool.json`): it spreads, then bubbles.
   - Solenne, **Wall of Dawn** (aimed): a tall curved wall of golden light strikes him once, hard,
     and drives him back.
   - Ruadan, **Hammerfall:** he leaps high and lands hammer first at the enemy's feet in a burst of
@@ -465,9 +474,10 @@ It sinks again only once the fight is over and everyone has left it, you include
     away.
   - Fortuna, **Frostfall:** four great icicles drop on him one after another, each as tall as she
     is, and shatter (`fortuna-icicle.json`, `fortuna-shatter.json`).
-  - **Art:** Maren and Fortuna hold their drawn poses, Maren's spear raised to the sky, its lightning
-    crackling, Fortuna's four arms and greatsword raised, the frost flickering. The others hold their
-    own rig's pose (raise, cast, strike, kneel) until their ult drawings replace it.
+  - **Art:** Maren, Fortuna and Vael hold their drawn poses: Maren's spear raised to the sky, its
+    lightning crackling; Fortuna's four arms and greatsword raised, the frost flickering; Vael's
+    clawed hand raised, blood streaming up his arm. The others hold their own rig's pose (raise,
+    cast, strike, kneel) until their ult drawings replace it.
 - **Only the fight:** while a great enemy is abroad, every session works on unseen, the spectres at
   work on their islands included: no log lines about the work, no incantations, signs or gestures,
   no spirit wisps and no small talk. A fighter's signs are put away for the fight (the "!" of one
