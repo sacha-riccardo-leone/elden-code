@@ -28,7 +28,9 @@
 //   node scripts/recolor-sprite.mjs <image> <hero> [out.png] [--weapon cut-out.png] [--light x1,y1,x2,y2,r ...]
 //   e.g. node scripts/recolor-sprite.mjs art-in/ult-aurelion-1-raise.png paladin --light 38,432,944,168,42
 //        node scripts/recolor-sprite.mjs art-in/ult-corisande.png sorceress-masked --weapon "character references/weapons/corisande-staff.png"
-//   heroes: knight, fortuna, ronin, bloodbender, runelord, paladin, bandit, champion, queen, sorceress-masked
+//        node scripts/recolor-sprite.mjs art-in/boss-roar.png client/assets/boss/boss.json
+//   heroes: knight, fortuna, ronin, bloodbender, runelord, paladin, bandit, champion, queen, sorceress-masked;
+//   any other art grid (a boss's) goes by its path, its master art beside it
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -339,7 +341,8 @@ function png(w, h, rgba) {
 }
 
 const opts = args();
-const grid = JSON.parse(fs.readFileSync(path.join(heroDir, `${opts.hero}.json`), 'utf8'));
+const gridFile = /\.json$/i.test(opts.hero) ? path.resolve(opts.hero) : path.join(heroDir, `${opts.hero}.json`);
+const grid = JSON.parse(fs.readFileSync(gridFile, 'utf8'));
 const palette = grid.palette.map((hx, n) => {
   const rgb = [1, 3, 5].map((i) => parseInt(hx.slice(i, i + 2), 16));
   const [h, s] = hsv(rgb);
@@ -356,7 +359,7 @@ for (const row of grid.rows) {
     if (n >= 0) uses[n]++;
   }
 }
-const master = decode(path.join(heroDir, grid.source.split(',')[0].trim()));
+const master = decode(path.join(path.dirname(gridFile), grid.source.split(',')[0].trim()));
 const masterBg = backgroundMask(master);
 const tones = {};
 for (let i = 0; i < master.w * master.h; i++) {
@@ -658,4 +661,4 @@ for (let i = 0; i < img.w * img.h; i++) {
   out[i * 4 + 3] = 255;
 }
 fs.writeFileSync(opts.out, png(img.w, img.h, out));
-console.log(`${opts.out}: ${img.w}x${img.h} on ${opts.hero}'s ${palette.length} colours (pixels by material: ${Object.entries(used).map(([k, n]) => `${k} ${n}`).join(', ')}${opts.weapon ? `; weapon ${weaponPixels}` : ''})`);
+console.log(`${opts.out}: ${img.w}x${img.h} on ${path.basename(gridFile, '.json')}'s ${palette.length} colours (pixels by material: ${Object.entries(used).map(([k, n]) => `${k} ${n}`).join(', ')}${opts.weapon ? `; weapon ${weaponPixels}` : ''})`);

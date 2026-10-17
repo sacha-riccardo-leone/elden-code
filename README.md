@@ -298,7 +298,8 @@ light with no counterpart in the master, such as Aurelion's giant blade, goes in
 `--light x1,y1,x2,y2,r` band (a segment and a radius in the image's pixels): it keeps its own
 brightness on the palette's brightest colours. The hero is the art grid's name: `knight` (Maren),
 `fortuna`, `ronin` (Wynn), `bloodbender` (Vael), `runelord` (Jorvik), `paladin` (Aurelion), `bandit`
-(Ulric), `champion` (Ruadan), `queen` (Solenne) or `sorceress-masked` (Corisande).
+(Ulric), `champion` (Ruadan), `queen` (Solenne) or `sorceress-masked` (Corisande). Any other art grid
+goes by its path, its master art beside it, e.g. Fenrath's `client/assets/boss/boss.json`.
 
 ### Fire
 
