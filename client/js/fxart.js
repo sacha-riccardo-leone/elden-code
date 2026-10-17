@@ -20,6 +20,10 @@ const ART = {
   'jorvik-runes': '/assets/fx/jorvik-runes.json',
   'jorvik-pillar': '/assets/fx/jorvik-pillar.json',
   'jorvik-circle': '/assets/fx/jorvik-circle.json',
+  'corisande-pebble': '/assets/fx/corisande-pebble.json',
+  'corisande-shards': '/assets/fx/corisande-shards.json',
+  'corisande-great-shard': '/assets/fx/corisande-great-shard.json',
+  'corisande-arrow': '/assets/fx/corisande-arrow.json',
 };
 
 const sheets = new Map();

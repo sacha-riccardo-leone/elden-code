@@ -17,9 +17,12 @@
 // from sorceress-kneel.webp), bare-faced, on one palette; sorceress-masked.json (140x279, from
 // sorceress-masked-stand.png) and sorceress-masked-kneel.json (148x246, from
 // sorceress-masked-kneel.webp), masked, on another; sorceress-veil.json (186x355, from
-// sorceress-veil.png).
+// sorceress-veil.png). Masked (she fights masked), her Glintstone Arrow pose
+// (sorceress-masked-ult.json) and her staff thrust (sorceress-masked-attack.json) are drawn whole,
+// on the masked palette; they reach far beyond her, so they're kept in bigger frames of their own
+// (core.js, bigFrame).
 
-import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill } from './core.js';
+import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill, held } from './core.js';
 
 const K = 2; // art pixels to one of the other heroes'
 const PX = 1.95 / 190; // world units per art pixel: her eyes sit a little below the knight's visor
@@ -219,6 +222,9 @@ function turned(pt, deg, pivot) {
 //   hem           – the robe sways below this row
 //   crystal, crown – boxes holding the staff's glintstone (and its middle) and the mask's
 //   kneel         – the kneeling drawing's still spec, crystal and crown
+//   drawn         – (masked) her drawn poses: per frame of each, the column between her boots set
+//                   where her mask's crown stands as she stands (mid), the row she stands on, and
+//                   its crystal and crown
 const BARE = {
   id: 'sorceress',
   form: 'bare',
@@ -270,8 +276,32 @@ const MASKED = {
     crystal: { x0: 121, x1: 148, y0: 0, y1: 38, cx: 135, cy: 18 },
     crown: { x0: 37, x1: 98, y0: 35, y1: 68 },
   },
+  drawn: {
+    // the staff held level like a drawn bow, the crystal at the enemy
+    ult: {
+      art: '/assets/hero/sorceress-masked-ult.json',
+      frames: [{ mid: 101, ground: 276, crystal: { x0: 340, x1: 386, y0: 72, y1: 100, cx: 362, cy: 86 }, crown: { x0: 62, x1: 125, y0: 0, y1: 45 } }],
+    },
+    // the staff drawn back, thrust out crystal first, upright again
+    attack: {
+      art: '/assets/hero/sorceress-masked-attack.json',
+      frames: [
+        { mid: 203, ground: 288, crystal: { x0: 196, x1: 231, y0: 0, y1: 31, cx: 214, cy: 15 }, crown: { x0: 165, x1: 225, y0: 52, y1: 100 } },
+        { mid: 133, ground: 288, crystal: { x0: 328, x1: 371, y0: 143, y1: 167, cx: 350, cy: 155 }, crown: { x0: 95, x1: 156, y0: 53, y1: 97 } },
+        { mid: 192, ground: 282, crystal: { x0: 242, x1: 265, y0: 5, y1: 44, cx: 254, cy: 25 }, crown: { x0: 153, x1: 216, y0: 29, y1: 73 } },
+      ],
+    },
+  },
   seed: 6151,
 };
+
+// The frame her drawn poses are kept in (core.js): wide enough for the ultimate's staff, held level
+// far out ahead of her, and the thrust's butt end, swung far behind.
+const BIG = { w: 512, h: 300, anchor: 208 };
+
+// Where her spells leave from, drawn (combat.js, muzzleOf): the crystal, [ahead, up] of her feet in
+// world units, as her thrust drives it out (attack) and as she holds her ultimate (ult).
+const muzzleAt = (fr) => [(fr.crystal.cx - fr.mid) * PX, (fr.ground - fr.crystal.cy) * PX];
 
 function lookRig(S) {
   const FRAME = { w: 300, h: 320 };
@@ -321,10 +351,17 @@ function lookRig(S) {
       kneelLit = markGlintstone(k, palette, S.kneel.crystal, S.kneel.crown, staffTwin, crownTwin);
       still = prepareStill(k, S.kneel.spec);
     }
+    // her drawn poses' glintstone, marked as her own drawing's is (each frame's crystal, to kindle)
+    const drawnLit = {};
+    for (const [key, d] of Object.entries(S.drawn || {})) {
+      if (!more[key]) continue;
+      drawnLit[key] = d.frames.map((fr, k) => markGlintstone({ src: more[key].frames[k] }, palette, fr.crystal, fr.crown, staffTwin, crownTwin));
+    }
     return {
       colors,
       lit,
       kneelLit,
+      drawnLit,
       still,
       parts: {
         staffAt,
@@ -412,28 +449,45 @@ function lookRig(S) {
     return f;
   }
 
+  // A drawn pose (core.js, composeDrawn): its crystal kindled as her own is, and her sorcery about it
+  // (the motes wheel round the crystal as drawn there, which may be bigger than her own).
+  function drawn(ctx, f, p) {
+    const k = p.frame || 0;
+    const c = S.drawn[p.drawn].frames[k].crystal;
+    const [dx, dy] = f.at;
+    kindle(f, ctx.drawnLit[p.drawn]?.[k] || [], p.glint || 0, ctx.colors, dx, dy);
+    if (!p.motes) return;
+    const rx = Math.max(9 * K, (c.x1 - c.x0) / 2 + 5 * K);
+    const ry = Math.max(4 * K, (c.y1 - c.y0) / 2 + 2 * K);
+    motes(painter(f), c.cx + dx, c.cy + dy, p.motes, p.phase || 0, ctx.colors, rx, ry);
+  }
+
+  const set = S.drawn ? withDrawn(S.drawn) : { poses, groups, anims, groupFps };
   return {
     id: S.id,
     pair: 'sorceress', // one hero with two looks (and the drawing between them): see director.js
     form: S.form,
     via: 'veil', // the drawing she wears while putting the mask on or taking it off
     art: S.art,
-    extraArt: { kneel: S.kneelArt },
+    extraArt: { kneel: S.kneelArt, ...Object.fromEntries(Object.entries(S.drawn || {}).map(([k, d]) => [k, d.art])) },
     ...NAME,
     burst: BURST,
     frame: FRAME,
+    ...(S.drawn && { bigFrame: BIG }),
     cols: 8,
     px: PX,
     head: S.head, // art pixels from the ground to the top of her head (of the mask's crown, masked)
-    hits: { hammer: 3, cast: 1, send: 2 },
+    hits: { hammer: 3, cast: 1, send: 2, ...(S.drawn && { attack: 4 }) },
+    ...(S.drawn && {
+      lunge: { attack: 0.35 }, // (her drawing thrown forward as the staff thrusts out: npc.js)
+      muzzles: { attack: muzzleAt(S.drawn.attack.frames[1]), ult: muzzleAt(S.drawn.ult.frames[0]) },
+      drawn,
+    }),
     ...GLOW,
     seed: S.seed,
     prepare,
     compose,
-    poses,
-    groups,
-    anims,
-    groupFps,
+    ...set,
   };
 }
 
@@ -513,6 +567,30 @@ const anims = {
   kneelBow: { frames: [G.kneel[0], ...G.rest, G.rest[1], G.kneel[0]], fps: 2, once: true },
 };
 const groupFps = { idle: 4, walk: 8, strike: 9, cast: 6, raise: 5, point: 2, kneel: 1.5, rest: 1, pray: 2, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5 };
+
+// The masked look's own (she fights masked): her drawn poses (MASKED.drawn), kept in her big frame.
+// The Glintstone Arrow drawn like a bow, the crystal blazing and motes wheeling round it while she
+// holds it; the thrust: the staff drawn back as the crystal flares and motes gather, thrust out
+// crystal first (the spell is loosed), upright again.
+function withDrawn(D) {
+  const list = [...poses];
+  const g = { ...groups };
+  const add = (name, ps) => { g[name] = ps.map((p) => list.push(p) - 1); };
+  const at = (key, k) => ({ drawn: key, frame: k, big: true, mid: D[key].frames[k].mid, ground: D[key].frames[k].ground });
+  add('aim', seq(4, (i) => ({ ...at('ult', 0), glint: 2, motes: 5, phase: (i / 4) * (TURN / 5), light: 2 })));
+  add('thrust', seq(3, (i) => ({ ...at('attack', i), glint: [2, 2, 1][i], motes: [3, 0, 0][i], phase: 0.6, light: [2, 2, 1][i] })));
+  return {
+    poses: list,
+    groups: g,
+    anims: {
+      ...anims,
+      // (in eighteenths of a second: the staff drawn back 4, the thrust 3, upright again 4)
+      attack: { frames: held(g.thrust, [4, 3, 4]), fps: 18 },
+      ult: { frames: g.aim, fps: 8 },
+    },
+    groupFps: { ...groupFps, aim: 8, thrust: 5 },
+  };
+}
 
 // bare-faced, the mask under her arm
 export const bare = lookRig(BARE);

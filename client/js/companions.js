@@ -112,20 +112,25 @@ class Figure {
     // (the box the hero stands in, CSS pixels: a slot's, which it stands out of; a card's figure, its own)
     const room = (this.still ? 0 : c.parentElement?.clientHeight) || box.height;
     const k = ((room * dpr) / this.tall) * s.px; // (screen pixels to the art's)
-    const fw = s.frameW * k;
-    const fh = s.frameH * k;
-    const sx = (i % s.cols) * s.frameW;
-    const sy = Math.floor(i / s.cols) * s.frameH;
-    const dx = Math.round((W - fw) / 2);
+    // (the sheet the frame is in: a big pose's own, heroes/core.js; the character's middle mid-canvas)
+    const slot = s.slots?.[i];
+    const grid = slot?.big ? s.big : s;
+    const at = slot ? slot.k : i;
+    const { frameW: FW, frameH: FH } = grid;
+    const fw = FW * k;
+    const fh = FH * k;
+    const sx = (at % grid.cols) * FW;
+    const sy = Math.floor(at / grid.cols) * FH;
+    const dx = Math.round(W / 2 - (grid.anchor ?? FW / 2) * k);
     const dy = Math.round(H - fh - 2 * dpr);
     const g = this.g;
     g.imageSmoothingEnabled = false;
     g.clearRect(0, 0, W, H);
-    g.drawImage(s.color, sx, sy, s.frameW, s.frameH, dx, dy, fw, fh);
+    g.drawImage(grid.color, sx, sy, FW, FH, dx, dy, fw, fh);
     // (and what of it glows, glowing)
     g.globalCompositeOperation = 'lighter';
     g.globalAlpha = 0.45;
-    g.drawImage(s.glow, sx, sy, s.frameW, s.frameH, dx, dy, fw, fh);
+    g.drawImage(grid.glow, sx, sy, FW, FH, dx, dy, fw, fh);
     g.globalCompositeOperation = 'source-over';
     g.globalAlpha = 1;
   }

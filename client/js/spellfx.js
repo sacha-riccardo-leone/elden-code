@@ -1101,15 +1101,20 @@ export class Aura {
     this.t += dt;
     this.power += (power - this.power) * Math.min(1, dt * 8);
     const m = this.body.mesh;
-    this.tex.updateMatrix();
+    // (the sheet the frame shown is in: a big pose's own, npc.js)
+    const tex = this.body.mat.map;
+    const grid = this.body.grid || this.body.sheet;
+    tex.updateMatrix();
     const u = this.outline.material.uniforms;
-    u.uvT.value.copy(this.tex.matrix);
+    u.map.value = tex;
+    u.texel.value.set(1 / (grid.frameW * grid.cols), 1 / (grid.frameH * grid.rows));
+    u.uvT.value.copy(tex.matrix);
     u.uPower.value = this.power;
     u.uTime.value = this.t;
     this.outline.position.copy(m.position);
     this.outline.position.z += 0.01;
     this.outline.scale.copy(m.scale);
-    this.glow.position.set(m.position.x, m.position.y + this.h * 0.32, m.position.z - 0.05);
+    this.glow.position.set(this.body.footX ?? m.position.x, m.position.y + this.h * 0.32, m.position.z - 0.05);
     this.glow.scale.setScalar(0.9 + 0.12 * Math.sin(this.t * 6));
     this.glow.material.opacity = this.power * 0.55;
     // motes: rising round them, and drawn in toward them

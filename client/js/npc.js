@@ -84,7 +84,9 @@ function pixelTex(canvas) {
 export const SPRITE_LIGHT = { lit: { value: 1 }, self: { value: 1 }, glow: { value: 1 }, flash: { value: 0.42 } };
 
 // A billboard driven by a sprite sheet: { color, glow, alpha, frameW, frameH, cols, rows,
-// anims, px (world units per pixel), head (pixels to the top of the head), hits, lunge }.
+// anims, px (world units per pixel), head (pixels to the top of the head), hits, lunge }, and a
+// hero's (heroes/core.js, loadSheet) `slots`, `tops`, `anchor` and `big`: its big drawn poses, in a
+// sheet of their own with bigger frames (setFrame).
 // How a blow shows on the drawing alone (not the one it stands for, nor its shadow):
 //   lunge – as an animation named in the sheet's `lunge` reaches the step where its blow lands
 //           (`hits`), the drawing is thrown that many world units the way it faces
@@ -100,8 +102,13 @@ export class SpriteBody {
   constructor(scene, sheet, { spirit = false } = {}) {
     this.sheet = sheet;
     this.atlas = sheet;
+    this.spirit = spirit;
     this.tex = pixelTex(sheet.color);
     this.glowTex = pixelTex(this.atlas.glow);
+    this.bigTex = sheet.big ? pixelTex(sheet.big.color) : null;
+    this.bigGlowTex = sheet.big ? pixelTex(sheet.big.glow) : null;
+    this.grid = sheet; // the sheet the frame shown is in: the main one, or the big poses' (setFrame)
+    this.shift = 0; // how far the quad's middle stands ahead of the character's (world units)
     this.mat = new THREE.MeshLambertMaterial({
       map: this.tex,
       emissiveMap: this.glowTex,
@@ -151,18 +158,35 @@ export class SpriteBody {
     this.anim = null;
   }
 
+  // Frame `index` (of the sheet's poses), facing -1 or 1. A big pose is drawn from its own sheet:
+  // the quad grows to its frame and moves so that the character's middle (the frame's anchor) stays
+  // where it stands.
   setFrame(index, facing) {
     if (index === this.frame && facing === this.shown) return;
     this.frame = index;
     this.facing = facing;
     this.shown = facing;
-    const { cols, rows } = this.sheet;
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-    for (const t of [this.tex, this.glowTex]) {
+    const slot = this.sheet.slots?.[index];
+    const big = !!(slot?.big && this.bigTex);
+    const grid = big ? this.sheet.big : this.sheet;
+    const tex = big ? this.bigTex : this.tex;
+    const glow = big ? this.bigGlowTex : this.glowTex;
+    if (this.mat.map !== tex) {
+      this.mat.map = tex;
+      this.mat.emissiveMap = this.spirit ? tex : glow;
+      this.mesh.customDepthMaterial.map = tex;
+    }
+    this.grid = grid;
+    const { cols, rows } = grid;
+    const k = slot ? slot.k : index;
+    const col = k % cols;
+    const row = Math.floor(k / cols);
+    for (const t of [tex, glow]) {
       t.repeat.set(facing / cols, 1 / rows);
       t.offset.set((facing > 0 ? col : col + 1) / cols, 1 - (row + 1) / rows);
     }
+    this.mesh.scale.set(grid.frameW / this.sheet.frameW, grid.frameH / this.sheet.frameH, 1);
+    this.shift = (grid.frameW / 2 - (grid.anchor ?? grid.frameW / 2)) * this.sheet.px;
   }
 
   play(name, restart = false) {
@@ -255,7 +279,8 @@ export class SpriteBody {
   }
 
   place(x, y, z, lift = 0) {
-    this.mesh.position.set(x + this.offset(), y + lift, z);
+    this.mesh.position.set(x + this.offset() + this.facing * this.shift, y + lift, z);
+    this.footX = x; // (where it stands, whatever its frame)
     this.blob.position.set(x, y + 0.015, z + 0.05);
     const s = 1 - Math.min(0.5, lift * 0.35);
     this.blob.scale.set(s, s, 1);
@@ -263,10 +288,13 @@ export class SpriteBody {
 
   // Alpha test against the atlas so clicks on transparent corners fall through.
   hitTest(uv) {
-    const { frameW: FW, frameH: FH, cols } = this.sheet;
+    const grid = this.grid;
+    const { frameW: FW, frameH: FH, cols } = grid;
+    const alpha = grid === this.sheet ? this.atlas.alpha : grid.alpha;
     const u = this.facing > 0 ? uv.x : 1 - uv.x;
-    const col = this.frame % cols;
-    const row = Math.floor(this.frame / cols);
+    const k = this.sheet.slots?.[this.frame]?.k ?? this.frame;
+    const col = k % cols;
+    const row = Math.floor(k / cols);
     const W = FW * cols;
     const px = col * FW + Math.floor(u * FW);
     const py = row * FH + Math.floor((1 - uv.y) * FH);
@@ -276,7 +304,7 @@ export class SpriteBody {
         const x = px + dx;
         const y = py + dy;
         if (x < col * FW || x >= (col + 1) * FW || y < row * FH || y >= (row + 1) * FH) continue;
-        if (this.atlas.alpha[(y * W + x) * 4 + 3] > 0) return true;
+        if (alpha[(y * W + x) * 4 + 3] > 0) return true;
       }
     }
     return false;
@@ -286,6 +314,8 @@ export class SpriteBody {
     this.scene.remove(this.mesh, this.blob);
     this.tex.dispose();
     this.glowTex.dispose();
+    this.bigTex?.dispose();
+    this.bigGlowTex?.dispose();
     this.mat.dispose();
     this.blob.material.dispose();
     this.blob.geometry.dispose();

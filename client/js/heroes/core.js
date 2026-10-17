@@ -289,7 +289,7 @@ export function prepareStill(art, spec) {
 export function composeStill(still, p, frame) {
   const { spec } = still;
   const f = new Img(frame.w, frame.h);
-  const ox = Math.round(frame.w / 2 - spec.mid);
+  const ox = Math.round(anchorOf(frame) - spec.mid);
   const oy = frame.h - 1 - spec.ground;
   const bob = p.bob || 0;
   const hd = p.head || [0, 0];
@@ -324,9 +324,18 @@ export function composeStill(still, p, frame) {
 export const held = (frames, counts) => frames.flatMap((f, i) => Array(counts[i]).fill(f));
 
 // ---------------------------------------------------------------------------------------------
+// Frames: every pose is drawn in the rig's frame, the character's middle on its `anchor` column
+// (its centre, unless the frame says otherwise), its feet on the last row. A drawn pose too wide or
+// tall for it (`big`: a staff thrust far out) is drawn in the rig's bigFrame instead, kept in a
+// sheet of its own (sheetPixels), so that the rest stay small.
+
+export const anchorOf = (frame) => frame.anchor ?? frame.w / 2;
+export const frameOf = (rig, p) => (p.big ? rig.bigFrame : rig.frame);
+
+// ---------------------------------------------------------------------------------------------
 // Drawn poses: a pose drawn whole on the hero's own palette (an ultimate's, the frames of a blow;
 // assets/hero/<id>-<name>.json, in the rig's extraArt), set in the frame as it is: frame `p.frame`
-// of it (if it holds several), its column `p.mid` on the frame's centre column and its row
+// of it (if it holds several), its column `p.mid` on the frame's anchor column and its row
 // `p.ground` (or else its lowest) on the frame's last row (`f.at`: where the drawing's corner
 // landed). Its magic lives as the rig's own does; a rig may touch it up besides (rig.drawn: the
 // Rune Lord kindles the orb drawn on his staff).
@@ -338,7 +347,7 @@ export function composeDrawn(art, p, frame) {
     for (let x = 0; x < src.w; x++) if (src.get(x, y) !== NONE) { ground = y; break; }
   }
   const f = new Img(frame.w, frame.h);
-  f.at = [Math.round(frame.w / 2 - p.mid), frame.h - 1 - ground];
+  f.at = [Math.round(anchorOf(frame) - p.mid), frame.h - 1 - ground];
   blit(f, src, ...f.at);
   return f;
 }
@@ -360,44 +369,71 @@ export function buildFrames(rig, json, extras = {}) {
   return {
     palette: art.palette,
     frames: rig.poses.map((p, i) => {
-      const f = p.drawn ? composeDrawn(more[p.drawn], p, rig.frame) : rig.compose(ctx, p);
+      const f = p.drawn ? composeDrawn(more[p.drawn], p, frameOf(rig, p)) : rig.compose(ctx, p);
       if (p.drawn) rig.drawn?.(ctx, f, p);
       const glow = energy(f, ctx.energy, p.light ?? 1, rig.seed + i * 7919);
-      return { color: f, glow };
+      return { color: f, glow, big: !!p.big };
     }),
   };
 }
 
-// RGBA buffers for the whole sheet, frames laid out rig.cols across.
+// RGBA buffers for the sheet, frames laid out rig.cols across; the big ones (frameOf) in a sheet of
+// their own, rig.bigCols across (`big`). `slots[i]`: where pose i is ({ big, k }: the k-th frame of
+// its sheet); `tops[i]`: the highest row it draws on; `spans[i]`: the first and last columns.
 export function sheetPixels(rig, json, extras = {}) {
   const { frames, palette } = buildFrames(rig, json, extras);
-  const { w: FW, h: FH } = rig.frame;
-  const W = FW * rig.cols;
-  const H = FH * Math.ceil(frames.length / rig.cols);
-  const color = new Uint8ClampedArray(W * H * 4);
-  const glow = new Uint8ClampedArray(W * H * 4);
   const rgb = palette.map(hexRgb);
-  frames.forEach((fr, i) => {
-    const ox = (i % rig.cols) * FW;
-    const oy = Math.floor(i / rig.cols) * FH;
-    for (let y = 0; y < FH; y++) {
-      for (let x = 0; x < FW; x++) {
-        const k = y * FW + x;
-        const o = ((oy + y) * W + ox + x) * 4;
-        const v = fr.color.c[k];
-        if (v !== NONE) {
-          const [r, g, b] = rgb[v];
-          color[o] = r; color[o + 1] = g; color[o + 2] = b; color[o + 3] = 255;
-        }
-        const gv = fr.glow.c[k];
-        if (gv > 0) {
-          const [r, g, b] = rig.glowColors[gv - 1];
-          glow[o] = r; glow[o + 1] = g; glow[o + 2] = b; glow[o + 3] = 255;
+  const counts = [0, 0];
+  const slots = frames.map((fr) => ({ big: fr.big, k: counts[fr.big ? 1 : 0]++ }));
+  const lay = (frame, cols, count, big) => {
+    const { w: FW, h: FH } = frame;
+    const rows = Math.ceil(count / cols);
+    const W = FW * cols;
+    const H = FH * rows;
+    const color = new Uint8ClampedArray(W * H * 4);
+    const glow = new Uint8ClampedArray(W * H * 4);
+    frames.forEach((fr, i) => {
+      if (slots[i].big !== big) return;
+      const ox = (slots[i].k % cols) * FW;
+      const oy = Math.floor(slots[i].k / cols) * FH;
+      for (let y = 0; y < FH; y++) {
+        for (let x = 0; x < FW; x++) {
+          const k = y * FW + x;
+          const o = ((oy + y) * W + ox + x) * 4;
+          const v = fr.color.c[k];
+          if (v !== NONE) {
+            const [r, g, b] = rgb[v];
+            color[o] = r; color[o + 1] = g; color[o + 2] = b; color[o + 3] = 255;
+          }
+          const gv = fr.glow.c[k];
+          if (gv > 0) {
+            const [r, g, b] = rig.glowColors[gv - 1];
+            glow[o] = r; glow[o + 1] = g; glow[o + 2] = b; glow[o + 3] = 255;
+          }
         }
       }
+    });
+    return { width: W, height: H, color, glow, frameW: FW, frameH: FH, cols, rows };
+  };
+  const tops = [];
+  const spans = frames.map(({ color: f }) => {
+    let top = f.h;
+    let lo = f.w;
+    let hi = -1;
+    for (let y = 0; y < f.h; y++) {
+      for (let x = 0; x < f.w; x++) {
+        if (f.c[y * f.w + x] === NONE) continue;
+        if (top === f.h) top = y;
+        if (x < lo) lo = x;
+        if (x > hi) hi = x;
+      }
     }
+    tops.push(top);
+    return [lo, hi];
   });
-  return { width: W, height: H, color, glow, frameCount: frames.length };
+  const base = lay(rig.frame, rig.cols, counts[0], false);
+  const big = counts[1] ? lay(rig.bigFrame, rig.bigCols || Math.min(counts[1], 4), counts[1], true) : null;
+  return { ...base, frameCount: frames.length, slots, tops, spans, big };
 }
 
 // Browser: fetch a hero's art and turn it into a sheet the NPC renderer understands.
@@ -411,23 +447,38 @@ export async function loadSheet(rig) {
   const extras = {};
   for (const [k, url] of Object.entries(rig.extraArt || {})) extras[k] = await fetchJson(url);
   const px = sheetPixels(rig, json, extras);
-  const toCanvas = (data) => {
+  const toCanvas = (data, { width, height }) => {
     const c = document.createElement('canvas');
-    c.width = px.width;
-    c.height = px.height;
-    c.getContext('2d').putImageData(new ImageData(data, px.width, px.height), 0, 0);
+    c.width = width;
+    c.height = height;
+    c.getContext('2d').putImageData(new ImageData(data, width, height), 0, 0);
     return c;
+  };
+  const big = px.big && {
+    color: toCanvas(px.big.color, px.big),
+    glow: toCanvas(px.big.glow, px.big),
+    alpha: px.big.color,
+    frameW: px.big.frameW,
+    frameH: px.big.frameH,
+    cols: px.big.cols,
+    rows: px.big.rows,
+    anchor: anchorOf(rig.bigFrame),
   };
   return {
     hero: rig.id,
     rig,
-    color: toCanvas(px.color),
-    glow: toCanvas(px.glow),
+    color: toCanvas(px.color, px),
+    glow: toCanvas(px.glow, px),
     alpha: px.color,
     frameW: rig.frame.w,
     frameH: rig.frame.h,
     cols: rig.cols,
-    rows: Math.ceil(px.frameCount / rig.cols),
+    rows: px.rows,
+    anchor: anchorOf(rig.frame),
+    slots: px.slots,
+    tops: px.tops,
+    spans: px.spans,
+    big,
     anims: rig.anims,
     px: rig.px,
     head: rig.head,

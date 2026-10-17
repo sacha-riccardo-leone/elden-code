@@ -204,10 +204,12 @@ function sampleCells(img, mask, [px, py, ox, oy], keep = false) {
   let counted = 0;
   for (let gy = 0; gy < rows; gy++) {
     for (let gx = 0; gx < cols; gx++) {
+      // (the middle half of the cell, at least a pixel of it: a fine pitch's, under 2 px, could
+      // round down to none and leave a hole in the art)
       const x0 = Math.round(ox + gx * px + px * 0.25);
-      const x1 = Math.round(ox + gx * px + px * 0.75);
+      const x1 = Math.max(x0 + 1, Math.round(ox + gx * px + px * 0.75));
       const y0 = Math.round(oy + gy * py + py * 0.25);
-      const y1 = Math.round(oy + gy * py + py * 0.75);
+      const y1 = Math.max(y0 + 1, Math.round(oy + gy * py + py * 0.75));
       const ch = [[], [], []];
       let bg = 0;
       let all = 0;

@@ -13,10 +13,11 @@ import { Missile, Beam, Rise, Burst, TEX, motesOf } from './spellfx.js';
 import { lookOf } from './fxart.js';
 
 // By hero id (a hero of two looks fights as whichever it wears). `muzzle`: where a mage's spells
-// leave from, [ahead, up] of its feet in world units (the orb, the crystal, the fist, the ring).
+// leave from, [ahead, up] of its feet in world units (the orb, the crystal, the fist, the ring),
+// unless its rig says where its drawn poses hold it (muzzleOf).
 export const STYLES = {
   runelord: { range: 'far', school: 'rune', color: '#ffc94a', muzzle: [2.0, 0.75] }, // (the orb, thrust out: heroes/runelord.js)
-  sorceress: { range: 'far', school: 'glintstone', color: '#6fc3ff', muzzle: [0.72, 2.68] },
+  sorceress: { range: 'far', school: 'glintstone', color: '#6fc3ff', muzzle: [0.72, 2.68] }, // (bare-faced; masked: heroes/sorceress.js)
   bloodbender: { range: 'far', school: 'blood', color: '#ff3a4a', muzzle: [0.5, 1.04] },
   queen: { range: 'far', school: 'holy', color: '#ffd75a', muzzle: [0.54, 1.01] },
   fortuna: { range: 'both', school: 'frost', color: '#8fe0ff', muzzle: [0.92, 1.78] },
@@ -65,9 +66,10 @@ export function blow(n, kind, { spell = false, ...more } = {}) {
   n.body.play(anim, true);
 }
 
-// Where a spell of n's leaves from, in the world.
-export function muzzleOf(n) {
-  const [ahead, up] = styleOf(n).muzzle || [0.6, 1.4];
+// Where a spell of n's leaves from, in the world: where its rig's drawn pose holds it, if it says
+// (`which`: the thrust that looses a spell, or the ultimate's pose), else where its style says.
+export function muzzleOf(n, which = 'attack') {
+  const [ahead, up] = n.body?.sheet?.rig?.muzzles?.[which] || styleOf(n).muzzle || [0.6, 1.4];
   return [n.pos.x + n.body.facing * ahead, up + (n.lift || 0), n.pos.y + 0.05];
 }
 
@@ -102,15 +104,23 @@ const SPELLS = {
     },
   ],
   // the Glintstone Witch: a glintstone pebble, a spray of shards, or now and then a great shard
+  // (all drawn, at her own pixel size: the pebble flickering, a shard of each design; the great
+  // shard keeps upright, its light on top)
   glintstone: [
-    { weight: 3, cast: (c) => c.missile({ map: TEX.orb('glintstone', 5), w: 0.42, h: 0.42, speed: 14 }) },
+    { weight: 3, cast: (c) => c.missile({ ...lookOf('corisande-pebble', c.px, { map: TEX.orb('glintstone', 5), w: 0.42, h: 0.42 }, { fps: 12 }), speed: 14 }) },
     {
       weight: 2,
       cast: (c) => [-1, 0, 1].forEach((s, i) => c.missile({
-        map: TEX.shard('glintstone', 14, 2), w: 0.62, h: 0.3, speed: 12, side: s * 2.2, rise: 1, delay: i * 0.05, share: 0.45,
+        ...lookOf('corisande-shards', c.px, { map: TEX.shard('glintstone', 14, 2), w: 0.62, h: 0.3 }, { pick: i }),
+        speed: 12, side: s * 2.2, rise: 1, delay: i * 0.05, share: 0.45,
       })),
     },
-    { weight: 1, cast: (c) => c.missile({ map: TEX.shard('glintstone', 26, 5), w: 1.15, h: 0.58, speed: 9, share: 1.8, size: 1.6 }) },
+    {
+      weight: 1,
+      cast: (c) => c.missile({
+        ...lookOf('corisande-great-shard', c.px, { map: TEX.shard('glintstone', 26, 5), w: 1.15, h: 0.58 }), upright: true, speed: 9, share: 1.8, size: 1.6,
+      }),
+    },
   ],
   // Vael: a gout of blood, spikes of blood out of the floor under him, or a lash of blood reaching
   // him at once

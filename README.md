@@ -220,12 +220,18 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
   glintstone pebble that streaks away and shatters. The staff's crystal glows strongly; the mask's
   crystals glow too, but only faintly.
   - **Bare-faced**, the mask under her arm: `sorceress.json` (+ `sorceress-kneel.json`).
-  - **Masked**: `sorceress-masked.json` (+ `sorceress-masked-kneel.json`).
+  - **Masked**: `sorceress-masked.json` (+ `sorceress-masked-kneel.json`). She fights masked, so
+    her Glintstone Arrow pose (`sorceress-masked-ult.json`) and her staff thrust
+    (`sorceress-masked-attack.json`: drawn back, thrust out crystal first, upright again) are drawn
+    for this look only, each set by her mask's crown, the crystal on the staff kindled as her own
+    is and motes wheeling round it. They reach far ahead of her and behind, so they're kept in
+    frames of their own (`bigFrame`, below).
   - **The mask:** she puts it on to work her sorcery (once she's at her station, or channelling)
     and to fight. She takes it off once she has been idle 12 seconds, and changes no more often
     than every 6 seconds. Between the looks, glintstone light gathers and she holds the mask up over
     her head, her staff standing by itself beside her (`sorceress-veil.json`). It takes under two
-    seconds and isn't logged. While thou art her, she leaves the mask as it is.
+    seconds and isn't logged. While thou art her, she leaves the mask as it is, except that she
+    puts it on as thou goest into battle.
   - Her drawings keep all their detail: they're sampled at twice the density of their drawn pixels,
     so the finest touches (the light in her eyes) survive. Her grids are about twice the size of the
     other heroes', and her scale is half theirs, so she stands as tall as them.
@@ -254,10 +260,14 @@ bows its head and sways its cape. Fight poses can be drawn whole too: an ultimat
 three frames of a blow (`<id>-ult.json`, `<id>-attack.json`, listed in the rig's `extraArt`). A pose
 that names one (`drawn`) is set in the frame as it is, its body's middle on the frame's centre and
 its feet on the ground line, and its magic flickers as the rig's own does (`composeDrawn`,
-`client/js/heroes/core.js`). The frame grows to hold them (Maren's raised spear). `npm run heroes`
-exports each hero as `<id>-sheet.png` +
-`<id>-sheet.json` (grid and animations), a glow map, and an animated GIF per animation in
-`client/assets/hero/`. Preview them at <http://127.0.0.1:7777/dev/hero.html?hero=ronin>.
+`client/js/heroes/core.js`). The frame grows to hold them (Maren's raised spear). A pose much wider
+than the rest (Corisande's staff held level far out ahead) goes in the rig's `bigFrame` instead
+(`big: true`), with the character's middle on its `anchor` column: those frames are kept in a sheet
+of their own, so the rest stay small, and the drawing grows to that frame while it's shown, its
+middle where the character stands. `npm run heroes` exports each hero as `<id>-sheet.png` +
+`<id>-sheet.json` (grid and animations; with a big sheet, `<id>-big-sheet.png` too, and the poses
+on it: `big.poses`), a glow map, and an animated GIF per animation in `client/assets/hero/`. Preview
+them at <http://127.0.0.1:7777/dev/hero.html?hero=ronin>.
 
 To turn new sprite images into art grids (no npm packages needed):
 
@@ -272,7 +282,8 @@ colours, or `:pitch=px,py` after an input when the art is soft and the grid need
 An image with its own transparent background keeps every opaque pixel. Without one, the background
 is flooded in from the edges by colour. Art whose drawn pixels vary in size (AI-made sprites often
 draw fine details at half a pixel) keeps those details when sampled at half its pitch. That makes
-the grid twice as large, so the rig halves its scale (`px`) to match.
+the grid twice as large, so the rig halves its scale (`px`) to match. A pitch under 2 px still
+reads every cell (at least the pixel at its middle).
 
 Image generators drift from a hero's colours (gold comes back yellow, wine red comes back bright
 red, a navy robe royal blue), so put a new pose back on its hero's palette before extracting it:
@@ -396,7 +407,10 @@ It sinks again only once the fight is over and everyone has left it, you include
     - Jorvik (the Rune Lord): a spinning golden rune, a volley of three that fan out and curve back
       in, or a circle of runes under the enemy that bursts into a pillar of gold, all drawn
       (`jorvik-runes.json`, four designs; `jorvik-circle.json`; `jorvik-pillar.json`).
-    - Corisande: a glintstone pebble, a spray of three shards, or now and then a great shard.
+    - Corisande: a glintstone pebble, a spray of three shards, or now and then a great shard, all
+      drawn at her pixel size (`corisande-pebble.json`, flickering; `corisande-shards.json`, three
+      designs; `corisande-great-shard.json`, which keeps upright as it flies). They leave from the
+      crystal as her thrust drives it out (the rig's `muzzles`).
     - Vael: a gout of blood, blood spikes out of the floor, or a lash of blood that reaches the enemy
       at once, all drawn (`vael-orb.json`, `vael-spikes.json`, `vael-lash.json`; the lash stretched
       evenly from his palm to wherever it strikes).
@@ -460,7 +474,9 @@ It sinks again only once the fight is over and everyone has left it, you include
   - Jorvik, **Flight of Tomes:** seven golden tomes take wing and dash into him, each spent as it
     strikes. The tomes are drawn (`jorvik-tome.json`), beating their covers, and keep upright as
     they fly.
-  - Corisande, **Glintstone Arrow:** a crystal arrow trailing light finds him.
+  - Corisande, **Glintstone Arrow:** a crystal arrow trailing light finds him. The arrow is drawn
+    (`corisande-arrow.json`): it's loosed along the staff she aims like a bow, its head at the
+    crystal, and keeps upright as it flies.
   - Vael, **Crimson Mire:** a pool of blood under him for 7 seconds. He's slowed to a third, can't
     leave it or leap or roll away, and bleeds until 4 seconds after it dries. The pool is drawn
     (`vael-pool.json`): it spreads, then bubbles.
@@ -480,11 +496,13 @@ It sinks again only once the fight is over and everyone has left it, you include
     away.
   - Fortuna, **Frostfall:** four great icicles drop on him one after another, each as tall as she
     is, and shatter (`fortuna-icicle.json`, `fortuna-shatter.json`).
-  - **Art:** Maren, Fortuna, Vael and Jorvik hold their drawn poses: Maren's spear raised to the
-    sky, its lightning crackling; Fortuna's four arms and greatsword raised, the frost flickering;
-    Vael's clawed hand raised, blood streaming up his arm; Jorvik's staff thrust high, runes
-    wheeling round its blazing orb. The others hold their own rig's pose (raise, cast, strike,
-    kneel) until their ult drawings replace it.
+  - **Art:** Maren, Fortuna, Vael, Jorvik and Corisande hold their drawn poses: Maren's spear
+    raised to the sky, its lightning crackling; Fortuna's four arms and greatsword raised, the
+    frost flickering; Vael's clawed hand raised, blood streaming up his arm; Jorvik's staff thrust
+    high, runes wheeling round its blazing orb; Corisande's staff held level like a drawn bow,
+    motes wheeling round its blazing crystal (bare-faced, she raises it as she casts). A pose too
+    wide for the camera's close shot (hers) is centred and taken in whole. The others hold their
+    own rig's pose (raise, cast, strike, kneel) until their ult drawings replace it.
 - **Only the fight:** while a great enemy is abroad, every session works on unseen, the spectres at
   work on their islands included: no log lines about the work, no incantations, signs or gestures,
   no spirit wisps and no small talk. A fighter's signs are put away for the fight (the "!" of one

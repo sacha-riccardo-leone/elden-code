@@ -2,6 +2,9 @@
 //   assets/hero/<id>-sheet.png   all frames, laid out on a grid
 //   assets/hero/<id>-glow.png    the glow (emissive) map for the same grid
 //   assets/hero/<id>-sheet.json  frame size, grid and every animation's frames and fps
+//   assets/hero/<id>-big-sheet.png, <id>-big-glow.png  a hero's big drawn poses, if it has any, in
+//                                 frames of their own (bigFrame; the sheet's json says which: big.poses,
+//                                 in order, the rest keeping theirs on the main sheet)
 //   assets/hero/<id>-<anim>.gif  an animated preview of each animation (3x, looping)
 // and the rigged fire of Roundtable Hold (client/js/fire.js) as assets/fx/<brazier-N|candle>.gif.
 // Usage: node scripts/build-hero-sheets.mjs   (no dependencies; PNG and GIF are encoded here)
@@ -11,7 +14,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { HEROES } from '../client/js/heroes/index.js';
-import { sheetPixels, buildFrames, NONE } from '../client/js/heroes/core.js';
+import { sheetPixels, buildFrames, anchorOf, frameOf, NONE } from '../client/js/heroes/core.js';
 import { rigFires, BRAZIER, CANDLE } from '../client/js/fire.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -143,36 +146,57 @@ for (const rig of HEROES) {
   const sheet = sheetPixels(rig, json, extras);
   fs.writeFileSync(path.join(outDir, `${rig.id}-sheet.png`), png(sheet.width, sheet.height, sheet.color));
   fs.writeFileSync(path.join(outDir, `${rig.id}-glow.png`), png(sheet.width, sheet.height, sheet.glow));
+  if (sheet.big) {
+    fs.writeFileSync(path.join(outDir, `${rig.id}-big-sheet.png`), png(sheet.big.width, sheet.big.height, sheet.big.color));
+    fs.writeFileSync(path.join(outDir, `${rig.id}-big-glow.png`), png(sheet.big.width, sheet.big.height, sheet.big.glow));
+  }
   const meta = {
     name: json.name,
     frame: rig.frame,
     columns: rig.cols,
     frames: sheet.frameCount,
-    feet: { x: rig.frame.w / 2, y: rig.frame.h - 1 },
+    feet: { x: anchorOf(rig.frame), y: rig.frame.h - 1 },
+    ...(sheet.big && {
+      big: {
+        frame: rig.bigFrame,
+        columns: sheet.big.cols,
+        feet: { x: anchorOf(rig.bigFrame), y: rig.bigFrame.h - 1 },
+        poses: sheet.slots.flatMap((s, i) => (s.big ? [i] : [])),
+      },
+    }),
     animations: Object.fromEntries(Object.entries(rig.groups).map(([k, f]) => [k, { frames: f, fps: rig.groupFps[k] || 4 }])),
   };
   fs.writeFileSync(path.join(outDir, `${rig.id}-sheet.json`), JSON.stringify(meta, null, 2) + '\n');
 
-  // GIF previews, cropped to the area any frame uses and scaled up
+  // GIF previews, cropped to the area any frame uses and scaled up: every frame lined up on the
+  // character's middle (its frame's anchor) and feet, whichever frame it's drawn in
   const { frames, palette } = buildFrames(rig, json, extras);
-  let x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
-  for (const fr of frames) {
+  const place = frames.map((fr, i) => {
+    const F = frameOf(rig, rig.poses[i]);
+    return { a: Math.round(anchorOf(F)), b: F.h - 1, w: F.w };
+  });
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; // (from the middle, and the feet)
+  let left = Infinity, right = -Infinity, top = Infinity;
+  frames.forEach((fr, i) => {
+    const { a, b, w } = place[i];
+    left = Math.min(left, -a); right = Math.max(right, w - 1 - a); top = Math.min(top, -b);
     for (let y = 0; y < fr.color.h; y++) for (let x = 0; x < fr.color.w; x++) {
       if (fr.color.get(x, y) === NONE) continue;
-      x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+      x0 = Math.min(x0, x - a); y0 = Math.min(y0, y - b); x1 = Math.max(x1, x - a); y1 = Math.max(y1, y - b);
     }
-  }
-  x0 = Math.max(0, x0 - 2); y0 = Math.max(0, y0 - 2); x1 = Math.min(rig.frame.w - 1, x1 + 2); y1 = Math.min(rig.frame.h - 1, y1 + 1);
+  });
+  x0 = Math.max(left, x0 - 2); y0 = Math.max(top, y0 - 2); x1 = Math.min(right, x1 + 2); y1 = Math.min(0, y1 + 1);
   const W = (x1 - x0 + 1) * SCALE;
   const H = (y1 - y0 + 1) * SCALE;
   const T = palette.length;
   for (const [name, list] of Object.entries(rig.groups)) {
     const imgs = list.map((fi) => {
       const fr = frames[fi].color;
+      const { a, b } = place[fi];
       const out = new Uint8Array(W * H).fill(T);
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
-          const v = fr.get(x0 + Math.floor(x / SCALE), y0 + Math.floor(y / SCALE));
+          const v = fr.get(a + x0 + Math.floor(x / SCALE), b + y0 + Math.floor(y / SCALE));
           if (v !== NONE) out[y * W + x] = v;
         }
       }
@@ -181,7 +205,8 @@ for (const rig of HEROES) {
     const delay = Math.max(2, Math.round(100 / (rig.groupFps[name] || 4)));
     fs.writeFileSync(path.join(outDir, `${rig.id}-${name}.gif`), gif(W, H, imgs, palette, delay));
   }
-  console.log(`${rig.id}: ${sheet.frameCount} frames → ${rig.id}-sheet.png (${sheet.width}x${sheet.height}), ${Object.keys(rig.groups).length} GIFs`);
+  const bigNote = sheet.big ? ` + ${rig.id}-big-sheet.png (${sheet.big.width}x${sheet.big.height})` : '';
+  console.log(`${rig.id}: ${sheet.frameCount} frames → ${rig.id}-sheet.png (${sheet.width}x${sheet.height})${bigNote}, ${Object.keys(rig.groups).length} GIFs`);
 }
 
 // Roundtable Hold's fire: each brazier's loop and the candle's, scaled up like the heroes'.

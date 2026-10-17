@@ -33,7 +33,7 @@ import { lookOf } from './fxart.js';
 // The moments of one: grey within `grey`, the aura from `aura`, the blow at `release`, colour back
 // within `back` of it; the camera this close meanwhile (or as far back as a tall pose needs to be
 // seen whole: `fit` world units away for each unit of its height).
-const CINE = { grey: 0.3, aura: 0.45, release: 1.85, back: 0.55, close: 7.5, fit: 2.6 };
+const CINE = { grey: 0.3, aura: 0.45, release: 1.85, back: 0.55, close: 7.5, fit: 2.6, side: 0.35 };
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -41,19 +41,33 @@ const rand = (a, b) => a + Math.random() * (b - a);
 // drawing, in world units (a spear raised to the sky counts).
 function poseHeight(body, anim) {
   const s = body.sheet;
-  const W = s.frameW * s.cols;
-  let top = s.frameH;
+  let tall = 0;
   for (const i of s.anims[anim]?.frames || []) {
-    const ox = (i % s.cols) * s.frameW;
-    const oy = Math.floor(i / s.cols) * s.frameH;
-    for (let y = 0; y < top; y++) {
-      let ink = false;
-      for (let x = 0; x < s.frameW && !ink; x++) ink = s.alpha[((oy + y) * W + ox + x) * 4 + 3] > 0;
-      if (ink) top = y;
-    }
+    const FH = s.slots?.[i]?.big ? s.big.frameH : s.frameH;
+    tall = Math.max(tall, (FH - (s.tops?.[i] ?? 0)) * s.px);
   }
-  return (s.frameH - top) * s.px;
+  return tall;
 }
+
+// How far a pose reaches behind and ahead of whoever holds it (the frames of `anim` on body's
+// sheet, facing right), from their middle, in world units.
+function poseSpan(body, anim) {
+  const s = body.sheet;
+  let behind = 0;
+  let ahead = 0;
+  for (const i of s.anims[anim]?.frames || []) {
+    const grid = s.slots?.[i]?.big ? s.big : s;
+    const [lo, hi] = s.spans?.[i] || [0, grid.frameW - 1];
+    const mid = grid.anchor ?? grid.frameW / 2;
+    behind = Math.max(behind, (mid - lo) * s.px);
+    ahead = Math.max(ahead, (hi + 1 - mid) * s.px);
+  }
+  return [behind, ahead];
+}
+
+// The pose an ultimate is held in, on n's sheet: its own (pose), or, on a sheet without it (a hero
+// of two looks drawn in one of them only), the one it falls back on.
+const poseOf = (u, n) => (n.body.sheet.anims[u.pose[0]] ? u.pose : u.fallback || ['send']);
 
 // what runs as a fight effect (fight.fx): step(dt) → still going?
 const effect = (step, dispose = () => {}) => ({ step, dispose });
@@ -88,10 +102,15 @@ export const ULTS = {
     },
   },
   sorceress: {
-    name: 'Glintstone Arrow', pose: ['cast'],
+    // (her drawn pose is masked, as she fights; bare-faced she raises the staff as she casts)
+    name: 'Glintstone Arrow', pose: ['ult'], fallback: ['cast'],
     run({ fight, fx, n, hit }) {
+      // (the arrow drawn at her own pixel size, laid along the staff she aims like a bow, its head
+      // at the crystal, and loosed; it keeps upright, its light on top)
+      const look = lookOf('corisande-arrow', n.body.sheet.px, { map: TEX.arrow(), w: 2.1, h: 0.69 });
+      const [x, y, z] = muzzleOf(n, 'ult');
       fx.add(new Missile(fx, {
-        map: TEX.arrow(), w: 2.1, h: 0.69, from: muzzleOf(n), to: () => fight.bossPoint(2), speed: 14, turn: 3, life: 4,
+        ...look, upright: true, from: [x - n.body.facing * look.w * 0.45, y, z], to: () => fight.bossPoint(2), speed: 14, turn: 3, life: 4,
         trail: [...motesOf('glintstone'), '#ffffff'], trailRate: 160, trailSize: 0.09,
         onHit: (at) => {
           hit(22, at);
@@ -366,13 +385,15 @@ export class Ults {
       this.lastEnd = this.clock;
       return true;
     }
-    n.action = { kind: 'ult', anim: u.pose[0], t: 0, dur: Infinity };
-    n.body.play(u.pose[0], true);
+    const pose = poseOf(u, n);
+    n.action = { kind: 'ult', anim: pose[0], t: 0, dur: Infinity };
+    n.body.play(pose[0], true);
     const key = heroKey(n);
     const color = styleOf(n).color;
     const aura = new Aura(this.ctx.scene, this.particles, n.body, color, { radius: key === 'sorceress' ? 4.5 : 2.5 });
-    const tall = Math.max(2.5, poseHeight(n.body, u.pose[0]));
-    this.active = { n, u, key, t: 0, dir, player, aura, released: false, saved: rig.distGoal, tall };
+    const tall = Math.max(2.5, poseHeight(n.body, pose[0]));
+    const span = poseSpan(n.body, pose[0]);
+    this.active = { n, u, pose, key, t: 0, dir, player, aura, released: false, saved: rig.distGoal, tall, span };
     // (everyone else, and him, hide it where they stand in front of it: they stay grey)
     const others = [...this.ctx.director.npcs.values()].filter((o) => o !== n && !o.dead && o.body?.mesh).map((o) => o.body.mesh);
     post.spot = { desat: 0, meshes: [n.body.mesh, ...aura.meshes, this.particles.points], occluders: [...others, b.body.mesh] };
@@ -390,12 +411,22 @@ export class Ults {
   }
 
   // Where the camera looks, while it's on whoever looses one: their middle, close (a tall pose, a
-  // little below its middle, from far enough back to show it whole above the bars at the bottom).
+  // little below its middle, from far enough back to show it whole above the bars at the bottom;
+  // a pose too wide for that, a staff held level far out ahead, centred and taken in whole).
   shot() {
     const a = this.active;
     if (!a || a.released) return null;
     const p = a.n.pos;
-    return { at: [p.x, Math.max(1.25, a.tall * 0.42) + (a.n.lift || 0), p.y], dist: Math.max(CINE.close, a.tall * CINE.fit) };
+    let x = p.x;
+    let dist = Math.max(CINE.close, a.tall * CINE.fit);
+    const [behind, ahead] = a.span;
+    const cam = this.ctx.rig.camera;
+    const across = Math.tan((cam.fov * Math.PI) / 360) * cam.aspect; // (half the width seen, per unit away)
+    if (Math.max(behind, ahead) + CINE.side > dist * across) {
+      x += (a.n.body.facing * (ahead - behind)) / 2;
+      dist = Math.max(dist, ((behind + ahead) / 2 + CINE.side) / across);
+    }
+    return { at: [x, Math.max(1.25, a.tall * 0.42) + (a.n.lift || 0), p.y], dist };
   }
 
   update(dt) {
@@ -409,7 +440,7 @@ export class Ults {
     a.t += dt;
     if (!a.released) {
       rig.distGoal = this.shot().dist;
-      const [anim, hold] = a.u.pose;
+      const [anim, hold] = a.pose;
       const body = a.n.body;
       if (hold != null) {
         body.play(anim);
@@ -435,7 +466,7 @@ export class Ults {
     const b = fight.boss;
     const n = a.n;
     // (the pose held: let go of it, unless the ultimate carries them on itself)
-    n.action = { kind: 'ult', anim: a.u.pose[0], t: 0, dur: 0.35 };
+    n.action = { kind: 'ult', anim: a.pose[0], t: 0, dur: 0.35 };
     if (!b || !b.alive) return;
     const power = ultPower(b, a.player);
     a.u.run({ fight, fx: fight.fxCtx, n, b, dir: a.dir, hit: (share, at) => fight.ultHit(n, share * power, at) });
