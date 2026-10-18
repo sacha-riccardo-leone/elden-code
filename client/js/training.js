@@ -28,7 +28,7 @@ const F = { whole: 0, back: 1, forward: 2, burst: 3, broken: 4 };
 const WOBBLE = [[0.12, 'away'], [0.2, 'whole'], [0.3, 'toward'], [0.42, 'whole']];
 const STOP = { blow: 0.055, spell: 0.035 }; // (thy blows hold the world still a moment, as on the arena)
 const CHIPS = ['#8a5a2a', '#b07a3e', '#e8dcc0', '#5a3a1c'];
-const REACH = 20; // how far an ultimate finds a dummy: across the yard
+const REACH = 40; // how far an ultimate finds a dummy: across the yard
 
 class Dummy {
   constructor(training, x, z) {

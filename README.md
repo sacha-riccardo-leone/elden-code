@@ -52,12 +52,14 @@ far larger. When work calls and home is far, they fast travel: they dissolve int
 and reappear at their region's Site of Grace.
 
 South of the Hold, and lower, lies the **Training Yard** (`client/js/yard.js`), always there: a
-round floor of grey brick on a rock of its own, like the arena's but without its pillars. A stone
-stair comes down to it from the rim, and whoever walks it goes down with it (`client/js/ground.js`
-gives the ground's height wherever it isn't level with the Hold). Five straw dummies stand inside a
-sawdust ring (`client/js/training.js`); racks of the Round Table's weapons (`client/js/weapons.js`),
-an archery butt, barrels, crates and rope lanterns stand round them. Blows, spells and
-ultimates find them as they find a great enemy. A dummy wobbles as each one lands, and once it has
+round floor of grey brick on a rock of its own, as wide as the arena's but without its pillars. A
+stone stair comes down to it from the rim, and whoever walks it goes down with it
+(`client/js/ground.js` gives the ground's height wherever it isn't level with the Hold). Eight straw
+dummies stand scattered over it (`client/js/training.js`), in new places each time the page loads,
+clear of the stair's foot, the props and one another. Racks of the Round Table's weapons
+(`client/js/weapons.js`) flank the foot of the stair, with barrels and crates beside them; an
+archery butt stands to the west, a sawdust ring marks the middle, and rope lanterns light the edge.
+Blows, spells and ultimates find the dummies as they find a great enemy. A dummy wobbles as each one lands, and once it has
 taken enough it bursts into pieces, then stands whole again five seconds later. Dummies never strike
 back. On the yard your ultimate is always full: each one still freezes the world for its moment,
 but you needn't wait between them.
