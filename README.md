@@ -323,6 +323,16 @@ brightness on the palette's brightest colours. The hero is the art grid's name: 
 (Ulric), `champion` (Ruadan), `queen` (Solenne) or `sorceress-masked` (Corisande). Any other art grid
 goes by its path, its master art beside it, e.g. Fenrath's `client/assets/boss/boss.json`.
 
+Art that isn't a hero's (a training dummy, a prop) keeps its own colours. Only its fallback
+background goes, found as above (`scripts/image-io.mjs` holds what the two tools share):
+
+```
+node scripts/clear-background.mjs art-in/dummy-stand.png
+```
+
+The result is written next to the input as `…-clear.png`. When the outline is drawn nearly black on
+a black background, lower `--dark` (24 by default) so that the outline stays.
+
 ### Fire
 
 The braziers and the candles on the round table in Roundtable Hold burn with pixel-art fire from
