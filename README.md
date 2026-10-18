@@ -193,6 +193,10 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
   (`fortuna-spell.json`) are drawn whole.
 - **The Ronin of the Iron Kasa** — `ronin.json` (+ `ronin-kneel.json`), rigged in
   `client/js/heroes/ronin.js` (curved blade with a slash trail and a running glint, walking legs).
+  His cut (`ronin-attack.json`: crouched, the blade drawn back low behind him; the wide cut forward;
+  the follow-through, the blade high behind him) and his Iaijutsu (`ronin-ult.json`: the drawing
+  stance, his blade sheathed in a black scabbard at his hip; the dash; sliding the blade home) are
+  drawn whole, in his `bigFrame`.
 - **Vael, the Crimson Weaver** — `bloodbender.json` (+ `bloodbender-kneel.json`), rigged in
   `client/js/heroes/bloodbender.js` (blood magic that spins round the fist and lashes like a whip).
   His Crimson Mire pose (`bloodbender-ult.json`) and his cast (`bloodbender-attack.json`) are
@@ -537,8 +541,10 @@ loosed on it is placed from its floor, as on the Hold (a group raised to its hei
     it in). The wave is drawn
     (`aurelion-wave.json`): forming as it leaves the blades, full as it flies, stretching as it
     strikes, then fading.
-  - Wynn, **Iaijutsu:** after a breath, Wynn cuts through him from every side while he's held still.
-    The cuts hang in the air, and nothing lands until Wynn is back where he began, blade sheathed.
+  - Wynn, **Iaijutsu:** after a breath, Wynn cuts through him from every side while he's held still,
+    dashing through him stretched out in the cut. The cuts hang in the air (drawn,
+    `wynn-cuts.json`, at twice his pixel size: of the four drawn, the one nearest each cut's angle,
+    or it mirrored), and nothing lands until Wynn is back where he began, sliding his blade home.
     Then it all lands at once.
   - Ulric, **Tenfold Spears** (aimed): ten spears stick in him, poison him for 4 seconds, then fall
     away. The spears are drawn (`ulric-spear.json`): his own spear, at his own pixel size, leaving
@@ -547,20 +553,20 @@ loosed on it is placed from its floor, as on the Hold (a group raised to its hei
     is, and shatter (`fortuna-icicle.json`, `fortuna-shatter.json`). A beat later a mass of ice
     three times their size, taller than he is, comes down on him, stands driven into the floor a
     moment, shuddering, and bursts wide, shaking the view.
-  - **Art:** Maren, Fortuna, Vael, Jorvik, Corisande, Solenne, Aurelion, Ulric and Ruadan hold their
-    drawn poses: Maren's spear raised to the sky, its lightning crackling; Fortuna's four arms and
-    greatsword raised, the frost flickering; Vael's clawed hand raised, blood streaming up his
-    arm; Jorvik's staff thrust high, runes wheeling round its blazing orb; Corisande's staff held
-    level like a drawn bow, motes wheeling round its blazing crystal (bare-faced, she raises it as
-    she casts); Solenne wound up, the light gathered between her palms, motes drifting up from it;
-    Aurelion pointing at the enemy, his sword held out low, while the giant behind him raises its
-    blade of light back over its shoulder, a glint running along it; Ulric's spear cocked back
-    like a javelin; Ruadan crouched, gathering to leap, the maul low behind him. A pose too wide
-    for the camera's close shot (Corisande's) is centred and taken in whole. An ult may be loosed
-    in a drawing of its own (`release`), held a moment as it strikes: Solenne's palms thrust out
-    as the wall leaves them; Aurelion's giant sweeping its blade low ahead of it; Ulric's hand
-    open as the spears leave it. The others hold their own rig's pose (raise, cast, strike, kneel)
-    until their ult drawings replace it.
+  - **Art:** every hero holds a drawn pose: Maren's spear raised to the sky, its lightning
+    crackling; Fortuna's four arms and greatsword raised, the frost flickering; Vael's clawed hand
+    raised, blood streaming up his arm; Jorvik's staff thrust high, runes wheeling round its
+    blazing orb; Corisande's staff held level like a drawn bow, motes wheeling round its blazing
+    crystal (bare-faced, she raises it as she casts); Solenne wound up, the light gathered between
+    her palms, motes drifting up from it; Aurelion pointing at the enemy, his sword held out low,
+    while the giant behind him raises its blade of light back over its shoulder, a glint running
+    along it; Ulric's spear cocked back like a javelin; Ruadan crouched, gathering to leap, the
+    maul low behind him; Wynn in his drawing stance, his hand on the hilt of his sheathed blade. A
+    pose too wide for the camera's close shot (Corisande's) is centred and taken in whole. An ult
+    may be loosed in a drawing of its own (`release`), held a moment as it strikes: Solenne's palms
+    thrust out as the wall leaves them; Aurelion's giant sweeping its blade low ahead of it;
+    Ulric's hand open as the spears leave it. Ruadan's and Wynn's carry them on through drawings of
+    their own (the leap and the slam; the dash and the sheathing).
 - **Only the fight:** while a great enemy is abroad, every session works on unseen, the spectres at
   work on their islands included: no log lines about the work, no incantations, signs or gestures,
   no spirit wisps and no small talk. A fighter's signs are put away for the fight (the "!" of one

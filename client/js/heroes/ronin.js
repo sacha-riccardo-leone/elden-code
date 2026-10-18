@@ -1,9 +1,13 @@
 // The Ronin of the Iron Kasa: a wanderer in plate under a lattice-iron hat, wrapped in a ragged
 // brown cloak and scarf, a long curved blade carried low in one hand.
 // Source art: assets/hero/ronin.json (114x118, from ronin-stand.webp) and ronin-kneel.json
-// (125x104, from ronin-kneel.webp).
+// (125x104, from ronin-kneel.webp). His cut (ronin-attack.json: crouched, the blade drawn back low
+// behind him; the wide cut forward; the follow-through, the blade high behind him) and his
+// Iaijutsu (ronin-ult.json: the drawing stance, his blade sheathed in a black scabbard at his hip;
+// the dash; sliding the blade home) are drawn whole; the blade reaches far ahead of him and behind,
+// so they're kept in a bigger frame (core.js, bigFrame).
 
-import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill } from './core.js';
+import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill, held } from './core.js';
 
 const FRAME = { w: 160, h: 120 };
 const MID = 43; // source column between the boots
@@ -26,6 +30,23 @@ const BLADE = [[30.5, 80.5], [56.5, 89.5], [78.5, 95.5], [99.5, 99.5], [113.5, 1
 const END = BLADE[BLADE.length - 1];
 const TIP = Math.hypot(END[0] - GRIP.x, END[1] - GRIP.y);
 const TIP_ANGLE = Math.atan2(END[1] - GRIP.y, END[0] - GRIP.x);
+
+// His drawn poses: per frame of each, the column set where his body's middle (the ring on his
+// sash) stands as he stands, and the row he stands on.
+const DRAWN = {
+  attack: [
+    { mid: 118, ground: 105 },
+    { mid: 84, ground: 105 },
+    { mid: 96, ground: 104 },
+  ],
+  ult: [
+    { mid: 72, ground: 90 },
+    { mid: 94, ground: 77 },
+    { mid: 77, ground: 106 },
+  ],
+};
+// the big frame: room for the blade drawn back far behind him, and thrust far ahead in the dash
+const BIG = { w: 250, h: 110, anchor: 119 };
 
 function segDist(px, py, [ax, ay], [bx, by]) {
   const dx = bx - ax;
@@ -234,20 +255,29 @@ anim('stagger', seq(2, (i) => ({ lean: -2 - i, sword: -12 - i * 8, sway: 2, legs
 anim('collapse', [{ still: true, head: [2, 3], sway: 2 }]);
 anim('lifted', seq(2, (i) => ({ sway: -3 + i, tail: -2 + i, sword: -6 - i * 4, legs: { front: { dangle: -2 - i }, back: { dangle: -3 } } })));
 anim('talk', seq(2, (i) => ({ sword: i ? -3 : 0, bob: i })));
+// drawn whole (core.js, composeDrawn), all in the big frame: his cut; Iaijutsu's stance, dash and
+// sheathing
+const drawnPose = (key, k, more = {}) => ({ drawn: key, frame: k, mid: DRAWN[key][k].mid, ground: DRAWN[key][k].ground, big: true, ...more });
+anim('swing', [0, 1, 2].map((i) => drawnPose('attack', i)));
+anim('stance', [drawnPose('ult', 0)]);
+anim('dash', [drawnPose('ult', 1)]);
+anim('sheathe', [drawnPose('ult', 2)]);
 
 const G = groups;
 export default {
   id: 'ronin',
   art: '/assets/hero/ronin.json',
-  extraArt: { kneel: '/assets/hero/ronin-kneel.json' },
+  extraArt: { kneel: '/assets/hero/ronin-kneel.json', attack: '/assets/hero/ronin-attack.json', ult: '/assets/hero/ronin-ult.json' },
   epithet: 'of the Iron Kasa',
   title: 'Ronin',
   burst: ['#e8e2d0', '#ffffff'],
   frame: FRAME,
+  bigFrame: BIG,
   cols: 8,
   px: 2.05 / 80, // world units per art pixel: his face, under the kasa, is level with the knight's visor
   head: 112, // art pixels from the ground to the tip of the kasa
-  hits: { hammer: 4, cast: 1, send: 2 },
+  hits: { hammer: 4, cast: 1, send: 2, attack: 4 },
+  lunge: { attack: 0.35 }, // (his drawing thrown forward as the blade cuts: npc.js)
   glowIntensity: 0.9,
   glowColors: [[150, 140, 120], [255, 248, 228]],
   seed: 7130,
@@ -259,6 +289,11 @@ export default {
     idle: { frames: G.idle, fps: 4 },
     walk: { frames: G.walk, fps: 9 },
     hammer: { frames: G.strike, fps: 9 },
+    // (in eighteenths of a second: drawn back 4, the cut 3, the follow-through 5)
+    attack: { frames: held(G.swing, [4, 3, 5]), fps: 18 },
+    stance: { frames: G.stance, fps: 1 },
+    dash: { frames: G.dash, fps: 1 },
+    sheathe: { frames: G.sheathe, fps: 1 },
     read: { frames: G.study, fps: 1.4 },
     cast: { frames: G.cast, fps: 5 },
     send: { frames: G.raise, fps: 4 },
@@ -276,5 +311,5 @@ export default {
     stagger: { frames: [...G.stagger, G.idle[0]], fps: 4, once: true },
     kneelBow: { frames: [G.kneel[0], ...G.rest, G.rest[1], G.kneel[0]], fps: 2, once: true },
   },
-  groupFps: { idle: 4, walk: 9, strike: 9, cast: 5, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5 },
+  groupFps: { idle: 4, walk: 9, strike: 9, cast: 5, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, swing: 5, stance: 1, dash: 1, sheathe: 1 },
 };

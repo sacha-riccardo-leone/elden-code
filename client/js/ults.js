@@ -269,7 +269,9 @@ export const ULTS = {
     },
   },
   ronin: {
-    name: 'Iaijutsu', pose: ['kneel'],
+    // (the drawing stance, his blade sheathed at his hip; the dash, every pass; sliding the blade
+    // home as it all lands: drawn; else his kneel, his own blow, and standing)
+    name: 'Iaijutsu', pose: ['stance'], fallback: ['kneel'],
     run({ fight, fx, n, b, hit }) {
       // he holds still while the cuts are made: from every side through him, a blink each
       const s = statusOf(b);
@@ -284,7 +286,10 @@ export const ULTS = {
       const cuts = [];
       let t = 0;
       let done = false;
-      n.action = { kind: 'ult', anim: 'hammer', t: 0, dur: ways.length * (PASS + GAP) + 1.1 };
+      const { anims } = n.body.sheet;
+      const drawn = !!(anims.dash && anims.sheathe);
+      const pass = drawn ? 'dash' : 'hammer';
+      n.action = { kind: 'ult', anim: pass, t: 0, dur: ways.length * (PASS + GAP) + 1.1 };
       fx.add(effect((dt) => {
         t += dt;
         const i = Math.floor(t / (PASS + GAP));
@@ -295,12 +300,13 @@ export const ULTS = {
           const k = Math.min(1, (t - i * (PASS + GAP)) / PASS);
           n.pos.set(p.x + (q.x - p.x) * k, p.y + (q.y - p.y) * k);
           n.body.facing = q.x >= p.x ? 1 : -1;
-          n.body.play('hammer');
+          n.body.play(pass);
           if (!cuts[i]) {
-            // (each cut drawn across him at the angle of its pass, in front of him)
+            // (each cut drawn across him at the angle of its pass, in front of him: drawn, Sacha's
+            // cuts at twice his pixel size)
             const ax = Math.cos(a) * R;
             const ay = Math.sin(a) * 1.6;
-            cuts[i] = new Cut(fx, { a: [c.x + ax, 2 + ay, c.y + 0.4], b: [c.x - ax, 2 - ay, c.y + 0.4] });
+            cuts[i] = new Cut(fx, { a: [c.x + ax, 2 + ay, c.y + 0.4], b: [c.x - ax, 2 - ay, c.y + 0.4], art: 'wynn-cuts', px: n.body.sheet.px * 2 });
             fx.add(cuts[i]);
           }
           if (Math.random() < dt * 60) {
@@ -311,11 +317,11 @@ export const ULTS = {
           }
           return true;
         }
-        // back where he began, the blade sheathed: and only now it all lands
+        // back where he began, sliding the blade home: and only now it all lands
         const after = t - ways.length * (PASS + GAP);
         n.pos.lerp(home, Math.min(1, dt * 14));
         n.body.facing = c.x >= n.pos.x ? 1 : -1;
-        n.body.play('idle');
+        n.body.play(drawn ? 'sheathe' : 'idle');
         if (after < 0.55) return true;
         if (!done) {
           done = true;

@@ -939,14 +939,30 @@ export class Slash {
 
 // A cut hanging in the air: a thin line of light from a to b, flaring when it's settled (flare()).
 export class Cut {
-  constructor(fx, { a, b, school = 'steel', width = 0.07 }) {
+  constructor(fx, { a, b, school = 'steel', width = 0.07, art = null, px = 0 }) {
     const [x0, y0, z0] = a;
     const [x1, y1, z1] = b;
     const len = Math.hypot(x1 - x0, y1 - y0, z1 - z0);
-    this.mesh = plane(fx.scene, TEX.beam(school), len, width, { order: 9 });
+    const angle = screenAngle(x1 - x0, y1 - y0, z1 - z0);
+    const sheet = art && fxArt(art);
+    if (sheet) {
+      // drawn: the one of them nearest its angle (or that one mirrored), turned the little that's
+      // left; `px` world units to its pixel (else as long as the cut)
+      const pick = nearestCut(sheet, angle);
+      const s = px || len / pick.len;
+      this.mesh = plane(fx.scene, pick.map, pick.w * s, pick.h * s, { order: 9 });
+      this.mesh.rotation.z = angle - pick.a;
+      this.flip = pick.flip ? -1 : 1;
+    } else {
+      this.mesh = plane(fx.scene, TEX.beam(school), len, width, { order: 9 });
+      this.mesh.rotation.z = angle;
+      this.flip = 1;
+    }
     this.mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2 + 0.2);
-    this.mesh.rotation.z = screenAngle(x1 - x0, y1 - y0, z1 - z0);
-    this.mesh.scale.x = 0.05;
+    this.drawn = !!sheet;
+    this.grow = 0.05;
+    this.mesh.scale.x = this.grow * this.flip;
+    if (this.drawn) this.mesh.scale.y = this.grow;
     Object.assign(this, { fx, school, t: 0, flared: -1, gone: false });
   }
 
@@ -954,10 +970,13 @@ export class Cut {
 
   step(dt) {
     this.t += dt;
-    this.mesh.scale.x = Math.min(1, this.mesh.scale.x + dt * 18); // drawn across in a blink
+    // drawn across in a blink (a drawn one springs out from its middle)
+    this.grow = Math.min(1, this.grow + dt * 18);
+    this.mesh.scale.x = this.grow * this.flip;
+    if (this.drawn && this.flared < 0) this.mesh.scale.y = this.grow;
     if (this.flared >= 0) {
       const k = (this.t - this.flared) / 0.4;
-      this.mesh.scale.y = 1 + k * 5;
+      this.mesh.scale.y = 1 + k * (this.drawn ? 1.5 : 5);
       this.mesh.material.opacity = Math.max(0, 1 - k);
       return k < 1;
     }
@@ -966,6 +985,23 @@ export class Cut {
   }
 
   dispose() { drop(this.fx.scene, this.mesh); }
+}
+
+// Drawn cuts (fxart.js, Wynn's): on the sheet, level; steep, rising to the right; shallow, falling
+// to the right; upright. Each one's angle on the screen and its length tip to tip, in its pixels,
+// with the diagonals mirrored too (a falling one rises, mirrored); the one nearest `angle`.
+function nearestCut(sheet, angle) {
+  const shapes = [];
+  sheet.frames.forEach((map, k) => {
+    const { width: w, height: h } = map.image;
+    const a = [0, Math.atan2(h, w), -Math.atan2(h, w), Math.PI / 2][k] ?? 0;
+    const len = [w, Math.hypot(w, h), Math.hypot(w, h), h][k] ?? w;
+    shapes.push({ map, w, h, a, len, flip: false });
+    if (k === 1 || k === 2) shapes.push({ map, w, h, a: -a, len, flip: true });
+  });
+  // (a line's angle is the same half a turn on)
+  const off = (s) => Math.abs(Math.atan2(Math.sin(2 * (angle - s.a)), Math.cos(2 * (angle - s.a))));
+  return shapes.reduce((best, s) => (off(s) < off(best) ? s : best));
 }
 
 // Something dropping out of the sky onto (x, z) (an icicle), landing after `dur` and shattering.

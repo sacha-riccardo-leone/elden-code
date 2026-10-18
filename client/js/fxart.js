@@ -32,6 +32,7 @@ const ART = {
   'aurelion-wave': '/assets/fx/aurelion-wave.json',
   'ulric-spear': '/assets/fx/ulric-spear.json',
   'ruadan-explosion': '/assets/fx/ruadan-explosion.json',
+  'wynn-cuts': '/assets/fx/wynn-cuts.json',
   dummy: '/assets/fx/dummy.json', // (the training yard's dummies, training.js)
   // Fenrath's great attack (fight.js, wrath): the ghost of his sword, the ring's eruption
   'fenrath-sword': '/assets/fx/fenrath-sword.json',
