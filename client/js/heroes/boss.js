@@ -21,14 +21,15 @@ const TORSO = 53; // how far the torso stands in front of the planted back foot 
 const BIG = { w: 208, h: 300, anchor: 112 };
 
 // Each drawing: where its back foot is planted (x) and its ground row, or (mid) the column that
-// is his middle; `big`: drawn in BIG.
+// is his middle; `big`: drawn in BIG. The ground row is where the planted back paw ends, so that
+// it stands on the floor (the front claws reaching a row or two lower dig into it).
 const ART = {
-  idle: { file: 'boss', foot: 57.5, ground: 161 },
+  idle: { file: 'boss', foot: 57.5, ground: 159 },
   'swing-1': { foot: 48.5, ground: 204 }, 'swing-2': { foot: 53.3, ground: 169 }, 'swing-3': { foot: 56.2, ground: 155 },
   'lunge-1': { foot: 72.5, ground: 145 }, 'lunge-2': { foot: 42.9, ground: 148 }, 'lunge-3': { foot: 43, ground: 146 },
-  'slam-1': { foot: 67.2, ground: 212 }, 'slam-2': { foot: 43.8, ground: 166 }, 'slam-3': { foot: 46.8, ground: 166 },
-  'jump-1': { foot: 53, ground: 165 }, 'jump-2': { foot: 32.3, ground: 242 }, 'jump-3': { foot: 42.3, ground: 204 }, 'jump-4': { foot: 56.5, ground: 162 },
-  roar: { foot: 56, ground: 297, big: true },
+  'slam-1': { foot: 67.2, ground: 212 }, 'slam-2': { foot: 43.8, ground: 162 }, 'slam-3': { foot: 46.8, ground: 164 },
+  'jump-1': { foot: 53, ground: 163 }, 'jump-2': { foot: 32.3, ground: 242 }, 'jump-3': { foot: 42.3, ground: 204 }, 'jump-4': { foot: 56.5, ground: 160 },
+  roar: { foot: 56, ground: 298, big: true },
   float: { mid: 86, ground: 245, big: true }, // (in the air, facing thee: by his middle; ground: his lower toes)
 };
 const STILLS = Object.keys(ART).filter((k) => k !== 'idle');

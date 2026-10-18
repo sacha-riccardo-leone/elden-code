@@ -142,12 +142,12 @@ const whyOf = (cause) => WHY[cause.kind]?.(cause) || '';
 // The great enemies (Fight.call picks one by chance, of those whose art loaded): his art
 // (ctx[sheet]), health, pace and bulk (reach/radius/lane as BOSS's; depth: how far out of his
 // line, in depth, thy blow still lands on him; spacing: how far off he stands to strike; crowd:
-// his circle on the floor, crowd.js; shadow: its size), his moves, the camera as it frames him
-// (how far back it pulls, how high it looks) and what he says. `Mind`: his own fight, where it
-// isn't Fenrath's.
+// his circle on the floor, crowd.js; shadow: its width and depth, and how far behind his feet it
+// lies), his moves, the camera as it frames him (how far back it pulls, how high it looks) and what
+// he says. `Mind`: his own fight, where it isn't Fenrath's.
 const KINDS = {
   fenrath: {
-    sheet: 'bossSheet', ...BOSS, depth: 1.9, spacing: 4, crowd: CROWD.bossRadius, shadow: [3.6, 2.6],
+    sheet: 'bossSheet', ...BOSS, depth: 1.9, spacing: 4, crowd: CROWD.bossRadius, shadow: [3.6, 2.6, 0.55],
     cam: { far: BOSS_CAM.far, y: 2.6 }, moves: MOVES, says: SAYS,
   },
   golem: {
@@ -1011,11 +1011,12 @@ export class Fight {
     b.body.tick(held ? (dazed ? dt * 0.4 : 0) : dt * pace, moving ? 0.8 * fast : 0.7);
     b.body.place(b.pos.x + jitter + b.body.facing * b.offset, groundAt(b.pos.x, b.pos.y) + rippleAt(b.pos.x, b.pos.y), b.pos.y, b.lift);
     // his shadow: wide and deep (he's long, and heavy), a little smaller the higher he leaps (and
-    // longer, the Golem lying on his face)
+    // longer, the Golem lying on his face); Fenrath's set back under his paws, so they stand in it
     const s = 1 - Math.min(0.3, b.lift * 0.045);
-    const [sw, sd] = b.kind.shadow;
+    const [sw, sd, back = 0] = b.kind.shadow;
     const lying = b.mind?.lying ? 1.6 : 1;
     b.body.blob.position.x = b.pos.x + (lying > 1 ? b.body.facing * 1.4 : 0);
+    b.body.blob.position.z = b.pos.y + 0.05 - back;
     b.body.blob.position.y = groundAt(b.body.blob.position.x, b.pos.y) + rippleAt(b.body.blob.position.x, b.pos.y) + 0.015;
     b.body.blob.scale.set(sw * s * lying, sd * s, 1);
     b.body.blob.material.opacity = b.fade;
