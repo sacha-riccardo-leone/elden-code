@@ -18,8 +18,9 @@
 //   Maren                – Red Storm: red lightning raining on him, and one great bolt to end it
 //   Aurelion             – Radiant Verdict: a great slash of light that leaves him dazed, unable
 //                          to fight or move
-//   Wynn, the Ronin      – Iaijutsu: a breath, then cut after cut through him from every side as
-//                          he stands held; nothing, till the blade is sheathed: then all at once
+//   Wynn, the Ronin      – Iaijutsu: a breath, the blade loosed with a glare, then cut after cut
+//                          through him from every side as he stands held; nothing, till, his back
+//                          to him, the blade is sheathed: then all at once
 //   Ulric                – Tenfold Spears (aimed): ten spears that stick in him, poisoned, then
 //                          fall away
 //   Fortuna              – Frostfall: three great icicles dropping on him one after another,
@@ -32,9 +33,9 @@ import { ULT, ultPower, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt 
 import { lookOf, fxArt } from './fxart.js';
 import { groundAt } from './ground.js';
 
-// The moments of one: grey within `grey`, the aura from `aura`, the blow at `release`, colour back
-// within `back` of it; the camera this close meanwhile (or as far back as a tall pose needs to be
-// seen whole: `fit` world units away for each unit of its height).
+// The moments of one: grey within `grey`, the aura from `aura`, the blow at `release` (or its own
+// `at`), colour back within `back` of it; the camera this close meanwhile (or as far back as a tall
+// pose needs to be seen whole: `fit` world units away for each unit of its height).
 const CINE = { grey: 0.3, aura: 0.45, release: 1.85, back: 0.55, close: 7.5, fit: 2.6, side: 0.35 };
 
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -77,8 +78,9 @@ const effect = (step, dispose = () => {}) => ({ step, dispose });
 // ---------------------------------------------------------------------------------------------
 // each one: its name, the pose held as it gathers (an animation, and a frame to hold, or none to
 // play it), the pose it's loosed in (`release`: an animation, drawn; else the held one is let go),
-// a giant of their own light behind them (`stand`: { scale }, spellfx.js), whether it's aimed, and
-// what it does (u: { fight, fx, n, b, dir, hit(share, at) })
+// when it's loosed (`at`, seconds in, if not at CINE.release), a giant of their own light behind
+// them (`stand`: { scale }, spellfx.js), whether it's aimed, and what it does (u: { fight, fx, n,
+// b, dir, hit(share, at) })
 
 export const ULTS = {
   runelord: {
@@ -269,27 +271,33 @@ export const ULTS = {
     },
   },
   ronin: {
-    // (the drawing stance, his blade sheathed at his hip; the dash, every pass; sliding the blade
-    // home as it all lands: drawn; else his kneel, his own blow, and standing)
-    name: 'Iaijutsu', pose: ['stance'], fallback: ['kneel'],
+    // (as it's loosed, the drawing stance, half a second, then his blade loosed from the scabbard a
+    // hand's breadth, a glare flashing on it, half a second, and only then the cuts; the dash,
+    // every pass; back where he began, turned the other way, the blade loosed again, the glare,
+    // and home in its scabbard with all of it landing: drawn; else his kneel, his own blow, and
+    // standing)
+    name: 'Iaijutsu', pose: ['draw'], fallback: ['kneel'], at: 1,
     run({ fight, fx, n, b, hit }) {
       // he holds still while the cuts are made: from every side through him, a blink each
       const s = statusOf(b);
       s.holdUntil = fight.clock + 3.2;
       interrupt(fight, b);
       const home = n.pos.clone();
+      const facing = n.body.facing; // (the way he faced as he drew; he ends turned from it)
       const c = new THREE.Vector2(b.pos.x, b.pos.y);
       const R = 3;
       const ways = [0, Math.PI, Math.PI / 2, -Math.PI / 2, Math.PI / 4, (5 * Math.PI) / 4, (3 * Math.PI) / 4, -Math.PI / 4];
       const PASS = 0.13;
       const GAP = 0.06;
+      const LOOSED = 0.5; // (back home, the blade loosed this long before it's home in its scabbard)
+      const HELD = 0.6; // (and the stance held this long after)
       const cuts = [];
       let t = 0;
       let done = false;
       const { anims } = n.body.sheet;
-      const drawn = !!(anims.dash && anims.sheathe);
+      const drawn = !!(anims.dash && anims.loosed);
       const pass = drawn ? 'dash' : 'hammer';
-      n.action = { kind: 'ult', anim: pass, t: 0, dur: ways.length * (PASS + GAP) + 1.1 };
+      n.action = { kind: 'ult', anim: pass, t: 0, dur: ways.length * (PASS + GAP) + LOOSED + HELD };
       fx.add(effect((dt) => {
         t += dt;
         const i = Math.floor(t / (PASS + GAP));
@@ -317,12 +325,16 @@ export const ULTS = {
           }
           return true;
         }
-        // back where he began, sliding the blade home: and only now it all lands
+        // back where he began, turned the other way, the blade loosed, the glare on it; and as it
+        // goes home in its scabbard, only then it all lands
         const after = t - ways.length * (PASS + GAP);
         n.pos.lerp(home, Math.min(1, dt * 14));
-        n.body.facing = c.x >= n.pos.x ? 1 : -1;
-        n.body.play(drawn ? 'sheathe' : 'idle');
-        if (after < 0.55) return true;
+        n.body.facing = -facing;
+        if (after < LOOSED) {
+          n.body.play(drawn ? 'loosed' : 'idle');
+          return true;
+        }
+        n.body.play(drawn ? 'stance' : 'idle');
         if (!done) {
           done = true;
           for (const cut of cuts) cut.flare();
@@ -330,7 +342,7 @@ export const ULTS = {
           fx.add(new Burst(fx, { school: 'steel', at: [c.x, 2, c.y], size: 5, sparks: 70 }));
           fight.ctx.rig?.shake?.(0.6);
         }
-        return false;
+        return after < LOOSED + HELD;
       }));
     },
   },
@@ -417,7 +429,7 @@ export class Ults {
     this.ctx = ctx;
     // its own motes: they go on while the world stands still
     this.particles = new Particles(ctx.scene, 800);
-    this.active = null; // { n, u, key, t, dir, player, aura, released, saved }
+    this.active = null; // { n, u, key, t, at (when it is loosed), dir, player, aura, released, saved }
     this.lastEnd = -Infinity;
     this.clock = 0;
     const el = document.getElementById('ult-title');
@@ -475,7 +487,7 @@ export class Ults {
     if (own) stand.play(own);
     const tall = Math.max(2.5, poseHeight(n.body, own || pose[0]));
     const span = poseSpan(n.body, own || pose[0]);
-    this.active = { n, u, pose, key, t: 0, dir, player, aura, stand, fight, released: false, saved: rig.distGoal, tall, span };
+    this.active = { n, u, pose, key, t: 0, at: u.at ?? CINE.release, dir, player, aura, stand, fight, released: false, saved: rig.distGoal, tall, span };
     // (everyone else, and him, hide it where they stand in front of it: they stay grey)
     const others = [...this.ctx.director.npcs.values()].filter((o) => o !== n && !o.dead && o.body?.mesh).map((o) => o.body.mesh);
     post.spot = { desat: 0, meshes: [n.body.mesh, ...aura.meshes, ...(stand?.meshes || []), this.particles.points], occluders: [...others, b.body.mesh] };
@@ -535,14 +547,14 @@ export class Ults {
         body.play(anim);
         body.tick(dt);
       }
-      if (a.t >= CINE.release) this.release(a);
+      if (a.t >= a.at) this.release(a);
     }
-    post.spot.desat = a.released ? Math.max(0, 1 - (a.t - CINE.release) / CINE.back) : Math.min(1, a.t / CINE.grey);
-    a.aura.step(dt, a.t > CINE.aura && a.t < CINE.release + 0.25 ? 1 : 0);
+    post.spot.desat = a.released ? Math.max(0, 1 - (a.t - a.at) / CINE.back) : Math.min(1, a.t / CINE.grey);
+    a.aura.step(dt, a.t > CINE.aura && a.t < a.at + 0.25 ? 1 : 0);
     // (the giant rises as the world goes grey, swings with them, and goes once the blow is struck,
     // keeping the pose it struck in)
-    a.stand?.step(dt, a.t > CINE.grey && a.t < CINE.release + 0.35 ? 1 : 0, a.n.action?.kind === 'ult');
-    if (a.released && a.t >= CINE.release + CINE.back + 0.2) this.finish();
+    a.stand?.step(dt, a.t > CINE.grey && a.t < a.at + 0.35 ? 1 : 0, a.n.action?.kind === 'ult');
+    if (a.released && a.t >= a.at + CINE.back + 0.2) this.finish();
   }
 
   // It strikes: the world moves again.

@@ -4,8 +4,8 @@
 // (125x104, from ronin-kneel.webp). His cut (ronin-attack.json: crouched, the blade drawn back low
 // behind him; the wide cut forward; the follow-through, the blade high behind him) and his
 // Iaijutsu (ronin-ult.json: the drawing stance, his blade sheathed in a black scabbard at his hip;
-// the dash; sliding the blade home) are drawn whole; the blade reaches far ahead of him and behind,
-// so they're kept in a bigger frame (core.js, bigFrame).
+// the dash; the stance with the blade loosed a hand's breadth) are drawn whole; the blade reaches
+// far ahead of him and behind, so they're kept in a bigger frame (core.js, bigFrame).
 
 import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill, held } from './core.js';
 
@@ -42,11 +42,16 @@ const DRAWN = {
   ult: [
     { mid: 72, ground: 90 },
     { mid: 94, ground: 77 },
-    { mid: 77, ground: 106 },
+    { mid: 72, ground: 90 },
   ],
 };
 // the big frame: room for the blade drawn back far behind him, and thrust far ahead in the dash
 const BIG = { w: 250, h: 110, anchor: 119 };
+// The glare on the blade he bares between his hands as he loosens it (his Iaijutsu's third
+// drawing): where it flashes, on the blade's lit edge; and, at each of its sizes, how far its
+// rays reach along the blade and across it, and its short diagonal ones.
+const GLARE = { x: 82, y: 55 };
+const RAYS = [null, [1, 1, 0], [3, 2, 0], [6, 4, 1], [9, 6, 2]];
 
 function segDist(px, py, [ax, ay], [bx, by]) {
   const dx = bx - ax;
@@ -213,6 +218,30 @@ function compose(ctx, p) {
   return f;
 }
 
+// A drawn pose touched up (core.js, buildFrames): the glare (p.glare, its size) on the bared blade,
+// a star of light, white at its heart and paling along its rays, glowing steadily.
+function drawn(ctx, f, p) {
+  if (!p.glare) return;
+  const [along, across, diag] = RAYS[p.glare];
+  const cx = GLARE.x + f.at[0];
+  const cy = GLARE.y + f.at[1];
+  const keep = (f.keep ||= []);
+  const put = (x, y, v) => {
+    if (x < 0 || y < 0 || x >= f.w || y >= f.h) return;
+    f.set(x, y, v);
+    keep.push(y * f.w + x);
+  };
+  // (white for the first half of a ray, then pale, its last pixel faint)
+  const shade = (k, len) => (k <= len / 2 ? ctx.white : k < len ? ctx.pale : ctx.light);
+  put(cx, cy, ctx.white);
+  for (let k = 1; k <= along; k++) { put(cx + k, cy, shade(k, along)); put(cx - k, cy, shade(k, along)); }
+  for (let k = 1; k <= across; k++) { put(cx, cy + k, shade(k, across)); put(cx, cy - k, shade(k, across)); }
+  for (let k = 1; k <= diag; k++) {
+    const v = k < diag ? ctx.pale : ctx.light;
+    for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) put(cx + sx * k, cy + sy * k, v);
+  }
+}
+
 // ---------------------------------------------------------------------------------------------
 // the animation set
 
@@ -255,15 +284,18 @@ anim('stagger', seq(2, (i) => ({ lean: -2 - i, sword: -12 - i * 8, sway: 2, legs
 anim('collapse', [{ still: true, head: [2, 3], sway: 2 }]);
 anim('lifted', seq(2, (i) => ({ sway: -3 + i, tail: -2 + i, sword: -6 - i * 4, legs: { front: { dangle: -2 - i }, back: { dangle: -3 } } })));
 anim('talk', seq(2, (i) => ({ sword: i ? -3 : 0, bob: i })));
-// drawn whole (core.js, composeDrawn), all in the big frame: his cut; Iaijutsu's stance, dash and
-// sheathing
+// drawn whole (core.js, composeDrawn), all in the big frame: his cut; Iaijutsu's stance, dash, and
+// the stance with the blade loosed, the glare on it at each of its sizes
 const drawnPose = (key, k, more = {}) => ({ drawn: key, frame: k, mid: DRAWN[key][k].mid, ground: DRAWN[key][k].ground, big: true, ...more });
 anim('swing', [0, 1, 2].map((i) => drawnPose('attack', i)));
 anim('stance', [drawnPose('ult', 0)]);
 anim('dash', [drawnPose('ult', 1)]);
-anim('sheathe', [drawnPose('ult', 2)]);
+anim('loosed', [1, 2, 3, 4].map((g) => drawnPose('ult', 2, { glare: g })));
 
 const G = groups;
+// Iaijutsu (ults.js), in twelfths of a second: the blade loosed, the glare flashing up on it and
+// dying away, half a second; before it, as it's loosed, the stance, half a second
+const GLARE_FLASH = [1, 3, 4, 3, 2, 1].map((g) => G.loosed[g - 1]);
 export default {
   id: 'ronin',
   art: '/assets/hero/ronin.json',
@@ -283,6 +315,7 @@ export default {
   seed: 7130,
   prepare,
   compose,
+  drawn,
   poses,
   groups,
   anims: {
@@ -291,9 +324,11 @@ export default {
     hammer: { frames: G.strike, fps: 9 },
     // (in eighteenths of a second: drawn back 4, the cut 3, the follow-through 5)
     attack: { frames: held(G.swing, [4, 3, 5]), fps: 18 },
-    stance: { frames: G.stance, fps: 1 },
+    // (as it's loosed: the stance, then the blade loosed; the cuts made: loosed again, then home)
+    draw: { frames: [...Array(6).fill(G.stance[0]), ...GLARE_FLASH], fps: 12, once: true },
     dash: { frames: G.dash, fps: 1 },
-    sheathe: { frames: G.sheathe, fps: 1 },
+    loosed: { frames: GLARE_FLASH, fps: 12, once: true },
+    stance: { frames: G.stance, fps: 1 },
     read: { frames: G.study, fps: 1.4 },
     cast: { frames: G.cast, fps: 5 },
     send: { frames: G.raise, fps: 4 },
@@ -311,5 +346,5 @@ export default {
     stagger: { frames: [...G.stagger, G.idle[0]], fps: 4, once: true },
     kneelBow: { frames: [G.kneel[0], ...G.rest, G.rest[1], G.kneel[0]], fps: 2, once: true },
   },
-  groupFps: { idle: 4, walk: 9, strike: 9, cast: 5, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, swing: 5, stance: 1, dash: 1, sheathe: 1 },
+  groupFps: { idle: 4, walk: 9, strike: 9, cast: 5, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, swing: 5, stance: 1, dash: 1, loosed: 12 },
 };
