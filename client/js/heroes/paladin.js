@@ -40,7 +40,7 @@ const KNEEL_HEAD_X = 78; // over the kneeling knight's helm
 // and glows steadily; wound up, a glint runs along it. Loosed, the wave leaves it (`from`).
 const DRAWN = {
   attack: [
-    { mid: 119, ground: 238 },
+    { mid: 57, ground: 219 },
     { mid: 68, ground: 238 },
     { mid: 157, ground: 238 },
   ],
