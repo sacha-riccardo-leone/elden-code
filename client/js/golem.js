@@ -99,6 +99,7 @@ export class GolemMind {
     this.fight = fight;
     this.b = b;
     this.ctx = fight.ctx;
+    this.floor = fight.floor; // (the arena's floor: what he looses is set on it, fight.js)
     this.px = b.body.sheet.px;
     this.ankle = 0; // blows on the ankle since he last got up
     this.weakT = 0; // how long he's walked on it, given way
@@ -163,7 +164,7 @@ export class GolemMind {
         // from inside the circle: into the fire
         const [, hy] = this.spot(SPOTS.heart);
         this.fight.hit(b, heartDmg, [h.x, hy + 0.3, b.pos.y + 0.2], n, true, 'blow');
-        this.ctx.particles.emit({
+        this.floor.particles.emit({
           pos: [h.x, hy + 0.4, b.pos.y + 0.3], spread: [0.4, 0.3, 0.3], vel: [0, 2.6, 0], velSpread: [1.6, 1.4, 1],
           color: FIRE, size: 0.1, life: 0.7, count: 22, drag: 1.2, intensity: 2.8,
         });
@@ -183,7 +184,7 @@ export class GolemMind {
       this.fight.hit(b, ankleDmg, [ax, ay, b.pos.y + 0.2], n, true, 'blow');
       // (it takes little, but the blow counts in full toward the striker's ultimate)
       this.fight.charge(n, this.fight.blowWorth(n) - ankleDmg);
-      this.ctx.particles.emit({
+      this.floor.particles.emit({
         pos: [ax, ay, b.pos.y + 0.3], spread: [0.2, 0.2, 0.2], vel: [0, 1.6, 0], velSpread: [1.6, 1.2, 0.8],
         color: FIRE, size: 0.07, life: 0.5, count: 14, drag: 1.4, intensity: 2.6,
       });
@@ -240,7 +241,7 @@ export class GolemMind {
   // still. The striker (`n`) bounces off it: its drawing thrown back the way it came, past the
   // lunge its blow began (npc.js).
   clang(x, z, n = null) {
-    this.ctx.particles.emit({
+    this.floor.particles.emit({
       pos: [x, 1.2, z + 0.2], spread: [0.2, 0.3, 0.2], vel: [0, 1.2, 0], velSpread: [1.4, 1, 0.8],
       color: [...STONE, '#ffe6b0'], size: 0.06, life: 0.4, count: 10, drag: 1.6, intensity: 1.2,
     });
@@ -358,7 +359,7 @@ export class GolemMind {
   smoulder(dt) {
     if (Math.random() > dt * 10) return;
     const [ax, ay] = this.spot(SPOTS.ankle);
-    this.ctx.particles.emit({
+    this.floor.particles.emit({
       pos: [ax, ay, this.b.pos.y + 0.3], spread: [0.15, 0.15, 0.1], vel: [0, 1.2, 0], velSpread: [0.5, 0.6, 0.3],
       color: FIRE, size: 0.06, life: 0.6, count: 3, drag: 1, intensity: 2.4,
     });
@@ -413,7 +414,7 @@ export class GolemMind {
     const [x] = this.spot(SPOTS.heart);
     const r = GOLEM.heart.r;
     const z = b.pos.y + 0.7; // (on the floor just in front of him)
-    this.heart = { x, z, r, decal: new Decal(this.ctx.scene, 'heart', x, z, r * 2 * 96 / 90) };
+    this.heart = { x, z, r, decal: new Decal(this.floor.scene, 'heart', x, z, r * 2 * 96 / 90) };
   }
 
   closeHeart() {
@@ -470,7 +471,7 @@ export class GolemMind {
       jitter = (Math.floor(a.t * 20) % 2 ? 1 : -1) * 0.12;
       if (Math.random() < dt * 20) {
         const [cx, cy] = this.spot(SPOTS.chest);
-        this.ctx.particles.emit({
+        this.floor.particles.emit({
           pos: [cx, cy, b.pos.y + 0.3], spread: [0.6, 0.6, 0.3], vel: [0, 1.5, 0], velSpread: [1, 1, 0.6],
           color: FIRE, size: 0.08, life: 0.5, count: 4, drag: 1, intensity: 2.4,
         });
@@ -491,7 +492,8 @@ export class GolemMind {
   nextStep() {
     const b = this.b;
     const a = b.attack;
-    const { scene, rig } = this.ctx;
+    const { scene } = this.floor;
+    const { rig } = this.ctx;
     a.step += 1;
     a.t = 0;
     const steps = GOLEM_MOVES[a.kind].steps;
@@ -531,7 +533,7 @@ export class GolemMind {
           },
           dispose: () => w.dispose(),
         });
-        this.ctx.particles.emit({
+        this.floor.particles.emit({
           pos: [tip, ty, z + 0.2], spread: [0.3, 0.5, 0.3], vel: [a.dir * 6, 0, 0], velSpread: [2, 1, 0.6],
           color: ['#f0e6d8', '#c8bcae'], size: 0.09, life: 0.4, count: 18, drag: 2, intensity: 1.2,
         });
@@ -633,7 +635,7 @@ export class GolemMind {
   }
 
   crack(x, z, life) {
-    const crack = new Decal(this.ctx.scene, 'crack', x, z, 4.6, { glow: false });
+    const crack = new Decal(this.floor.scene, 'crack', x, z, 4.6, { glow: false });
     let t = 0;
     this.fight.fx.push({
       step: (dt) => { t += dt; crack.opacity = Math.min(1, Math.max(0, (life - t) / 2)); return t < life; },
@@ -642,7 +644,7 @@ export class GolemMind {
   }
 
   dust(x, z, r, count) {
-    this.ctx.particles.emit({
+    this.floor.particles.emit({
       pos: [x, 0.3, z], spread: [r, 0.2, r * 0.6], vel: [0, 2.2, 0], velSpread: [3, 1.6, 2],
       color: ['#6a5a4e', '#3a2e28', '#8a7a6a'], size: 0.16, life: 1.1, count, drag: 1.3, intensity: 0.8,
     });
@@ -657,7 +659,8 @@ export class GolemMind {
     const seen = new Set();
     const decided = new Set();
     const fight = this.fight;
-    const { particles, director } = this.ctx;
+    const { particles } = this.floor;
+    const { director } = this.ctx;
     this.fight.fx.push({
       step: (dt) => {
         const r = ripple.front - length / 4; // (the first crest, a quarter wavelength behind the front)
@@ -697,7 +700,7 @@ export class GolemMind {
     const b = this.b;
     const [cx, cy] = this.spot(SPOTS.chest);
     if (Math.random() < dt * 40) {
-      this.ctx.particles.emit({
+      this.floor.particles.emit({
         pos: [cx, cy, b.pos.y + 0.3], spread: [0.3, 0.3, 0.2], vel: [b.body.facing * 3, 10, 0], velSpread: [3, 3, 2],
         color: FIRE, size: 0.16, life: 1.0, count: 8, gravity: 6, drag: 0.4, intensity: 2.8,
       });
@@ -709,7 +712,8 @@ export class GolemMind {
   }
 
   meteor(a) {
-    const { scene, particles, world, rig } = this.ctx;
+    const { scene, particles } = this.floor;
+    const { world, rig } = this.ctx;
     const M = GOLEM.meteor;
     const { cx, cz } = world.arena;
     let x;

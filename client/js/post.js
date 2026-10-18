@@ -179,6 +179,9 @@ function maskOf(src, white = true, lit = false) {
 // islands, the hub, the arena, the skyline: the groups at the top of the scene; the sky and the
 // mist, `world`) and the shadows under the characters (`shade`).
 const litByDark = (o) => (o.isMesh || o.isPoints) && o.visible && !o.userData.world && !o.userData.shade;
+// (what's loosed on a floor of its own, raised or lowered with it, is in a group of its own at the
+// top of the scene, `floor`: the arena's, fight.js, and the training yard's, training.js)
+const darkLit = (scene) => scene.children.flatMap((o) => (o.userData.floor ? o.children.filter(litByDark) : litByDark(o) ? [o] : []));
 
 export class Post {
   constructor(renderer, scene, camera) {
@@ -245,7 +248,7 @@ export class Post {
         u.uDarkAt.value.set(...this.dark.at);
         u.uDarkR.value = this.dark.front;
         u.uLightR.value = this.dark.light || 0;
-        this.renderMask(this.darkRT, this.scene.children.filter(litByDark), [], true);
+        this.renderMask(this.darkRT, darkLit(this.scene), [], true);
       }
       u.uRings.value.forEach((v, i) => (rings[i] ? v.set(...rings[i]) : v.set(0, 0, 0, 0)));
     }

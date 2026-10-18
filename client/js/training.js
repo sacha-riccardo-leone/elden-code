@@ -125,6 +125,7 @@ export class Training {
     // what's loosed here, set on the yard's floor (its particles likewise)
     this.group = new THREE.Group();
     this.group.position.y = YARD.y;
+    this.group.userData.floor = true; // (not the world's: post.js)
     ctx.scene.add(this.group);
     const lifted = (p) => [p[0], p[1] + YARD.y, p[2]];
     const particles = {

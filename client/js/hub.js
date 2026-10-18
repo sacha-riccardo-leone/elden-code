@@ -4,7 +4,7 @@
 // with pixel-art fire (fire.js), a broken colonnade, and a banner for each project's region.
 
 import * as THREE from 'three';
-import { HUB, HUB_LAYOUT } from './config.js';
+import { HUB, HUB_LAYOUT, ARENA } from './config.js';
 import * as T from './textures.js';
 import { rng, ramp, hashStr } from './pixel.js';
 import { Builder, BRICK_TILE, scaleCylUV, seedOf } from './build.js';
@@ -62,14 +62,18 @@ export class Hub extends Builder {
     const cliff = new THREE.Mesh(new THREE.CylinderGeometry(R, R - 1.5, 26, 40, 1, true), new THREE.MeshLambertMaterial({ map: rock }));
     cliff.position.y = -13;
     this.add(cliff);
-    // (open to the south where the stair runs down to the training yard, yard.js)
-    const gap = Math.asin((YARD.stairHalf + 0.4) / (R - 0.1));
-    const rim = new THREE.TorusGeometry(R - 0.1, 0.22, 4, 46, Math.PI * 2 - gap * 2);
-    rim.rotateZ(Math.PI / 2 + gap);
-    const lip = new THREE.Mesh(rim, this.mat.stoneMoss);
-    lip.rotation.x = Math.PI / 2;
-    lip.position.y = -0.05;
-    this.add(lip);
+    // (open where the stairs leave it: south, down to the training yard, yard.js, and north, up to
+    // the Arena of Trials, arena.js)
+    const south = Math.asin((YARD.stairHalf + 0.4) / (R - 0.1));
+    const north = Math.asin((ARENA.bridgeHalf + 0.4) / (R - 0.1));
+    for (const [from, to] of [[Math.PI / 2 + south, Math.PI * 1.5 - north], [Math.PI * 1.5 + north, Math.PI * 2.5 - south]]) {
+      const rim = new THREE.TorusGeometry(R - 0.1, 0.22, 4, 23, to - from);
+      rim.rotateZ(from);
+      const lip = new THREE.Mesh(rim, this.mat.stoneMoss);
+      lip.rotation.x = Math.PI / 2;
+      lip.position.y = -0.05;
+      this.add(lip);
+    }
 
     // the round table on its rug
     const [tx, tz] = HUB_LAYOUT.table;

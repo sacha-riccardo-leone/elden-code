@@ -43,6 +43,7 @@ import { Spark } from './spellfx.js';
 import { GOLEM, GOLEM_MOVES, GolemMind } from './golem.js';
 import { setFoe } from './voices.js';
 import { clearRipples, rippleAt, stepRipples } from './ripple.js';
+import { groundAt } from './ground.js';
 import { styleOf, blow, castSpell, muzzleOf, SPELL, RANGED, ultFill, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause } from './combat.js';
 
 // reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
@@ -248,7 +249,7 @@ class Boss {
   // Where his words show (ui.say): over his head, wherever his leap has him.
   head() {
     const s = this.body.sheet;
-    return new THREE.Vector3(this.pos.x, this.lift + s.head * s.px, this.pos.y);
+    return new THREE.Vector3(this.pos.x, groundAt(this.pos.x, this.pos.y) + this.lift + s.head * s.px, this.pos.y);
   }
 
   // One of his drawings.
@@ -314,8 +315,22 @@ export class Fight {
     this.fx = []; // his magic, living on by itself: flying crescents, lances, fading light, cracks
     this.rings = []; // his roar's shockwaves (stepDark)
     this.dark = null; // his great attack's dark, falling or lifting (stepDark)
+    // The arena's floor stands higher than the Hold's (ARENA.y): what's loosed on it is set in a
+    // group raised to it, and its particles are raised to the ground under them (ground.js), so
+    // that all of it is placed from the floor, as ever (the Golem's too, golem.js).
+    const floor = new THREE.Group();
+    floor.position.y = ARENA.y;
+    floor.userData.floor = true; // (lit through his great attack's dark, post.js)
+    ctx.scene.add(floor);
+    const raised = (p) => [p[0], p[1] + groundAt(p[0], p[2]), p[2]];
+    this.floor = {
+      scene: floor,
+      particles: {
+        emit: (o) => ctx.particles.emit({ ...o, pos: raised(o.pos), attract: o.attract && { ...o.attract, y: o.attract.y + groundAt(o.attract.x, o.attract.z) } }),
+      },
+    };
     // (and the Tarnished's spells and ultimates, spellfx.js: they're handed this to live in)
-    this.fxCtx = { scene: ctx.scene, particles: ctx.particles, add: (e) => this.fx.push(e) };
+    this.fxCtx = { scene: floor, particles: this.floor.particles, add: (e) => this.fx.push(e) };
     this.cause = null;
     this.calling = null; // one coming, while thou choosest thy companions: { cause, kind, at }
     this.companions = new Set(); // those thou took with thee into the fight
@@ -575,7 +590,7 @@ export class Fight {
     this.dmgUntil = this.clock + 1.6;
     this.lastHurt = this.clock;
     if (how) this.impact(b, src, at, how, dealt, steady && b.state === 'staggered');
-    this.ctx.particles.emit({
+    this.floor.particles.emit({
       pos: at || [b.pos.x, 2.2, b.pos.y], spread: [0.5, 0.8, 0.3], vel: [0, 1.4, 0], velSpread: [1.4, 1, 0.8],
       color: ['#ff6a4a', '#ffd2a8', '#a01818'], size: 0.07, life: 0.6, count: 10, drag: 1.2, intensity: 2.2,
     });
@@ -840,11 +855,12 @@ export class Fight {
     // his great attack: him as he roars, then the whole arena, from farther back, till the ring
     // has erupted
     if (b.attack?.kind === 'wrath') {
-      if (b.attack.step === 0) return { at: [b.pos.x, 4.2, b.pos.y], dist: BOSS_CAM.far, mode: 'roar' };
+      if (b.attack.step === 0) return { at: [b.pos.x, ARENA.y + 4.2, b.pos.y], dist: BOSS_CAM.far, mode: 'roar' };
       const { cx, cz } = this.ctx.world.arena;
-      return { at: [cx, 2.5, cz], dist: WRATH.cam, mode: 'wide' };
+      return { at: [cx, ARENA.y + 2.5, cz], dist: WRATH.cam, mode: 'wide' };
     }
-    const { far, y } = b.kind.cam;
+    const { far } = b.kind.cam;
+    const y = ARENA.y + b.kind.cam.y; // (above the arena's floor)
     if (this.clock < this.introUntil) return { at: [b.pos.x, y, b.pos.y], dist: far };
     if (this.focus) return { at: [me.pos.x + (b.pos.x - me.pos.x) * 0.45, y, me.pos.y + (b.pos.y - me.pos.y) * 0.45], dist: far };
     return { at: null, dist: BOSS_CAM.near };
@@ -920,14 +936,14 @@ export class Fight {
     // what the ultimates do to him (combat.js): bleeding, poisoned, knocked back, kept in a pool;
     // held still or dazed, he does nothing; slowed, everything he does is slow
     const now = this.clock;
-    stepStatus(b, now, dt, { hit: (amount, src) => this.hit(b, amount, null, src, false), shift: (dx, dz) => this.shift(b, dx, dz), particles: this.ctx.particles });
+    stepStatus(b, now, dt, { hit: (amount, src) => this.hit(b, amount, null, src, false), shift: (dx, dz) => this.shift(b, dx, dz), particles: this.floor.particles });
     const held = heldAt(b, now) && b.alive;
     const dazed = held && now < b.status.stunUntil;
     const pace = paceAt(b, now);
     const bdt = held ? 0 : dt * pace;
     if (dazed && Math.random() < dt * 14) {
       const a = now * 5 + Math.random();
-      this.ctx.particles.emit({
+      this.floor.particles.emit({
         pos: [b.pos.x + Math.cos(a) * 1.1, b.lift + b.body.sheet.head * b.body.sheet.px * 0.85, b.pos.y + Math.sin(a) * 0.4], spread: [0.05, 0.05, 0.05],
         vel: [0, 0.3, 0], velSpread: [0.2, 0.1, 0.2], color: ['#fff3c4', '#ffd75a'], size: 0.09, life: 0.5, count: 1, drag: 1, intensity: 2.6,
       });
@@ -949,7 +965,7 @@ export class Fight {
         // unbeaten, he fades into a red mist
         b.fade = Math.max(0, 1 - b.t / 2.5);
         if (Math.random() < dt * 24) {
-          this.ctx.particles.emit({
+          this.floor.particles.emit({
             pos: [b.pos.x, 1 + Math.random() * 4, b.pos.y], spread: [1.8, 1, 0.4], vel: [0, 0.8, 0], velSpread: [0.8, 0.5, 0.4],
             color: ['#6a1414', '#2a0a0a', '#c0281e'], size: 0.12, life: 1.8, count: 6, drag: 0.6, intensity: 1.2,
           });
@@ -960,7 +976,7 @@ export class Fight {
         b.fade = Math.max(0, 1 - b.t / 3);
         b.lift = Math.max(0, b.lift - dt * 14);
         if (Math.random() < dt * 20) {
-          this.ctx.particles.emit({
+          this.floor.particles.emit({
             pos: [b.pos.x, 1.5 + Math.random() * 3, b.pos.y], spread: [1.6, 1, 0.4], vel: [0, 1.2, 0], velSpread: [0.6, 0.6, 0.4],
             color: ['#ffd27a', '#2a1a1a', '#fff1c0'], size: 0.09, life: 1.6, count: 6, drag: 0.6, intensity: 1.8,
           });
@@ -993,14 +1009,14 @@ export class Fight {
     if (b.pos.distanceTo(b.anchor) > 3) { b.anchor.copy(b.pos); b.anchorT = 0; } else b.anchorT += dt;
     // (held, he's still as stone; dazed, he sways; slowed, all of him is slow)
     b.body.tick(held ? (dazed ? dt * 0.4 : 0) : dt * pace, moving ? 0.8 * fast : 0.7);
-    b.body.place(b.pos.x + jitter + b.body.facing * b.offset, rippleAt(b.pos.x, b.pos.y), b.pos.y, b.lift);
+    b.body.place(b.pos.x + jitter + b.body.facing * b.offset, groundAt(b.pos.x, b.pos.y) + rippleAt(b.pos.x, b.pos.y), b.pos.y, b.lift);
     // his shadow: wide and deep (he's long, and heavy), a little smaller the higher he leaps (and
     // longer, the Golem lying on his face)
     const s = 1 - Math.min(0.3, b.lift * 0.045);
     const [sw, sd] = b.kind.shadow;
     const lying = b.mind?.lying ? 1.6 : 1;
     b.body.blob.position.x = b.pos.x + (lying > 1 ? b.body.facing * 1.4 : 0);
-    b.body.blob.position.y = rippleAt(b.body.blob.position.x, b.pos.y) + 0.015;
+    b.body.blob.position.y = groundAt(b.body.blob.position.x, b.pos.y) + rippleAt(b.body.blob.position.x, b.pos.y) + 0.015;
     b.body.blob.scale.set(sw * s * lying, sd * s, 1);
     b.body.blob.material.opacity = b.fade;
     b.body.mat.opacity = b.fade;
@@ -1157,7 +1173,7 @@ export class Fight {
         // gathering himself: he trembles, side to side, and the ground stirs at his feet
         jitter = (Math.floor(a.t * 28) % 2 ? 1 : -1) * 0.09;
         if (Math.random() < dt * 14) {
-          this.ctx.particles.emit({
+          this.floor.particles.emit({
             pos: [b.pos.x, 0.15, b.pos.y], spread: [2, 0.05, 0.6], vel: [0, 0.8, 0], velSpread: [0.8, 0.5, 0.4],
             color: ['#5a4a3e', '#3a2e28'], size: 0.1, life: 0.6, count: 3, drag: 1.5, intensity: 0.8,
           });
@@ -1187,7 +1203,7 @@ export class Fight {
     if (a.step === 0) {
       jitter = (Math.floor(a.t * 24) % 2 ? 1 : -1) * 0.05;
       if (Math.random() < dt * 30) {
-        this.ctx.particles.emit({
+        this.floor.particles.emit({
           pos: [b.pos.x + b.body.facing * 0.2, 6.8, b.pos.y + 0.3], spread: [0.6, 0.4, 0.3], vel: [0, 2.6, 0], velSpread: [1.4, 1, 0.6],
           color: ['#ff5a3a', '#a01818', '#2a0a0a'], size: 0.11, life: 0.9, count: 3, drag: 0.8, intensity: 2,
         });
@@ -1249,7 +1265,8 @@ export class Fight {
   // On to the move's next drawing, and what happens as it's struck.
   nextStep(b) {
     const a = b.attack;
-    const { scene, particles, rig } = this.ctx;
+    const { scene, particles } = this.floor;
+    const { rig } = this.ctx;
     a.step += 1;
     a.t = 0;
     const steps = MOVES[a.kind].steps;
@@ -1359,14 +1376,16 @@ export class Fight {
 
   // His great attack, at the turn of each of its steps (nextStep).
   wrathStep(b, a) {
-    const { scene, particles, rig } = this.ctx;
+    const { scene, particles } = this.floor;
+    const { rig } = this.ctx;
     const { cx, cz } = this.ctx.world.arena;
     switch (a.step) {
       case 0: {
         // he roars at the sky, and the world goes dark round everyone (stepDark)
         const R = WRATH.roar;
-        const head = new THREE.Vector3(b.pos.x + b.body.facing * R.head[0], R.head[1], b.pos.y);
-        this.dark = { t: 0, at: head, mid: new THREE.Vector3(cx, 1, cz), liftIn: null, lift: null };
+        // (seen on the screen: his head, and the arena's middle, as high as they stand)
+        const head = new THREE.Vector3(b.pos.x + b.body.facing * R.head[0], R.head[1] + ARENA.y, b.pos.y);
+        this.dark = { t: 0, at: head, mid: new THREE.Vector3(cx, 1 + ARENA.y, cz), liftIn: null, lift: null };
         particles.emit({
           pos: [b.pos.x, 0.25, b.pos.y], spread: [3, 0.1, 1.6], vel: [0, 1.2, 0], velSpread: [3.5, 0.6, 2],
           color: ['#5a4a3e', '#3a2e28', '#6a2a2a'], size: 0.14, life: 1, count: 40, drag: 1.4, intensity: 0.9,
@@ -1453,7 +1472,7 @@ export class Fight {
   // A shockwave of his roar, out from his head (post.js bends the picture round it), jolting the camera.
   roarRing(b) {
     const R = WRATH.roar;
-    this.rings.push({ t: 0, at: new THREE.Vector3(b.pos.x + b.body.facing * R.head[0], R.head[1], b.pos.y) });
+    this.rings.push({ t: 0, at: new THREE.Vector3(b.pos.x + b.body.facing * R.head[0], R.head[1] + ARENA.y, b.pos.y) });
     this.ctx.rig.shake?.(R.shake);
   }
 
@@ -1517,7 +1536,7 @@ export class Fight {
   // Half the arena about to be cut (side: -1 the left, 1 the right), marked: what the fighters run from.
   markHalf(b, a, side) {
     const { cx, cz } = this.ctx.world.arena;
-    const m = new Decal(this.ctx.scene, 'half', cx, cz, FLOOR_R * 2 * 96 / 92, { opacity: 0.38 });
+    const m = new Decal(this.floor.scene, 'half', cx, cz, FLOOR_R * 2 * 96 / 92, { opacity: 0.38 });
     m.mesh.scale.x = side < 0 ? 1 : -1; // (drawn as the left half)
     m.pulse = 0.42;
     a.mark = m;
@@ -1539,7 +1558,8 @@ export class Fight {
   // The cut lands: all on that side of the arena (not dodging, nor in the air) suffer; the floor
   // there flares and fades, red embers fly, the ground shakes.
   cutHalf(b, a, side) {
-    const { scene, particles, rig } = this.ctx;
+    const { scene, particles } = this.floor;
+    const { rig } = this.ctx;
     const { cx, cz } = this.ctx.world.arena;
     if (a.mark) this.unmark(b, a.mark);
     a.mark = null;
@@ -1561,7 +1581,8 @@ export class Fight {
   // The ring erupts: red light tears up out of the floor all over it, rippling out from the golden
   // circle to the edge; all on it (not dodging, nor in the air) suffer; the ground shakes.
   erupt(b, a) {
-    const { scene, particles, rig } = this.ctx;
+    const { scene, particles } = this.floor;
+    const { rig } = this.ctx;
     const { cx, cz } = this.ctx.world.arena;
     const E = WRATH.erupt;
     const R = ARENA.walkRadius;
@@ -1957,7 +1978,7 @@ export class Fight {
           const enter = this.boss.kind.says.enter;
           if (enter) this.say(pickOf(enter), 1.4, true);
           this.boss.talkIn = rand(10, 16);
-          this.ctx.particles.emit({
+          this.floor.particles.emit({
             pos: [bx, 1.5, bz], spread: [1.2, 2, 0.8], vel: [0, 1.5, 0], velSpread: [1, 1, 0.6],
             color: ['#2a1a1a', '#6a2a2a', '#ff5a3a'], size: 0.14, life: 2, count: 80, drag: 0.6, intensity: 1.4,
           });

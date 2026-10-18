@@ -8,6 +8,7 @@ import { Npc } from './npc.js';
 import { SPECTRE_COLORS, spectreSheet } from './spectres.js';
 import { conversation } from './lore.js';
 import { speak, voiceOf } from './voices.js';
+import { groundAt } from './ground.js';
 
 const COMMAND_FX = {
   'code-review': { title: 'Incantation of Scrutiny', icon: 'eye' },
@@ -164,7 +165,7 @@ export class Director {
     if (s.glow <= 0 && s.stage < 2) {
       s.glow = 0.12;
       this.ctx.particles.emit({
-        pos: [n.pos.x, 1.3, n.pos.y], spread: [0.5, 1.1, 0.3], vel: [0, 1.1, 0], velSpread: [0.3, 0.4, 0.3],
+        pos: [n.pos.x, groundAt(n.pos.x, n.pos.y) + 1.3, n.pos.y], spread: [0.5, 1.1, 0.3], vel: [0, 1.1, 0], velSpread: [0.3, 0.4, 0.3],
         color: middle?.rig.motes || ['#ffd75a', '#fff1c0', '#f0a020'], size: 0.07, life: 1.3, count: 6, drag: 0.6, intensity: 2.2,
       });
     }
@@ -723,7 +724,7 @@ export class Director {
     for (let k = 0; k < 28; k++) {
       const a = (k / 28) * Math.PI * 2;
       this.ctx.particles.emit({
-        pos: [npc.pos.x + Math.cos(a) * 0.9, 0.08, npc.pos.y + Math.sin(a) * 0.55], vel: [0, 1.6, 0], velSpread: [0.1, 0.4, 0.1],
+        pos: [npc.pos.x + Math.cos(a) * 0.9, groundAt(npc.pos.x, npc.pos.y) + 0.08, npc.pos.y + Math.sin(a) * 0.55], vel: [0, 1.6, 0], velSpread: [0.1, 0.4, 0.1],
         color: ['#ffd27a', '#fff1b8'], size: 0.07, life: 1.3, drag: 0.5, intensity: 2.4,
       });
     }

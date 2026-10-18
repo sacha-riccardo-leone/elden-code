@@ -1,14 +1,17 @@
 // The Arena of Trials, north of Roundtable Hold: a ring of broken stone where great enemies are
-// fought (fight.js). It lies sunk below the mist, rises (with its bridge from the Hold) when a fight
-// begins, and sinks again once the fight is over and nobody is left on it.
+// fought (fight.js). It lies sunk below the mist, rises (with the stair up to it from the Hold) when
+// a fight begins, and sinks again once the fight is over and nobody is left on it. Risen, its floor
+// stands higher than the Hold's (ARENA.y, ground.js): on the stair the ground climbs from the one
+// to the other.
 
 import * as THREE from 'three';
 import { ARENA, HUB } from './config.js';
 import * as T from './textures.js';
 import { rng } from './pixel.js';
-import { Builder, BRICK_TILE, scaleCylUV, scaleBoxUV, NOISE_GLSL, UV_VERT } from './build.js';
+import { Builder, BRICK_TILE, scaleCylUV, NOISE_GLSL, UV_VERT } from './build.js';
 import { Flame } from './fire.js';
 import { rippleBounds, rippling } from './ripple.js';
+import { addLevel } from './ground.js';
 
 const FLOOR = {
   stone: ['#3e3a37', '#45403c', '#393532', '#4a4440', '#403b37'],
@@ -17,6 +20,11 @@ const FLOOR = {
   tuft: ['#565034', '#47422f'],
 };
 const DEPTH = 46; // how far below the mist it waits
+// The stair up from the Hold: its foot (where it leaves the Hold's ground, just past the cliff's
+// edge), its head (the arena's rim), its steps, and how far before a step's middle the ground under
+// a foot reaches the step's height, so that a foot sinks at most a hair into a step's edge (yard.js
+// likewise, going down).
+const STAIR = { foot: -(HUB.radius + 0.5), head: ARENA.z + ARENA.radius, steps: 20, lead: 0.22 };
 const GATE = { w: ARENA.bridgeHalf * 2 + 0.9, h: 4.2 }; // the fog wall across its entrance
 
 // The fog wall that seals the arena once thou'st stepped in to face a great enemy: a curtain of
@@ -73,6 +81,21 @@ export class Arena extends Builder {
     this.risen = false;
     this.moving = 0; // +1 rising, -1 sinking
     this.setDepth(DEPTH);
+    addLevel({ contains: (x, z) => this.isLevel(x, z), y: (x, z) => this.floorAt(x, z) });
+  }
+
+  // Where its ground lies once it has risen: the ring and the air round it (an ultimate may carry
+  // someone off its edge for a moment: they stay at its height), and the stair up to it.
+  isLevel(x, z) {
+    if (!this.risen) return false;
+    if ((x - this.cx) ** 2 + (z - this.cz) ** 2 <= (ARENA.radius + 2) ** 2) return true;
+    return Math.abs(x - this.cx) <= ARENA.bridgeHalf + 0.6 && z <= STAIR.foot && z > STAIR.head;
+  }
+
+  // The Hold's ground runs on to the stair's foot, then up its steps to the arena's floor.
+  floorAt(x, z) {
+    if (z <= STAIR.head) return ARENA.y;
+    return Math.max(0, Math.min(ARENA.y, (ARENA.y * (STAIR.foot + STAIR.lead - z)) / (STAIR.foot - STAIR.head)));
   }
 
   contains(x, z) {
@@ -96,7 +119,7 @@ export class Arena extends Builder {
     this.world.version += 1; // (the bridge is walkable again, or not: the nav grid follows)
     if (!on) return;
     this.world.particles.emit({
-      pos: [this.cx, 1.4, this.cz + this.gateZ], spread: [GATE.w / 2, 1.2, 0.2], vel: [0, 0.6, 0], velSpread: [0.5, 0.5, 0.5],
+      pos: [this.cx, ARENA.y + 1.4, this.cz + this.gateZ], spread: [GATE.w / 2, 1.2, 0.2], vel: [0, 0.6, 0], velSpread: [0.5, 0.5, 0.5],
       color: ['#e8e4dc', '#c8c4bc', '#f2dca8'], size: 0.12, life: 1.6, count: 50, drag: 0.8, intensity: 1.1,
     });
   }
@@ -201,25 +224,35 @@ export class Arena extends Builder {
     this.add(this.fogWall);
     this.fogLight = this.light(0, 2.2, this.gateZ - 0.8, '#dfe2ea', 8, 1.6);
 
-    // the bridge back to Roundtable Hold, which rises and sinks with the arena
-    const z0 = R - 0.6;
-    const z1 = -HUB.radius - this.cz + 0.6;
-    const len = z1 - z0;
-    const mid = (z0 + z1) / 2;
-    const box = (w, h, d, mat, x, y, z) => {
-      const m = new THREE.Mesh(scaleBoxUV(new THREE.BoxGeometry(w, h, d), w, h, d, BRICK_TILE), mat);
-      m.position.set(x, y, z);
-      m.castShadow = true;
-      m.receiveShadow = true;
-      this.add(m);
-    };
-    box(ARENA.bridgeHalf * 2 + 0.5, 0.6, len, this.mat.stone, 0, -0.28, mid);
-    box(1.6, 1.4, len * 0.7, this.mat.stoneMoss, 0, -1.2, mid);
+    // the stair of stone up from Roundtable Hold, which rises and sinks with the arena: its foot over
+    // the Hold's cliff, its steps on a slab with a keel of mossy stone under it and a pier down
+    // into the mist, low stones along its sides and a taller one either side of its foot
+    const Y = ARENA.y;
+    const at = (z) => z - this.cz; // (from the world's north and south to the arena's)
+    const up = (z) => Math.max(0, Math.min(Y, (Y * (STAIR.foot - z)) / (STAIR.foot - STAIR.head))); // (how far it has climbed at z)
+    const v = (x, y, z) => new THREE.Vector3(x, y - Y, at(z)); // (the arena's floor is its 0)
+    const wide = ARENA.bridgeHalf * 2 + 0.5;
+    const tread = (STAIR.foot - STAIR.head) / STAIR.steps;
+    const foot = -(HUB.radius - 0.35);
+    this.box(wide, 0.6, foot - STAIR.foot, this.mat.stone, 0, -0.28 - Y, at((foot + STAIR.foot) / 2));
+    for (let i = 0; i < STAIR.steps; i++) {
+      const top = (Y * (i + 0.5)) / STAIR.steps;
+      this.box(wide, 0.6, tread + 0.02, this.mat.stone, 0, top - 0.3 - Y, at(STAIR.foot - tread * (i + 0.5)));
+    }
+    this.beam(v(0, -0.75, STAIR.foot), v(0, Y - 0.75, STAIR.head), wide - 0.1, this.mat.stone, 0.5);
+    const keel = [STAIR.foot - 0.8, STAIR.head + 0.8].map((z) => v(0, up(z) - 1.45, z));
+    this.beam(keel[0], keel[1], 1.6, this.mat.stoneMoss, 1.4);
+    const pier = STAIR.foot - (STAIR.foot - STAIR.head) * 0.45;
+    this.box(1.5, 22, 1.5, this.mat.stoneMoss, 0, up(pier) - 1.9 - 11 - Y, at(pier));
     for (const side of [-1, 1]) {
-      for (let z = z0 + 0.3; z < z1 - 0.3; z += 1.1) {
-        if (r() < 0.2) continue;
-        box(0.25, 0.5 + r() * 0.15, 0.9, this.mat.stoneMoss, side * (ARENA.bridgeHalf + 0.13), 0.27, z + 0.45);
+      const x = side * (ARENA.bridgeHalf + 0.13);
+      for (let i = 0; i < STAIR.steps; i += 2) {
+        if (r() < 0.15) continue;
+        const h = 0.5 + r() * 0.15;
+        const base = (Y * (i + 0.5)) / STAIR.steps; // (on the lower of the two steps it stands on)
+        this.box(0.25, h, tread * 2 - 0.08, this.mat.stoneMoss, x, base + h / 2 - Y, at(STAIR.foot - tread * (i + 1)));
       }
+      this.box(0.4, 0.9, 0.5, this.mat.stoneMoss, x, 0.42 - Y, at(foot - 0.35));
     }
   }
 
@@ -249,9 +282,10 @@ export class Arena extends Builder {
     this.world.version += 1;
   }
 
+  // (risen, at its own height: ARENA.y)
   setDepth(d) {
-    this.group.position.y = -d;
-    for (const src of this.ownLights) src.pos.y = src.baseY - d;
+    this.group.position.y = ARENA.y - d;
+    for (const src of this.ownLights) src.pos.y = src.baseY + ARENA.y - d;
   }
 
   update(dt, t) {

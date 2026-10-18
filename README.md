@@ -399,9 +399,10 @@ itself as before. Name a dump after its image (`atk-maren.png.bgra`) and the art
 ## Great enemies
 
 Boss fights happen in the **Arena of Trials**, a wide ring of broken pillars (radius 19). It rises
-from the mist north of Roundtable Hold, with a bridge from the Hold, once you call for the fight.
-It sinks again only once the fight is over and everyone has left it, you included
-(`client/js/fight.js`, `client/js/arena.js`).
+from the mist north of Roundtable Hold once you call for the fight, and stands higher than the
+Hold: a stone stair climbs to it from the Hold's rim. It sinks again only once the fight is over
+and everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`). Everything
+loosed on it is placed from its floor, as on the Hold (a group raised to its height, `ARENA.y`).
 
 - **What brings one:**
   - **Summoned:** at the Round Table (**E**).
@@ -568,16 +569,17 @@ It sinks again only once the fight is over and everyone has left it, you include
   `client/js/config.js`). The log tells you where to go. If you haven't come after two and a half
   minutes, it turns away and everyone goes home.
 - **No way out:** as you step onto the ring, a wall of fog wells up across the way in, between two
-  stone posts. Until the fight is over (felled, prevailing or withdrawn), nobody walks back out
-  over the bridge and you can't travel by grace, not even to the Hold. Then the fog thins away.
+  stone posts. Until the fight is over (felled, prevailing or withdrawn), nobody walks back down
+  the stair and you can't travel by grace, not even to the Hold. Then the fog thins away.
 - **The lights go out:** from the moment it's announced until it's felled, prevails or withdraws,
   every torch, candle, fire and grace in the Lands Between goes out, one after another, except the
   arena's braziers. Flames sink into their beds, the big fires give off a wisp of smoke, and the
   graces fade. They're lit again, one by one, once it's over (`DOUSE` in `client/js/config.js`).
 - **The way there:** meanwhile a golden arrow lies on the ground in front of you, pointing along
   the path to the arena (`client/js/guide.js`, `GUIDE` in the config). From an island it points
-  along the island and over its bridge; at the Hold it turns north. It fades once you're on the
-  arena, and comes back if you leave mid-fight. Low things in front of it never hide it.
+  along the island and over its bridge; at the Hold it turns north, up the stair. It fades once
+  you're on the arena, and comes back if you leave mid-fight. Low things in front of it never hide
+  it.
 - **How they fight:** each keeps its own ring around the enemy, circling its own way. When ready, one
   rushes in, strikes and falls back. Seeing a blow coming, they mostly sprint out of its way after
   a moment's reaction, though now and then someone is too slow.
@@ -887,10 +889,10 @@ client/js/crowd.js      characters are solid: parting overlaps by weight, shovin
 client/js/guide.js      the golden arrow on the ground that shows the way to the arena in a fight
 client/js/grace.js      the grace itself, the figure of golden light floating over every Site of Grace
 client/js/interact.js   E: using the stations and the Round Table
-client/js/arena.js      the Arena of Trials, north of the Hold
+client/js/arena.js      the Arena of Trials, north of the Hold and higher, and the stone stair up to it
 client/js/yard.js       the Training Yard below the Hold, and the stone stair down to it
 client/js/training.js   the yard's straw dummies, and thy blows, spells and ultimates on them
-client/js/ground.js     the ground's height where it isn't level with the Hold (the yard, its stair)
+client/js/ground.js     the ground's height where it isn't level with the Hold (the yard, the arena, their stairs)
 client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the fighters, thy health
 client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes
 client/js/golem.js      the Guardian Golem's fight: his weak points, his fall, shockwaves, fire

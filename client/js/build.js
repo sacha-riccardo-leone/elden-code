@@ -93,6 +93,18 @@ export class Builder {
     return m;
   }
 
+  // A square beam from one point to another (local coordinates), `w` thick (`h` tall, if given).
+  beam(from, to, w, mat, h = w) {
+    const len = from.distanceTo(to);
+    const m = new THREE.Mesh(scaleBoxUV(new THREE.BoxGeometry(w, h, len), w, h, len, BRICK_TILE), mat);
+    m.position.copy(from).lerp(to, 0.5);
+    m.lookAt(to); // (before it's in the group: its place and `to` are both the group's)
+    m.castShadow = true;
+    m.receiveShadow = true;
+    this.group.add(m);
+    return m;
+  }
+
   // Obstacles are given in local coordinates and stored in world coordinates.
   block(x0, z0, x1, z1) {
     this.obstacles.push({

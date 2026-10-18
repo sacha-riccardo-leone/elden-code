@@ -6,6 +6,7 @@
 
 import * as THREE from 'three';
 import { GUIDE } from './config.js';
+import { groundAt } from './ground.js';
 
 // A 32x32 arrow pointing up the canvas: a broad head on a shaft, gold paling to the tip, outlined.
 function arrowTexture() {
@@ -130,7 +131,9 @@ export class Guide {
     const dz = -Math.cos(this.angle);
     const pulse = Math.sin(this.t * 4.5);
     const dist = GUIDE.ahead + 0.9 * Math.max(0, -dz) + 0.14 * pulse;
-    this.group.position.set(x + dx * dist, 0.06, z + dz * dist);
+    const gx = x + dx * dist;
+    const gz = z + dz * dist;
+    this.group.position.set(gx, groundAt(gx, gz) + 0.06, gz); // (on the ground: up the arena's stair too, ground.js)
     this.group.rotation.y = this.angle;
     this.mesh.scale.setScalar(1 + 0.05 * pulse);
     this.mesh.material.opacity = this.show * (0.85 + 0.15 * pulse);

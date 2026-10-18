@@ -14,8 +14,9 @@ export const REGION = {
   walk: { minX: -14.6, maxX: 14.6, minZ: -9.0, maxZ: 8.6 },
 };
 export const HUB = { radius: 11, walkRadius: 10.2 };
-// The Arena of Trials, north of the Hold (arena.js): where great enemies are fought.
-export const ARENA = { z: -45, radius: 19, walkRadius: 17.6, bridgeHalf: 1.15 };
+// The Arena of Trials, north of the Hold (arena.js): where great enemies are fought. `y`: how
+// high its floor stands above the Hold's once it has risen (a stair of stone climbs to it).
+export const ARENA = { z: -45, radius: 19, walkRadius: 17.6, bridgeHalf: 1.15, y: 4 };
 // Where the fighters wait for thee (fight.js lineSpot): a curved line just inside the way in,
 // following the arena's round, in two wings either side of an aisle for thee to walk in by.
 export const LINE = {

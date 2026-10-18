@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import { HUB } from './config.js';
 import { rng } from './pixel.js';
-import { Builder, BRICK_TILE, scaleBoxUV } from './build.js';
+import { Builder, BRICK_TILE } from './build.js';
 import { addLevel } from './ground.js';
 
 // The yard: how far its five corners lie from its middle (one points south, away from the Hold, and
@@ -213,17 +213,6 @@ export class Yard extends Builder {
 
     // where its dummies stand (training.js draws them)
     for (const [x, z] of DUMMY_SPOTS) this.blockCircle(x, z, 0.5);
-  }
-
-  // A square beam from one point to another (local coordinates), `w` thick (`h` tall, if given).
-  beam(from, to, w, mat, h = w) {
-    const len = from.distanceTo(to);
-    const m = new THREE.Mesh(scaleBoxUV(new THREE.BoxGeometry(w, h, len), w, h, len, BRICK_TILE), mat);
-    m.position.copy(from).lerp(to, 0.5);
-    m.lookAt(to); // (before it's in the yard's group: its place and `to` are both the yard's)
-    m.castShadow = true;
-    this.add(m);
-    return m;
   }
 
   // A chain of iron links, each turned a quarter to the last.

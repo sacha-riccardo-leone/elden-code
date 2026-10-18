@@ -364,7 +364,7 @@ class Spirit {
     this.pulse = 0;
     this.phase = Math.random() * 6;
     owner.ctx.particles.emit({
-      pos: [this.pos.x, 1.4, this.pos.y], spread: [0.2, 0.3, 0.2], vel: [0, 0.6, 0], velSpread: [0.6, 0.4, 0.6],
+      pos: [this.pos.x, groundAt(this.pos.x, this.pos.y) + 1.4, this.pos.y], spread: [0.2, 0.3, 0.2], vel: [0, 0.6, 0], velSpread: [0.6, 0.4, 0.6],
       color: ['#7fc8ff', '#b4e2ff', '#4e8fd0'], size: 0.08, life: 1.1, count: 18, drag: 1, intensity: 1.8,
     });
   }
@@ -377,7 +377,7 @@ class Spirit {
     this.pos.lerp(target, Math.min(1, dt * 3));
     this.fade += ((this.leaving ? 0 : 1) - this.fade) * Math.min(1, dt * 3);
     this.pulse = Math.max(0, this.pulse - dt * 2);
-    const y = 1.5 + Math.sin(t * 2.2 + this.phase) * 0.18;
+    const y = groundAt(this.pos.x, this.pos.y) + 1.5 + Math.sin(t * 2.2 + this.phase) * 0.18;
     this.sprite.position.set(this.pos.x, y, this.pos.y);
     const size = (0.42 + this.pulse * 0.25) * (0.9 + 0.1 * Math.sin(t * 9 + this.phase));
     this.sprite.scale.set(size, size, 1);
@@ -396,7 +396,7 @@ class Spirit {
     if (this.leaving) return;
     this.leaving = true;
     this.owner.ctx.particles.emit({
-      pos: [this.pos.x, 1.5, this.pos.y], spread: [0.2, 0.3, 0.2], vel: [0, 1.2, 0], velSpread: [0.4, 0.4, 0.4],
+      pos: [this.pos.x, groundAt(this.pos.x, this.pos.y) + 1.5, this.pos.y], spread: [0.2, 0.3, 0.2], vel: [0, 1.2, 0], velSpread: [0.4, 0.4, 0.4],
       color: ['#7fc8ff', '#b4e2ff'], size: 0.07, life: 1.2, count: 16, drag: 0.6, intensity: 1.6,
     });
   }
@@ -470,7 +470,7 @@ export class Npc {
 
   head() {
     const s = this.body.sheet;
-    return new THREE.Vector3(this.pos.x, this.lift + s.head * s.px, this.pos.y);
+    return new THREE.Vector3(this.pos.x, groundAt(this.pos.x, this.pos.y) + this.lift + s.head * s.px, this.pos.y);
   }
 
   sheetFor(look) {
@@ -525,7 +525,7 @@ export class Npc {
     this.rebuildBody();
     if (rig && !quiet) {
       this.ctx.particles.emit({
-        pos: [this.pos.x, 1.2, this.pos.y], spread: [0.4, 1, 0.3], vel: [0, 1, 0], velSpread: [0.8, 0.8, 0.6],
+        pos: [this.pos.x, groundAt(this.pos.x, this.pos.y) + 1.2, this.pos.y], spread: [0.4, 1, 0.3], vel: [0, 1, 0], velSpread: [0.8, 0.8, 0.6],
         color: rig.burst || ['#ffd27a', '#fff1b8'], size: 0.08, life: 1.2, count: 36, drag: 0.9, intensity: 2.4,
       });
     }
@@ -538,7 +538,7 @@ export class Npc {
     this.look = look;
     if (!this.hero) this.rebuildBody();
     this.ctx.particles.emit({
-      pos: [this.pos.x, 1, this.pos.y], spread: [0.3, 0.7, 0.2], vel: [0, 0.8, 0], velSpread: [0.5, 0.5, 0.5],
+      pos: [this.pos.x, groundAt(this.pos.x, this.pos.y) + 1, this.pos.y], spread: [0.3, 0.7, 0.2], vel: [0, 0.8, 0], velSpread: [0.5, 0.5, 0.5],
       color: [look.crest, '#ffffff'], size: 0.08, life: 1.2, count: 30, drag: 0.8, intensity: 2,
     });
   }
@@ -698,7 +698,7 @@ export class Npc {
 
   goldBurst() {
     this.ctx.particles.emit({
-      pos: [this.pos.x, 0.4, this.pos.y], spread: [0.3, 0.6, 0.2], vel: [0, 2.4, 0], velSpread: [0.5, 1, 0.5],
+      pos: [this.pos.x, groundAt(this.pos.x, this.pos.y) + 0.4, this.pos.y], spread: [0.3, 0.6, 0.2], vel: [0, 2.4, 0], velSpread: [0.5, 1, 0.5],
       color: ['#ffd27a', '#fff1b8', '#ffb347'], size: 0.08, life: 1.3, count: 34, drag: 0.8, intensity: 2.4,
     });
   }
@@ -757,7 +757,7 @@ export class Npc {
     this.body.play('collapse', true);
     this.showIcon('skull', seconds);
     this.ctx.particles.emit({
-      pos: [this.pos.x, 0.4, this.pos.y], spread: [0.4, 0.1, 0.2], vel: [0, 0.6, 0], velSpread: [0.6, 0.3, 0.4],
+      pos: [this.pos.x, groundAt(this.pos.x, this.pos.y) + 0.4, this.pos.y], spread: [0.4, 0.1, 0.2], vel: [0, 0.6, 0], velSpread: [0.6, 0.3, 0.4],
       color: ['#8a2a22', '#3a1010', '#d14b3a'], size: 0.08, life: 1.4, count: 26, drag: 1, intensity: 1.2,
     });
   }
@@ -768,7 +768,7 @@ export class Npc {
     this.body.play('kneel', true);
     if (fancy) {
       this.ctx.particles.emit({
-        pos: [this.pos.x, 0.2, this.pos.y], spread: [0.3, 0.1, 0.3], vel: [0, 3, 0], velSpread: [0.4, 1.2, 0.4],
+        pos: [this.pos.x, groundAt(this.pos.x, this.pos.y) + 0.2, this.pos.y], spread: [0.3, 0.1, 0.3], vel: [0, 3, 0], velSpread: [0.4, 1.2, 0.4],
         color: ['#ffd27a', '#fff1b8', '#ffb347'], size: 0.09, life: 1.6, count: 60, drag: 0.6, intensity: 2.4,
       });
     }
@@ -781,7 +781,7 @@ export class Npc {
       const a = Math.random() * Math.PI * 2;
       const r = 1.6 + Math.random() * 1.2;
       this.ctx.particles.emit({
-        pos: [this.pos.x + Math.cos(a) * r, 0.4 + Math.random() * 2, this.pos.y + Math.sin(a) * r],
+        pos: [this.pos.x + Math.cos(a) * r, groundAt(this.pos.x, this.pos.y) + 0.4 + Math.random() * 2, this.pos.y + Math.sin(a) * r],
         color: ['#ffd27a', '#fff1b8'], size: 0.08, life: 2.4, drag: 1.2, attract: at, intensity: 2.2,
       });
     }
@@ -790,7 +790,7 @@ export class Npc {
 
   castBurst(color = ['#ffd27a', '#fff1b8']) {
     this.ctx.particles.emit({
-      pos: [this.pos.x + this.body.facing * 0.3, 1.4, this.pos.y], spread: [0.2, 0.2, 0.1], vel: [0, 1.2, 0], velSpread: [1, 0.8, 0.6],
+      pos: [this.pos.x + this.body.facing * 0.3, groundAt(this.pos.x, this.pos.y) + 1.4, this.pos.y], spread: [0.2, 0.2, 0.1], vel: [0, 1.2, 0], velSpread: [1, 0.8, 0.6],
       color, size: 0.08, life: 1, count: 18, drag: 1.5, intensity: 2.2,
     });
   }
@@ -815,7 +815,7 @@ export class Npc {
   drop() {
     this.dragged = false;
     this.ctx.particles.emit({
-      pos: [this.pos.x, 0.05, this.pos.y], spread: [0.3, 0, 0.15], vel: [0, 0.4, 0], velSpread: [0.8, 0.2, 0.4],
+      pos: [this.pos.x, groundAt(this.pos.x, this.pos.y) + 0.05, this.pos.y], spread: [0.3, 0, 0.15], vel: [0, 0.4, 0], velSpread: [0.8, 0.2, 0.4],
       color: ['#6a625a', '#8a8278'], size: 0.07, life: 0.8, count: 14, drag: 2, intensity: 0.8,
     });
     // Dropped near a station while idle? Try it out for a moment.
@@ -944,7 +944,7 @@ export class Npc {
 
   sparkle(count) {
     this.ctx.particles.emit({
-      pos: [this.pos.x, 1.3, this.pos.y], spread: [0.5, 1.1, 0.35], vel: [0, 1.4, 0], velSpread: [1, 1, 0.8],
+      pos: [this.pos.x, groundAt(this.pos.x, this.pos.y) + 1.3, this.pos.y], spread: [0.5, 1.1, 0.35], vel: [0, 1.4, 0], velSpread: [1, 1, 0.8],
       color: ['#7fc8ff', '#d8f2ff', '#3f86d8', '#ffffff'], size: 0.08, life: 1.4, count, drag: 0.9, intensity: 2.4, flicker: 1,
     });
   }
@@ -1386,13 +1386,13 @@ export class Npc {
     if (station === 'forge') {
       if (this.using || (this.slot && this.slot.index >= 0 && this.slot.index < 2)) region.forgeStrike();
       else this.ctx.particles.emit({
-        pos: [this.pos.x + this.body.facing * 0.6, 0.6, this.pos.y], spread: [0.05, 0.05, 0.05], vel: [0, 1.6, 0],
+        pos: [this.pos.x + this.body.facing * 0.6, groundAt(this.pos.x, this.pos.y) + 0.6, this.pos.y], spread: [0.05, 0.05, 0.05], vel: [0, 1.6, 0],
         velSpread: [1.2, 0.8, 0.8], color: ['#ffd27a', '#ff9a3a'], size: 0.05, life: 0.5, gravity: 6, count: 8, intensity: 2,
       });
     }
     if (station === 'ritual') {
       this.ctx.particles.emit({
-        pos: [this.pos.x, 0.1, this.pos.y], spread: [0.6, 0, 0.4], vel: [0, 1.4, 0], velSpread: [0.2, 0.5, 0.2],
+        pos: [this.pos.x, groundAt(this.pos.x, this.pos.y) + 0.1, this.pos.y], spread: [0.6, 0, 0.4], vel: [0, 1.4, 0], velSpread: [0.2, 0.5, 0.2],
         color: ['#d0304a', '#ff6a7a', '#8a1a3a'], size: 0.07, life: 1.4, count: 10, drag: 0.4, intensity: 2.2,
       });
     }
