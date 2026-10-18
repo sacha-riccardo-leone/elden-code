@@ -54,14 +54,16 @@ and reappear at their region's Site of Grace.
 South of the Hold, and lower, lies the **Training Yard** (`client/js/yard.js`), always there: a
 round floor of grey brick on a rock of its own, as wide as the arena's but without its pillars. A
 stone stair comes down to it from the rim, and whoever walks it goes down with it
-(`client/js/ground.js` gives the ground's height wherever it isn't level with the Hold). Eight straw
-dummies stand scattered over it (`client/js/training.js`), in new places each time the page loads,
-clear of the stair's foot, the props and one another. Racks of the Round Table's weapons
-(`client/js/weapons.js`) flank the foot of the stair, with barrels and crates beside them; an
-archery butt stands to the west, a sawdust ring marks the middle, and rope lanterns light the edge.
-Blows, spells and ultimates find the dummies as they find a great enemy. A dummy wobbles as each one lands, and once it has
-taken enough it bursts into pieces, then stands whole again five seconds later. Dummies never strike
-back. On the yard your ultimate is always full: each one still freezes the world for its moment,
+(`client/js/ground.js` gives the ground's height wherever it isn't level with the Hold). In the
+middle of its sawdust ring stands a great dummy of wood with a halberd, about twice a Tarnished's
+height, that never breaks; eight straw dummies stand scattered round it (`client/js/training.js`),
+in new places each time the page loads, clear of it, the stair's foot, the props and one another.
+Racks of the Round Table's weapons (`client/js/weapons.js`) flank the foot of the stair, with
+barrels and crates beside them; an archery butt stands to the west, and rope lanterns light the
+edge. Blows, spells and ultimates find the dummies as they find a great enemy. A dummy flashes white
+as each one lands, as a character struck does (as briefly, and pale by night, never a light going
+off), and wobbles away from it; once a straw one has taken enough it bursts into pieces, then stands
+whole again five seconds later. Dummies never strike back. On the yard your ultimate is always full: each one still freezes the world for its moment,
 but you needn't wait between them.
 
 | In Claude Code | In the world |
@@ -342,7 +344,11 @@ brightness on the palette's brightest colours. The hero is the art grid's name: 
 (Ulric), `champion` (Ruadan), `queen` (Solenne) or `sorceress-masked` (Corisande). Any other art grid
 goes by its path, its master art beside it, e.g. Fenrath's `client/assets/boss/boss.json`.
 
-Art that isn't a hero's (a training dummy, a prop) keeps its own colours. Only its fallback
+Art that isn't a hero's (a training dummy, a prop) keeps its own colours. When one drawing of a set
+comes back lighter or more orange than the rest, as the great dummy's two wobbles did
+(`client/assets/fx/boss-dummy.json`), the set's first drawing serves as the master: extract it on
+its own colours (`extract-hero.mjs --colors`), keep that image beside the grid it made, and give
+`recolor-sprite.mjs` the grid's path as the hero for the others. Otherwise only its fallback
 background goes, found as above (`scripts/image-io.mjs` holds what the two tools share):
 
 ```
@@ -908,7 +914,7 @@ client/js/grace.js      the grace itself, the figure of golden light floating ov
 client/js/interact.js   E: using the stations and the Round Table
 client/js/arena.js      the Arena of Trials, north of the Hold and higher, and the stone stair up to it
 client/js/yard.js       the Training Yard below the Hold, and the stone stair down to it
-client/js/training.js   the yard's straw dummies, and thy blows, spells and ultimates on them
+client/js/training.js   the yard's dummies (straw, and the great one that never breaks), and thy blows, spells and ultimates on them
 client/js/ground.js     the ground's height where it isn't level with the Hold (the yard, the arena, their stairs)
 client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the fighters, thy health
 client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes

@@ -1,8 +1,9 @@
 // The training yard below Roundtable Hold: a round floor of grey brick on a rock of its own, south
 // of the Hold and lower than it, as wide as the Arena of Trials (arena.js) but with no pillars; a
-// stair of stone comes down to it from the Hold's rim. A sawdust ring on its floor, straw dummies
-// scattered over it to strike (training.js), racks of the Round Table's weapons (weapons.js), an
-// archery butt, barrels and crates, rope lanterns about its edge. Always there.
+// stair of stone comes down to it from the Hold's rim. A sawdust ring on its floor, a great wooden
+// dummy in its middle and straw ones scattered over it to strike (training.js), racks of the Round
+// Table's weapons (weapons.js), an archery butt, barrels and crates, rope lanterns about its edge.
+// Always there.
 // Its ground is lower than the Hold's (ground.js): on the stair it runs from the one to the other.
 
 import * as THREE from 'three';
@@ -37,9 +38,13 @@ const PROPS = {
   butt: [-15.2, 2.6],
   lanterns: [-112, -68, -24, 22, 66, 114, 158, -158],
 };
-// Its dummies (training.js): `count` of them, scattered over its floor anew each time the world is
-// made, at least `edge` in from its edge and `apart` from one another, and clear of the stair's foot
-// and of what stands on it (by `clear`, past what each takes up).
+// Its great dummy (training.js): wood with a halberd, in the middle of its sawdust ring, never
+// breaking; where it stands (from the yard's middle), how much of the floor it takes up, and how
+// far off the straw ones keep (its halberd reaches far either side of it).
+export const BOSS_DUMMY = { x: 0, z: 0, radius: 1.3, clear: 5.5 };
+// Its straw dummies (training.js): `count` of them, scattered over its floor anew each time the
+// world is made, at least `edge` in from its edge and `apart` from one another, and clear of the
+// stair's foot and of what stands on it (by `clear`, past what each takes up).
 const DUMMIES = { count: 8, edge: 3, apart: 3.4, clear: 1.4 };
 export const DUMMY_SPOTS = scatter();
 
@@ -52,6 +57,7 @@ function scatter() {
   const { count, edge, apart, clear } = DUMMIES;
   const keep = [
     [0, n, 5], // (the stair's foot, and the way on from it)
+    [BOSS_DUMMY.x, BOSS_DUMMY.z, BOSS_DUMMY.clear],
     ...PROPS.racks.map(([x, z]) => [x, z, 1.25 + clear]),
     ...PROPS.barrels.map(([x, z]) => [x, z, 0.5 + clear]),
     [PROPS.crates[0] + 0.45, PROPS.crates[1] + 0.15, 1.05 + clear],
@@ -193,6 +199,7 @@ export class Yard extends Builder {
 
     // where its dummies stand (training.js draws them)
     for (const [x, z] of DUMMY_SPOTS) this.blockCircle(x, z, 0.5);
+    this.blockCircle(BOSS_DUMMY.x, BOSS_DUMMY.z, BOSS_DUMMY.radius);
   }
 
   // A weapon rack: two posts with caps, a rail high and one low between them, a trough at their

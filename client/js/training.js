@@ -1,6 +1,7 @@
-// Training in the yard below the Hold (yard.js): straw dummies to strike. Each wobbles as a blow,
-// a spell or an ultimate lands on it, and once it has taken enough it bursts into pieces, lies in
-// them a while, and stands whole again. They never strike back.
+// Training in the yard below the Hold (yard.js): straw dummies to strike, and a great one of wood
+// with a halberd in the middle. Each flashes white and wobbles as a blow, a spell or an ultimate
+// lands on it; a straw one, once it has taken enough, bursts into pieces, lies in them a while, and
+// stands whole again; the great one never breaks. They never strike back.
 //
 // Thy blows, spells and ultimates find a dummy as they find a great enemy on the arena (fight.js):
 // a dummy has the few things of his they ask after (where it stands, its body, that it lives), and
@@ -13,8 +14,9 @@
 // floor, so that a spell flies at the height it flies at on the arena.
 
 import * as THREE from 'three';
-import { YARD, DUMMY_SPOTS } from './yard.js';
+import { YARD, DUMMY_SPOTS, BOSS_DUMMY } from './yard.js';
 import { fxArt } from './fxart.js';
+import { flashing } from './npc.js';
 import { styleOf, castSpell, muzzleOf, stepStatus, RANGED } from './combat.js';
 import { Spark } from './spellfx.js';
 
@@ -24,6 +26,10 @@ import { Spark } from './spellfx.js';
 // its drawing's frames (fx/dummy.json), whole, leaning back, leaning forward, bursting, in pieces.
 const DUMMY = { hp: 100, blow: 26, spell: 22, reach: 2.6, radius: 0.55, px: 2.3 / 104, burst: 0.32, rest: 5 };
 const F = { whole: 0, back: 1, forward: 2, burst: 3, broken: 4 };
+// The great one (fx/boss-dummy.json: whole, leaning back, leaning forward): its size (a little over
+// five world units tall, under Fenrath's six), how far out of thy line a blow still finds it, and its
+// shadow's radius. It takes up BOSS_DUMMY.radius of the floor (yard.js).
+const GREAT = { px: 5.2 / 164, depth: 1.6, shadow: 1.7 };
 // A wobble, struck: leaning away from the blow, upright, leaning back toward it, upright (seconds).
 const WOBBLE = [[0.12, 'away'], [0.2, 'whole'], [0.3, 'toward'], [0.42, 'whole']];
 const STOP = { blow: 0.055, spell: 0.035 }; // (thy blows hold the world still a moment, as on the arena)
@@ -31,36 +37,42 @@ const CHIPS = ['#8a5a2a', '#b07a3e', '#e8dcc0', '#5a3a1c'];
 const REACH = 40; // how far an ultimate finds a dummy: across the yard
 
 class Dummy {
-  constructor(training, x, z) {
+  // (`great`: the great one, that never breaks)
+  constructor(training, x, z, great = false) {
     this.training = training;
+    this.great = great;
     this.pos = new THREE.Vector2(x, z);
     this.lift = 0;
     this.alive = true;
     this.state = 'idle';
     this.mind = null;
-    this.kind = { radius: DUMMY.radius, reach: 0, depth: 0.9 };
+    this.kind = great ? { radius: BOSS_DUMMY.radius, reach: 0, depth: GREAT.depth } : { radius: DUMMY.radius, reach: 0, depth: 0.9 };
     this.max = 8000; // (an ultimate hits it as hard as a great enemy: combat.ultPower)
     this.hp = DUMMY.hp;
     this.broken = null; // { t }: bursting, then lying in pieces
     this.wobble = null; // { t, dir }
-    const sheet = fxArt('dummy');
+    const sheet = fxArt(great ? 'boss-dummy' : 'dummy');
     this.sheet = sheet;
+    const px = great ? GREAT.px : DUMMY.px;
     const mat = new THREE.MeshLambertMaterial({ map: sheet?.frames[0] || null, transparent: true, alphaTest: 0.5 });
-    const w = (sheet?.w || 106) * DUMMY.px;
-    const h = (sheet?.h || 108) * DUMMY.px;
+    const { flash, onDraw } = flashing(mat); // (struck, white a moment, as a character is)
+    const w = (sheet?.w || 106) * px;
+    const h = (sheet?.h || 108) * px;
+    this.mid = h / 2; // (where splinters fly from)
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
-    // its foot (where its base meets the floor) on its place
-    const foot = sheet ? (sheet.w / 2 - sheet.foot[0]) * DUMMY.px : 0;
+    mesh.onBeforeRender = onDraw;
+    // its foot (where its base meets the floor; the great one's, between its feet) on its place
+    const foot = sheet ? (sheet.w / 2 - sheet.foot[0]) * px : 0;
     mesh.position.set(x + foot, YARD.y + h / 2 - 0.02, z);
     mesh.visible = !!sheet;
-    const blob = new THREE.Mesh(new THREE.CircleGeometry(0.62, 18), new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.32, depthWrite: false }));
+    const blob = new THREE.Mesh(new THREE.CircleGeometry(great ? GREAT.shadow : 0.62, 18), new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.32, depthWrite: false }));
     blob.rotation.x = -Math.PI / 2;
     blob.scale.y = 0.45;
     blob.position.set(x, YARD.y + 0.015, z + 0.05);
     blob.renderOrder = 1;
     training.ctx.scene.add(mesh, blob);
     // (the body the ultimates and the spotlight ask after, ults.js and post.js)
-    this.body = { mesh, facing: -1, flash() {}, knock() {}, shudder() {} };
+    this.body = { mesh, facing: -1, flash, knock() {}, shudder() {} };
     this.frame = -1;
     this.show(F.whole);
   }
@@ -73,10 +85,12 @@ class Dummy {
     this.body.mesh.material.map = this.sheet.frames[k];
   }
 
-  // Struck: it wobbles away from the blow (`dir`: the way the blow went), or bursts.
-  struck(amount, dir) {
+  // Struck: it flashes (not as a poison or a bleeding ticks: `flash`), and wobbles away from the
+  // blow (`dir`: the way the blow went), or bursts (never the great one).
+  struck(amount, dir, flash = true) {
     if (this.broken) return;
-    this.hp -= amount;
+    if (flash) this.body.flash();
+    if (!this.great) this.hp -= amount;
     if (this.hp <= 0) {
       this.broken = { t: 0 };
       this.wobble = null;
@@ -138,7 +152,10 @@ export class Training {
   // The dummies, once the effects' art has loaded (main.js).
   start() {
     if (this.dummies) return;
-    this.dummies = DUMMY_SPOTS.map(([x, z]) => new Dummy(this, x, YARD.cz + z));
+    this.dummies = [
+      new Dummy(this, BOSS_DUMMY.x, YARD.cz + BOSS_DUMMY.z, true),
+      ...DUMMY_SPOTS.map(([x, z]) => new Dummy(this, x, YARD.cz + z)),
+    ];
   }
 
   // Whether n is on the yard (its floor, not the stair).
@@ -178,7 +195,7 @@ export class Training {
     const d = (this.dummies || []).find((x) => {
       if (!x.standing) return false;
       const ahead = (x.pos.x - p.pos.x) * p.body.facing;
-      return ahead > -0.6 && ahead < DUMMY.reach + DUMMY.radius && Math.abs(x.pos.y - p.pos.y) < x.kind.depth;
+      return ahead > -0.6 && ahead < DUMMY.reach + x.kind.radius && Math.abs(x.pos.y - p.pos.y) < x.kind.depth;
     });
     if (!d) return false;
     const dir = Math.sign(d.pos.x - p.pos.x) || p.body.facing;
@@ -259,7 +276,7 @@ export class Training {
   // Splinters and straw flying off a dummy struck (`count` of them, `force`: how hard).
   chips(d, count, force) {
     this.fxCtx.particles.emit({
-      pos: [d.pos.x, 1.2, d.pos.y + 0.1], spread: [0.25, 0.5, 0.15], vel: [0, force * 0.6, 0], velSpread: [force, force * 0.6, force * 0.4],
+      pos: [d.pos.x, d.mid, d.pos.y + 0.1], spread: [0.25, 0.5, 0.15], vel: [0, force * 0.6, 0], velSpread: [force, force * 0.6, force * 0.4],
       color: CHIPS, size: 0.07, life: 0.8, count, gravity: 9, drag: 0.6, intensity: 0.9,
     });
   }
@@ -280,7 +297,7 @@ export class Training {
     for (const d of this.dummies) {
       d.step(dt);
       // (a poison or a bleeding wobbles it as it ticks)
-      stepStatus(d, this.clock, dt, { hit: (amount) => d.struck(amount, 1), shift: () => {}, particles: this.fxCtx.particles });
+      stepStatus(d, this.clock, dt, { hit: (amount) => d.struck(amount, 1, false), shift: () => {}, particles: this.fxCtx.particles });
     }
     const fx = this.fx;
     this.fx = [];

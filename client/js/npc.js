@@ -99,6 +99,32 @@ const LUNGE = { out: 0.05, period: 0.6, decay: 0.15, done: 0.7 };
 const FLASH = { long: 0.055, every: 0.34 }; // (no more than three flashes a second: no strobing)
 export const SPRING = { t: 0 };
 const realNow = () => performance.now() / 1000;
+
+// Struck, white a moment, a drawing that isn't a character's (the training yard's dummies,
+// training.js) as a character's is: as briefly, as seldom, and as white by day or by night
+// (SPRITE_LIGHT.flash: pale by night, never a light going off). Returns its flash(); the material
+// keeps it up as it's drawn (`onDraw`, the mesh's onBeforeRender).
+export function flashing(mat) {
+  const u = { value: 0 };
+  let at = -9;
+  let until = 0;
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uFlash = u;
+    shader.uniforms.uFlashWhite = SPRITE_LIGHT.flash;
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform float uFlash, uFlashWhite;')
+      .replace('#include <dithering_fragment>', '#include <dithering_fragment>\ngl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(uFlashWhite), uFlash);');
+  };
+  return {
+    flash(long = FLASH.long) {
+      const now = realNow();
+      if (now - at < FLASH.every) return;
+      at = now;
+      until = now + long;
+    },
+    onDraw: () => { u.value = realNow() < until ? 1 : 0; },
+  };
+}
 export class SpriteBody {
   constructor(scene, sheet, { spirit = false } = {}) {
     this.sheet = sheet;
