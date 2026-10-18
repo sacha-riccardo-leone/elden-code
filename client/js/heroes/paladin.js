@@ -3,9 +3,12 @@
 // light: the blade leaves a radiant arc, light bursts from it in rays, and a pillar of light
 // falls on his sword.
 // Source art: assets/hero/paladin.json (124x164, from paladin-stand.webp) and
-// paladin-kneel.json (113x125, from paladin-kneel.webp).
+// paladin-kneel.json (113x125, from paladin-kneel.webp). His swing (paladin-attack.json: the sword
+// raised, cut down in front, carried on low behind) and his Radiant Verdict (paladin-ult.json: the
+// giant blade of light raised back over his shoulder, then swept low ahead of him) are drawn whole;
+// they reach far wider than his frame, so they're kept in a bigger one (core.js, bigFrame).
 
-import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill } from './core.js';
+import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill, held } from './core.js';
 
 const FRAME = { w: 176, h: 172 };
 const MID = 53; // source column between the boots
@@ -29,6 +32,28 @@ const REACH = Math.hypot(TIP.x - GRIP.x, TIP.y - GRIP.y);
 const TIP_ANGLE = Math.atan2(TIP.y - GRIP.y, TIP.x - GRIP.x);
 const KNEEL_HEAD_X = 78; // over the kneeling knight's helm
 
+// His drawn poses: per frame of each, the column set where his body's middle (the scale skirt)
+// stands as he stands, and the row he stands on. The Radiant Verdict's giant blade of light runs
+// from its crossguard to its tip (`blade`, art pixels of the pose; `r` either side of that line),
+// and glows steadily; wound up, a glint runs along it. Loosed, the wave leaves it (`from`).
+const DRAWN = {
+  attack: [
+    { mid: 119, ground: 238 },
+    { mid: 68, ground: 238 },
+    { mid: 157, ground: 238 },
+  ],
+  ult: [
+    { mid: 289, ground: 220, blade: { from: [248, 18], to: [1, 86], r: 8 } },
+    { mid: 97, ground: 157, blade: { from: [179, 118], to: [433, 152], r: 8 }, from: [255, 135] },
+  ],
+};
+const BLADE_LIGHT = 'rqomk'; // the blade's white-gold (his palette's palest golds)
+// the big frame: room for the giant blade reaching far behind him raised, and far ahead swept
+const BIG = { w: 628, h: 240, anchor: 290 };
+const PX = (2.1 / 140) * 1.2; // world units per art pixel: a head taller than the knight (1.2x)
+// where the wave leaves him, [ahead, up] of his feet in world units (ults.js)
+const muzzleAt = (d) => [(d.from[0] - d.mid) * PX, (d.ground - d.from[1]) * PX];
+
 function swordCoords(x, y) {
   const dx = x + 0.5 - POMMEL.x;
   const dy = y + 0.5 - POMMEL.y;
@@ -46,12 +71,13 @@ function isSword(x, y) {
 }
 
 function prepare(art, more = {}) {
-  const { src, addColor } = art;
+  const { src, ids, addColor } = art;
   const colors = {
     deep: addColor('#e3b048'), // holy light, gold to white
     gold: addColor('#ffe7a4'),
     white: addColor('#fffbea'),
   };
+  const blade = ids(BLADE_LIGHT);
   // cloth and armour hidden under the blade: carry what lies below it up (or above it down)
   const body = region(src, (x, y) => !isSword(x, y) && !inHand(x, y));
   for (let x = 12; x < src.w; x++) {
@@ -71,6 +97,7 @@ function prepare(art, more = {}) {
   const isHead = (x, y) => y <= HEAD.y1 && x >= HEAD.x0;
   return {
     colors,
+    blade,
     still: more.kneel && prepareStill(more.kneel, {
       ground: 123, mid: 70, neck: 38, waist: 75, cape: { x1: 45, y0: 50 }, fixed: (x) => x >= 88,
     }),
@@ -86,7 +113,8 @@ function prepare(art, more = {}) {
     energy: {
       hot: new Set([colors.deep, colors.gold]),
       core: new Set([colors.white]),
-      soft: new Set([colors.white]),
+      // (and, of the giant blade's light, its palest: they glow white, drawn)
+      soft: new Set([colors.white, ...ids('rq')]),
       dim: [colors.deep, colors.gold],
       flare: [colors.gold, colors.white],
       crackle: { main: colors.gold, core: colors.white, sparks: [colors.gold, colors.white] },
@@ -222,6 +250,46 @@ function compose(ctx, p) {
   return f;
 }
 
+// A drawn pose (core.js, composeDrawn): in the Radiant Verdict, the giant blade's light glows
+// steadily (its pixels kept lit, never flickering), and wound up, a glint runs along it from the
+// crossguard to the tip.
+function drawn(ctx, f, p) {
+  const b = p.drawn === 'ult' && DRAWN.ult[p.frame || 0].blade;
+  if (!b) return;
+  const { colors } = ctx;
+  const [ax, ay] = f.at;
+  const dx = b.to[0] - b.from[0];
+  const dy = b.to[1] - b.from[1];
+  const len = Math.hypot(dx, dy);
+  const ux = dx / len;
+  const uy = dy / len;
+  const keep = (f.keep ||= []);
+  const x0 = Math.max(0, ax + Math.min(b.from[0], b.to[0]) - b.r - 1);
+  const x1 = Math.min(f.w - 1, ax + Math.max(b.from[0], b.to[0]) + b.r + 1);
+  const y0 = Math.max(0, ay + Math.min(b.from[1], b.to[1]) - b.r - 1);
+  const y1 = Math.min(f.h - 1, ay + Math.max(b.from[1], b.to[1]) + b.r + 1);
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const px = x - ax + 0.5 - b.from[0];
+      const py = y - ay + 0.5 - b.from[1];
+      const t = px * ux + py * uy; // (along the blade, past the crossguard)
+      if (t < 2 || t > len + 2 || Math.abs(px * uy - py * ux) > b.r) continue;
+      if (ctx.blade.has(f.get(x, y))) keep.push(y * f.w + x);
+    }
+  }
+  if (p.glint == null) return;
+  const gx = Math.round(ax + b.from[0] + dx * p.glint);
+  const gy = Math.round(ay + b.from[1] + dy * p.glint);
+  const put = (x, y, v) => {
+    if (x < 0 || y < 0 || x >= f.w || y >= f.h) return;
+    f.set(x, y, v);
+    keep.push(y * f.w + x);
+  };
+  for (const [a, c] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) put(gx + a, gy + c, colors.white);
+  for (const [a, c] of [[2, 0], [-2, 0], [0, 2], [0, -2], [1, 1], [-1, 1], [1, -1], [-1, -1]]) put(gx + a, gy + c, colors.gold);
+  for (const [a, c] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) put(gx + a, gy + c, colors.deep);
+}
+
 // ---------------------------------------------------------------------------------------------
 // the animation set
 
@@ -269,32 +337,46 @@ anim('stagger', seq(2, (i) => ({ lean: -2 - i, sword: -10 - i * 6, sway: 2, legs
 anim('collapse', [{ still: true, head: [2, 3], sway: 2, light: 0 }]);
 anim('lifted', seq(2, (i) => ({ sway: -3 + i, sword: -8 - i * 4, legs: { front: { dangle: -2 - i }, back: { dangle: -3 } }, light: 1 })));
 anim('talk', seq(2, (i) => ({ sword: i ? -3 : 0, bob: i, light: 1 })));
+// drawn whole (core.js, composeDrawn), all in the big frame: his swing; the Radiant Verdict wound
+// up (four of it, a glint running along the giant blade while it's held) and loosed
+const drawnPose = (key, k, more = {}) => ({ drawn: key, frame: k, mid: DRAWN[key][k].mid, ground: DRAWN[key][k].ground, big: true, ...more });
+anim('swing', [0, 1, 2].map((i) => drawnPose('attack', i, { light: [1, 2, 1][i] })));
+anim('verdict', seq(4, (i) => drawnPose('ult', 0, { glint: [0.15, 0.4, 0.65, 0.9][i], light: 2 })));
+anim('sweep', [drawnPose('ult', 1, { light: 2 })]);
 
 const G = groups;
 export default {
   id: 'paladin',
   art: '/assets/hero/paladin.json',
-  extraArt: { kneel: '/assets/hero/paladin-kneel.json' },
+  extraArt: { kneel: '/assets/hero/paladin-kneel.json', ult: '/assets/hero/paladin-ult.json', attack: '/assets/hero/paladin-attack.json' },
   firstName: 'Aurelion',
   epithet: 'the Radiant Oath',
   title: 'Holy Knight',
   burst: ['#ffe7a4', '#fffbea'],
   frame: FRAME,
+  bigFrame: BIG,
   cols: 8,
-  px: (2.1 / 140) * 1.2, // world units per art pixel: a head taller than the knight (1.2x)
+  px: PX,
   head: 160, // art pixels from the ground to the top of the helm
-  hits: { hammer: 4, cast: 1, send: 2 },
+  hits: { hammer: 4, cast: 1, send: 2, attack: 4 },
+  lunge: { attack: 0.35 }, // (his drawing thrown forward as the sword comes down: npc.js)
+  muzzles: { ult: muzzleAt(DRAWN.ult[1]) },
   glowIntensity: 1.1,
   glowColors: [[225, 175, 80], [255, 248, 220]],
   seed: 8811,
   prepare,
   compose,
+  drawn,
   poses,
   groups,
   anims: {
     idle: { frames: G.idle, fps: 4 },
     walk: { frames: G.walk, fps: 9 },
     hammer: { frames: G.strike, fps: 9 },
+    // (in eighteenths of a second: the sword raised 4, the cut 3, the follow-through 5)
+    attack: { frames: held(G.swing, [4, 3, 5]), fps: 18 },
+    ult: { frames: G.verdict, fps: 8 },
+    sweep: { frames: G.sweep, fps: 1 },
     read: { frames: G.study, fps: 1.4 },
     cast: { frames: G.cast, fps: 6 },
     send: { frames: G.raise, fps: 4 },
@@ -312,5 +394,5 @@ export default {
     stagger: { frames: [...G.stagger, G.idle[0]], fps: 4, once: true },
     kneelBow: { frames: [G.kneel[0], ...G.rest, G.rest[1], G.kneel[0]], fps: 2, once: true },
   },
-  groupFps: { idle: 4, walk: 9, strike: 9, cast: 6, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5 },
+  groupFps: { idle: 4, walk: 9, strike: 9, cast: 6, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, swing: 5, verdict: 8, sweep: 1 },
 };

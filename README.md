@@ -194,7 +194,10 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
   a rig may touch up its drawn poses, `client/js/heroes/core.js`).
 - **Aurelion, the Radiant Oath** (Holy Knight) — `paladin.json` (+ `paladin-kneel.json`), rigged in
   `client/js/heroes/paladin.js` (the sword leaves a radiant arc, light bursts from the raised blade,
-  and a pillar of light falls on it; kneeling, he prays under a beam of light).
+  and a pillar of light falls on it; kneeling, he prays under a beam of light). His swing
+  (`paladin-attack.json`: raised, cut down in front, carried on low behind) and his Radiant Verdict
+  (`paladin-ult.json`: the giant blade of light raised back over his shoulder, then swept low ahead
+  of him) are drawn whole, in his `bigFrame`; the giant blade glows steadily.
 - **The Bandit Knight, of the Broken Road** — `bandit.json` (+ `bandit-kneel.json`, his resting
   squat, used exactly as drawn), rigged in `client/js/heroes/bandit.js` (no sorcery: the spear sweeps
   over his head and lunges with a trail, and the tower shield comes up to guard).
@@ -432,12 +435,11 @@ It sinks again only once the fight is over and everyone has left it, you include
   - **Blows:** a hero with a drawn blow plays it, three frames landing on the second, each held as
     long as suits it (Maren's lunge a third of a second; Fortuna's slash a ninth, her follow-through
     lingering); the others swing their rig's strike. As a drawn blow lands (Maren's, Fortuna's,
-    Vael's, Jorvik's, Corisande's, Solenne's), the drawing (not where they stand, nor their shadow)
-    is thrown forward a third of a unit in a flash and springs back, a little past and settling
-    (`lunge`, `client/js/npc.js`). However quick a
-    drawn blow is, your blows come
-    no faster than the old strike's pace (`blowReady`, `client/js/pilot.js`), so the enemies'
-    health still fits.
+    Vael's, Jorvik's, Corisande's, Solenne's, Aurelion's), the drawing (not where they stand, nor
+    their shadow) is thrown forward a third of a unit in a flash and springs back, a little past
+    and settling (`lunge`, `client/js/npc.js`). However quick a drawn blow is, your blows come no
+    faster than the old strike's pace (`blowReady`, `client/js/pilot.js`), so the enemies' health
+    still fits.
   - **How a hit lands** (`impact` and `IMPACT`, `client/js/fight.js`):
     - Every blow, spell and ultimate that wounds the enemy turns his whole drawing white for a
       blink (never more than three times a second, however many strike him) and knocks it a few
@@ -496,7 +498,11 @@ It sinks again only once the fight is over and everyone has left it, you include
     `maren-bolt.json` and `maren-great-bolt.json`, at twice her pixel size so they fall from out
     of sight).
   - Aurelion, **Radiant Verdict:** a great slash of light dazes him for 5 seconds, unable to fight
-    or move.
+    or move. A giant of his own light stands behind him, his drawing 1.8 times its size, golden and
+    see-through, its feet on his: it holds his pose and sweeps as he sweeps (`Stand`,
+    `client/js/spellfx.js`; the camera draws back to take it in). The wave is drawn
+    (`aurelion-wave.json`): forming as it leaves the blades, full as it flies, stretching as it
+    strikes, then fading.
   - Wynn, **Iaijutsu:** after a breath, Wynn cuts through him from every side while he's held still.
     The cuts hang in the air, and nothing lands until Wynn is back where he began, blade sheathed.
     Then it all lands at once.
@@ -506,16 +512,18 @@ It sinks again only once the fight is over and everyone has left it, you include
     is, and shatter (`fortuna-icicle.json`, `fortuna-shatter.json`). A beat later a mass of ice
     three times their size, taller than he is, comes down on him, stands driven into the floor a
     moment, shuddering, and bursts wide, shaking the view.
-  - **Art:** Maren, Fortuna, Vael, Jorvik, Corisande and Solenne hold their drawn poses: Maren's spear
-    raised to the sky, its lightning crackling; Fortuna's four arms and greatsword raised, the
-    frost flickering; Vael's clawed hand raised, blood streaming up his arm; Jorvik's staff thrust
-    high, runes wheeling round its blazing orb; Corisande's staff held level like a drawn bow,
-    motes wheeling round its blazing crystal (bare-faced, she raises it as she casts); Solenne
-    wound up, the light gathered between her palms, motes drifting up from it. A pose too wide for
-    the camera's close shot (Corisande's) is centred and taken in whole. An ult may be loosed in a
-    drawing of its own (`release`), held a moment as it strikes: Solenne's palms thrust out as
-    the wall leaves them. The others hold their own rig's pose (raise, cast, strike, kneel) until
-    their ult drawings replace it.
+  - **Art:** Maren, Fortuna, Vael, Jorvik, Corisande, Solenne and Aurelion hold their drawn
+    poses: Maren's spear raised to the sky, its lightning crackling; Fortuna's four arms and
+    greatsword raised, the frost flickering; Vael's clawed hand raised, blood streaming up his
+    arm; Jorvik's staff thrust high, runes wheeling round its blazing orb; Corisande's staff held
+    level like a drawn bow, motes wheeling round its blazing crystal (bare-faced, she raises it as
+    she casts); Solenne wound up, the light gathered between her palms, motes drifting up from it;
+    Aurelion's giant blade of light raised back over his shoulder, a glint running along it. A
+    pose too wide for the camera's close shot (Corisande's) is centred and taken in whole. An ult
+    may be loosed in a drawing of its own (`release`), held a moment as it strikes: Solenne's
+    palms thrust out as the wall leaves them; Aurelion's giant blade swept low ahead of him. The
+    others hold their own rig's pose (raise, cast, strike, kneel) until their ult drawings
+    replace it.
 - **Only the fight:** while a great enemy is abroad, every session works on unseen, the spectres at
   work on their islands included: no log lines about the work, no incantations, signs or gestures,
   no spirit wisps and no small talk. A fighter's signs are put away for the fight (the "!" of one

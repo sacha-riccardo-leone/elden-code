@@ -881,10 +881,17 @@ export class Pool {
 
 // A crescent of light flying at its mark (to()), striking it once (onHit), fading out past it.
 export class Slash {
-  constructor(fx, { school, from, to, size = 4, speed = 16, onHit = null }) {
-    this.mesh = plane(fx.scene, TEX.slash(school), size * 40 / 72, size, { order: 7 });
+  // drawn (`art`, fxart.js; `px` world units to its pixel), it stands on the floor and plays its
+  // frames: forming as it leaves, full as it flies, stretching as it strikes, then fading
+  constructor(fx, { school, from, to, size = 4, speed = 16, art = null, px = 0.03, onHit = null }) {
+    const sheet = art && fxArt(art);
+    this.frames = sheet?.frames || null;
+    this.mesh = sheet
+      ? plane(fx.scene, sheet.frames[0], sheet.w * px, sheet.h * px, { order: 7 })
+      : plane(fx.scene, TEX.slash(school), size * 40 / 72, size, { order: 7 });
     this.pos = new THREE.Vector3(...from);
-    Object.assign(this, { fx, to, speed, onHit, school, t: 0, struck: false, fade: 0 });
+    if (sheet) this.pos.y = (sheet.h * px) / 2;
+    Object.assign(this, { fx, to, speed, onHit, school, t: 0, struck: false, fade: 0, fadeFor: sheet ? 0.32 : 0.25 });
     this.place();
   }
 
@@ -911,14 +918,20 @@ export class Slash {
       this.pos.x += this.mesh.scale.x * this.speed * dt * 0.5;
     }
     this.place();
-    this.mesh.material.opacity = Math.max(0, 1 - this.fade / 0.25);
+    if (this.frames) {
+      const k = this.fade / this.fadeFor;
+      this.mesh.material.map = this.frames[this.struck ? (k < 0.35 ? 2 : 3) : this.t < 0.06 ? 0 : 1];
+      this.mesh.material.opacity = k < 0.35 ? 1 : Math.max(0, 1 - (k - 0.35) / 0.65);
+    } else {
+      this.mesh.material.opacity = Math.max(0, 1 - this.fade / this.fadeFor);
+    }
     if (Math.random() < dt * 40) {
       this.fx.particles.emit({
         pos: [this.pos.x, this.pos.y, this.pos.z], spread: [0.1, 0.8, 0.1], vel: [0, 0.4, 0], velSpread: [0.4, 0.4, 0.3],
         color: motesOf(this.school), size: 0.07, life: 0.4, count: 2, drag: 1.4, intensity: 2.6,
       });
     }
-    return this.t < 3 && this.fade < 0.25;
+    return this.t < 3 && this.fade < this.fadeFor;
   }
 
   dispose() { drop(this.fx.scene, this.mesh); }
@@ -1188,5 +1201,87 @@ export class Aura {
     this.outline.material.dispose();
     this.glow.material.dispose();
     this.glow.geometry.dispose();
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
+// a giant of one's own light (Aurelion's Radiant Verdict)
+
+// Their drawing, in golds by its lightness: the outline darkest, the highlights past white so the
+// bloom lights round it; see-through.
+const STAND = {
+  fragmentShader: /* glsl */ `
+    uniform sampler2D map;
+    uniform vec3 c0, c1, c2, c3;
+    uniform float uPower, uMask;
+    varying vec2 vUv;
+    void main() {
+      vec4 c = texture2D(map, vUv);
+      if (c.a < 0.5 || uPower < 0.02) discard;
+      float l = pow(dot(c.rgb, vec3(0.299, 0.587, 0.114)), 1.0 / 2.2);
+      vec3 gold = l < 0.25 ? mix(c0, c1, l / 0.25) : l < 0.6 ? mix(c1, c2, (l - 0.25) / 0.35) : mix(c2, c3, (l - 0.6) / 0.4);
+      gl_FragColor = uMask > 0.5 ? vec4(1.0) : vec4(gold, 0.88 * uPower);
+    }
+  `,
+};
+
+// Behind someone loosing an ultimate (a SpriteBody), a giant of their own light: their drawing
+// `scale` times its size, its feet on theirs, golden and see-through. It shows the frame they show,
+// so it swings as they swing; once they're let go of the pose (`follow` false) it keeps its last.
+// `power` 0..1 brings it in and out.
+export class Stand {
+  constructor(scene, body, { scale = 1.8, colors = ['#4a3208', '#9c7414', '#e8bc30', '#fde070'] } = {}) {
+    const [c0, c1, c2, c3] = colors.map((c) => new THREE.Color(c));
+    c2.multiplyScalar(1.05);
+    c3.multiplyScalar(1.25);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        map: { value: body.tex },
+        uvT: { value: new THREE.Matrix3() },
+        c0: { value: c0 },
+        c1: { value: c1 },
+        c2: { value: c2 },
+        c3: { value: c3 },
+        uPower: { value: 0 },
+        uMask: { value: 0 },
+      },
+      vertexShader: OUTLINE.vertexShader,
+      fragmentShader: STAND.fragmentShader,
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    this.mesh = new THREE.Mesh(body.mesh.geometry, mat);
+    this.mesh.visible = false;
+    scene.add(this.mesh);
+    Object.assign(this, { scene, body, scale, power: 0 });
+  }
+
+  // (it keeps its colour while the world goes grey, post.js)
+  get meshes() { return [this.mesh]; }
+
+  step(dt, power, follow = true) {
+    // in as the aura comes, out quickly once the blow is struck
+    this.power += (power - this.power) * Math.min(1, dt * (power > this.power ? 6 : 12));
+    const m = this.body.mesh;
+    const u = this.mesh.material.uniforms;
+    if (follow || !this.shown) {
+      const tex = this.body.mat.map;
+      tex.updateMatrix();
+      u.map.value = tex;
+      u.uvT.value.copy(tex.matrix);
+      // its feet where theirs are, and all of it `scale` times as far from them (a lunge too)
+      const foot = this.body.footX ?? m.position.x;
+      this.mesh.position.set(foot + (m.position.x - foot) * this.scale, m.position.y, m.position.z - 0.3);
+      this.mesh.scale.copy(m.scale).multiplyScalar(this.scale);
+      this.shown = true;
+    }
+    u.uPower.value = this.power;
+    this.mesh.visible = this.power > 0.02;
+  }
+
+  dispose() {
+    this.scene.remove(this.mesh);
+    this.mesh.material.dispose();
   }
 }

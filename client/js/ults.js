@@ -27,7 +27,7 @@
 
 import * as THREE from 'three';
 import { Particles } from './particles.js';
-import { Aura, Missile, Wall, Pool, Slash, Cut, Drop, Bolt, Burst, StuckSpear, TEX, motesOf } from './spellfx.js';
+import { Aura, Stand, Missile, Wall, Pool, Slash, Cut, Drop, Bolt, Burst, StuckSpear, TEX, motesOf } from './spellfx.js';
 import { ULT, ultPower, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt } from './combat.js';
 import { lookOf } from './fxart.js';
 
@@ -76,7 +76,8 @@ const effect = (step, dispose = () => {}) => ({ step, dispose });
 // ---------------------------------------------------------------------------------------------
 // each one: its name, the pose held as it gathers (an animation, and a frame to hold, or none to
 // play it), the pose it's loosed in (`release`: an animation, drawn; else the held one is let go),
-// whether it's aimed, and what it does (u: { fight, fx, n, b, dir, hit(share, at) })
+// a giant of their own light behind them (`stand`: { scale }, spellfx.js), whether it's aimed, and
+// what it does (u: { fight, fx, n, b, dir, hit(share, at) })
 
 export const ULTS = {
   runelord: {
@@ -224,10 +225,18 @@ export const ULTS = {
     },
   },
   paladin: {
-    name: 'Radiant Verdict', pose: ['send'],
+    // (the giant blade of light raised back over his shoulder, then the sweep it ends in: drawn;
+    // else he raises his sword to the sky. A giant of his own light stands behind him, swinging as
+    // he swings: `stand`)
+    name: 'Radiant Verdict', pose: ['ult'], fallback: ['send'], release: 'sweep', stand: { scale: 1.8 },
     run({ fight, fx, n, b, hit }) {
+      // drawn, the wave leaves the giant blade swept low ahead of him (never from past the enemy)
+      const drawn = !!n.body.sheet.anims.sweep;
+      const [ahead] = (drawn && n.body.sheet.rig.muzzles?.ult) || [1.2];
+      const lead = Math.max(0.6, Math.min(ahead, Math.abs(b.pos.x - n.pos.x) - 0.8));
       fx.add(new Slash(fx, {
-        school: 'holy', size: 6.5, from: [n.pos.x + n.body.facing * 1.2, 2.2, n.pos.y + 0.1], to: () => fight.bossPoint(2.2), speed: 15,
+        school: 'holy', size: 6.5, art: drawn ? 'aurelion-wave' : null, px: 0.031,
+        from: [n.pos.x + n.body.facing * lead, 2.2, n.pos.y + 0.1], to: () => fight.bossPoint(2.2), speed: 15,
         onHit: (at) => {
           hit(20, at);
           fx.add(new Burst(fx, { school: 'holy', at: [at.x, at.y, at.z], size: 3.2, sparks: 40 }));
@@ -421,12 +430,13 @@ export class Ults {
     const key = heroKey(n);
     const color = styleOf(n).color;
     const aura = new Aura(this.ctx.scene, this.particles, n.body, color, { radius: key === 'sorceress' ? 4.5 : 2.5 });
+    const stand = u.stand ? new Stand(this.ctx.scene, n.body, u.stand) : null;
     const tall = Math.max(2.5, poseHeight(n.body, pose[0]));
     const span = poseSpan(n.body, pose[0]);
-    this.active = { n, u, pose, key, t: 0, dir, player, aura, released: false, saved: rig.distGoal, tall, span };
+    this.active = { n, u, pose, key, t: 0, dir, player, aura, stand, released: false, saved: rig.distGoal, tall, span };
     // (everyone else, and him, hide it where they stand in front of it: they stay grey)
     const others = [...this.ctx.director.npcs.values()].filter((o) => o !== n && !o.dead && o.body?.mesh).map((o) => o.body.mesh);
-    post.spot = { desat: 0, meshes: [n.body.mesh, ...aura.meshes, this.particles.points], occluders: [...others, b.body.mesh] };
+    post.spot = { desat: 0, meshes: [n.body.mesh, ...aura.meshes, ...(stand?.meshes || []), this.particles.points], occluders: [...others, b.body.mesh] };
     if (player) this.ctx.pilot.ult = 0;
     else if (n.fighter) n.fighter.ult = 0;
     if (this.title.el) {
@@ -442,21 +452,24 @@ export class Ults {
 
   // Where the camera looks, while it's on whoever looses one: their middle, close (a tall pose, a
   // little below its middle, from far enough back to show it whole above the bars at the bottom;
-  // a pose too wide for that, a staff held level far out ahead, centred and taken in whole).
+  // a pose too wide for that, a staff held level far out ahead, centred and taken in whole; a giant
+  // of their light behind them, taken in whole as well).
   shot() {
     const a = this.active;
     if (!a || a.released) return null;
     const p = a.n.pos;
+    const s = a.stand?.scale || 1;
+    const tall = a.tall * s;
     let x = p.x;
-    let dist = Math.max(CINE.close, a.tall * CINE.fit);
-    const [behind, ahead] = a.span;
+    let dist = Math.max(CINE.close, tall * CINE.fit);
+    const [behind, ahead] = a.span.map((v) => v * s);
     const cam = this.ctx.rig.camera;
     const across = Math.tan((cam.fov * Math.PI) / 360) * cam.aspect; // (half the width seen, per unit away)
     if (Math.max(behind, ahead) + CINE.side > dist * across) {
       x += (a.n.body.facing * (ahead - behind)) / 2;
       dist = Math.max(dist, ((behind + ahead) / 2 + CINE.side) / across);
     }
-    return { at: [x, Math.max(1.25, a.tall * 0.42) + (a.n.lift || 0), p.y], dist };
+    return { at: [x, Math.max(1.25, tall * 0.42) + (a.n.lift || 0), p.y], dist };
   }
 
   update(dt) {
@@ -484,6 +497,9 @@ export class Ults {
     }
     post.spot.desat = a.released ? Math.max(0, 1 - (a.t - CINE.release) / CINE.back) : Math.min(1, a.t / CINE.grey);
     a.aura.step(dt, a.t > CINE.aura && a.t < CINE.release + 0.25 ? 1 : 0);
+    // (the giant rises as the world goes grey, swings with them, and goes once the blow is struck,
+    // keeping the pose it struck in)
+    a.stand?.step(dt, a.t > CINE.grey && a.t < CINE.release + 0.35 ? 1 : 0, a.n.action?.kind === 'ult');
     if (a.released && a.t >= CINE.release + CINE.back + 0.2) this.finish();
   }
 
@@ -510,6 +526,7 @@ export class Ults {
     const a = this.active;
     if (!a) return;
     a.aura.dispose();
+    a.stand?.dispose();
     this.ctx.post.spot = null;
     if (!a.released) this.ctx.rig.distGoal = a.saved;
     if (a.n.action?.kind === 'ult' && a.n.action.dur === Infinity) a.n.action = null;
