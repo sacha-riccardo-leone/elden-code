@@ -7,6 +7,7 @@ import { buildIcon } from './sprites.js';
 import { GESTURES, STATION_LABEL } from './director.js';
 import { stats } from './lore.js';
 import { REGION, HUB } from './config.js';
+import { groundAt } from './ground.js';
 
 // The Arena of Trials' mark on the map strip: a horned skull, in pixels, its horns sweeping out
 // from the top of the head and curving down beside the face (h: its paler brow).
@@ -436,6 +437,7 @@ export class UI {
     if (npc.piloted) return 'Guided by thy hand';
     if (k === 'fight') return npc.fighter?.dead ? 'Fallen, resting at the Hold till the fight is over' : 'Fighting in the Arena of Trials';
     if (npc.dragged) return 'Carried by an unseen hand';
+    if (k === 'train') return npc.travel ? 'Bound for the training yard' : npc.trainee?.self ? 'Training in the yard, with nothing else to do' : 'Training in the yard, at thy call';
     if (k === 'work') return npc.path.length ? `Hastening to ${STATION_LABEL[npc.intent.station]}` : `At ${STATION_LABEL[npc.intent.station]}`;
     if (k === 'channel') return npc.intent.anim === 'pray' ? 'Channelling summoned spirits' : npc.intent.anim === 'read' ? 'Pondering the quest' : 'Weaving an incantation';
     if (k === 'wait') return 'Awaiting thy command at the gate';
@@ -556,7 +558,7 @@ export class UI {
     const h = this.hovered && !this.hovered.dead && this.hovered !== this.selected ? this.hovered : null;
     this.labelEl.hidden = !h;
     if (h) {
-      const p = this.project(new THREE.Vector3(h.pos.x, h.lift - 0.1, h.pos.y));
+      const p = this.project(new THREE.Vector3(h.pos.x, groundAt(h.pos.x, h.pos.y) + h.lift - 0.1, h.pos.y));
       this.labelEl.textContent = h.displayName;
       this.labelEl.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y)}px) translate(-50%, 0)`;
     }

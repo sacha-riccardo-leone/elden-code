@@ -363,6 +363,7 @@ function step(dt) {
   // the map strip: where thou art, between islands too, and the arena while a great enemy is abroad
   ui.updateMap(me ? me.pos.x : 0, fight.hunting(), fight.sealed);
   ui.update(dt);
+  training.placeButtons(); // (the button under each one training on the yard)
   interact.update();
   // walking away from the Round Table folds its menu
   if (ui.tableOpen && (!me || Math.hypot(me.pos.x - HUB_LAYOUT.table[0], me.pos.y - HUB_LAYOUT.table[1]) > 4)) ui.closeTable();

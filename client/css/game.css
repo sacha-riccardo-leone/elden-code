@@ -556,6 +556,43 @@ body.in-battle .region-label { pointer-events: none; cursor: default; } /* mid-f
   white-space: nowrap;
 }
 
+/* ---------------------------------------------------------------- those training */
+
+/* under each one training on the yard, the button that sends it back (training.js) */
+#trainees {
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  pointer-events: none;
+}
+#trainees .dismiss {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: auto;
+  font-family: var(--serif-title);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  background: rgba(10, 9, 12, 0.72);
+  border: 1px solid var(--gold-line);
+  color: var(--gold);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+#trainees .dismiss:hover {
+  background: rgba(40, 32, 20, 0.88);
+  color: var(--gold-hi);
+  border-color: var(--gold);
+}
+#trainees .dismiss:focus-visible {
+  outline: 1px solid var(--gold-hi);
+  outline-offset: 2px;
+}
+body.in-battle #trainees { display: none; }
+
 /* ---------------------------------------------------------------- fan of gestures */
 
 /* an arc of buttons opening over a character's head (the element sits at the head) */

@@ -128,7 +128,7 @@ export class Director {
   // holding her, as thou goest into battle), and takes it off once she has been idle a while.
   wantForm(n) {
     if (n.heroActor === 'twofold') return this.formNow();
-    const busy = !!n.fighter || (n.working && n.arrived) || (n.piloted && !!this.ctx.fight?.inBattle());
+    const busy = !!n.fighter || !!n.trainee || (n.working && n.arrived) || (n.piloted && !!this.ctx.fight?.inBattle());
     if (busy) n.busyAt = this.clock;
     return busy || this.clock - (n.busyAt ?? -Infinity) < MASK.keep ? 'masked' : 'bare';
   }
@@ -198,10 +198,16 @@ export class Director {
     return npc;
   }
 
-  // The first hero (in roster order) not out on a quest, nor held by the player.
+  // The first hero (in roster order) not out on a quest, nor held by the player; one training on the
+  // yard (training.js) only if every other is out.
   freeHero() {
-    for (const n of this.heroes.values()) if (n.unbound && !n.dead && !n.piloted) return n;
-    return null;
+    let training = null;
+    for (const n of this.heroes.values()) {
+      if (!n.unbound || n.dead || n.piloted) continue;
+      if (!n.trainee) return n;
+      training ??= n;
+    }
+    return training;
   }
 
   // A session is over: its hero sets it down and walks back to the Round Table; a generic
@@ -375,13 +381,13 @@ export class Director {
   // Maren's blow lands: whoever stands just in front of her staggers (it's all for show).
   strikeFrom(p) {
     // in the arena, a great enemy takes the blow; fellow fighters are spared it; on the training
-    // yard, a dummy (training.js)
+    // yard, a dummy (training.js), those training there spared it likewise
     const { fight, training } = this.ctx;
     if (fight?.active) fight.strikeFrom(p);
     if (training?.has(p)) training.strikeFrom(p);
     for (const n of this.npcs.values()) {
       if (n === p || n.dead || n.dragged || n.travel || n.fade < 1 || n.intent.kind === 'leave') continue;
-      if (n.fighter || n.spectre) continue; // (a blow passes through a spectre)
+      if (n.fighter || n.trainee || n.spectre) continue; // (a blow passes through a spectre)
       const ahead = (n.pos.x - p.pos.x) * p.body.facing;
       if (ahead < -0.3 || ahead > 2.8 || Math.abs(n.pos.y - p.pos.y) > 1.3) continue;
       n.body.facing = p.pos.x > n.pos.x ? 1 : -1;
@@ -563,7 +569,7 @@ export class Director {
     } else if (!['wander', 'rest', 'visit'].includes(npc.intent.kind)) {
       npc.setIntent({ kind: 'rest' });
     }
-    if (!npc.fighter) npc.setSpirits(session.spirits || 0); // (a fighter's spirit ashes wait out the fight)
+    if (!npc.fighter && !npc.trainee) npc.setSpirits(session.spirits || 0); // (a fighter's spirit ashes wait out the fight, and one training's its training)
     if (session.model) npc.setModel(session.model);
   }
 
@@ -590,7 +596,7 @@ export class Director {
     if (!npc) return; // every hero is out: this session waits, unseen, for one to come free
     const name = npc.name.first;
     const now = performance.now() / 1000;
-    const fighting = !!npc.fighter; // (in the fight: none of what follows shows)
+    const fighting = !!npc.fighter || !!npc.trainee; // (in the fight, or training on the yard: none of what follows shows)
     const shown = !fighting && !quiet;
 
     switch (ev.event) {
@@ -708,7 +714,7 @@ export class Director {
   }
 
   command(npc, cmd) {
-    if (npc.fighter) return; // (no incantations of its work mid-fight)
+    if (npc.fighter || npc.trainee) return; // (no incantations of its work mid-fight, nor training)
     const now = performance.now() / 1000;
     const last = this.lastCommand.get(npc.sid);
     if (last && last.cmd === cmd && now - last.t < 4) return;
@@ -893,7 +899,7 @@ export class Director {
   // `npc` says `intent` in its own voice, to `to` (or to no one), `delay` seconds from now;
   // unless by then it's being carried, travelling, gone, or deep in a conversation.
   remark(npc, intent, to = null, delay = 0) {
-    if (npc?.fighter && !FIGHT_LINES.has(intent)) return; // in the fight: battle lines only
+    if ((npc?.fighter || npc?.trainee) && !FIGHT_LINES.has(intent)) return; // in the fight (or training): battle lines only
     if (npc && !npc.spectre) this.remarks.push({ npc, intent, to, at: this.clock + delay });
   }
 
@@ -908,7 +914,7 @@ export class Director {
     this.remarks = this.remarks.filter((r) => {
       if (this.clock < r.at) return true;
       const n = r.npc || this.bystander(r.to, r.radius, r.near);
-      if (n?.fighter && !FIGHT_LINES.has(r.intent)) return false; // (called to a fight meanwhile: battle lines only)
+      if ((n?.fighter || n?.trainee) && !FIGHT_LINES.has(r.intent)) return false; // (called to a fight, or to train, meanwhile: battle lines only)
       if (n && !n.dead && !n.dragged && !n.travel && !n.talk && n.fade >= 1) this.utter(n, speak(n, r.intent, r.to));
       return false;
     });
@@ -927,7 +933,7 @@ export class Director {
     let best = null;
     let bd = radius;
     for (const n of this.npcs.values()) {
-      if (n === npc || n.dead || n.dragged || n.travel || n.talk || n.inTalk || n.action || n.fade < 1 || n.piloted || n.spectre || n.fighter) continue;
+      if (n === npc || n.dead || n.dragged || n.travel || n.talk || n.inTalk || n.action || n.fade < 1 || n.piloted || n.spectre || n.fighter || n.trainee) continue;
       if (n.intent.kind === 'journey' || n.intent.kind === 'leave') continue;
       if (world.areaAt(n.pos.x, n.pos.y) !== area) continue;
       const d = Math.hypot(n.pos.x - at.x, n.pos.y - at.y);

@@ -2,15 +2,17 @@
 // of the Hold and lower than it, as wide as the Arena of Trials (arena.js) but with no pillars; a
 // stair of stone comes down to it from the Hold's rim. A sawdust ring on its floor, a great wooden
 // dummy in its middle and straw ones scattered over it to strike (training.js), racks of the Round
-// Table's weapons (weapons.js), an archery butt, barrels and crates, rope lanterns about its edge.
-// Always there.
+// Table's weapons (weapons.js), an archery butt, barrels and crates, rope lanterns about its edge,
+// and a little Site of Grace where the Tarnished are called to train and come by grace. Always
+// there.
 // Its ground is lower than the Hold's (ground.js): on the stair it runs from the one to the other.
 
 import * as THREE from 'three';
 import { HUB, ARENA } from './config.js';
 import * as T from './textures.js';
 import { rng } from './pixel.js';
-import { Builder } from './build.js';
+import { Builder, seedOf } from './build.js';
+import { GraceFigure } from './grace.js';
 import { addLevel } from './ground.js';
 import { FLOOR } from './arena.js';
 import { weapon } from './weapons.js';
@@ -46,6 +48,10 @@ export const BOSS_DUMMY = { x: 0, z: 0, radius: 1.8, clear: 7.2 };
 // Its straw dummies (training.js): `count` of them, scattered over its floor anew each time the
 // world is made, at least `edge` in from its edge and `apart` from one another, and clear of the
 // stair's foot and of what stands on it (by `clear`, past what each takes up).
+// Its little Site of Grace (training.js), in front of the right-hand rack: where thou callest the
+// Tarnished to train, and where they come by grace; how big it is (of an island's), and how much of
+// the floor round it, where they arrive, is kept clear of dummies.
+export const TRAIN_GRACE = { x: PROPS.racks[0][0], z: PROPS.racks[0][1] + 2.4, k: 0.7, clear: 3.2 };
 const DUMMIES = { count: 8, edge: 3, apart: 3.4, clear: 1.4 };
 export const DUMMY_SPOTS = scatter();
 
@@ -59,6 +65,7 @@ function scatter() {
   const keep = [
     [0, n, 5], // (the stair's foot, and the way on from it)
     [BOSS_DUMMY.x, BOSS_DUMMY.z, BOSS_DUMMY.clear],
+    [TRAIN_GRACE.x, TRAIN_GRACE.z + 0.8, TRAIN_GRACE.clear], // (the grace, and in front of it)
     ...PROPS.racks.map(([x, z]) => [x, z, 1.25 + clear]),
     ...PROPS.barrels.map(([x, z]) => [x, z, 0.5 + clear]),
     [PROPS.crates[0] + 0.45, PROPS.crates[1] + 0.15, 1.05 + clear],
@@ -198,6 +205,8 @@ export class Yard extends Builder {
       this.lantern(Math.cos(a) * (R - 0.9), Math.sin(a) * (R - 0.9), dark, iron);
     }
 
+    this.buildGrace();
+
     // where its dummies stand (training.js draws them)
     for (const [x, z] of DUMMY_SPOTS) this.blockCircle(x, z, 0.5);
     this.blockCircle(BOSS_DUMMY.x, BOSS_DUMMY.z, BOSS_DUMMY.radius);
@@ -300,6 +309,49 @@ export class Yard extends Builder {
     this.blockCircle(x, z, 0.35);
   }
 
+  // Its little Site of Grace, an island's made smaller (region.js, buildGrace): stones round a
+  // flame, a pillar of light, the golden figure floating over it, motes rising.
+  buildGrace() {
+    const { x: gx, z: gz, k } = TRAIN_GRACE;
+    const y = YARD.y;
+    const r = rng(71);
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2;
+      const s = (0.22 + r() * 0.15) * k;
+      this.box(s * 1.4, s, s, this.mat.stoneMoss, gx + Math.cos(a) * 0.75 * k, y + s / 2, gz + Math.sin(a) * 0.6 * k, { ry: r() * 3, tile: 1 });
+    }
+    this.blockCircle(gx, gz, 0.9 * k);
+    const core = this.additiveSprite('#ffcf6b', 1.1 * k, 0.7);
+    core.position.set(gx, y + 0.55 * k, gz);
+    const halo = this.additiveSprite('#ffb347', 3.6 * k, 0.18);
+    halo.position.set(gx, y + 0.8 * k, gz);
+    const pillar = new THREE.Mesh(new THREE.PlaneGeometry(0.35 * k, 3.2 * k), new THREE.MeshBasicMaterial({
+      map: this.world.tex.pillar, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: new THREE.Color(1.1, 0.85, 0.5),
+    }));
+    pillar.position.set(gx, y + 1.6 * k, gz);
+    pillar.userData.dynamic = true;
+    this.add(core, halo, pillar);
+    this.grace = {
+      core, halo, pillar,
+      figure: new GraceFigure(this.group, gx, y + 1.65 * k, gz, 1.4 * k),
+      light: this.light(gx, y + 2.2 * k, gz, '#ffb347', 12 * k, 1.2),
+    };
+    this.ambient(5, () => (this.lit(seedOf(97, 20)) < 0.3 ? null : {
+      pos: [this.wx(gx), y + 0.25, this.wz(gz)], spread: [0.25, 0.08, 0.2], vel: [0, 0.6, 0], velSpread: [0.12, 0.2, 0.12],
+      color: ['#ffd27a', '#ffe7a8', '#ffb347'], size: 0.05, life: 2, drag: 0.4, intensity: 1.2,
+    }));
+  }
+
+  // Where its grace is, in the world (interact.js, training.js); and where those who come by grace
+  // arrive (npc.js, fastTravel: in front of it).
+  graceSpot() {
+    return [this.wx(TRAIN_GRACE.x), this.wz(TRAIN_GRACE.z)];
+  }
+
+  point() {
+    return this.graceSpot();
+  }
+
   update(dt, t) {
     // the lanterns' flames stir
     for (const l of this.lanterns) {
@@ -307,5 +359,14 @@ export class Yard extends Builder {
       l.glow.material.opacity = 0.35 * k;
       l.light.intensity = 1.6 * k;
     }
+    // its grace breathes (and goes out, as every grace does, while a great enemy is abroad)
+    const g = this.grace;
+    const gp = 0.92 + 0.08 * Math.sin(t * 2.1 + 5);
+    const lg = this.lit(seedOf(97, 20));
+    g.light.intensity = 8 * gp * lg;
+    g.core.material.opacity = 0.65 * gp * lg;
+    g.halo.material.opacity = 0.16 * gp * lg;
+    g.pillar.material.opacity = (0.4 + 0.18 * Math.sin(t * 1.3)) * lg;
+    g.figure.update(dt, gp * lg);
   }
 }

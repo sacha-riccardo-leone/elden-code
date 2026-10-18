@@ -13,6 +13,7 @@ import { nameFor, classTitle } from './lore.js';
 
 const SPEED = { wander: 1.25, rest: 2.3, visit: 2.0, journey: 2.7, urgent: 3.6 };
 const URGENT = new Set(['work', 'wait', 'channel', 'leave']);
+const WORK = new Set(['work', 'wait', 'channel']); // (what its session has it do)
 const SETTLED = new Set(['work', 'wait', 'rest', 'visit', 'gather']); // kept to a spot (its slot) once there
 const HOMEWARD = new Set(['work', 'wait', 'rest', 'channel', 'wander', 'journey']); // done at home (a journey: unless to the Hold)
 // Getting nowhere (`stalled`): no further than `dist` from where it was for `after` seconds; within
@@ -573,6 +574,13 @@ export class Npc {
   // intents
 
   setIntent(intent) {
+    // training on the yard (training.js), what its session wants waits until it's done there; but
+    // one that went to train of itself, with nothing to do, goes as soon as it has work again
+    if (this.trainee && intent.kind !== 'train') {
+      if (this.trainee.self && WORK.has(intent.kind)) this.ctx.training.dismiss(this, intent);
+      else this.trainee.resume = intent;
+      return;
+    }
     // while the player holds this character (or it's fighting a great enemy, fight.js), what its
     // session wants waits until it's free again
     if (this.piloted || this.intent.kind === 'fight') { this.resume = intent; return; }
@@ -707,8 +715,8 @@ export class Npc {
     const world = this.ctx.world;
     let area = world.areaAt(x, z) || this.region;
     // (never onto an island under the mist, sinking into it or gone: that would leave it standing
-    // on thin air; to the Hold instead)
-    const island = area !== world.hub && area !== world.arena;
+    // on thin air; to the Hold instead. The training yard is always there: by its little grace)
+    const island = area !== world.hub && area !== world.arena && area !== world.yard;
     if (island && (world.regions.get(area.project) !== area || !area.risen || area.sinking)) {
       area = world.hub;
       this.goal = null;
@@ -754,7 +762,7 @@ export class Npc {
   speedFor() {
     if (this.intent.kind === 'fight') return Math.max(1.6, this.fighter?.speed || 0); // their legs keep up with their running
     if (this.intent.kind === 'wander') return SPEED.wander;
-    if (this.intent.kind === 'journey') return SPEED.journey;
+    if (this.intent.kind === 'journey' || this.intent.kind === 'train') return SPEED.journey;
     if (this.intent.kind === 'rest') return SPEED.rest;
     if (this.intent.kind === 'visit') return SPEED.visit;
     return SPEED.urgent;
@@ -1350,6 +1358,8 @@ export class Npc {
         return false;
       case 'fight':
         return this.ctx.fight.driveFighter(this, dt);
+      case 'train':
+        return this.ctx.training.drive(this, dt);
       case 'gather': {
         const seated = this.slot && Math.hypot(this.slot.x - this.pos.x, this.slot.z - this.pos.y) < 0.3;
         if (seated) this.body.facing = this.slot.face;

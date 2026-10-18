@@ -71,6 +71,22 @@ wobbles away from it; once a straw one has taken enough it bursts into pieces, t
 again five seconds later. Dummies never strike back. On the yard your ultimate is always full: each
 one still freezes the world for its moment, but you needn't wait between them.
 
+In front of the right-hand weapon rack burns a little **Site of Grace**. Press E there ("Call to
+training") to choose who trains, in the same window that chooses companions for a great enemy:
+whoever is training already stands in its slots, with a spare one to call another. "Train" sends
+for everyone in the slots at once, and they come by grace (arriving in front of the little grace);
+anyone taken out of a slot goes back. Each one training has a **Dismiss** button under its feet to
+send it back on its own. Training, a Tarnished has stopped working: what its session wants waits
+until it leaves the yard, and nothing of its work shows meanwhile (no signs over its head, no
+gestures, no trips to its stations, no spirit ashes), as in a fight. It takes a post (beside a
+straw dummy, behind the great one at its cracked ankle, or, a caster, off to one side) and strikes
+or casts there every so often, now and then going over to another dummy. A Tarnished with nothing
+to do, a hero without a quest or one whose session has been idle a while, sometimes goes to train
+of its own accord (a few at most at once, never while a great enemy is abroad). It goes back as soon
+as its session has work for it, or after a minute or two, and then waits a few minutes before
+coming again. Sent back, a Tarnished takes up what its session wants now, or else goes home (a hero
+without a quest walks back up the stair to the Round Table).
+
 | In Claude Code | In the world |
 |---|---|
 | Session starts | A Tarnished rises at the Site of Grace |
@@ -919,7 +935,7 @@ client/js/grace.js      the grace itself, the figure of golden light floating ov
 client/js/interact.js   E: using the stations and the Round Table
 client/js/arena.js      the Arena of Trials, north of the Hold and higher, and the stone stair up to it
 client/js/yard.js       the Training Yard below the Hold, and the stone stair down to it
-client/js/training.js   the yard's dummies (straw, and the great one: the Golem in wood, struck only on its ankle), and thy blows, spells and ultimates on them
+client/js/training.js   the yard's dummies (straw, and the great one: the Golem in wood, struck only on its ankle), thy blows, spells and ultimates on them, and the Tarnished training there
 client/js/ground.js     the ground's height where it isn't level with the Hold (the yard, the arena, their stairs)
 client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the fighters, thy health
 client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes

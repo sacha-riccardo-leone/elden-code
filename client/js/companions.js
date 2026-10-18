@@ -6,6 +6,9 @@
 // in its own art; "Empty slot" under it frees the slot again, and a click on it changes it. "Start
 // fight", with however many companions are chosen (none at all included), raises the arena; × or
 // Esc turns the enemy down. The companions chosen last are in their slots again the next time.
+// The same window chooses who trains on the training yard (training.js), at its grace: those
+// training already in its slots, and a spare one to call another; "Train" sends for whoever is in
+// them, and back whoever was taken out.
 
 import { heroKey } from './combat.js';
 import { ULTS } from './ults.js';
@@ -151,6 +154,10 @@ export class Companions {
     this.startBtn = this.root.querySelector('.start');
     this.catalog = this.root.querySelector('.catalog');
     this.list = this.root.querySelector('.catalog .list');
+    this.titleEl = this.root.querySelector('#companions-title');
+    this.pickEl = this.root.querySelector('.catalog-head h3');
+    this.remember = true; // (the party chosen is kept for the next time)
+    this.busy = null; // (why a hero can't be chosen just now, if it can't)
     this.shown = false;
     this.slots = [];
     this.roster = [];
@@ -173,19 +180,30 @@ export class Companions {
   }
 
   // Opens the window for `foe` (who's coming) and `why`; resolves with the companions chosen once
-  // the fight is called, or null if it's turned down (close).
-  ask({ foe, why }) {
+  // the fight is called, or null if it's turned down (close). Asked otherwise (the training yard's
+  // grace): its title, the start button's words and the catalogue's, who's in the slots to begin
+  // with (`party`, and a `spare` empty one besides), whether to keep the choice for next time, and
+  // why a hero can't be chosen just now (`busy(n)`: a reason, or nothing).
+  ask({ foe, why, title = 'Choose your companions', start = 'Start fight', pick = 'Choose a companion', party = null, spare = false, remember = true, busy = null }) {
     if (this.shown) this.close();
     const { director, pilot } = this.ctx;
     pilot.keys?.clear(); // (thou stoppest where thou stand'st: no keys reach the world meanwhile)
     // the heroes there are to take: every one but whoever thou art (thou fightest anyway), and Maren
     // when thou art someone else
     this.roster = [...director.heroes.values(), director.maren].filter((n) => n && !n.dead && n !== pilot.npc && n.hero);
-    let last = [];
-    try { last = JSON.parse(localStorage.getItem(MEMORY) || '[]'); } catch {}
-    const remembered = (Array.isArray(last) ? last : []).map((id) => this.roster.find((n) => idOf(n) === id)).filter(Boolean);
-    const count = Math.min(this.roster.length, Math.max(SLOTS, remembered.length));
+    let remembered = party ? party.filter((n) => this.roster.includes(n)) : null;
+    if (!remembered) {
+      let last = [];
+      try { last = JSON.parse(localStorage.getItem(MEMORY) || '[]'); } catch {}
+      remembered = (Array.isArray(last) ? last : []).map((id) => this.roster.find((n) => idOf(n) === id)).filter(Boolean);
+    }
+    const count = Math.min(this.roster.length, Math.max(SLOTS, remembered.length + (spare ? 1 : 0)));
     this.slots = Array.from({ length: count }, (_, i) => remembered[i] || null);
+    this.remember = remember;
+    this.busy = busy;
+    this.titleEl.textContent = title;
+    this.startBtn.textContent = start;
+    this.pickEl.textContent = pick;
     this.foeEl.replaceChildren(el('b', null, foe), why ? ` · ${why}` : '');
     this.picking = -1;
     this.catalog.hidden = true;
@@ -218,7 +236,7 @@ export class Companions {
 
   start() {
     const party = this.slots.filter(Boolean);
-    try { localStorage.setItem(MEMORY, JSON.stringify(party.map(idOf))); } catch {}
+    if (this.remember) try { localStorage.setItem(MEMORY, JSON.stringify(party.map(idOf))); } catch {}
     this.finish(party);
   }
 
@@ -293,9 +311,10 @@ export class Companions {
       const art = ROSTER[key] || { style: n.title || '', fights: '', manner: '' };
       const ult = ULTS[key];
       const taken = this.slots.some((s, k) => s === n && k !== i);
+      const why = this.busy?.(n);
       const card = el('button', 'hero');
       card.type = 'button';
-      card.disabled = taken;
+      card.disabled = taken || !!why;
       const thumb = el('span', 'face');
       const figure = new Figure(n.hero, { still: true, tall: 3.25 });
       faces.push(figure);
@@ -311,7 +330,7 @@ export class Companions {
         about.append(u);
       }
       if (art.manner) about.append(el('span', 'line manner', art.manner));
-      about.append(el('span', 'where', taken ? 'Already chosen' : this.whereabouts(n)));
+      about.append(el('span', 'where', taken ? 'Already chosen' : why || this.whereabouts(n)));
       card.append(thumb, about);
       card.addEventListener('click', () => {
         this.slots[i] = n;
@@ -336,6 +355,7 @@ export class Companions {
   }
 
   whereabouts(n) {
+    if (n.trainee) return 'Training in the yard';
     if (n.isMaren) return 'Wandering the Lands Between';
     if (n.unbound) return 'At the Round Table';
     return `On a quest in ${n.region.project}`;

@@ -1,14 +1,16 @@
 // Things thou canst use (E) when standing by them: every station the sessions' characters work at
 // (the forge, the scriptorium, the war table, the ritual circle, the raven tower, the fog gate, the
-// site of grace) on every island, and in Roundtable Hold the Round Table, with its great grace
-// at its heart (taking a seat there rests at grace; it can also summon a great enemy to the
-// arena). A prompt shows over the nearest one in reach.
+// site of grace) on every island, in Roundtable Hold the Round Table, with its great grace at its
+// heart (taking a seat there rests at grace; it can also summon a great enemy to the arena), and
+// on the training yard its little grace, where thou callest the Tarnished to train (training.js).
+// A prompt shows over the nearest one in reach.
 // Using a station works it as the characters do: the forge glows and throws sparks at each blow,
 // the ritual circle spins up, a raven takes wing, the bell rings at the fog gate. Walking off (or E
 // again) stops.
 
 import * as THREE from 'three';
 import { HUB_LAYOUT } from './config.js';
+import { groundAt } from './ground.js';
 
 // How each station is used, and how close one must stand.
 const USES = {
@@ -37,6 +39,10 @@ export class Interact {
     if (area === world.hub) {
       const [tx, tz] = HUB_LAYOUT.table;
       return [{ x: tx, z: tz, reach: 3.4, label: 'The Round Table', use: () => this.ctx.ui.openTable() }];
+    }
+    if (area === world.yard) {
+      const [gx, gz] = world.yard.graceSpot();
+      return [{ x: gx, z: gz, reach: 2.6, label: 'Call to training', use: () => this.ctx.training.ask() }];
     }
     if (!area.point || area.isArena) return [];
     return Object.keys(USES).map((station) => {
@@ -79,7 +85,7 @@ export class Interact {
     this.el.hidden = !best;
     if (!best) return;
     this.label.textContent = best.label;
-    const p = this.ctx.ui.project(this.v.set(best.x, 2.2, best.z));
+    const p = this.ctx.ui.project(this.v.set(best.x, groundAt(best.x, best.z) + 2.2, best.z));
     this.el.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y)}px) translate(-50%, -100%)`;
   }
 }
