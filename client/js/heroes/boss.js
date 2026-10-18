@@ -7,22 +7,29 @@
 // (from the boss-swing / -lunge / -slam / -jump sheets), all on one palette. The sheets draw him at
 // different sizes, so each is sampled on a coarser grid to match the idle: the swing sheet at
 // 3.125 source px per art pixel (x0.8), the lunge at 2.717 (x0.92), the slam at 3.012 (x0.83);
-// the jump sheet already matches at 2.5.
+// the jump sheet already matches at 2.5. His great attack's drawings (fight.js, wrath): the roar,
+// head thrown back and the sword held high (boss-roar.json), and the hover over the arena, facing
+// thee, the sword held level over his head (boss-float.json), both sampled at 5.5 (as big as he
+// is in the slam); taller than his other frames, they're kept in frames of their own (BIG).
 
-import { Img, NONE, blit, region } from './core.js';
+import { Img, NONE, blit, region, anchorOf } from './core.js';
 
 const FRAME = { w: 466, h: 260 };
 const CX = FRAME.w / 2; // the boss's middle (its torso) sits here in every frame
 const TORSO = 53; // how far the torso stands in front of the planted back foot (idle)
+// the great attack's frames (core.js, bigFrame): narrower, taller, his middle on the anchor column
+const BIG = { w: 208, h: 300, anchor: 112 };
 
-// Each drawing: where its back foot is planted (x) and its ground row. Airborne frames are placed
-// by their torso instead.
+// Each drawing: where its back foot is planted (x) and its ground row, or (mid) the column that
+// is his middle; `big`: drawn in BIG.
 const ART = {
   idle: { file: 'boss', foot: 57.5, ground: 161 },
   'swing-1': { foot: 48.5, ground: 204 }, 'swing-2': { foot: 53.3, ground: 169 }, 'swing-3': { foot: 56.2, ground: 155 },
   'lunge-1': { foot: 72.5, ground: 145 }, 'lunge-2': { foot: 42.9, ground: 148 }, 'lunge-3': { foot: 43, ground: 146 },
   'slam-1': { foot: 67.2, ground: 212 }, 'slam-2': { foot: 43.8, ground: 166 }, 'slam-3': { foot: 46.8, ground: 166 },
   'jump-1': { foot: 53, ground: 165 }, 'jump-2': { foot: 32.3, ground: 242 }, 'jump-3': { foot: 42.3, ground: 204 }, 'jump-4': { foot: 56.5, ground: 162 },
+  roar: { foot: 56, ground: 297, big: true },
+  float: { mid: 86, ground: 245, big: true }, // (in the air, facing thee: by his middle; ground: his lower toes)
 };
 const STILLS = Object.keys(ART).filter((k) => k !== 'idle');
 
@@ -70,10 +77,13 @@ function prepare(art, more = {}) {
   };
 }
 
-// Where a drawing's (x, y) lands in the frame.
+// Where a drawing's (x, y) lands in its frame.
+const frameOf = (name) => (ART[name].big ? BIG : FRAME);
 const origin = (name, dx = 0, dy = 0) => {
   const a = ART[name];
-  return [Math.round(CX - TORSO - a.foot) + dx, FRAME.h - 1 - a.ground + dy];
+  const F = frameOf(name);
+  const x = a.mid != null ? anchorOf(F) - a.mid : anchorOf(F) - TORSO - a.foot;
+  return [Math.round(x) + dx, F.h - 1 - a.ground + dy];
 };
 
 function drawLeg(dst, leg, stride, lift, ox, oy) {
@@ -90,12 +100,14 @@ function drawLeg(dst, leg, stride, lift, ox, oy) {
 }
 
 function compose(ctx, p) {
-  const f = new Img(FRAME.w, FRAME.h);
   if (p.still) {
+    const F = frameOf(p.still);
+    const f = new Img(F.w, F.h);
     const [ox, oy] = origin(p.still, p.dx || 0, p.bob || 0);
     blit(f, ctx.stills[p.still], ox, oy);
     return f;
   }
+  const f = new Img(FRAME.w, FRAME.h);
   const { parts } = ctx;
   const [ox, oy] = origin('idle', p.lean || 0);
   const bob = p.bob || 0;
@@ -139,7 +151,8 @@ anim('walk', seq(6, (i) => ({
   legs: [[4, 0, -4, 3], [2, 3, -2, 1], [-2, 3, 2, 0], [-4, 0, 4, 0], [-2, 0, 2, 3], [2, 0, -2, 3]][i],
   light: 1,
 })));
-for (const k of STILLS) anim(k, [{ still: k, light: /-2$/.test(k) ? 2 : 1 }]);
+// (the blow itself, and the great attack's drawings, the sword blazing)
+for (const k of STILLS) anim(k, [{ still: k, big: !!ART[k].big, light: /-2$/.test(k) || ART[k].big ? 2 : 1 }]);
 anim('stagger', [{ still: 'jump-4', dx: -3, light: 2 }, { still: 'jump-4', dx: -5, bob: 1, light: 2 }]);
 anim('collapse', [{ still: 'jump-4', bob: 2, light: 0 }]);
 
@@ -153,6 +166,7 @@ export default {
   epithet: 'the Crimson Fang',
   title: 'Great Enemy',
   frame: FRAME,
+  bigFrame: BIG,
   cols: 8,
   px: 6.2 / 162, // world units per art pixel: a little under three times a Tarnished's height
   head: 150,

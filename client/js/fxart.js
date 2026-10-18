@@ -1,4 +1,5 @@
-// Effects drawn by hand for the Tarnished's ultimates and spells (assets/fx/<name>.json: a sheet
+// Effects drawn by hand for the Tarnished's ultimates and spells, and Fenrath's great attack
+// (assets/fx/<name>.json: a sheet
 // split with scripts/split-sheet.mjs --grid, extracted with extract-hero.mjs --keep and packed
 // with pack-frames.mjs, so its frames stay in register; see README). Each is loaded once, its
 // frames as pixel textures. An effect whose art is missing draws itself as before (spellfx.js).
@@ -24,6 +25,9 @@ const ART = {
   'corisande-shards': '/assets/fx/corisande-shards.json',
   'corisande-great-shard': '/assets/fx/corisande-great-shard.json',
   'corisande-arrow': '/assets/fx/corisande-arrow.json',
+  // Fenrath's great attack (fight.js, wrath): the ghost of his sword, the ring's eruption
+  'fenrath-sword': '/assets/fx/fenrath-sword.json',
+  'fenrath-eruption': '/assets/fx/fenrath-eruption.json',
 };
 
 const sheets = new Map();

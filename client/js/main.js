@@ -303,7 +303,7 @@ resize();
 
 let last = performance.now();
 let t = 0;
-let camMode = null; // in a fight on the arena: 'boss' (showing him) or 'thee' (following thee)
+let camMode = null; // in a fight on the arena: 'boss' (showing him), 'thee' (following thee), and in his great attack 'roar' (him) and 'wide' (the whole arena)
 let camBase = FOLLOW_DIST; // how far back the camera was before the fight took it over
 
 function step(dt) {
@@ -326,7 +326,7 @@ function step(dt) {
       const aim = fight.aim(me);
       // (how far back: set as it changes between showing him and following thee, so a scroll of
       // the wheel still zooms; and as the fight ends, back to how far it was before)
-      const mode = aim ? (aim.at ? 'boss' : 'thee') : null;
+      const mode = aim ? aim.mode || (aim.at ? 'boss' : 'thee') : null;
       if (mode !== camMode) {
         if (!camMode) camBase = rig.distGoal;
         rig.distGoal = mode ? Math.max(camBase, aim.dist) : camBase;

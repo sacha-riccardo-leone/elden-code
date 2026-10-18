@@ -25,12 +25,18 @@
 //   lunge – a thrust: a lance of light runs along the blade and far past its point;
 //   slam  – a ring of light gathers round him for a moment, then fills: all inside it suffer;
 //   leap  – beset (crowded, or battered) or rooted too long in one place, he crouches trembling,
-//           marks where he'll come down, leaps, and lands in a crack of stone and flying debris.
+//           marks where he'll come down, leaps, and lands in a crack of stone and flying debris;
+//   wrath – his great attack, now and then: he roars at the sky, leaps up over the middle of the
+//           arena and hangs there facing thee, while a ghost of his greatsword, red and
+//           see-through, grows huge beside him and cuts down one half of the arena, then the
+//           other (each marked first: get across, or dodge through it); then he comes down into
+//           the middle, and the ring round him erupts: only the golden circle by him is safe.
 
 import * as THREE from 'three';
 import { ARENA, HUB, HUB_LAYOUT, CROWD, LINE, BOSS_CAM } from './config.js';
 import { SpriteBody } from './npc.js';
-import { Crescent, Decal, Spike } from './bossfx.js';
+import { Crescent, Decal, Spike, GhostSword, Eruption } from './bossfx.js';
+import { fxArt } from './fxart.js';
 import { Spark } from './spellfx.js';
 import { GOLEM, GOLEM_MOVES, GolemMind } from './golem.js';
 import { setFoe } from './voices.js';
@@ -46,7 +52,7 @@ const DAMAGE = { player: 55, fighter: 16, quest: 0.5 }; // quest: the share of i
 // to `most` metres nearer in his eyes (target); past `leap` of it, and `far` off, he comes down on
 // them with his leap (think).
 const HUNT = { from: 5.5, half: 5, per: 0.04, most: 8, leap: 60, far: 7 };
-const HURT = { swing: 22, lunge: 28, slam: 34, leap: 30 }; // to thee (of 100); fighters take as much
+const HURT = { swing: 22, lunge: 28, slam: 34, leap: 30, cut: 26, ring: 34 }; // to thee (of 100); fighters take as much
 // How a blow shows (impact): how far his drawing is knocked back (world units: by thy blow, by
 // another's, by a spell or an ultimate's, by a heavy one), how long the world holds still (seconds:
 // for thy blow, thy spell, a heavy one), how far the view is pushed, how hard it shakes on a heavy
@@ -69,6 +75,17 @@ const MOVES = {
   lunge: { steps: [['lunge-1', 0.65], ['lunge-2', 0.35], ['lunge-3', 0.6]], danger: 1 },
   slam: { steps: [['slam-1', 1.2, true], ['slam-2', 0.45], ['slam-3', 0.7]], danger: 1 },
   leap: { steps: [['jump-1', 1, true], ['jump-2', 0.45, true], ['jump-3', 0.4, true], ['jump-4', 0.7]], danger: 3 },
+  // the roar; he crouches and leaps up over the middle of the arena; there the ghost sword grows and
+  // the first half is marked; the cut; it swings over to the other side, marked; the cut; the ring
+  // marked round the golden circle; down he comes; landed, the ring pulsing; it erupts
+  wrath: {
+    steps: [
+      ['roar', 2, true], ['jump-1', 0.45, true], ['jump-2', 0.55, true],
+      ['float', 1.8, true], ['float', 0.35, true], ['float', 1.8, true], ['float', 0.35, true], ['float', 0.6, true],
+      ['jump-3', 0.5, true], ['jump-4', 1.9, true], ['jump-4', 0.9, true],
+    ],
+    danger: 10,
+  },
 };
 const CRESCENT = { from: 1.2, y: 3, size: 6, speed: 15, life: 0.5, half: 1.6, lane: 1.6 }; // starts `from` ahead of him
 const SPIKE = { from: 3.9, y: 3.2, len: 9, life: 0.75, slide: 2.2 }; // from the guard; he slides `slide` into it
@@ -80,10 +97,27 @@ const SAYS = {
   enter: ['Thy death resteth close at hand.', 'Another Tarnished, come to die.'],
   stalk: ['*grunts*', '*heavy breathing*', 'Serve my will alone, O blade.', 'Thy death resteth close at hand.', '*a low, rumbling growl*', 'Kneel, Tarnished.'],
   leap: ['*grunts*'],
+  roar: ['*a deafening roar*', '*roars at the sky*'],
   alone: ['*looks in disbelief*', 'Coward…'],
 };
 const pickOf = (list) => list[Math.floor(Math.random() * list.length)];
 const LEAP = { r: 3.2, height: 7, cooldown: 10 };
+// His great attack (wrath): `first` seconds into the fight, then every `every`. He hangs `height`
+// up over the middle of the arena. The ghost of his sword turns about its pommel, `pivot` [aside,
+// up] from him; it grows from his own sword's length to `len`, is held ready `ready` (radians) out
+// from straight up, and cuts down to `down`. The circle by him that the ring spares: `safe`; the
+// ring erupts at `spots` places, each `height` tall, rippling out from it over `ripple` seconds.
+// `cam`: how far back the camera pulls meanwhile, to show the whole arena.
+const WRATH = {
+  first: [30, 40], every: [45, 60],
+  height: 3.2,
+  sword: { pivot: [2.6, 3.6], len: 15.5, ready: 0.9, down: 2.4, grow: 0.6, swap: 0.6, opacity: 0.42 },
+  safe: 5.5,
+  erupt: { spots: 110, height: 2.8, ripple: 0.3 },
+  cam: 38,
+};
+// (the marks on the arena floor: drawn out to its edge, a little past where anyone walks)
+const FLOOR_R = ARENA.walkRadius + 0.6;
 
 // Why one came, as the banner and the window choosing companions say it.
 const WHY = {
@@ -124,12 +158,15 @@ const TRIGGER = {
 const rand = (a, b) => a + Math.random() * (b - a);
 
 // Whether a blow (its shape, where it lands) covers a point, with some slack: a disc, a line
-// running `dir`-ward from (x, z), `from`..`len` along it and `half` either side, or a scatter of
-// discs (`spots`, each of radius r).
+// running `dir`-ward from (x, z), `from`..`len` along it and `half` either side, a scatter of
+// discs (`spots`, each of radius r), one half of the arena, its middle line through (x, z) (`side`:
+// -1 the left, 1 the right), or all of it but the circle round (x, z) (a ring: `safe`, its radius).
 function covers(shape, x, z, opt, px, pz, slack = 0.3) {
   // (the Golem's shockwaves: no running from them, they're hopped, golem.js; his roll: nothing to run from)
   if (shape === 'wave' || shape === 'none') return false;
   if (shape === 'spots') return opt.spots.some(([sx, sz]) => Math.hypot(px - sx, pz - sz) <= opt.r + slack);
+  if (shape === 'half') return (px - x) * opt.side >= -slack;
+  if (shape === 'ring') return Math.hypot(px - x, pz - z) >= opt.safe - slack;
   if (shape === 'line') {
     const along = (px - x) * opt.dir;
     return along >= opt.from - slack && along <= opt.len + slack && Math.abs(pz - z) <= opt.half + slack;
@@ -185,6 +222,7 @@ class Boss {
     this.t = 0;
     this.cd = 2.5; // until the next blow
     this.slamIn = rand(10, 14); // until he'd rather slam
+    this.wrathIn = rand(...WRATH.first); // until his great attack
     this.leapCd = LEAP.cooldown;
     this.idleT = 0; // since his last blow
     this.posture = 0;
@@ -215,7 +253,7 @@ class Boss {
     this.hp -= dealt;
     this.posture += dealt;
     this.hurtLog.push([performance.now() / 1000, dealt]);
-    const airborne = this.attack?.kind === 'leap' && this.attack.step >= 1 && this.attack.step <= 2;
+    const airborne = (this.attack?.kind === 'leap' && this.attack.step >= 1 && this.attack.step <= 2) || !!this.attack?.air;
     if (this.hp <= 0) {
       const lying = this.mind?.lying;
       this.state = 'dying';
@@ -788,6 +826,13 @@ export class Fight {
   aim(me) {
     const b = this.boss;
     if (!this.facing(me)) return null;
+    // his great attack: him as he roars, then the whole arena, from farther back, till the ring
+    // has erupted
+    if (b.attack?.kind === 'wrath') {
+      if (b.attack.step === 0) return { at: [b.pos.x, 4.2, b.pos.y], dist: BOSS_CAM.far, mode: 'roar' };
+      const { cx, cz } = this.ctx.world.arena;
+      return { at: [cx, 2.5, cz], dist: WRATH.cam, mode: 'wide' };
+    }
     const { far, y } = b.kind.cam;
     if (this.clock < this.introUntil) return { at: [b.pos.x, y, b.pos.y], dist: far };
     if (this.focus) return { at: [me.pos.x + (b.pos.x - me.pos.x) * 0.45, y, me.pos.y + (b.pos.y - me.pos.y) * 0.45], dist: far };
@@ -969,6 +1014,13 @@ export class Fight {
     const prey = this.peltOf(b, tgt) >= HUNT.leap && Math.hypot(dx, dz) > HUNT.far ? tgt : null;
     const stuck = rootedAt(b, this.clock);
     if (stuck) b.leapCd = Math.max(b.leapCd, 0.5);
+    // now and then, his great attack (not while a pool of blood keeps him in)
+    b.wrathIn -= dt * fast;
+    if (b.wrathIn <= 0 && b.cd <= 0.6 && !stuck) {
+      b.wrathIn = rand(...WRATH.every);
+      this.begin(b, 'wrath');
+      return false;
+    }
     if (b.leapCd <= 0 && b.cd <= 0.6 && (beset || prey || b.anchorT > 12)) {
       this.begin(b, 'leap', beset && !prey, prey);
       return false;
@@ -1027,6 +1079,16 @@ export class Fight {
       a.opt = { r: LEAP.r };
       if (Math.abs(a.x - b.pos.x) > 0.4) b.body.facing = a.x > b.pos.x ? 1 : -1;
       b.leapCd = LEAP.cooldown;
+    } else if (kind === 'wrath') {
+      // over the whole arena, from its middle: nothing to get out of yet (marked as it goes on);
+      // the half with the more foes in it is cut first (thee counting double)
+      const { cx, cz } = this.ctx.world.arena;
+      Object.assign(a, { shape: 'none', x: cx, z: cz, opt: {}, from: b.pos.clone() });
+      const me = this.ctx.pilot.npc;
+      let lean = 0;
+      for (const n of this.foes()) lean += Math.sign(n.pos.x - cx) * (n === me ? 2 : 1);
+      a.side = lean > 0 ? 1 : lean < 0 ? -1 : Math.random() < 0.5 ? -1 : 1;
+      b.leapCd = Math.max(b.leapCd, 4);
     }
     b.attack = a;
     b.state = 'attack';
@@ -1097,8 +1159,75 @@ export class Fight {
         b.pos.set(a.from.x + (a.x - a.from.x) * f, a.from.y + (a.z - a.from.y) * f);
       }
       if (b.marks[0] && a.step <= 2) b.marks[0].opacity = 0.7 + 0.3 * Math.sin(t * 18);
+    } else if (a.kind === 'wrath') {
+      jitter = this.stepWrath(b, a, k, dt, t);
     }
     if (k >= 1) this.nextStep(b);
+    return jitter;
+  }
+
+  // His great attack as it goes on: he roars, trembling; flies up over the middle of the arena and
+  // hangs there, bobbing, while the ghost of his sword grows, is held ready (quivering), cuts, and
+  // swings over to the other side; he comes down. Its marks pulse.
+  stepWrath(b, a, k, dt, t) {
+    const { cx, cz } = this.ctx.world.arena;
+    const S = WRATH.sword;
+    let jitter = 0;
+    if (a.step === 0) {
+      jitter = (Math.floor(a.t * 24) % 2 ? 1 : -1) * 0.05;
+      if (Math.random() < dt * 30) {
+        this.ctx.particles.emit({
+          pos: [b.pos.x + b.body.facing * 0.2, 6.8, b.pos.y + 0.3], spread: [0.6, 0.4, 0.3], vel: [0, 2.6, 0], velSpread: [1.4, 1, 0.6],
+          color: ['#ff5a3a', '#a01818', '#2a0a0a'], size: 0.11, life: 0.9, count: 3, drag: 0.8, intensity: 2,
+        });
+      }
+      // (the roar shakes the ground as it goes on)
+      a.pulse = a.pulse || 0;
+      if (a.t > 0.5 * (a.pulse + 1)) { a.pulse += 1; this.ctx.rig.shake?.(0.12); }
+    } else if (a.step === 2) {
+      // up, and over the middle of the arena
+      b.lift = WRATH.height * (1 - (1 - k) ** 2);
+      b.pos.set(a.from.x + (cx - a.from.x) * k, a.from.y + (cz - a.from.y) * k);
+    } else if (a.step >= 3 && a.step <= 7) {
+      b.lift = WRATH.height + Math.sin(t * 2.2) * 0.12;
+    } else if (a.step === 8) {
+      b.lift = WRATH.height * (1 - k * k);
+    }
+    // the ghost sword: its angle from straight down, counter-clockwise; held ready (`ready` out from
+    // straight up) on side s it's at π - s·ready, and cuts down to π - s·down
+    const g = a.ghost;
+    if (g) {
+      const at = (s, u) => Math.PI - s * u;
+      const quiver = Math.sin(t * 23) * 0.015;
+      let side = a.side;
+      g.trail = 0;
+      if (a.step === 3) {
+        const e = Math.min(1, a.t / S.grow);
+        g.len = a.swordLen + (S.len - a.swordLen) * (1 - (1 - e) ** 3);
+        g.opacity = WRATH.sword.opacity * e;
+        g.angle = at(side, S.ready) + quiver;
+      } else if (a.step === 4 || a.step === 6) {
+        if (a.step === 6) side = -a.side;
+        g.angle = at(side, S.ready + (S.down - S.ready) * k * k);
+        g.trail = -side * 0.13 * Math.min(1, k * 3);
+      } else if (a.step === 5) {
+        // back up and over to the other side, its pivot with it, then held ready there
+        const e = Math.min(1, a.t / S.swap);
+        const s = e * e * (3 - 2 * e);
+        g.angle = at(a.side, S.down) + (at(-a.side, S.ready) - at(a.side, S.down)) * s + (e >= 1 ? quiver : 0);
+        side = s < 0.5 ? a.side : -a.side;
+        a.pivotX = cx + a.side * S.pivot[0] * (1 - 2 * s);
+        if (e >= 1 && !a.mark) this.markHalf(b, a, -a.side);
+      } else if (a.step === 7) {
+        side = -a.side;
+        g.opacity = WRATH.sword.opacity * (1 - k);
+        g.angle = at(side, S.down);
+      }
+      const px = a.pivotX ?? cx + side * S.pivot[0];
+      for (const m of [g.mesh, ...g.copies]) m.position.set(px, b.lift + S.pivot[1], cz + 0.5);
+      g.place();
+    }
+    for (const m of b.marks) if (m.pulse) m.opacity = m.pulse * (0.7 + 0.3 * Math.sin(t * 9));
     return jitter;
   }
 
@@ -1208,8 +1337,193 @@ export class Fight {
         break;
       }
       default:
+        if (a.kind === 'wrath') this.wrathStep(b, a);
         break;
     }
+  }
+
+  // His great attack, at the turn of each of its steps (nextStep).
+  wrathStep(b, a) {
+    const { scene, particles, rig } = this.ctx;
+    const { cx, cz } = this.ctx.world.arena;
+    switch (a.step) {
+      case 0:
+        // he roars at the sky
+        this.say(pickOf(SAYS.roar), 0.1, true);
+        rig.shake?.(0.35);
+        particles.emit({
+          pos: [b.pos.x, 0.25, b.pos.y], spread: [3, 0.1, 1.6], vel: [0, 1.2, 0], velSpread: [3.5, 0.6, 2],
+          color: ['#5a4a3e', '#3a2e28', '#6a2a2a'], size: 0.14, life: 1, count: 40, drag: 1.4, intensity: 0.9,
+        });
+        break;
+      case 2:
+        // up he springs
+        a.air = true;
+        if (Math.random() < 0.4) this.say(pickOf(SAYS.leap));
+        particles.emit({
+          pos: [b.pos.x, 0.2, b.pos.y], spread: [1.6, 0.1, 0.6], vel: [0, 2, 0], velSpread: [2, 1, 1],
+          color: ['#6a5a4e', '#3a2e28'], size: 0.12, life: 0.7, count: 24, drag: 1.4, intensity: 0.9,
+        });
+        break;
+      case 3: {
+        // the ghost of his sword grows beside him, and the half it'll cut is marked
+        const art = fxArt('fenrath-sword');
+        if (art) {
+          a.swordLen = art.h * b.body.sheet.px;
+          a.ghost = new GhostSword(scene, art, cx, b.lift + WRATH.sword.pivot[1], cz + 0.5);
+          b.marks.push(a.ghost);
+        }
+        this.markHalf(b, a, a.side);
+        this.tell(b, 'cut', 'A ghost of his sword will cut down half the arena: get across to the other half, or dodge through it (Space)');
+        break;
+      }
+      case 4:
+        this.hopCut(a.side);
+        break;
+      case 5:
+        // (the other half is marked once the sword has swung over to it: stepWrath)
+        this.cutHalf(b, a, a.side);
+        Object.assign(a, { shape: 'none', opt: {} });
+        break;
+      case 6:
+        this.hopCut(-a.side);
+        break;
+      case 7: {
+        this.cutHalf(b, a, -a.side);
+        // the ring round the golden circle in the middle, about to erupt
+        const ring = new Decal(scene, 'annulus', cx, cz, FLOOR_R * 2 * 96 / 92, { opacity: 0.4, arg: WRATH.safe / FLOOR_R });
+        const safe = new Decal(scene, 'heart', cx, cz, WRATH.safe * 2 * 48 / 45, { opacity: 0.9 });
+        ring.pulse = 0.45;
+        safe.pulse = 0.95;
+        a.rings = [ring, safe];
+        b.marks.push(ring, safe);
+        Object.assign(a, { shape: 'ring', opt: { safe: WRATH.safe }, phase: 3 });
+        this.tell(b, 'ring', 'The ring round him will erupt: get into the golden circle by his side');
+        break;
+      }
+      case 8:
+        // down he comes (the ghost gone)
+        if (a.ghost) this.unmark(b, a.ghost);
+        a.ghost = null;
+        break;
+      case 9: {
+        // he lands in the middle: the stone cracks, debris flies, the ground shakes
+        b.lift = 0;
+        a.air = false;
+        b.pos.set(cx, cz);
+        const crack = new Decal(scene, 'crack', cx, cz, LEAP.r * 2.6, { glow: false });
+        let life = 0;
+        this.fx.push({
+          step: (dt) => { life += dt; crack.opacity = Math.min(1, Math.max(0, (7 - life) / 2)); return life < 7; },
+          dispose: () => crack.dispose(),
+        });
+        particles.emit({
+          pos: [cx, 0.3, cz], spread: [2, 0.2, 1.4], vel: [0, 5.5, 0], velSpread: [5, 2.5, 3.5],
+          color: ['#7a6a5c', '#4a3e36', '#9a8a78', '#2a221e'], size: 0.2, life: 1.1, count: 40, gravity: 16, drag: 0.4, intensity: 0.9,
+        });
+        rig.shake?.(0.4);
+        break;
+      }
+      case 10:
+        this.erupt(b, a);
+        break;
+      default:
+        break;
+    }
+  }
+
+  // A word of advice in the log, the first time it's called for in a fight.
+  tell(b, key, text) {
+    b.told ??= new Set();
+    if (b.told.has(key)) return;
+    b.told.add(key);
+    this.ctx.ui.log(text, 'gold', { region: this.ctx.world.arena });
+  }
+
+  // One of his marks, gone before the move is over.
+  unmark(b, m) {
+    m.dispose();
+    const i = b.marks.indexOf(m);
+    if (i >= 0) b.marks.splice(i, 1);
+  }
+
+  // Half the arena about to be cut (side: -1 the left, 1 the right), marked: what the fighters run from.
+  markHalf(b, a, side) {
+    const { cx, cz } = this.ctx.world.arena;
+    const m = new Decal(this.ctx.scene, 'half', cx, cz, FLOOR_R * 2 * 96 / 92, { opacity: 0.38 });
+    m.mesh.scale.x = side < 0 ? 1 : -1; // (drawn as the left half)
+    m.pulse = 0.42;
+    a.mark = m;
+    b.marks.push(m);
+    Object.assign(a, { shape: 'half', opt: { side }, phase: side === a.side ? 1 : 2 });
+  }
+
+  // The cut about to land on that side: the fighters on it who can't get across hop it, mostly (as
+  // they hop the Golem's shockwaves).
+  hopCut(side) {
+    const { cx } = this.ctx.world.arena;
+    for (const n of this.ctx.director.npcs.values()) {
+      const f = n.fighter;
+      if (!f || f.dead || n.travel || n.piloted || f.hop || (n.pos.x - cx) * side < -0.3) continue;
+      if (Math.random() < (f.coward ? 0.95 : 0.7)) f.hop = { t: 0, dur: 0.55 };
+    }
+  }
+
+  // The cut lands: all on that side of the arena (not dodging, nor in the air) suffer; the floor
+  // there flares and fades, red embers fly, the ground shakes.
+  cutHalf(b, a, side) {
+    const { scene, particles, rig } = this.ctx;
+    const { cx, cz } = this.ctx.world.arena;
+    if (a.mark) this.unmark(b, a.mark);
+    a.mark = null;
+    this.strike((px, pz) => covers('half', cx, cz, { side }, px, pz, 0), HURT.cut, null, true);
+    const flash = new Decal(scene, 'half', cx, cz, FLOOR_R * 2 * 96 / 92);
+    flash.mesh.scale.x = side < 0 ? 1 : -1;
+    let life = 0;
+    this.fx.push({
+      step: (dt) => { life += dt; flash.opacity = Math.max(0, 1 - life / 0.6); return life < 0.6; },
+      dispose: () => flash.dispose(),
+    });
+    particles.emit({
+      pos: [cx + side * 9, 0.4, cz], spread: [8, 0.3, 12], vel: [0, 3, 0], velSpread: [2, 2, 2],
+      color: ['#ff5a3a', '#ffd2a8', '#a01818'], size: 0.12, life: 0.9, count: 120, drag: 1.2, intensity: 2.2,
+    });
+    rig.shake?.(0.4);
+  }
+
+  // The ring erupts: red light tears up out of the floor all over it, rippling out from the golden
+  // circle to the edge; all on it (not dodging, nor in the air) suffer; the ground shakes.
+  erupt(b, a) {
+    const { scene, particles, rig } = this.ctx;
+    const { cx, cz } = this.ctx.world.arena;
+    const E = WRATH.erupt;
+    const R = ARENA.walkRadius;
+    const inner = WRATH.safe;
+    for (const m of a.rings || []) this.unmark(b, m);
+    a.rings = null;
+    this.strike((px, pz) => covers('ring', cx, cz, { safe: inner }, px, pz, 0), HURT.ring, null, true);
+    const flash = new Decal(scene, 'annulus', cx, cz, FLOOR_R * 2 * 96 / 92, { arg: inner / FLOOR_R });
+    let life = 0;
+    this.fx.push({
+      step: (dt) => { life += dt; flash.opacity = Math.max(0, 1 - life / 0.9); return life < 0.9; },
+      dispose: () => flash.dispose(),
+    });
+    const art = fxArt('fenrath-eruption');
+    if (art) {
+      const spots = [];
+      for (let i = 0; i < E.spots; i++) {
+        const r = Math.sqrt(inner ** 2 + Math.random() * (R ** 2 - inner ** 2));
+        const ang = Math.random() * Math.PI * 2;
+        spots.push([cx + Math.cos(ang) * r, cz + Math.sin(ang) * r, ((r - inner) / (R - inner)) * E.ripple + Math.random() * 0.1]);
+      }
+      const e = new Eruption(scene, art, spots, { height: E.height });
+      this.fx.push({ step: (dt) => e.step(dt), dispose: () => e.dispose() });
+    }
+    particles.emit({
+      pos: [cx, 0.5, cz], spread: [R * 0.75, 0.3, R * 0.75], vel: [0, 3.5, 0], velSpread: [1.5, 2, 1.5],
+      color: ['#ff5a3a', '#ffd2a8', '#a01818', '#60060a'], size: 0.12, life: 1.1, count: 160, drag: 1, intensity: 2.2,
+    });
+    rig.shake?.(0.45);
   }
 
   // ------------------------------------------------------------------------------------------
@@ -1245,8 +1559,9 @@ export class Fight {
       const toZ = n.pos.y - b.pos.y;
       const dist = Math.hypot(toX, toZ) || 1;
       const a = b.state === 'attack' && b.attack.step <= b.kind.moves[b.attack.kind].danger ? b.attack : null;
-      if (a && a !== f.seen) {
+      if (a && (a !== f.seen || a.phase !== f.phase)) {
         f.seen = a;
+        f.phase = a.phase; // (his great attack: each of its marks is seen afresh)
         f.react = rand(0.1, 0.4);
         f.willDodge = f.coward || Math.random() < 0.8; // the coward dodges everything
       }
@@ -1433,8 +1748,9 @@ export class Fight {
   }
 
   // Where to run to get out from under a blow, staying on the arena floor: out of a swing's or a
-  // lunge's lane (up or down, whichever is nearer and open), or straight away from where a slam
-  // or a leap lands, past its edge.
+  // lunge's lane (up or down, whichever is nearer and open), straight away from where a slam or a
+  // leap lands, past its edge, across the middle line from half the arena about to be cut, or in
+  // toward him, into the golden circle by him, from the ring about to erupt.
   escape(a, n) {
     const { x, z, opt } = a;
     const { cx, cz } = this.ctx.world.arena;
@@ -1443,6 +1759,14 @@ export class Fight {
       const off = Math.hypot(ex - cx, ez - cz);
       return off > lim ? [cx + ((ex - cx) / off) * lim, cz + ((ez - cz) / off) * lim] : [ex, ez];
     };
+    if (a.shape === 'half') return clamp([x - opt.side * 4, n.pos.y]);
+    if (a.shape === 'ring') {
+      const dx = n.pos.x - x;
+      const dz = n.pos.y - z;
+      const d = Math.hypot(dx, dz) || 1;
+      const r = opt.safe - 1.6;
+      return [x + (dx / d) * r, z + (dz / d) * r];
+    }
     if (a.shape === 'line') {
       const side = Math.sign(n.pos.y - z) || (Math.random() < 0.5 ? 1 : -1);
       for (const s of [side, -side]) {

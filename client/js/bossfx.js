@@ -3,8 +3,13 @@
 //   Spike    – the lunge's lance of light, along the blade and past its point: two ragged edges
 //              (above and below the blade) closing to a point, an open rectangle with a ">" end;
 //   Decal    – marks on the arena floor: the slam's ring and the light that fills it, the jump's
-//              landing zone, and the crack it leaves where it lands; and (the Guardian Golem's,
-//              golem.js) the golden circle by the fire in his chest as he lies felled.
+//              landing zone, and the crack it leaves where it lands; his great attack's (wrath) half
+//              of the arena about to be cut, and the ring about to erupt round the safe circle in the
+//              middle (the golden one); and (the Guardian Golem's, golem.js) the golden circle by the
+//              fire in his chest as he lies felled;
+//   GhostSword – his great attack's ghost of his greatsword (his own, fxart.js), red and
+//              see-through, grown huge, cutting down one half of the arena and then the other;
+//   Eruption – the ring's red light tearing up out of the floor (drawn, fxart.js), all over it.
 // The Golem's: AirWave (the shock in the air flying on past the lunge's point), Meteor (a fireball
 // falling out of the sky). (His shockwaves along the ground ripple the floor itself: ripple.js.)
 
@@ -246,12 +251,59 @@ function heartCanvas() {
   });
 }
 
-const DECALS = { ring: () => ringCanvas(7, false), fill: () => ringCanvas(11, true), zone: zoneCanvas, crack: () => crackCanvas(Math.random() * 1000), heart: heartCanvas };
+// Half the arena about to be cut (the left half; mirrored for the right): its light filling it, its
+// edges (the round one and the middle line) bright and ragged.
+function halfCanvas() {
+  const r = rng(23);
+  return canvasOf(192, 192, (put, w, h) => {
+    const c = w / 2 - 0.5;
+    const R = 92;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x <= c; x++) {
+        const d = Math.hypot(x - c, y - c);
+        const a = Math.atan2(y - c, x - c);
+        const edge = R + Math.sin(a * 9 + 2) * 1.2 + Math.sin(a * 23) * 0.6;
+        if (d > edge) continue;
+        const line = c - x + Math.sin(y * 0.4) * 0.6; // (from the middle line)
+        if (d > edge - 4 || line < 3) put(x, y, shade(0.55 + (r() - 0.5) * 0.25));
+        else put(x, y, RED.deep, Math.round(70 + 50 * (d / edge)));
+      }
+    }
+  });
+}
+
+// The ring about to erupt: everything between the safe circle in the middle (`inner`, its share of
+// the radius) and the edge, its light filling it, both edges bright.
+function annulusCanvas(inner = 0.3) {
+  const r = rng(31);
+  return canvasOf(192, 192, (put, w, h) => {
+    const c = w / 2 - 0.5;
+    const R = 92;
+    const Ri = R * inner;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const d = Math.hypot(x - c, y - c);
+        const a = Math.atan2(y - c, x - c);
+        const edge = R + Math.sin(a * 9) * 1.2 + Math.sin(a * 23 + 1) * 0.6;
+        const inside = Ri + Math.sin(a * 7 + 3) * 0.8;
+        if (d > edge || d < inside) continue;
+        if (d > edge - 4 || d < inside + 3) put(x, y, shade(0.55 + (r() - 0.5) * 0.25));
+        else put(x, y, RED.deep, Math.round(60 + 60 * ((d - inside) / (edge - inside))));
+      }
+    }
+  });
+}
+
+const DECALS = {
+  ring: () => ringCanvas(7, false), fill: () => ringCanvas(11, true), zone: zoneCanvas, crack: () => crackCanvas(Math.random() * 1000), heart: heartCanvas,
+  half: halfCanvas, annulus: annulusCanvas,
+};
 
 export class Decal {
-  // a mark on the floor at (x, z), `size` across
-  constructor(scene, kind, x, z, size, { glow = true, opacity = 1 } = {}) {
-    const map = texture(DECALS[kind]());
+  // a mark on the floor at (x, z), `size` across (`arg`: what its drawing takes, the annulus its
+  // inner circle's share)
+  constructor(scene, kind, x, z, size, { glow = true, opacity = 1, arg } = {}) {
+    const map = texture(DECALS[kind](arg));
     const mat = rippling(glow ? glowing(map, opacity) : new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, opacity, alphaTest: 0.05 }));
     // (divided finely enough to bend with the floor when it ripples, ripple.js)
     const seg = Math.max(1, Math.min(48, Math.ceil(size / 0.5)));
@@ -270,6 +322,97 @@ export class Decal {
     this.mesh.material.map.dispose();
     this.mesh.material.dispose();
     this.mesh.geometry.dispose();
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
+// his great attack (fight.js, wrath)
+
+export class GhostSword {
+  // The ghost of his greatsword (`art`: its drawing, fxart.js, pommel up), turned about its pommel
+  // at (x, y, z): `angle` from pointing straight down (counter-clockwise as seen), `len` long. As it
+  // cuts (`trail`: how far each copy lags behind it), fading copies of it follow it.
+  constructor(scene, art, x, y, z) {
+    const map = art.frames[0];
+    const geo = new THREE.PlaneGeometry(art.w / art.h, 1);
+    geo.translate(0, -0.5, 0); // (the pommel at the pivot, the blade below it)
+    const make = (opacity, order) => {
+      const m = new THREE.Mesh(geo, glowing(map, opacity));
+      m.position.set(x, y, z);
+      m.renderOrder = order;
+      scene.add(m);
+      return m;
+    };
+    this.mesh = make(0, 7);
+    this.copies = [make(0, 6), make(0, 6), make(0, 6)];
+    Object.assign(this, { scene, geo, angle: 0, len: 1, opacity: 0, trail: 0 });
+    this.place();
+  }
+
+  place() {
+    const all = [this.mesh, ...this.copies];
+    all.forEach((m, i) => {
+      m.rotation.z = this.angle - this.trail * i;
+      m.scale.setScalar(this.len);
+    });
+    this.mesh.material.opacity = this.opacity;
+    // (the copies show only as it cuts: each fainter)
+    this.copies.forEach((m, i) => { m.material.opacity = this.trail ? this.opacity * (0.45 - i * 0.13) : 0; });
+  }
+
+  dispose() {
+    for (const m of [this.mesh, ...this.copies]) {
+      this.scene.remove(m);
+      m.material.dispose();
+    }
+    this.geo.dispose();
+  }
+}
+
+export class Eruption {
+  // Red light tearing up out of the floor at each of `spots` ([x, z, delay]): the drawing's frames
+  // (`art`, fxart.js: crack, burst, full, fading) played out `fps` a second, each `height` tall,
+  // its foot on the floor; then gone. Returns false from step once all have played.
+  constructor(scene, art, spots, { height = 2.8, fps = 12 } = {}) {
+    const k = height / art.h;
+    const geo = new THREE.PlaneGeometry(art.w * k, height);
+    geo.translate(0, height / 2, 0);
+    this.items = spots.map(([x, z, delay]) => {
+      const m = new THREE.Mesh(geo, glowing(art.frames[0], 0));
+      m.position.set(x, 0, z);
+      m.scale.x = Math.random() < 0.5 ? -1 : 1;
+      m.renderOrder = 6;
+      m.visible = false;
+      scene.add(m);
+      return { m, delay };
+    });
+    Object.assign(this, { scene, geo, art, fps, t: 0 });
+  }
+
+  step(dt) {
+    this.t += dt;
+    const { frames } = this.art;
+    const last = frames.length + 1; // (the full one held a moment)
+    let on = false;
+    for (const it of this.items) {
+      const f = (this.t - it.delay) * this.fps;
+      if (f < 0) { on = true; continue; }
+      if (f >= last + 1) { it.m.visible = false; continue; }
+      on = true;
+      it.m.visible = true;
+      const i = Math.min(frames.length - 1, Math.floor(f) <= 2 ? Math.floor(f) : Math.floor(f) - 1);
+      it.m.material.map = frames[i];
+      it.m.material.opacity = f < last ? 1 : 1 - (f - last);
+    }
+    return on;
+  }
+
+  dispose() {
+    for (const { m } of this.items) {
+      this.scene.remove(m);
+      m.material.dispose();
+    }
+    this.geo.dispose();
   }
 }
 
