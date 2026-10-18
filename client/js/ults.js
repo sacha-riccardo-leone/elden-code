@@ -22,7 +22,8 @@
 //                          he stands held; nothing, till the blade is sheathed: then all at once
 //   Ulric                – Tenfold Spears (aimed): ten spears that stick in him, poisoned, then
 //                          fall away
-//   Fortuna              – Frostfall: four great icicles dropping on him one after another
+//   Fortuna              – Frostfall: three great icicles dropping on him one after another,
+//                          then a huge mass of ice, taller than he is
 
 import * as THREE from 'three';
 import { Particles } from './particles.js';
@@ -325,17 +326,42 @@ export const ULTS = {
   },
   fortuna: {
     name: 'Frostfall', pose: ['ult'],
-    run({ fx, n, b, hit }) {
-      // (her great icicles, drawn as tall as she is at her own pixel size, shattering at twice it)
+    run({ fight, fx, n, b, hit }) {
+      // (her great icicles, drawn as tall as she is at her own pixel size, shattering at twice it;
+      // and, a beat after them, a mass of ice HUGE times that, taller than him, coming down slower
+      // onto his middle, driven into the floor a moment, then bursting wide)
       const px = n.body.sheet.px;
       const icicle = TEX.shard('frost', 34, 6);
-      [0, 0.35, 0.7, 1.05].forEach((delay, i) => {
-        const x = b.pos.x + (i - 1.5) * 0.6;
-        const z = b.pos.y + (i % 2 ? 0.3 : -0.2);
+      const HUGE = 3.2;
+      [0, 0.35, 0.7, 1.3].forEach((delay, i) => {
+        const huge = i === 3;
+        const s = huge ? HUGE : 1;
+        const x = huge ? b.pos.x : b.pos.x + (i - 1) * 0.7;
+        const z = b.pos.y + (huge ? 0.25 : i % 2 ? 0.3 : -0.2);
         const d = new Drop(fx, {
-          school: 'frost', x, z, art: 'fortuna-icicle', px, shatter: 'fortuna-shatter', shatterPx: px * 2,
-          map: icicle, w: 3.4, h: 0.68, span: 3.4, height: 6.5, dur: 0.5, delay,
-          onHit: (at) => hit(i === 3 ? 11.5 : 5.5, at),
+          school: 'frost', x, z, art: 'fortuna-icicle', px: px * s, shatter: 'fortuna-shatter', shatterPx: px * (huge ? 4.5 : 2),
+          map: icicle, w: 3.4 * s, h: 0.68 * s, span: 3.4 * s, height: huge ? 9.5 : 6.5, dur: huge ? 0.85 : 0.5, delay,
+          stick: huge ? 0.4 : 0, sink: 0.9,
+          onHit: (at) => {
+            hit(huge ? 11.5 : 5.5, at);
+            if (!huge) return;
+            // (the floor struck: a flash and chips of stone and ice at its foot)
+            fx.add(new Burst(fx, { school: 'frost', at: [x, 0.3, z], size: 2.6, sparks: 30 }));
+            fx.particles.emit({
+              pos: [x, 0.2, z], spread: [0.8, 0.1, 0.4], vel: [0, 2.4, 0], velSpread: [3, 1.4, 1.4],
+              color: ['#7a6a5c', '#cff2ff', '#9a8a78'], size: 0.1, life: 0.7, count: 30, gravity: 12, drag: 0.4, intensity: 0.9,
+            });
+            fight.ctx.rig?.shake?.(0.7);
+          },
+          // (and, as it bursts, its ice flung out every way)
+          onShatter: huge ? () => {
+            fx.add(new Burst(fx, { school: 'frost', at: [x, 1.6, z], size: 4.5, sparks: 70 }));
+            fx.particles.emit({
+              pos: [x, 2, z], spread: [0.8, 1.6, 0.5], vel: [0, 3.5, 0], velSpread: [5, 3, 2.4],
+              color: ['#ffffff', '#cff2ff', '#8fe0ff', '#4a9ee0'], size: 0.16, life: 1.1, count: 70, gravity: 14, drag: 0.3, intensity: 1.6,
+            });
+            fight.ctx.rig?.shake?.(0.4);
+          } : null,
         });
         if (!d.drawn) d.mesh.rotation.z = -Math.PI / 2; // (the shard points along x: turned to point down)
         fx.add(d);

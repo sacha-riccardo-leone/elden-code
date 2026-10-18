@@ -502,8 +502,10 @@ It sinks again only once the fight is over and everyone has left it, you include
     Then it all lands at once.
   - Ulric, **Tenfold Spears** (aimed): ten spears stick in him, poison him for 4 seconds, then fall
     away.
-  - Fortuna, **Frostfall:** four great icicles drop on him one after another, each as tall as she
-    is, and shatter (`fortuna-icicle.json`, `fortuna-shatter.json`).
+  - Fortuna, **Frostfall:** three great icicles drop on him one after another, each as tall as she
+    is, and shatter (`fortuna-icicle.json`, `fortuna-shatter.json`). A beat later a mass of ice
+    three times their size, taller than he is, comes down on him, stands driven into the floor a
+    moment, shuddering, and bursts wide, shaking the view.
   - **Art:** Maren, Fortuna, Vael, Jorvik, Corisande and Solenne hold their drawn poses: Maren's spear
     raised to the sky, its lightning crackling; Fortuna's four arms and greatsword raised, the
     frost flickering; Vael's clawed hand raised, blood streaming up his arm; Jorvik's staff thrust

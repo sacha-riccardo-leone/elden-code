@@ -956,9 +956,11 @@ export class Cut {
 }
 
 // Something dropping out of the sky onto (x, z) (an icicle), landing after `dur` and shattering.
-// (`span`: how tall it stands as drawn, turned upright.)
+// (`span`: how tall it stands as drawn, turned upright.) A great one (`stick`) is driven into the
+// floor, its point `sink` deep, and stands there shuddering for `stick` seconds before it shatters
+// (`onShatter`, then).
 export class Drop {
-  constructor(fx, { school = 'frost', x, z, map, w, h, span = h, art = null, px = 0.02, shatter = null, shatterPx = px, height = 12, dur = 0.5, delay = 0, onHit = null }) {
+  constructor(fx, { school = 'frost', x, z, map, w, h, span = h, art = null, px = 0.02, shatter = null, shatterPx = px, height = 12, dur = 0.5, delay = 0, stick = 0, sink = 0, onHit = null, onShatter = null }) {
     const sheet = art && fxArt(art);
     if (sheet) {
       [w, h] = [sheet.w * px, sheet.h * px];
@@ -967,24 +969,42 @@ export class Drop {
     this.drawn = !!sheet;
     this.mesh = plane(fx.scene, sheet ? sheet.frames[0] : map, w, h, { order: 7 });
     this.mesh.visible = false;
-    Object.assign(this, { fx, school, x, z, span, height, dur, delay, onHit, shatter, shatterPx, t: 0 });
+    Object.assign(this, { fx, school, x, z, span, height, dur, delay, stick, sink, px, onHit, onShatter, shatter, shatterPx, t: 0, stuck: null });
   }
 
   step(dt) {
     if (this.delay > 0) { this.delay -= dt; return true; }
     this.mesh.visible = true;
     this.t += dt;
+    if (this.stuck != null) {
+      // (driven in: shuddering a pixel either way, then bursting)
+      this.stuck += dt;
+      this.mesh.position.x = this.x + (Math.floor(this.stuck * 30) % 2 ? this.px : -this.px);
+      if (this.stuck < this.stick) return true;
+      this.burst();
+      return false;
+    }
     const k = Math.min(1, this.t / this.dur);
     this.mesh.position.set(this.x, this.span / 2 + this.height * (1 - k * k), this.z + 0.1);
     if (k >= 1) {
       this.onHit?.(new THREE.Vector3(this.x, 0.5, this.z));
-      // (drawn, it bursts into its own shards; the flash under them smaller)
-      const splash = this.shatter && fxArt(this.shatter);
-      if (splash) this.fx.add(new Splash(this.fx, { art: this.shatter, x: this.x, z: this.z + 0.15, px: this.shatterPx, flip: Math.random() < 0.5 }));
-      this.fx.add(new Burst(this.fx, { school: this.school, at: [this.x, 0.8, this.z], size: splash ? 1.6 : 2.6, sparks: 34 }));
+      if (this.stick > 0) {
+        this.stuck = 0;
+        this.mesh.position.y = this.span / 2 - this.sink;
+        return true;
+      }
+      this.burst();
       return false;
     }
     return true;
+  }
+
+  burst() {
+    // (drawn, it bursts into its own shards; the flash under them smaller)
+    const splash = this.shatter && fxArt(this.shatter);
+    if (splash) this.fx.add(new Splash(this.fx, { art: this.shatter, x: this.x, z: this.z + 0.15, px: this.shatterPx, flip: Math.random() < 0.5 }));
+    this.fx.add(new Burst(this.fx, { school: this.school, at: [this.x, 0.8, this.z], size: splash ? 1.6 : 2.6, sparks: 34 }));
+    this.onShatter?.();
   }
 
   dispose() { drop(this.fx.scene, this.mesh); }
