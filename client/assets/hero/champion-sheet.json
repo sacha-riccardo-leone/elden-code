@@ -5,10 +5,30 @@
     "h": 106
   },
   "columns": 8,
-  "frames": 46,
+  "frames": 52,
   "feet": {
     "x": 50,
     "y": 105
+  },
+  "big": {
+    "frame": {
+      "w": 132,
+      "h": 124,
+      "anchor": 72
+    },
+    "columns": 4,
+    "feet": {
+      "x": 72,
+      "y": 123
+    },
+    "poses": [
+      46,
+      47,
+      48,
+      49,
+      50,
+      51
+    ]
   },
   "animations": {
     "idle": {
@@ -131,6 +151,32 @@
         45
       ],
       "fps": 2.5
+    },
+    "swing": {
+      "frames": [
+        46,
+        47,
+        48
+      ],
+      "fps": 5
+    },
+    "crouch": {
+      "frames": [
+        49
+      ],
+      "fps": 1
+    },
+    "airborne": {
+      "frames": [
+        50
+      ],
+      "fps": 1
+    },
+    "slam": {
+      "frames": [
+        51
+      ],
+      "fps": 1
     }
   }
 }

@@ -223,7 +223,9 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
     (`champion-hammer.json`, on the same grid) and `champion-kneel.json`. Rigged in
     `client/js/heroes/champion.js`: the fractured hammer turns about his fist, swings up over his
     shoulder and lands in a burst of gold that cracks along the ground, and the cracks in his
-    stone glow.
+    stone glow. His blow (`champion-attack.json`: the maul swung up over his head, brought down
+    onto the ground in front, resting on his shoulder) and his Hammerfall (`champion-ult.json`:
+    the crouch, airborne with the maul raised, the slam) are drawn whole, in his `bigFrame`.
   - **Solenne, the Eternal Queen** (by day) — `queen.json` (+ `queen-kneel.json`). Rigged in
     `client/js/heroes/queen.js`: a ring of holy light turns about one hand, rises and sheds motes
     of light, and lances out as a beam that bursts at its end. Only the ring glows; the crown,
@@ -520,8 +522,10 @@ loosed on it is placed from its floor, as on the Hold (a group raised to its hei
   - Solenne, **Wall of Dawn** (aimed): a tall curved wall of golden light strikes him once, hard,
     and drives him back. The wall is drawn (`solenne-wall.json`), half again her height: forming
     as it leaves her palms, whole as it flies, fading at the end of its run.
-  - Ruadan, **Hammerfall:** he leaps high and lands hammer first at the enemy's feet in a burst of
-    gold.
+  - Ruadan, **Hammerfall:** gathered in a crouch, he leaps high, the maul raised over him, and lands
+    kneeling at the enemy's feet, the maul driven into the floor; where its head strikes, the ground
+    explodes in gold, stones flying, then smoke and embers (drawn, `ruadan-explosion.json`, at
+    twice his pixel size).
   - Maren, **Red Storm:** red lightning rains around him, ending in one great bolt (drawn bolts,
     `maren-bolt.json` and `maren-great-bolt.json`, at twice her pixel size so they fall from out
     of sight).
@@ -543,7 +547,7 @@ loosed on it is placed from its floor, as on the Hold (a group raised to its hei
     is, and shatter (`fortuna-icicle.json`, `fortuna-shatter.json`). A beat later a mass of ice
     three times their size, taller than he is, comes down on him, stands driven into the floor a
     moment, shuddering, and bursts wide, shaking the view.
-  - **Art:** Maren, Fortuna, Vael, Jorvik, Corisande, Solenne, Aurelion and Ulric hold their
+  - **Art:** Maren, Fortuna, Vael, Jorvik, Corisande, Solenne, Aurelion, Ulric and Ruadan hold their
     drawn poses: Maren's spear raised to the sky, its lightning crackling; Fortuna's four arms and
     greatsword raised, the frost flickering; Vael's clawed hand raised, blood streaming up his
     arm; Jorvik's staff thrust high, runes wheeling round its blazing orb; Corisande's staff held
@@ -551,11 +555,12 @@ loosed on it is placed from its floor, as on the Hold (a group raised to its hei
     she casts); Solenne wound up, the light gathered between her palms, motes drifting up from it;
     Aurelion pointing at the enemy, his sword held out low, while the giant behind him raises its
     blade of light back over its shoulder, a glint running along it; Ulric's spear cocked back
-    like a javelin. A pose too wide for the camera's close shot (Corisande's) is centred and taken
-    in whole. An ult may be loosed in a drawing of its own (`release`), held a moment as it
-    strikes: Solenne's palms thrust out as the wall leaves them; Aurelion's giant sweeping its
-    blade low ahead of it; Ulric's hand open as the spears leave it. The others hold their own
-    rig's pose (raise, cast, strike, kneel) until their ult drawings replace it.
+    like a javelin; Ruadan crouched, gathering to leap, the maul low behind him. A pose too wide
+    for the camera's close shot (Corisande's) is centred and taken in whole. An ult may be loosed
+    in a drawing of its own (`release`), held a moment as it strikes: Solenne's palms thrust out
+    as the wall leaves them; Aurelion's giant sweeping its blade low ahead of it; Ulric's hand
+    open as the spears leave it. The others hold their own rig's pose (raise, cast, strike, kneel)
+    until their ult drawings replace it.
 - **Only the fight:** while a great enemy is abroad, every session works on unseen, the spectres at
   work on their islands included: no log lines about the work, no incantations, signs or gestures,
   no spirit wisps and no small talk. A fighter's signs are put away for the fight (the "!" of one

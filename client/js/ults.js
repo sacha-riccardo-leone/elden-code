@@ -27,9 +27,9 @@
 
 import * as THREE from 'three';
 import { Particles } from './particles.js';
-import { Aura, Stand, Missile, Wall, Pool, Slash, Cut, Drop, Bolt, Burst, StuckSpear, TEX, motesOf } from './spellfx.js';
+import { Aura, Stand, Missile, Wall, Pool, Slash, Cut, Drop, Bolt, Burst, StuckSpear, Splash, TEX, motesOf } from './spellfx.js';
 import { ULT, ultPower, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt } from './combat.js';
-import { lookOf } from './fxart.js';
+import { lookOf, fxArt } from './fxart.js';
 import { groundAt } from './ground.js';
 
 // The moments of one: grey within `grey`, the aura from `aura`, the blow at `release`, colour back
@@ -166,7 +166,9 @@ export const ULTS = {
     },
   },
   champion: {
-    name: 'Hammerfall', pose: ['hammer', 1],
+    // (gathering himself in a crouch, leaping with the maul raised, the slam, and the golden
+    // explosion it raises: drawn; else frames of his own blow, and bursts of light)
+    name: 'Hammerfall', pose: ['crouch'], fallback: ['hammer', 1],
     run({ fight, fx, n, b, hit }) {
       // up, and down onto his feet: a leap the fight's own effects carry him through
       const from = n.pos.clone();
@@ -175,7 +177,9 @@ export const ULTS = {
       const dur = 0.9;
       const H = 4.2;
       let t = 0;
-      n.action = { kind: 'ult', anim: 'hammer', t: 0, dur: dur + 0.5 };
+      const { anims, px } = n.body.sheet;
+      const drawn = !!(anims.airborne && anims.slam);
+      n.action = { kind: 'ult', anim: drawn ? 'airborne' : 'hammer', t: 0, dur: dur + (drawn ? 0.75 : 0.5) };
       n.body.facing = -side;
       fx.add(effect((dt) => {
         t += dt;
@@ -184,14 +188,28 @@ export const ULTS = {
         n.ultLift = k < 0.62 ? H * (1 - (1 - k / 0.62) ** 2) : H * (1 - ((k - 0.62) / 0.38) ** 2);
         const e = k < 0.62 ? 0.5 * (k / 0.62) : 0.5 + 0.5 * ((k - 0.62) / 0.38);
         n.pos.set(from.x + (to.x - from.x) * e, from.y + (to.y - from.y) * e);
-        // (raised high on the way up, coming down on the way down: frames of his own blow)
-        const blow = n.body.sheet.anims.hammer?.frames || [];
-        if (blow.length) n.body.setFrame(blow[Math.min(blow.length - 1, k < 0.62 ? 1 : 2)], n.body.facing);
+        // (in the air, the maul raised over him: drawn; else raised high on the way up and coming
+        // down on the way down, frames of his own blow)
+        const blow = anims.hammer?.frames || [];
+        if (drawn) n.body.setFrame(anims.airborne.frames[0], n.body.facing);
+        else if (blow.length) n.body.setFrame(blow[Math.min(blow.length - 1, k < 0.62 ? 1 : 2)], n.body.facing);
         if (k < 1) return true;
         n.ultLift = null;
         hit(28, new THREE.Vector3(to.x, 1, to.y));
-        fx.add(new Burst(fx, { school: 'holy', at: [to.x, 0.9, to.y], size: 5.5, sparks: 80 }));
-        fx.add(new Burst(fx, { school: 'rune', at: [to.x, 1.6, to.y], size: 3.6, ring: false, sparks: 40 }));
+        if (drawn) {
+          // he lands kneeling, the maul driven into the floor before him; where its head strikes, the
+          // ground explodes in gold, stones flying (drawn, its pixels twice his; just behind him, so
+          // that he's seen kneeling in front of it)
+          n.action = { kind: 'ult', anim: 'slam', t: 0, dur: 0.75 };
+          n.body.play('slam', true);
+          const head = [to.x + n.body.facing * 37 * px, to.y - 0.25];
+          if (fxArt('ruadan-explosion')) fx.add(new Splash(fx, { art: 'ruadan-explosion', x: head[0], z: head[1], px: px * 2, fps: 10 }));
+          else fx.add(new Burst(fx, { school: 'holy', at: [head[0], 0.9, head[1]], size: 5.5, sparks: 80 }));
+          fx.add(new Burst(fx, { school: 'holy', at: [head[0], 0.6, head[1]], size: 2.6, ring: false, sparks: 50 }));
+        } else {
+          fx.add(new Burst(fx, { school: 'holy', at: [to.x, 0.9, to.y], size: 5.5, sparks: 80 }));
+          fx.add(new Burst(fx, { school: 'rune', at: [to.x, 1.6, to.y], size: 3.6, ring: false, sparks: 40 }));
+        }
         fx.particles.emit({
           pos: [to.x, 0.2, to.y], spread: [1.5, 0.1, 1], vel: [0, 2.6, 0], velSpread: [2.6, 1.6, 1.6],
           color: ['#7a6a5c', '#4a3e36', '#9a8a78'], size: 0.14, life: 1, count: 40, gravity: 12, drag: 0.4, intensity: 0.9,
