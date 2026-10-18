@@ -135,9 +135,11 @@ class Dummy {
     w.t += dt;
     const step = WOBBLE.find(([until]) => w.t < until);
     if (!step) { this.wobble = null; this.show(F.whole); return; }
-    // (leaning away: its head the way the blow went; its drawing leans forward to the right)
-    const away = w.dir > 0 ? F.forward : F.back;
-    const toward = w.dir > 0 ? F.back : F.forward;
+    // (leaning away: its head the way the blow went; its drawing leans forward to the right. The
+    // great one, struck on its ankle, has its leg swept from under it: it tips back first, its leg
+    // kicked up, then forward, whichever way the blow went)
+    const away = this.great || w.dir <= 0 ? F.back : F.forward;
+    const toward = away === F.back ? F.forward : F.back;
     this.show(step[1] === 'away' ? away : step[1] === 'toward' ? toward : F.whole);
   }
 }
