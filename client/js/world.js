@@ -16,6 +16,7 @@ import { BIOMES, BIOME_KEYS } from './biomes.js';
 import { Region } from './region.js';
 import { Hub } from './hub.js';
 import { Arena } from './arena.js';
+import { Yard } from './yard.js';
 import { Builder, NOISE_GLSL, UV_VERT, glowTexture, scaleBoxUV, BRICK_TILE } from './build.js';
 
 const LIGHT_POOL = 12;
@@ -128,6 +129,7 @@ export class World {
     }));
     this.hub = new Hub(this);
     this.arena = new Arena(this);
+    this.yard = new Yard(this); // (the training yard below the Hold, always there)
   }
 
   // --------------------------------------------------------------------------------------------
@@ -539,6 +541,7 @@ export class World {
   areaAt(x, z) {
     if (this.hub.contains(x, z)) return this.hub;
     if (this.arena.contains(x, z)) return this.arena;
+    if (this.yard.contains(x, z)) return this.yard;
     for (const r of this.regions.values()) if (r.contains(x, z)) return r;
     return null;
   }
@@ -546,6 +549,7 @@ export class World {
   isWalkArea(x, z) {
     if (x * x + z * z <= HUB.walkRadius * HUB.walkRadius) return true;
     if (this.arena.isWalk(x, z)) return true;
+    if (this.yard.isWalk(x, z)) return true;
     // an island (and its bridge) still below the mist can't be walked on
     for (const r of this.regions.values()) {
       if (!r.risen) continue;
@@ -587,6 +591,7 @@ export class World {
     this.hub.near = Math.abs(this.focus.x) < reach;
     this.hub.update(dt, t, Math.min(1, hubResting / 3));
     this.arena.update(dt, t);
+    this.yard.update(dt, t);
     this.updateLights(this.focus);
     this.followShadow(this.focus, camDist);
   }

@@ -30,6 +30,7 @@ import { Particles } from './particles.js';
 import { Aura, Stand, Missile, Wall, Pool, Slash, Cut, Drop, Bolt, Burst, StuckSpear, TEX, motesOf } from './spellfx.js';
 import { ULT, ultPower, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt } from './combat.js';
 import { lookOf } from './fxart.js';
+import { groundAt } from './ground.js';
 
 // The moments of one: grey within `grey`, the aura from `aura`, the blow at `release`, colour back
 // within `back` of it; the camera this close meanwhile (or as far back as a tall pose needs to be
@@ -405,9 +406,16 @@ export class Ults {
   // What n's ultimate is, if it has one.
   of(n) { return ULTS[heroKey(n)] || null; }
 
+  // Where n looses it: the training yard below the Hold while it's on it (training.js: a dummy
+  // stands in for him there), else the arena's fight.
+  placeOf(n) {
+    const { training, fight } = this.ctx;
+    return training?.has(n) ? training : fight;
+  }
+
   // Whether n may loose its ultimate now (`player`: thou, who wait on nobody's but one under way).
   ready(n, player = false) {
-    const f = this.ctx.fight;
+    const f = this.placeOf(n);
     const b = f?.boss;
     if (this.active || !b || !b.alive || b.state === 'enter' || f.state !== 'fighting' || !this.of(n)) return false;
     if (n.dead || n.travel || n.fighter?.dead) return false;
@@ -417,8 +425,9 @@ export class Ults {
   // n looses its ultimate (`dir` [dx, dz]: the way an aimed one goes).
   start(n, { dir = null, player = false } = {}) {
     const u = this.of(n);
-    const { fight, post, rig } = this.ctx;
-    const b = fight.boss;
+    const { post, rig } = this.ctx;
+    const fight = this.placeOf(n);
+    const b = fight?.boss;
     if (!u || !b) return false;
     if (u.aim && !dir) dir = [Math.sign(b.pos.x - n.pos.x) || n.body.facing, 0];
     n.body.facing = dir?.[0] ? (dir[0] > 0 ? 1 : -1) : b.pos.x >= n.pos.x ? 1 : -1;
@@ -442,7 +451,7 @@ export class Ults {
     if (own) stand.play(own);
     const tall = Math.max(2.5, poseHeight(n.body, own || pose[0]));
     const span = poseSpan(n.body, own || pose[0]);
-    this.active = { n, u, pose, key, t: 0, dir, player, aura, stand, released: false, saved: rig.distGoal, tall, span };
+    this.active = { n, u, pose, key, t: 0, dir, player, aura, stand, fight, released: false, saved: rig.distGoal, tall, span };
     // (everyone else, and him, hide it where they stand in front of it: they stay grey)
     const others = [...this.ctx.director.npcs.values()].filter((o) => o !== n && !o.dead && o.body?.mesh).map((o) => o.body.mesh);
     post.spot = { desat: 0, meshes: [n.body.mesh, ...aura.meshes, ...(stand?.meshes || []), this.particles.points], occluders: [...others, b.body.mesh] };
@@ -478,7 +487,7 @@ export class Ults {
       x += (a.n.body.facing * (ahead - behind)) / 2;
       dist = Math.max(dist, ((behind + ahead) / 2 + CINE.side) / across);
     }
-    return { at: [x, Math.max(1.25, tall * 0.42) + (a.n.lift || 0), p.y], dist };
+    return { at: [x, Math.max(1.25, tall * 0.42) + (a.n.lift || 0) + groundAt(p.x, p.y), p.y], dist };
   }
 
   update(dt) {
@@ -486,9 +495,9 @@ export class Ults {
     this.particles.update(dt, this.clock);
     const a = this.active;
     if (!a) return;
-    const { post, rig, fight } = this.ctx;
+    const { post, rig } = this.ctx;
     // (the fight over, or they've gone: it ends here)
-    if (!fight.boss || a.n.dead || !a.n.body?.mesh?.parent) { this.finish(); return; }
+    if (!a.fight.boss || a.n.dead || !a.n.body?.mesh?.parent) { this.finish(); return; }
     a.t += dt;
     if (!a.released) {
       rig.distGoal = this.shot().dist;
@@ -515,7 +524,8 @@ export class Ults {
   // It strikes: the world moves again.
   release(a) {
     a.released = true;
-    const { fight, rig } = this.ctx;
+    const { rig } = this.ctx;
+    const { fight } = a;
     rig.distGoal = a.saved;
     if (this.title.el) this.title.el.classList.add('out');
     const b = fight.boss;

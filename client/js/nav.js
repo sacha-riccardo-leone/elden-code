@@ -2,10 +2,11 @@
 // smoothing. Rebuilt whenever a new region rises out of the mist.
 
 import { ARENA } from './config.js';
+import { YARD } from './yard.js';
 
 const CELL = 0.5;
 const MIN_Z = ARENA.z - ARENA.radius - 1; // as far north as the Arena of Trials
-const MAX_Z = 10.5;
+const MAX_Z = YARD.south + 1; // as far south as the training yard below the Hold
 
 class Heap {
   constructor(score) {
@@ -55,9 +56,10 @@ export class Nav {
 
   rebuild() {
     const { minX, maxX } = this.world.extent();
-    this.x0 = minX - 1;
+    // (from west to east: every island, and the training yard, wider than the Hold above it)
+    this.x0 = Math.min(minX, -YARD.halfW) - 1;
     this.z0 = MIN_Z;
-    this.w = Math.ceil((maxX + 1 - this.x0) / CELL) + 1;
+    this.w = Math.ceil((Math.max(maxX, YARD.halfW) + 1 - this.x0) / CELL) + 1;
     this.h = Math.ceil((MAX_Z - MIN_Z) / CELL) + 1;
     this.blocked = new Uint8Array(this.w * this.h);
     for (let j = 0; j < this.h; j++) {

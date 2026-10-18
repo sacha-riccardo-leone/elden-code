@@ -11,6 +11,7 @@ import { Builder, BRICK_TILE, scaleCylUV, seedOf } from './build.js';
 import { Flame } from './fire.js';
 import { plantedWeapons } from './weapons.js';
 import { GraceFigure } from './grace.js';
+import { YARD } from './yard.js';
 
 // The project banners at the Round Table: how far below the floor a new one's pole starts, and
 // how long it takes to rise and then for its flag to unfurl (seconds).
@@ -61,7 +62,11 @@ export class Hub extends Builder {
     const cliff = new THREE.Mesh(new THREE.CylinderGeometry(R, R - 1.5, 26, 40, 1, true), new THREE.MeshLambertMaterial({ map: rock }));
     cliff.position.y = -13;
     this.add(cliff);
-    const lip = new THREE.Mesh(new THREE.TorusGeometry(R - 0.1, 0.22, 4, 48), this.mat.stoneMoss);
+    // (open to the south where the stair runs down to the training yard, yard.js)
+    const gap = Math.asin((YARD.stairHalf + 0.4) / (R - 0.1));
+    const rim = new THREE.TorusGeometry(R - 0.1, 0.22, 4, 46, Math.PI * 2 - gap * 2);
+    rim.rotateZ(Math.PI / 2 + gap);
+    const lip = new THREE.Mesh(rim, this.mat.stoneMoss);
     lip.rotation.x = Math.PI / 2;
     lip.position.y = -0.05;
     this.add(lip);

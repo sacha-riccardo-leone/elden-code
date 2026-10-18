@@ -28,6 +28,8 @@ import { Fight } from './fight.js';
 import { Crowd } from './crowd.js';
 import { Guide } from './guide.js';
 import { Ults } from './ults.js';
+import { Training } from './training.js';
+import { groundAt } from './ground.js';
 import { Companions } from './companions.js';
 import { PUBLIC_DEMO } from './mode.js';
 import { started, markReady } from './gate.js';
@@ -195,11 +197,12 @@ new Input({
   canvas, camera, rig, director, ui, travel, keys,
   active: () => entered && !companions.shown, // (no keys reach the world under the title screen, nor while thou choosest thy companions)
   battle: () => fight.inBattle(),
+  floor: () => (pilot.npc ? groundAt(pilot.npc.pos.x, pilot.npc.pos.y) : 0),
   actions: {
     emote: (key) => pilot.npc && director.gesture(pilot.npc, key),
     attack: (at) => pilot.attack(at),
     spell: (at) => pilot.cast(at), // right click: a spell (Fortuna, the mages)
-    ult: (at) => fight.playerUlt(at), // R: thine ultimate, once full (ults.js)
+    ult: (at) => (training.has(pilot.npc) ? training : fight).playerUlt(at), // R: thine ultimate, once full (ults.js; always, on the training yard)
     crouch: () => pilot.toggleCrouch(),
     interact: () => { if (ui.tableOpen) ui.closeTable(); else interact.press(); },
     dodge: () => pilot.dodge(),
@@ -220,6 +223,10 @@ ctx.post = post;
 // ultimates: the world standing still and grey round whoever looses one (ults.js)
 const ults = new Ults(ctx);
 ctx.ults = ults;
+// the training yard below the Hold: its dummies, and thy blows, spells and ultimates on them
+const training = new Training(ctx);
+ctx.training = training;
+training.start();
 const daylight = new Daylight({ renderer, scene, world, post, ui }); // day and night take turns
 ctx.daylight = daylight;
 director.start(); // the heroes take their seats at the Round Table (the Twofold in the form for the hour)
@@ -310,7 +317,7 @@ function step(dt) {
   // an ultimate being loosed (ults.js): the world stands still (wdt) but for whoever looses it,
   // and the camera closes on them; a heavy blow landing (fight.js, hit-stop) holds it still a
   // moment too
-  const wdt = fight.held(dt) || ults.frozen ? 0 : dt;
+  const wdt = fight.held(dt) || training.held(dt) || ults.frozen ? 0 : dt;
   t += wdt;
   SPRING.t += wdt; // (the drawings' lunges and knocks keep the world's time, npc.js)
   const me = pilot.npc; // moved by the director with everyone else (its update asks the pilot)
@@ -332,7 +339,7 @@ function step(dt) {
         rig.distGoal = mode ? Math.max(camBase, aim.dist) : camBase;
         camMode = mode;
       }
-      const [x, y, z] = aim?.at || [me.pos.x, 0.8, me.pos.y];
+      const [x, y, z] = aim?.at || [me.pos.x, groundAt(me.pos.x, me.pos.y) + 0.8, me.pos.y];
       rig.target.set(x, y, z - 0.6);
     }
   }
@@ -343,6 +350,7 @@ function step(dt) {
   world.update(wdt, t, camera, rig.dist, director.hubVisitors || 0);
   director.update(wdt, t);
   fight.update(wdt, t);
+  training.update(wdt);
   crowd.resolve(wdt); // once everyone has moved: nobody stands inside anybody
   guide.update(wdt);
   document.body.classList.toggle('in-battle', fight.inBattle()); // (no labels to click mid-fight)

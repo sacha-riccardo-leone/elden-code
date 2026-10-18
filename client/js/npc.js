@@ -6,6 +6,7 @@
 
 import * as THREE from 'three';
 import { rippleAt } from './ripple.js';
+import { groundAt } from './ground.js';
 import { ANIMS, buildIcon, makeLook, sheetForLook } from './sprites.js';
 import { STATIONS, TIMING, FAST_TRAVEL, HUB_LAYOUT, CROWD } from './config.js';
 import { nameFor, classTitle } from './lore.js';
@@ -1036,7 +1037,8 @@ export class Npc {
       if (this.fade <= 0) this.dead = true;
     }
 
-    this.body.place(this.pos.x, rippleAt(this.pos.x, this.pos.y), this.pos.y, this.lift); // (riding the ground as it ripples, ripple.js)
+    // (on the ground, as high as it lies there, ground.js, riding it as it ripples, ripple.js)
+    this.body.place(this.pos.x, groundAt(this.pos.x, this.pos.y) + rippleAt(this.pos.x, this.pos.y), this.pos.y, this.lift);
     const fadeVisible = this.fade < 0.999 || !!sp; // spectres are always a little see-through
     this.body.mat.transparent = fadeVisible;
     this.body.mat.opacity = Math.max(0, this.fade) * (sp ? 0.88 : 1);
@@ -1046,7 +1048,7 @@ export class Npc {
 
     const ringTarget = this.selected ? 0.9 : this.hovered ? 0.45 : this.piloted ? 0.3 : 0; // a faint ring of grace marks thee
     this.ring.material.opacity += (ringTarget - this.ring.material.opacity) * Math.min(1, dt * 10);
-    this.ring.position.set(this.pos.x, 0.02, this.pos.y + 0.05);
+    this.ring.position.set(this.pos.x, groundAt(this.pos.x, this.pos.y) + 0.02, this.pos.y + 0.05);
     this.ring.scale.setScalar((1 + Math.sin(t * 3) * 0.04) * (this.hero ? 1.45 : 1));
 
     this.updateIcons(dt, t);

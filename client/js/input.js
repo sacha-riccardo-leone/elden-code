@@ -14,10 +14,11 @@ import { MOVE_KEYS } from './pilot.js';
 const DRAG_THRESHOLD = 6;
 
 export class Input {
-  constructor({ canvas, camera, rig, director, ui, travel, keys, actions, active = () => true, battle = () => false }) {
+  constructor({ canvas, camera, rig, director, ui, travel, keys, actions, active = () => true, battle = () => false, floor = () => 0 }) {
     this.travel = travel;
     this.active = active; // whether the world is being played (not while the title screen stands over it)
     this.battle = battle; // whether thou art fighting on the arena
+    this.floor = floor; // how high the ground lies under thee (ground.js): a click on the ground is on it
     this.keys = keys; // held movement keys, read by the player every frame
     this.actions = actions; // thine own: emote(key), attack(groundPoint), spell(groundPoint), ult(groundPoint), crouch(), fan(), interact()
     this.canvas = canvas;
@@ -61,7 +62,7 @@ export class Input {
     return null;
   }
 
-  groundAt(e, height = 0) {
+  groundAt(e, height = this.floor()) {
     this.setRay(e);
     this.plane.constant = -height;
     return this.ray.ray.intersectPlane(this.plane, this.hit) ? this.hit.clone() : null;

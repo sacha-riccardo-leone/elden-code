@@ -51,6 +51,16 @@ slowly, and the motes of light about it circle it and twinkle. The one over the 
 far larger. When work calls and home is far, they fast travel: they dissolve into golden light
 and reappear at their region's Site of Grace.
 
+South of the Hold, and lower, hangs the **Training Yard** (`client/js/yard.js`), always there: a
+great five-sided platform of timber slung from the Hold's rim on two chains, standing on posts that
+run down into the mist. A stone stair comes down to it from the rim, and whoever walks it goes down
+with it (`client/js/ground.js` gives the ground's height wherever it isn't level with the Hold).
+Five straw dummies stand inside a sawdust ring (`client/js/training.js`). Blows, spells and
+ultimates find them as they find a great enemy. A dummy wobbles as each one lands, and once it has
+taken enough it bursts into pieces, then stands whole again five seconds later. Dummies never strike
+back. On the yard your ultimate is always full: each one still freezes the world for its moment,
+but you needn't wait between them.
+
 | In Claude Code | In the world |
 |---|---|
 | Session starts | A Tarnished rises at the Site of Grace |
@@ -878,6 +888,9 @@ client/js/guide.js      the golden arrow on the ground that shows the way to the
 client/js/grace.js      the grace itself, the figure of golden light floating over every Site of Grace
 client/js/interact.js   E: using the stations and the Round Table
 client/js/arena.js      the Arena of Trials, north of the Hold
+client/js/yard.js       the Training Yard below the Hold, and the stone stair down to it
+client/js/training.js   the yard's straw dummies, and thy blows, spells and ultimates on them
+client/js/ground.js     the ground's height where it isn't level with the Hold (the yard, its stair)
 client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the fighters, thy health
 client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes
 client/js/golem.js      the Guardian Golem's fight: his weak points, his fall, shockwaves, fire

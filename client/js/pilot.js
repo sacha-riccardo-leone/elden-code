@@ -15,6 +15,7 @@
 // (ults.js).
 
 import { styleOf, blow } from './combat.js';
+import { groundAt } from './ground.js';
 
 const WALK = 3.4;
 const RUN = 6.2;
@@ -156,7 +157,7 @@ export class Pilot {
     n.body.play('walk', true);
     this.dodgeReady = now + DODGE.cooldown;
     this.ctx.particles.emit({
-      pos: [n.pos.x, 0.25, n.pos.y], spread: [0.3, 0.1, 0.2], vel: [-dx * 1.5, 0.6, -dz * 1.5], velSpread: [0.6, 0.4, 0.4],
+      pos: [n.pos.x, groundAt(n.pos.x, n.pos.y) + 0.25, n.pos.y], spread: [0.3, 0.1, 0.2], vel: [-dx * 1.5, 0.6, -dz * 1.5], velSpread: [0.6, 0.4, 0.4],
       color: ['#b8b0a0', '#8a8278', '#e0d8c8'], size: 0.08, life: 0.5, count: 14, drag: 1.5, intensity: 0.8,
     });
   }
@@ -244,7 +245,7 @@ export class Pilot {
         if (this.canStand(x, z)) { n.pos.set(x, z); moving = true; }
         if (Math.random() < dt * 30) {
           this.ctx.particles.emit({
-            pos: [n.pos.x, 0.3, n.pos.y], spread: [0.2, 0.2, 0.1], vel: [-a.dx, 0.4, -a.dz], velSpread: [0.3, 0.3, 0.3],
+            pos: [n.pos.x, groundAt(n.pos.x, n.pos.y) + 0.3, n.pos.y], spread: [0.2, 0.2, 0.1], vel: [-a.dx, 0.4, -a.dz], velSpread: [0.3, 0.3, 0.3],
             color: ['#b8b0a0', '#e0d8c8'], size: 0.07, life: 0.4, count: 3, drag: 2, intensity: 0.8,
           });
         }
@@ -254,14 +255,16 @@ export class Pilot {
         this.ctx.director.strikeFrom(n);
         const burst = n.hero?.rig?.burst || ['#ffd27a', '#fff1b8'];
         this.ctx.particles.emit({
-          pos: [n.pos.x + n.body.facing * 1.7, 1.1, n.pos.y], spread: [0.25, 0.3, 0.2], vel: [n.body.facing * 1.5, 0.8, 0],
+          pos: [n.pos.x + n.body.facing * 1.7, groundAt(n.pos.x, n.pos.y) + 1.1, n.pos.y], spread: [0.25, 0.3, 0.2], vel: [n.body.facing * 1.5, 0.8, 0],
           velSpread: [1, 1, 0.6], color: [...burst, burst[0]], size: 0.06, life: 0.5, count: 18, drag: 1.5, intensity: 2.6,
         });
       }
       // thy spell, loosed at the turn of the blow (fight.js)
       if (a.kind === 'cast' && !a.hit && a.t >= a.hitAt) {
         a.hit = true;
-        this.ctx.fight?.playerCast(n, a.at);
+        // (on the training yard, at its dummies: training.js)
+        const place = this.ctx.training?.has(n) ? this.ctx.training : this.ctx.fight;
+        place?.playerCast(n, a.at);
       }
       if (a.t >= a.dur) n.action = null;
     } else if (going && !n.shift && !this.dead) {

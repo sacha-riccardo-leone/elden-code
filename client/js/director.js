@@ -373,9 +373,11 @@ export class Director {
 
   // Maren's blow lands: whoever stands just in front of her staggers (it's all for show).
   strikeFrom(p) {
-    // in the arena, a great enemy takes the blow; fellow fighters are spared it
-    const fight = this.ctx.fight;
+    // in the arena, a great enemy takes the blow; fellow fighters are spared it; on the training
+    // yard, a dummy (training.js)
+    const { fight, training } = this.ctx;
     if (fight?.active) fight.strikeFrom(p);
+    if (training?.has(p)) training.strikeFrom(p);
     for (const n of this.npcs.values()) {
       if (n === p || n.dead || n.dragged || n.travel || n.fade < 1 || n.intent.kind === 'leave') continue;
       if (n.fighter || n.spectre) continue; // (a blow passes through a spectre)
