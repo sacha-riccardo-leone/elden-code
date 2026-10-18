@@ -5,10 +5,29 @@
     "h": 124
   },
   "columns": 8,
-  "frames": 46,
+  "frames": 54,
   "feet": {
     "x": 74,
     "y": 123
+  },
+  "big": {
+    "frame": {
+      "w": 168,
+      "h": 124,
+      "anchor": 96
+    },
+    "columns": 4,
+    "feet": {
+      "x": 96,
+      "y": 123
+    },
+    "poses": [
+      49,
+      50,
+      51,
+      52,
+      53
+    ]
   },
   "animations": {
     "idle": {
@@ -131,6 +150,29 @@
         45
       ],
       "fps": 2.5
+    },
+    "ringcast": {
+      "frames": [
+        46,
+        47,
+        48
+      ],
+      "fps": 5
+    },
+    "gather": {
+      "frames": [
+        49,
+        50,
+        51,
+        52
+      ],
+      "fps": 8
+    },
+    "loose": {
+      "frames": [
+        53
+      ],
+      "fps": 1
     }
   }
 }

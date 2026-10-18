@@ -25,6 +25,10 @@ const ART = {
   'corisande-shards': '/assets/fx/corisande-shards.json',
   'corisande-great-shard': '/assets/fx/corisande-great-shard.json',
   'corisande-arrow': '/assets/fx/corisande-arrow.json',
+  'solenne-wall': '/assets/fx/solenne-wall.json',
+  'solenne-lance': '/assets/fx/solenne-lance.json',
+  'solenne-halo': '/assets/fx/solenne-halo.json',
+  'solenne-light': '/assets/fx/solenne-light.json',
   // Fenrath's great attack (fight.js, wrath): the ghost of his sword, the ring's eruption
   'fenrath-sword': '/assets/fx/fenrath-sword.json',
   'fenrath-eruption': '/assets/fx/fenrath-eruption.json',

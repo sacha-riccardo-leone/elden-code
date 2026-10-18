@@ -559,20 +559,29 @@ export class Missile {
 
 // A lance of light from `from` to `to`, there at once, flickering a moment and fading. Drawn by
 // hand (`art`, fxart.js: a lash of blood), it's stretched evenly from the one to the other, its
-// thick end at `from`, and plays its frames out over its life.
+// thick end at `from`, and plays its frames out over its life; or (`tile`: a lance of holy light,
+// drawn running on from edge to edge) it's `width` thick and its drawing is repeated along it,
+// flickering between its frames and flowing on.
 export class Beam {
-  constructor(fx, { school, from, to, width = 0.32, life = 0.3, art = null, onHit = null }) {
+  constructor(fx, { school, from, to, width = 0.32, life = 0.3, art = null, tile = false, onHit = null }) {
     const [x0, y0, z0] = from;
     const [x1, y1, z1] = to;
     const len = Math.hypot(x1 - x0, y1 - y0, z1 - z0);
     const sheet = art && fxArt(art);
-    const map = sheet ? sheet.frames[0] : TEX.beam(school).clone();
+    this.tiles = sheet && tile ? sheet.frames.map((t) => {
+      const c = t.clone();
+      c.wrapS = THREE.RepeatWrapping;
+      c.repeat.set(len / ((width * sheet.w) / sheet.h), 1);
+      c.needsUpdate = true;
+      return c;
+    }) : null;
+    const map = this.tiles ? this.tiles[0] : sheet ? sheet.frames[0] : TEX.beam(school).clone();
     if (!sheet) {
       map.needsUpdate = true;
       map.repeat.set(Math.max(1, len / 1.4), 1);
     }
-    this.frames = sheet?.frames || null;
-    this.mesh = plane(fx.scene, map, len, sheet ? (len * sheet.h) / sheet.w : width, { order: 7 });
+    this.frames = sheet && !tile ? sheet.frames : null;
+    this.mesh = plane(fx.scene, map, len, sheet && !tile ? (len * sheet.h) / sheet.w : width, { order: 7 });
     this.mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2 + 0.05);
     this.mesh.rotation.z = screenAngle(x1 - x0, y1 - y0, z1 - z0);
     this.fx = fx;
@@ -585,6 +594,14 @@ export class Beam {
   step(dt) {
     this.t += dt;
     const k = this.t / this.life;
+    if (this.tiles) {
+      // (the lance flickering between its frames, flowing on, and fading)
+      const map = this.tiles[Math.floor(this.t * 24) % this.tiles.length];
+      for (const t of this.tiles) t.offset.x = -this.t * 3;
+      this.mesh.material.map = map;
+      this.mesh.material.opacity = Math.max(0, 1 - k * k);
+      return this.t < this.life;
+    }
     if (this.frames) {
       // (the lash snapping out, its own frames, then fading)
       this.mesh.material.map = this.frames[Math.min(this.frames.length - 1, Math.floor(k * this.frames.length))];
@@ -598,7 +615,8 @@ export class Beam {
   }
 
   dispose() {
-    if (!this.frames) this.map.dispose();
+    if (this.tiles) for (const t of this.tiles) t.dispose();
+    else if (!this.frames) this.map.dispose();
     drop(this.fx.scene, this.mesh);
   }
 }
@@ -771,8 +789,12 @@ export class Burst {
 // The wall of light: a tall crescent flying `dir` ([dx, dz], one of the four ways) from (x, z),
 // `range` far; `hits(x, z)` asks, as it goes, whether it has reached its mark.
 export class Wall {
-  constructor(fx, { x, z, dir, speed = 13, range = 15, height = 6, hits = null, onHit = null }) {
-    this.mesh = plane(fx.scene, TEX.wall(), height * 0.56, height, { order: 7 });
+  // drawn (`art`, fxart.js), it plays its frames: forming as it leaves, full as it flies, fading at
+  // the end of its run
+  constructor(fx, { x, z, dir, speed = 13, range = 15, height = 6, art = null, hits = null, onHit = null }) {
+    const sheet = art && fxArt(art);
+    this.frames = sheet?.frames || null;
+    this.mesh = plane(fx.scene, sheet ? sheet.frames[0] : TEX.wall(), sheet ? (height * sheet.w) / sheet.h : height * 0.56, height, { order: 7 });
     this.mesh.scale.x = dir[0] < 0 ? -1 : 1;
     // flying into or out of the view: seen face on, as a broad arc
     if (dir[0] === 0) { this.mesh.rotation.z = (dir[1] > 0 ? -1 : 1) * Math.PI / 2; this.mesh.scale.set(1.8, 1, 1); }
@@ -802,6 +824,7 @@ export class Wall {
       });
     }
     const k = this.gone / this.range;
+    if (this.frames) this.mesh.material.map = this.frames[k < 0.08 ? 0 : k < 0.75 ? 1 : 2];
     this.mesh.material.opacity = k < 0.75 ? 1 : Math.max(0, 1 - (k - 0.75) / 0.25);
     return k < 1;
   }

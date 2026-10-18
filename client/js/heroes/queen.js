@@ -3,9 +3,12 @@
 // gold, a ring of holy light turning about one hand. The ring spins and flares, rises with the
 // hand, sheds motes of light, and lances out as a beam of gold that bursts where it ends.
 // Source art: assets/hero/queen.json (71x120, from queen-stand.webp) and queen-kneel.json (77x96,
-// from queen-kneel.webp).
+// from queen-kneel.webp). Her cast (queen-attack.json: the ring raised with the hand, thrust out as
+// the lance leaves it, the arm returning) and her Wall of Dawn (queen-ult.json: wound up, the light
+// gathered between her palms, then loosed, thrust out) are drawn whole; the wall's two are wider
+// than her frame, so they're kept in a bigger one (core.js, bigFrame).
 
-import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill } from './core.js';
+import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill, held } from './core.js';
 
 const FRAME = { w: 148, h: 124 };
 const MID = 36; // between the feet
@@ -29,6 +32,28 @@ const SKIN = 'eilpsuv';
 const STRAPS = 'fkmqtxORaUZ';
 const BUST = { x0: 35, x1: 49, y0: 45, y1: 53 }; // bounces a pixel, a beat behind her step
 
+// Her drawn poses: per frame of each, the column set where her crown stands as she stands (mid;
+// the wall loosed: by her waist, a lunge forward from the wind-up), the row she stands on, and
+// what of it glows as her ring does (a box: in her cast, the ring about her hand, its gold that
+// touches nothing but gold or air; wound up, all the gold light between her palms, `all`), and
+// where the light leaves her (`from`: the ring as the lance leaves it, her palms as the wall does).
+const DRAWN = {
+  attack: [
+    { mid: 46, ground: 117, light: { x0: 59, y0: 18, y1: 56 } },
+    { mid: 44, ground: 117, light: { x0: 71, y0: 20, y1: 58 }, from: [82.5, 39] },
+    { mid: 53, ground: 117, light: { x0: 68, y0: 40, y1: 70 } },
+  ],
+  ult: [
+    { mid: 81, ground: 119, light: { x0: 37, x1: 60, y0: 51, y1: 70, all: true }, gather: [51.5, 59] },
+    { mid: 93, ground: 109, from: [154, 34] },
+  ],
+};
+// the wall's frame: room for the braid flung out behind her and the palms thrust out ahead
+const BIG = { w: 168, h: 124, anchor: 96 };
+const PX = 2.6 / 118; // world units per art pixel: as tall as the Red Hammer, less the mane
+// where the light leaves her, [ahead, up] of her feet in world units (combat.js, muzzleOf)
+const muzzleAt = (d) => [(d.from[0] - d.mid) * PX, (d.ground - d.from[1]) * PX];
+
 // The ring is gold among gold (crown, bracelets, the gown's embroidery). Its pixels are the
 // gold-coloured ones in its box that touch nothing but gold or air; those get twin colours (one
 // step off the originals) so that only the ring glows.
@@ -40,6 +65,21 @@ function ringOf(art, box, goldish, twinOf) {
   const ring = new Img(src.w, src.h);
   for (let y = 0; y < src.h; y++) for (let x = 0; x < src.w; x++) if (isRing(x, y)) ring.set(x, y, twinOf(src.get(x, y)));
   return { ring, isRing };
+}
+
+// In a drawn frame, what glows as her ring does: the gold in `box` that touches nothing but gold or
+// air (or, `all`, all of its gold), turned to its twin colours.
+function lightOf(src, box, goldish, twinOf) {
+  const gold = (v) => v >= 0 && goldish.has(v);
+  const x1 = box.x1 ?? src.w - 1;
+  const lit = [];
+  for (let y = box.y0; y <= box.y1; y++) {
+    for (let x = box.x0; x <= x1; x++) {
+      if (!gold(src.get(x, y))) continue;
+      if (box.all || [[1, 0], [-1, 0], [0, 1], [0, -1]].every(([a, b]) => { const v = src.get(x + a, y + b); return v < 0 || gold(v); })) lit.push([x, y]);
+    }
+  }
+  for (const [x, y] of lit) src.set(x, y, twinOf(src.get(x, y)));
 }
 
 function prepare(art, more = {}) {
@@ -65,6 +105,10 @@ function prepare(art, more = {}) {
     const kr = ringOf(k, KNEEL_MAGIC_BOX, k.ids(GOLDISH), twinOf);
     for (let y = 0; y < k.src.h; y++) for (let x = 0; x < k.src.w; x++) if (kr.isRing(x, y)) k.src.set(x, y, kr.ring.get(x, y));
     still = prepareStill(k, { ground: 94, mid: 36, neck: 34, waist: 58, cape: { x1: 18, y0: 45 }, float: kr.isRing });
+  }
+  // her drawn poses' light, glowing as her ring does
+  for (const [key, frames] of Object.entries(DRAWN)) {
+    frames.forEach((d, k) => { if (d.light && more[key]) lightOf(more[key].frames[k], d.light, goldish, twinOf); });
   }
   const code = (ch) => twinOf(art.code(ch));
   // a leg: its skin, the outline right beside it, and the sandal straps over it (up to two
@@ -204,6 +248,24 @@ function compose(ctx, p) {
   return f;
 }
 
+// A drawn pose (core.js, composeDrawn): wound up, motes of light drift up from the light gathered
+// between her palms, as they do from her ring.
+function drawn(ctx, f, p) {
+  const at = p.motes && DRAWN[p.drawn][p.frame || 0].gather;
+  if (!at) return;
+  const { colors } = ctx;
+  const glow = (f.keep ||= []);
+  const cx = at[0] + f.at[0];
+  const cy = at[1] + f.at[1];
+  for (let k = 0; k < p.motes; k++) {
+    const x = Math.round(cx - 9 + ((k * 7 + p.phase * 5) % 19));
+    const y = Math.round(cy - 6 - ((k * 5 + p.phase * 3) % 14));
+    if (x < 0 || y < 0 || x >= f.w || y >= f.h) continue;
+    f.set(x, y, k % 3 ? colors.gold : colors.white);
+    glow.push(y * f.w + x);
+  }
+}
+
 // ---------------------------------------------------------------------------------------------
 // the animation set
 
@@ -254,6 +316,12 @@ anim('stagger', seq(2, (i) => ({ lean: -2 - i, spin: 30 + i * 30, sway: 2, hem: 
 anim('collapse', [{ still: true, head: [2, 3], sway: 2, light: 0 }]);
 anim('lifted', seq(2, (i) => ({ sway: -3 + i, hem: -2 + i, spin: i * 20, legs: { front: { dangle: -2 - i }, back: { dangle: -3 } }, light: 1 })));
 anim('talk', seq(2, (i) => ({ bob: i, spin: i * 12, light: 1 })));
+// drawn whole (core.js, composeDrawn): her cast; the Wall of Dawn wound up (four of it, so that its
+// light stirs on while it's held) and loosed
+const drawnPose = (key, k, more = {}) => ({ drawn: key, frame: k, mid: DRAWN[key][k].mid, ground: DRAWN[key][k].ground, ...more });
+anim('ringcast', [0, 1, 2].map((i) => drawnPose('attack', i, { light: [2, 2, 1][i] })));
+anim('gather', seq(4, (i) => drawnPose('ult', 0, { big: true, motes: 5, phase: i, light: 2 })));
+anim('loose', [drawnPose('ult', 1, { big: true, light: 1 })]);
 
 const G = groups;
 export default {
@@ -262,27 +330,35 @@ export default {
   form: 'day',
   via: 'dawn', // the drawing worn while becoming this form
   art: '/assets/hero/queen.json',
-  extraArt: { kneel: '/assets/hero/queen-kneel.json' },
+  extraArt: { kneel: '/assets/hero/queen-kneel.json', ult: '/assets/hero/queen-ult.json', attack: '/assets/hero/queen-attack.json' },
   firstName: 'Solenne',
   epithet: 'the Eternal Queen',
   title: 'Goddess',
   burst: ['#ffd75a', '#fffdf0'],
   frame: FRAME,
+  bigFrame: BIG,
   cols: 8,
-  px: 2.6 / 118, // world units per art pixel: as tall as the Red Hammer, less the mane
+  px: PX,
   head: 117, // art pixels from the ground to the top of the hair
-  hits: { hammer: 3, cast: 1, send: 1 },
+  hits: { hammer: 3, cast: 1, send: 1, attack: 4 },
+  lunge: { attack: 0.35 }, // (her drawing thrown forward as the lance leaves the ring: npc.js)
+  muzzles: { attack: muzzleAt(DRAWN.attack[1]), ult: muzzleAt(DRAWN.ult[1]) },
   glowIntensity: 1.3,
   glowColors: [[230, 170, 40], [255, 245, 200]],
   seed: 5150,
   prepare,
   compose,
+  drawn,
   poses,
   groups,
   anims: {
     idle: { frames: G.idle, fps: 4 },
     walk: { frames: G.walk, fps: 7 },
     hammer: { frames: G.strike, fps: 9 },
+    // (in eighteenths of a second: the ring raised 4, the lance loosed 3, the arm back 4)
+    attack: { frames: held(G.ringcast, [4, 3, 4]), fps: 18 },
+    ult: { frames: G.gather, fps: 8 },
+    loose: { frames: G.loose, fps: 1 },
     read: { frames: G.study, fps: 1.4 },
     cast: { frames: G.cast, fps: 6 },
     send: { frames: G.raise, fps: 4 },
@@ -300,5 +376,5 @@ export default {
     stagger: { frames: [...G.stagger, G.idle[0]], fps: 4, once: true },
     kneelBow: { frames: [G.kneel[0], ...G.rest, G.rest[1], G.kneel[0]], fps: 2, once: true },
   },
-  groupFps: { idle: 4, walk: 7, strike: 9, cast: 6, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 1.5, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5 },
+  groupFps: { idle: 4, walk: 7, strike: 9, cast: 6, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 1.5, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, ringcast: 5, gather: 8, loose: 1 },
 };

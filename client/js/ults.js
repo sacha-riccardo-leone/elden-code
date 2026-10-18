@@ -74,7 +74,8 @@ const effect = (step, dispose = () => {}) => ({ step, dispose });
 
 // ---------------------------------------------------------------------------------------------
 // each one: its name, the pose held as it gathers (an animation, and a frame to hold, or none to
-// play it), whether it's aimed, and what it does (u: { fight, fx, n, b, dir, hit(share, at) })
+// play it), the pose it's loosed in (`release`: an animation, drawn; else the held one is let go),
+// whether it's aimed, and what it does (u: { fight, fx, n, b, dir, hit(share, at) })
 
 export const ULTS = {
   runelord: {
@@ -139,12 +140,15 @@ export const ULTS = {
     },
   },
   queen: {
-    name: 'Wall of Dawn', pose: ['send'], aim: true,
+    // (wound up, the light gathered between her palms, and loosed, thrust out: drawn; else she
+    // raises her ring)
+    name: 'Wall of Dawn', pose: ['ult'], fallback: ['send'], release: 'loose', aim: true,
     run({ fight, fx, n, b, dir, hit }) {
-      // it strikes him if it reaches him in its lane
+      // it strikes him if it reaches him in its lane; drawn, it leaves her palms
       const lane = 2.4;
+      const [ahead] = n.body.sheet.rig.muzzles?.ult || [0.8];
       fx.add(new Wall(fx, {
-        x: n.pos.x + dir[0] * 0.8, z: n.pos.y + dir[1] * 0.8, dir,
+        x: n.pos.x + dir[0] * ahead, z: n.pos.y + dir[1] * ahead, dir, art: 'solenne-wall', height: 4.2,
         hits: (x, z) => b.alive && (dir[0] ? Math.abs(b.pos.y - z) < lane && (b.pos.x - x) * dir[0] < 0.6 : Math.abs(b.pos.x - x) < lane && (b.pos.y - z) * dir[1] < 0.6),
         onHit: (at) => {
           hit(26, at);
@@ -465,8 +469,11 @@ export class Ults {
     if (this.title.el) this.title.el.classList.add('out');
     const b = fight.boss;
     const n = a.n;
-    // (the pose held: let go of it, unless the ultimate carries them on itself)
-    n.action = { kind: 'ult', anim: a.pose[0], t: 0, dur: 0.35 };
+    // (the pose held: let go of it, unless the ultimate carries them on itself; or, drawn, the
+    // pose it's loosed in, held a moment)
+    const loose = a.u.release && n.body.sheet.anims[a.u.release] ? a.u.release : null;
+    n.action = { kind: 'ult', anim: loose || a.pose[0], t: 0, dur: loose ? 0.6 : 0.35 };
+    if (loose) n.body.play(loose, true);
     if (!b || !b.alive) return;
     const power = ultPower(b, a.player);
     a.u.run({ fight, fx: fight.fxCtx, n, b, dir: a.dir, hit: (share, at) => fight.ultHit(n, share * power, at) });

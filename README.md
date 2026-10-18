@@ -209,7 +209,10 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
     `client/js/heroes/queen.js`: a ring of holy light turns about one hand, rises and sheds motes
     of light, and lances out as a beam that bursts at its end. Only the ring glows; the crown,
     bracelets and embroidery stay gold. She walks as Aurelion does, her legs striding and lifting
-    under the gown (only its panels sway).
+    under the gown (only its panels sway). Her cast (`queen-attack.json`: the ring raised, thrust
+    out as the lance leaves it, the arm back) and her Wall of Dawn (`queen-ult.json`: wound up,
+    then loosed) are drawn whole, the ring's gold in them glowing as her ring does. The Wall's two
+    are wider than her frame, so they're kept in her `bigFrame`.
   - **The change:** halfway through dusk and dawn, golden light gathers and the drawing of the
     change itself (`champion-to-queen.json` at dawn, `queen-to-champion.json` at dusk;
     `client/js/heroes/twofold.js`) holds for a moment. Then the other form bursts out under its
@@ -414,7 +417,10 @@ It sinks again only once the fight is over and everyone has left it, you include
     - Vael: a gout of blood, blood spikes out of the floor, or a lash of blood that reaches the enemy
       at once, all drawn (`vael-orb.json`, `vael-spikes.json`, `vael-lash.json`; the lash stretched
       evenly from his palm to wherever it strikes).
-    - Solenne: a lance of holy light, a spinning halo, or light falling on the enemy.
+    - Solenne: a lance of holy light, a spinning halo, or light falling on the enemy, all drawn
+      (`solenne-lance.json`, its drawing repeated along its length, flickering and flowing on;
+      `solenne-halo.json`, turning and keeping level as it flies; `solenne-light.json`, falling,
+      striking and fading). The lance and the halo leave from her ring as her cast thrusts it out.
   - **Up close:** Ruadan, Maren, Aurelion, Wynn and Ulric. Ulric still hides; his style only
     matters when you play him.
   - **Fortuna** does both, switching between her frost blade and frost cast from afar (a shard, or
@@ -425,9 +431,10 @@ It sinks again only once the fight is over and everyone has left it, you include
     Fortuna, left click swings her blade and right click casts.
   - **Blows:** a hero with a drawn blow plays it, three frames landing on the second, each held as
     long as suits it (Maren's lunge a third of a second; Fortuna's slash a ninth, her follow-through
-    lingering); the others swing their rig's strike. As Maren's and Fortuna's blows land, their
-    drawing (not where they stand, nor their shadow) is thrown forward a third of a unit in a flash
-    and springs back, a little past and settling (`lunge`, `client/js/npc.js`). However quick a
+    lingering); the others swing their rig's strike. As a drawn blow lands (Maren's, Fortuna's,
+    Vael's, Jorvik's, Corisande's, Solenne's), the drawing (not where they stand, nor their shadow)
+    is thrown forward a third of a unit in a flash and springs back, a little past and settling
+    (`lunge`, `client/js/npc.js`). However quick a
     drawn blow is, your blows come
     no faster than the old strike's pace (`blowReady`, `client/js/pilot.js`), so the enemies'
     health still fits.
@@ -481,7 +488,8 @@ It sinks again only once the fight is over and everyone has left it, you include
     leave it or leap or roll away, and bleeds until 4 seconds after it dries. The pool is drawn
     (`vael-pool.json`): it spreads, then bubbles.
   - Solenne, **Wall of Dawn** (aimed): a tall curved wall of golden light strikes him once, hard,
-    and drives him back.
+    and drives him back. The wall is drawn (`solenne-wall.json`), half again her height: forming
+    as it leaves her palms, whole as it flies, fading at the end of its run.
   - Ruadan, **Hammerfall:** he leaps high and lands hammer first at the enemy's feet in a burst of
     gold.
   - Maren, **Red Storm:** red lightning rains around him, ending in one great bolt (drawn bolts,
@@ -496,13 +504,16 @@ It sinks again only once the fight is over and everyone has left it, you include
     away.
   - Fortuna, **Frostfall:** four great icicles drop on him one after another, each as tall as she
     is, and shatter (`fortuna-icicle.json`, `fortuna-shatter.json`).
-  - **Art:** Maren, Fortuna, Vael, Jorvik and Corisande hold their drawn poses: Maren's spear
+  - **Art:** Maren, Fortuna, Vael, Jorvik, Corisande and Solenne hold their drawn poses: Maren's spear
     raised to the sky, its lightning crackling; Fortuna's four arms and greatsword raised, the
     frost flickering; Vael's clawed hand raised, blood streaming up his arm; Jorvik's staff thrust
     high, runes wheeling round its blazing orb; Corisande's staff held level like a drawn bow,
-    motes wheeling round its blazing crystal (bare-faced, she raises it as she casts). A pose too
-    wide for the camera's close shot (hers) is centred and taken in whole. The others hold their
-    own rig's pose (raise, cast, strike, kneel) until their ult drawings replace it.
+    motes wheeling round its blazing crystal (bare-faced, she raises it as she casts); Solenne
+    wound up, the light gathered between her palms, motes drifting up from it. A pose too wide for
+    the camera's close shot (Corisande's) is centred and taken in whole. An ult may be loosed in a
+    drawing of its own (`release`), held a moment as it strikes: Solenne's palms thrust out as
+    the wall leaves them. The others hold their own rig's pose (raise, cast, strike, kneel) until
+    their ult drawings replace it.
 - **Only the fight:** while a great enemy is abroad, every session works on unseen, the spectres at
   work on their islands included: no log lines about the work, no incantations, signs or gestures,
   no spirit wisps and no small talk. A fighter's signs are put away for the fight (the "!" of one

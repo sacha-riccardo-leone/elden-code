@@ -132,11 +132,19 @@ const SPELLS = {
     },
     { weight: 1.5, cast: (c) => c.beam({ width: 0.3, share: 0.9, art: 'vael-lash' }) },
   ],
-  // the Eternal Queen: a lance of holy light, a halo thrown spinning, or light falling on him
+  // the Eternal Queen: a lance of holy light, a halo thrown spinning, or light falling on him (all
+  // drawn: the lance repeated along its length; the halo turning, keeping level as it flies; the
+  // light falling, striking and fading)
   holy: [
-    { weight: 3, cast: (c) => c.beam({ width: 0.36, share: 1 }) },
-    { weight: 2, cast: (c) => c.missile({ map: TEX.halo(), w: 0.9, h: 0.42, speed: 10, spin: 0.01 }) },
-    { weight: 1.5, cast: (c) => c.rise({ map: TEX.pillar('holy'), w: 1.5, h: 6, mark: TEX.circle('holy', 0), markSize: 2.6, share: 1.4 }) },
+    { weight: 3, cast: (c) => c.beam({ width: 0.5, share: 1, art: 'solenne-lance', tile: true }) },
+    {
+      weight: 2,
+      cast: (c) => c.missile({ ...lookOf('solenne-halo', c.px * 0.62, { map: TEX.halo(), w: 0.9, h: 0.42, spin: 0.01 }, { fps: 12 }), upright: true, speed: 10 }),
+    },
+    {
+      weight: 1.5,
+      cast: (c) => c.rise({ art: 'solenne-light', px: c.px * 1.4, map: TEX.pillar('holy'), w: 1.5, h: 6, mark: TEX.circle('holy', 0), markSize: 2.6, share: 1.4 }),
+    },
   ],
   // Fortuna, from afar: a frost shard, or ice out of the floor (both drawn at her own pixel size)
   frost: [
@@ -179,9 +187,9 @@ export function castSpell(fx, n, { target, dir, hit }) {
       const [x, , z] = target ? target() : [from[0] + dir[0] * 6, 0, from[2] + dir[1] * 6];
       fx.add(new Rise(fx, { school, x, z, ...o, onHit: target ? (at) => land(at, share) : null }));
     },
-    beam: ({ share = 1, width, art = null }) => {
+    beam: ({ share = 1, width, art = null, tile = false }) => {
       const to = target ? target() : [from[0] + dir[0] * 9, from[1], from[2] + dir[1] * 9];
-      fx.add(new Beam(fx, { school, from, to, width, art, onHit: target ? (at) => land(at, share) : null }));
+      fx.add(new Beam(fx, { school, from, to, width, art, tile, onHit: target ? (at) => land(at, share) : null }));
     },
   };
   pick(list).cast(c);
