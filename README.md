@@ -55,16 +55,21 @@ South of the Hold, and lower, lies the **Training Yard** (`client/js/yard.js`), 
 round floor of grey brick on a rock of its own, as wide as the arena's but without its pillars. A
 stone stair comes down to it from the rim, and whoever walks it goes down with it
 (`client/js/ground.js` gives the ground's height wherever it isn't level with the Hold). In the
-middle of its sawdust ring stands a great dummy of wood with a halberd, about twice a Tarnished's
-height, that never breaks; eight straw dummies stand scattered round it (`client/js/training.js`),
-in new places each time the page loads, clear of it, the stair's foot, the props and one another.
-Racks of the Round Table's weapons (`client/js/weapons.js`) flank the foot of the stair, with
-barrels and crates beside them; an archery butt stands to the west, and rope lanterns light the
-edge. Blows, spells and ultimates find the dummies as they find a great enemy. A dummy flashes white
-as each one lands, as a character struck does (as briefly, and pale by night, never a light going
-off), and wobbles away from it; once a straw one has taken enough it bursts into pieces, then stands
-whole again five seconds later. Dummies never strike back. On the yard your ultimate is always full: each one still freezes the world for its moment,
-but you needn't wait between them.
+middle of its sawdust ring stands a great dummy: the Guardian Golem in wood, halberd and all, a
+little smaller than he (7.1 units tall to his 7.9), that never breaks. As with him, its only
+weakness is its cracked ankle, low on its back leg: a blow lands only there, struck from behind it,
+and its wood turns any other (splinters and a spark, the striker bouncing off, and the first time a
+word in the log on where to strike); spells fly at the ankle; ultimates land whole. Near it the
+camera pulls back and looks a little higher to keep the whole of it in view, as it does for a great
+enemy on the arena. Eight straw dummies stand scattered round it (`client/js/training.js`), in new
+places each time the page loads, clear of it, the stair's foot, the props and one another. Racks of
+the Round Table's weapons (`client/js/weapons.js`) flank the foot of the stair, with barrels and
+crates beside them; an archery butt stands to the west, and rope lanterns light the edge. Blows,
+spells and ultimates find the dummies as they find a great enemy. A dummy flashes white as each one
+lands, as a character struck does (as briefly, and pale by night, never a light going off), and
+wobbles away from it; once a straw one has taken enough it bursts into pieces, then stands whole
+again five seconds later. Dummies never strike back. On the yard your ultimate is always full: each
+one still freezes the world for its moment, but you needn't wait between them.
 
 | In Claude Code | In the world |
 |---|---|
@@ -914,7 +919,7 @@ client/js/grace.js      the grace itself, the figure of golden light floating ov
 client/js/interact.js   E: using the stations and the Round Table
 client/js/arena.js      the Arena of Trials, north of the Hold and higher, and the stone stair up to it
 client/js/yard.js       the Training Yard below the Hold, and the stone stair down to it
-client/js/training.js   the yard's dummies (straw, and the great one that never breaks), and thy blows, spells and ultimates on them
+client/js/training.js   the yard's dummies (straw, and the great one: the Golem in wood, struck only on its ankle), and thy blows, spells and ultimates on them
 client/js/ground.js     the ground's height where it isn't level with the Hold (the yard, the arena, their stairs)
 client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the fighters, thy health
 client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes

@@ -1,7 +1,9 @@
-// Training in the yard below the Hold (yard.js): straw dummies to strike, and a great one of wood
-// with a halberd in the middle. Each flashes white and wobbles as a blow, a spell or an ultimate
-// lands on it; a straw one, once it has taken enough, bursts into pieces, lies in them a while, and
-// stands whole again; the great one never breaks. They never strike back.
+// Training in the yard below the Hold (yard.js): straw dummies to strike, and a great one in the
+// middle, the Guardian Golem (golem.js) in wood, halberd and all. Each flashes white and wobbles as
+// a blow, a spell or an ultimate lands on it; a straw one, once it has taken enough, bursts into
+// pieces, lies in them a while, and stands whole again; the great one never breaks, and, as the
+// Golem's stone does, its wood turns every blow but those on its cracked ankle, low on its back leg.
+// They never strike back.
 //
 // Thy blows, spells and ultimates find a dummy as they find a great enemy on the arena (fight.js):
 // a dummy has the few things of his they ask after (where it stands, its body, that it lives), and
@@ -26,10 +28,16 @@ import { Spark } from './spellfx.js';
 // its drawing's frames (fx/dummy.json), whole, leaning back, leaning forward, bursting, in pieces.
 const DUMMY = { hp: 100, blow: 26, spell: 22, reach: 2.6, radius: 0.55, px: 2.3 / 104, burst: 0.32, rest: 5 };
 const F = { whole: 0, back: 1, forward: 2, burst: 3, broken: 4 };
-// The great one (fx/boss-dummy.json: whole, leaning back, leaning forward): its size (a little over
-// five world units tall, under Fenrath's six), how far out of thy line a blow still finds it, and its
-// shadow's radius. It takes up BOSS_DUMMY.radius of the floor (yard.js).
-const GREAT = { px: 5.2 / 164, depth: 1.6, shadow: 1.7 };
+// The great one (fx/boss-dummy.json: whole, leaning back, leaning forward; drawn as the Golem is, on
+// his 3.6 px grid): its size (a little over seven world units tall, nine tenths of his eight), how far
+// out of thy line a blow still finds it, and its shadow's radius (it takes up BOSS_DUMMY.radius of
+// the floor, yard.js). Its cracked ankle, as his: where it is (art px from its place, forward and
+// up), and how near a blow must land to it.
+const GREAT = { px: 7.1 / 260, depth: 2, shadow: 2.2, ankle: { at: [-29.2, 40.5], r: 0.9 } };
+// Within `near` of it, the camera pulls back (`dist`) and looks a little higher (`y` above the
+// floor), to keep the whole of it in view (aim).
+const GREAT_CAM = { near: 11, dist: 28, y: 2.6 };
+const TURNED = { spark: '#dcc8a4', reach: 1.5 }; // (a blow its wood turns: the spark, where the blow lands)
 // A wobble, struck: leaning away from the blow, upright, leaning back toward it, upright (seconds).
 const WOBBLE = [[0.12, 'away'], [0.2, 'whole'], [0.3, 'toward'], [0.42, 'whole']];
 const STOP = { blow: 0.055, spell: 0.035 }; // (thy blows hold the world still a moment, as on the arena)
@@ -78,6 +86,12 @@ class Dummy {
   }
 
   get standing() { return !this.broken; }
+
+  // The great one's cracked ankle: [x, height above the floor].
+  ankle() {
+    const [ax, ay] = GREAT.ankle.at;
+    return [this.pos.x + ax * GREAT.px, ay * GREAT.px];
+  }
 
   show(k) {
     if (k === this.frame || !this.sheet) return;
@@ -147,6 +161,7 @@ export class Training {
     };
     this.fxCtx = { scene: this.group, particles, add: (e) => this.fx.push(e) };
     this.dummies = null; // (made once their drawing has loaded: start)
+    this.told = new Set(); // (the hints in the log, each said once)
   }
 
   // The dummies, once the effects' art has loaded (main.js).
@@ -161,6 +176,14 @@ export class Training {
   // Whether n is on the yard (its floor, not the stair).
   has(n) {
     return !!n && !!this.ctx.world.yard?.inside(n.pos.x, n.pos.y);
+  }
+
+  // Where the camera looks (main.js), near the great one: from farther back and a little higher, as
+  // on the arena a great enemy is kept in view (fight.aim); elsewhere it follows thee as ever.
+  aim(me) {
+    const g = this.dummies?.find((d) => d.great);
+    if (!g || !this.has(me) || Math.hypot(me.pos.x - g.pos.x, me.pos.y - g.pos.y) > GREAT_CAM.near) return null;
+    return { at: [me.pos.x, YARD.y + GREAT_CAM.y, me.pos.y], dist: GREAT_CAM.dist, mode: 'great' };
   }
 
   // Whoever looses an ultimate here is watched (ults.js: the world stands still for it) if thou'rt here.
@@ -190,21 +213,63 @@ export class Training {
     return b ? [b.pos.x, b.lift + up, b.pos.y + 0.2] : [0, 0, 0];
   }
 
-  // Thy blow lands (pilot.js → director.strikeFrom): the dummy in front of thee, if one stands there.
+  // Thy blow lands (pilot.js → director.strikeFrom): the dummy in front of thee, if one stands there;
+  // the great one only on its cracked ankle (within the blow's reach, just ahead of thee), its wood
+  // turning it anywhere else.
   strikeFrom(p) {
+    const g = this.dummies?.find((x) => x.great);
+    if (g) {
+      const [ax, ay] = g.ankle();
+      const ahead = (ax - p.pos.x) * p.body.facing;
+      if (ahead > -0.4 && ahead < TURNED.reach + GREAT.ankle.r && Math.abs(p.pos.y - g.pos.y) < GREAT.ankle.r + 0.4) {
+        this.landed(p, g, [ax, ay, g.pos.y + 0.3]);
+        return true;
+      }
+      const front = (g.pos.x - p.pos.x) * p.body.facing;
+      if (front > -0.6 && front < DUMMY.reach + g.kind.radius && Math.abs(g.pos.y - p.pos.y) < g.kind.depth) {
+        this.turned(p, p.pos.x + p.body.facing * TURNED.reach, p.pos.y);
+        return true;
+      }
+    }
     const d = (this.dummies || []).find((x) => {
-      if (!x.standing) return false;
+      if (!x.standing || x.great) return false;
       const ahead = (x.pos.x - p.pos.x) * p.body.facing;
       return ahead > -0.6 && ahead < DUMMY.reach + x.kind.radius && Math.abs(x.pos.y - p.pos.y) < x.kind.depth;
     });
     if (!d) return false;
+    this.landed(p, d, [p.pos.x + (d.pos.x - p.pos.x) * 0.6, 1.3, (p.pos.y + d.pos.y) / 2 + 0.3]);
+    return true;
+  }
+
+  // Thy blow on a dummy (`at`: where the blade meets it): a spark there, the world holding still a
+  // moment, the view jolted the way the blow went.
+  landed(p, d, at) {
     const dir = Math.sign(d.pos.x - p.pos.x) || p.body.facing;
-    this.fx.push(new Spark(this.fxCtx, { color: styleOf(p).color, at: [p.pos.x + (d.pos.x - p.pos.x) * 0.6, 1.3, (p.pos.y + d.pos.y) / 2 + 0.3], dir, size: 1.7 }));
+    this.fx.push(new Spark(this.fxCtx, { color: styleOf(p).color, at, dir, size: 1.7 }));
     this.hitStop(STOP.blow);
     p.body.stretch?.();
     this.ctx.rig?.punch?.(dir * 0.12);
     d.struck(DUMMY.blow, dir);
-    return true;
+  }
+
+  // A blow the great one's wood turns, as the Golem's stone turns one (golem.js, clang): splinters
+  // and a spark, and nothing more (no flash, no wobble, no holding still); the striker (`p`)
+  // bounces off it, its drawing thrown back the way it came. The first time, a word on where to
+  // strike it.
+  turned(p, x, z) {
+    this.fxCtx.particles.emit({
+      pos: [x, 1.2, z + 0.2], spread: [0.2, 0.3, 0.2], vel: [0, 1.2, 0], velSpread: [1.4, 1, 0.8],
+      color: [...CHIPS, '#ffe6b0'], size: 0.06, life: 0.4, count: 10, drag: 1.6, intensity: 1.2,
+    });
+    this.fx.push(new Spark(this.fxCtx, { color: TURNED.spark, at: [x, 1.2, z + 0.3], dir: p.body.facing, size: 1.1 }));
+    p.body.knock((p.body.sheet.lunge?.attack || 0) + 0.2, -p.body.facing);
+    this.tell('wood', 'Wood turns thy blows: strike the great dummy\'s cracked ankle, low on its back leg, as thou wouldst the Golem\'s');
+  }
+
+  tell(key, text) {
+    if (this.told.has(key)) return;
+    this.told.add(key);
+    this.ctx.ui?.log(text, 'gold');
   }
 
   // Thy spell (pilot.js), toward where thou pointest: it finds the dummy that way, if one stands
@@ -219,7 +284,8 @@ export class Training {
       if (d > 0.2) dir = [dx / d, dz / d];
     }
     const d = this.target(n, dir, RANGED.reach + 4, 0.8);
-    const target = d ? () => [d.pos.x, 1.3, d.pos.y + 0.2] : null;
+    // (at the great one, its cracked ankle, as at the Golem)
+    const target = d ? () => (d.great ? [...d.ankle(), d.pos.y + 0.2] : [d.pos.x, 1.3, d.pos.y + 0.2]) : null;
     castSpell(this.fxCtx, n, {
       target, dir,
       hit: () => {

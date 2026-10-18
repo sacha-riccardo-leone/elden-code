@@ -310,7 +310,7 @@ resize();
 
 let last = performance.now();
 let t = 0;
-let camMode = null; // in a fight on the arena: 'boss' (showing him), 'thee' (following thee), and in his great attack 'roar' (him) and 'wide' (the whole arena)
+let camMode = null; // in a fight on the arena: 'boss' (showing him), 'thee' (following thee), and in his great attack 'roar' (him) and 'wide' (the whole arena); on the training yard, 'great' (by its great dummy)
 let camBase = FOLLOW_DIST; // how far back the camera was before the fight took it over
 
 function step(dt) {
@@ -329,8 +329,8 @@ function step(dt) {
     if (!overview) {
       // fighting a great enemy on the arena: the camera shows him as he enters, then follows thee
       // (or, with its focus on him, Q, looks between thee and him), pulled back far enough to keep
-      // his height in view
-      const aim = fight.aim(me);
+      // his height in view; so too by the training yard's great dummy (training.js)
+      const aim = fight.aim(me) || training.aim(me);
       // (how far back: set as it changes between showing him and following thee, so a scroll of
       // the wheel still zooms; and as the fight ends, back to how far it was before)
       const mode = aim ? aim.mode || (aim.at ? 'boss' : 'thee') : null;

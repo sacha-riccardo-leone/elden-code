@@ -38,10 +38,11 @@ const PROPS = {
   butt: [-15.2, 2.6],
   lanterns: [-112, -68, -24, 22, 66, 114, 158, -158],
 };
-// Its great dummy (training.js): wood with a halberd, in the middle of its sawdust ring, never
-// breaking; where it stands (from the yard's middle), how much of the floor it takes up, and how
-// far off the straw ones keep (its halberd reaches far either side of it).
-export const BOSS_DUMMY = { x: 0, z: 0, radius: 1.3, clear: 5.5 };
+// Its great dummy (training.js): the Guardian Golem in wood, halberd and all, a little smaller than
+// he, in the middle of its sawdust ring, never breaking; where it stands (from the yard's middle),
+// how much of the floor it takes up (nine tenths of his), and how far off the straw ones keep (its
+// halberd reaches far either side of it).
+export const BOSS_DUMMY = { x: 0, z: 0, radius: 1.8, clear: 7.2 };
 // Its straw dummies (training.js): `count` of them, scattered over its floor anew each time the
 // world is made, at least `edge` in from its edge and `apart` from one another, and clear of the
 // stair's foot and of what stands on it (by `clear`, past what each takes up).
