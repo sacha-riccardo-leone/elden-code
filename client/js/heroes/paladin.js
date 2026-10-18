@@ -4,9 +4,11 @@
 // falls on his sword.
 // Source art: assets/hero/paladin.json (124x164, from paladin-stand.webp) and
 // paladin-kneel.json (113x125, from paladin-kneel.webp). His swing (paladin-attack.json: the sword
-// raised, cut down in front, carried on low behind) and his Radiant Verdict (paladin-ult.json: the
-// giant blade of light raised back over his shoulder, then swept low ahead of him) are drawn whole;
-// they reach far wider than his frame, so they're kept in a bigger one (core.js, bigFrame).
+// raised, cut down in front, carried on low behind), his Radiant Verdict (paladin-ult.json: the
+// giant blade of light raised back over his shoulder, then swept low ahead of him; it's the giant
+// of his light behind him that swings it, ults.js) and the pose he strikes meanwhile
+// (paladin-pose.json: his sword held out low, pointing at the enemy) are drawn whole; they reach
+// far wider than his frame, so they're kept in a bigger one (core.js, bigFrame).
 
 import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill, held } from './core.js';
 
@@ -46,6 +48,8 @@ const DRAWN = {
     { mid: 289, ground: 220, blade: { from: [248, 18], to: [1, 86], r: 8 } },
     { mid: 97, ground: 157, blade: { from: [179, 118], to: [433, 152], r: 8 }, from: [255, 135] },
   ],
+  // the pose he strikes while the giant of his light (the Stand, ults.js) swings the Verdict
+  pose: [{ mid: 142, ground: 160 }],
 };
 const BLADE_LIGHT = 'rqomk'; // the blade's white-gold (his palette's palest golds)
 // the big frame: room for the giant blade reaching far behind him raised, and far ahead swept
@@ -343,12 +347,13 @@ const drawnPose = (key, k, more = {}) => ({ drawn: key, frame: k, mid: DRAWN[key
 anim('swing', [0, 1, 2].map((i) => drawnPose('attack', i, { light: [1, 2, 1][i] })));
 anim('verdict', seq(4, (i) => drawnPose('ult', 0, { glint: [0.15, 0.4, 0.65, 0.9][i], light: 2 })));
 anim('sweep', [drawnPose('ult', 1, { light: 2 })]);
+anim('jojo', [drawnPose('pose', 0, { light: 1 })]);
 
 const G = groups;
 export default {
   id: 'paladin',
   art: '/assets/hero/paladin.json',
-  extraArt: { kneel: '/assets/hero/paladin-kneel.json', ult: '/assets/hero/paladin-ult.json', attack: '/assets/hero/paladin-attack.json' },
+  extraArt: { kneel: '/assets/hero/paladin-kneel.json', ult: '/assets/hero/paladin-ult.json', attack: '/assets/hero/paladin-attack.json', pose: '/assets/hero/paladin-pose.json' },
   firstName: 'Aurelion',
   epithet: 'the Radiant Oath',
   title: 'Holy Knight',
@@ -377,6 +382,7 @@ export default {
     attack: { frames: held(G.swing, [4, 3, 5]), fps: 18 },
     ult: { frames: G.verdict, fps: 8 },
     sweep: { frames: G.sweep, fps: 1 },
+    pose: { frames: G.jojo, fps: 1 },
     read: { frames: G.study, fps: 1.4 },
     cast: { frames: G.cast, fps: 6 },
     send: { frames: G.raise, fps: 4 },
@@ -394,5 +400,5 @@ export default {
     stagger: { frames: [...G.stagger, G.idle[0]], fps: 4, once: true },
     kneelBow: { frames: [G.kneel[0], ...G.rest, G.rest[1], G.kneel[0]], fps: 2, once: true },
   },
-  groupFps: { idle: 4, walk: 9, strike: 9, cast: 6, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, swing: 5, verdict: 8, sweep: 1 },
+  groupFps: { idle: 4, walk: 9, strike: 9, cast: 6, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 3, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, swing: 5, verdict: 8, sweep: 1, jojo: 1 },
 };

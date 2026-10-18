@@ -225,15 +225,15 @@ export const ULTS = {
     },
   },
   paladin: {
-    // (the giant blade of light raised back over his shoulder, then the sweep it ends in: drawn;
-    // else he raises his sword to the sky. A giant of his own light stands behind him, swinging as
-    // he swings: `stand`)
-    name: 'Radiant Verdict', pose: ['ult'], fallback: ['send'], release: 'sweep', stand: { scale: 1.8 },
+    // (he strikes his pose, drawn, and holds it; behind him a giant of his own light swings the
+    // Verdict: the giant blade of light raised back over its shoulder, then the sweep it ends in,
+    // `stand`; else he raises his sword to the sky, the giant raising its own as he does)
+    name: 'Radiant Verdict', pose: ['pose'], fallback: ['send'], release: 'pose', stand: { scale: 1.8, gather: 'ult', release: 'sweep' },
     run({ fight, fx, n, b, hit }) {
-      // drawn, the wave leaves the giant blade swept low ahead of him (never from past the enemy)
+      // drawn, the wave leaves the giant's blade swept low ahead of him (never from past the enemy)
       const drawn = !!n.body.sheet.anims.sweep;
       const [ahead] = (drawn && n.body.sheet.rig.muzzles?.ult) || [1.2];
-      const lead = Math.max(0.6, Math.min(ahead, Math.abs(b.pos.x - n.pos.x) - 0.8));
+      const lead = Math.max(0.6, Math.min(ahead * (drawn ? this.stand.scale : 1), Math.abs(b.pos.x - n.pos.x) - 0.8));
       fx.add(new Slash(fx, {
         school: 'holy', size: 6.5, art: drawn ? 'aurelion-wave' : null, px: 0.031,
         from: [n.pos.x + n.body.facing * lead, 2.2, n.pos.y + 0.1], to: () => fight.bossPoint(2.2), speed: 15,
@@ -431,8 +431,11 @@ export class Ults {
     const color = styleOf(n).color;
     const aura = new Aura(this.ctx.scene, this.particles, n.body, color, { radius: key === 'sorceress' ? 4.5 : 2.5 });
     const stand = u.stand ? new Stand(this.ctx.scene, n.body, u.stand) : null;
-    const tall = Math.max(2.5, poseHeight(n.body, pose[0]));
-    const span = poseSpan(n.body, pose[0]);
+    // (the giant swings a pose of its own, drawn: Aurelion's; the camera takes that in)
+    const own = stand && u.stand.gather && pose[0] === u.pose[0] && n.body.sheet.anims[u.stand.gather] ? u.stand.gather : null;
+    if (own) stand.play(own);
+    const tall = Math.max(2.5, poseHeight(n.body, own || pose[0]));
+    const span = poseSpan(n.body, own || pose[0]);
     this.active = { n, u, pose, key, t: 0, dir, player, aura, stand, released: false, saved: rig.distGoal, tall, span };
     // (everyone else, and him, hide it where they stand in front of it: they stay grey)
     const others = [...this.ctx.director.npcs.values()].filter((o) => o !== n && !o.dead && o.body?.mesh).map((o) => o.body.mesh);
@@ -516,6 +519,7 @@ export class Ults {
     const loose = a.u.release && n.body.sheet.anims[a.u.release] ? a.u.release : null;
     n.action = { kind: 'ult', anim: loose || a.pose[0], t: 0, dur: loose ? 0.6 : 0.35 };
     if (loose) n.body.play(loose, true);
+    if (a.stand?.anim && a.u.stand.release) a.stand.play(a.u.stand.release); // (and the giant strikes)
     if (!b || !b.alive) return;
     const power = ultPower(b, a.player);
     a.u.run({ fight, fx: fight.fxCtx, n, b, dir: a.dir, hit: (share, at) => fight.ultHit(n, share * power, at) });

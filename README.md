@@ -195,9 +195,11 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
 - **Aurelion, the Radiant Oath** (Holy Knight) — `paladin.json` (+ `paladin-kneel.json`), rigged in
   `client/js/heroes/paladin.js` (the sword leaves a radiant arc, light bursts from the raised blade,
   and a pillar of light falls on it; kneeling, he prays under a beam of light). His swing
-  (`paladin-attack.json`: raised, cut down in front, carried on low behind) and his Radiant Verdict
+  (`paladin-attack.json`: raised, cut down in front, carried on low behind), his Radiant Verdict
   (`paladin-ult.json`: the giant blade of light raised back over his shoulder, then swept low ahead
-  of him) are drawn whole, in his `bigFrame`; the giant blade glows steadily.
+  of him, swung by the giant of his light behind him) and the pose he strikes meanwhile
+  (`paladin-pose.json`: his sword held out low, pointing at the enemy) are drawn whole, in his
+  `bigFrame`; the giant blade glows steadily.
 - **The Bandit Knight, of the Broken Road** — `bandit.json` (+ `bandit-kneel.json`, his resting
   squat, used exactly as drawn), rigged in `client/js/heroes/bandit.js` (no sorcery: the spear sweeps
   over his head and lunges with a trail, and the tower shield comes up to guard).
@@ -498,9 +500,11 @@ It sinks again only once the fight is over and everyone has left it, you include
     `maren-bolt.json` and `maren-great-bolt.json`, at twice her pixel size so they fall from out
     of sight).
   - Aurelion, **Radiant Verdict:** a great slash of light dazes him for 5 seconds, unable to fight
-    or move. A giant of his own light stands behind him, his drawing 1.8 times its size, golden and
-    see-through, its feet on his: it holds his pose and sweeps as he sweeps (`Stand`,
-    `client/js/spellfx.js`; the camera draws back to take it in). The wave is drawn
+    or move. He strikes his pose and holds it, and a giant of his own light stands behind him, his
+    drawing 1.8 times its size, golden and see-through, its feet on his, and swings the Verdict:
+    the giant blade of light raised back over its shoulder, then swept low ahead of it (`Stand`,
+    `client/js/spellfx.js`, playing frames of his sheet on its own; the camera draws back to take
+    it in). The wave is drawn
     (`aurelion-wave.json`): forming as it leaves the blades, full as it flies, stretching as it
     strikes, then fading.
   - Wynn, **Iaijutsu:** after a breath, Wynn cuts through him from every side while he's held still.
@@ -518,12 +522,12 @@ It sinks again only once the fight is over and everyone has left it, you include
     arm; Jorvik's staff thrust high, runes wheeling round its blazing orb; Corisande's staff held
     level like a drawn bow, motes wheeling round its blazing crystal (bare-faced, she raises it as
     she casts); Solenne wound up, the light gathered between her palms, motes drifting up from it;
-    Aurelion's giant blade of light raised back over his shoulder, a glint running along it. A
-    pose too wide for the camera's close shot (Corisande's) is centred and taken in whole. An ult
-    may be loosed in a drawing of its own (`release`), held a moment as it strikes: Solenne's
-    palms thrust out as the wall leaves them; Aurelion's giant blade swept low ahead of him. The
-    others hold their own rig's pose (raise, cast, strike, kneel) until their ult drawings
-    replace it.
+    Aurelion pointing at the enemy, his sword held out low, while the giant behind him raises its
+    blade of light back over its shoulder, a glint running along it. A pose too wide for the
+    camera's close shot (Corisande's) is centred and taken in whole. An ult may be loosed in a
+    drawing of its own (`release`), held a moment as it strikes: Solenne's palms thrust out as the
+    wall leaves them; Aurelion's giant sweeping its blade low ahead of it. The others hold their
+    own rig's pose (raise, cast, strike, kneel) until their ult drawings replace it.
 - **Only the fight:** while a great enemy is abroad, every session works on unseen, the spectres at
   work on their islands included: no log lines about the work, no incantations, signs or gestures,
   no spirit wisps and no small talk. A fighter's signs are put away for the fight (the "!" of one

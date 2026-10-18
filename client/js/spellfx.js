@@ -1227,8 +1227,9 @@ const STAND = {
 
 // Behind someone loosing an ultimate (a SpriteBody), a giant of their own light: their drawing
 // `scale` times its size, its feet on theirs, golden and see-through. It shows the frame they show,
-// so it swings as they swing; once they're let go of the pose (`follow` false) it keeps its last.
-// `power` 0..1 brings it in and out.
+// so it swings as they swing, or plays an animation of their sheet on its own (`play`: Aurelion's
+// giant swings the Verdict while he strikes a pose); once they're let go of the pose (`follow`
+// false) it keeps its last. `power` 0..1 brings it in and out.
 export class Stand {
   constructor(scene, body, { scale = 1.8, colors = ['#4a3208', '#9c7414', '#e8bc30', '#fde070'] } = {}) {
     const [c0, c1, c2, c3] = colors.map((c) => new THREE.Color(c));
@@ -1254,24 +1255,52 @@ export class Stand {
     this.mesh = new THREE.Mesh(body.mesh.geometry, mat);
     this.mesh.visible = false;
     scene.add(this.mesh);
-    Object.assign(this, { scene, body, scale, power: 0 });
+    Object.assign(this, { scene, body, scale, power: 0, anim: null });
   }
 
   // (it keeps its colour while the world goes grey, post.js)
   get meshes() { return [this.mesh]; }
 
+  // An animation of their sheet, played by the giant alone.
+  play(name) {
+    const def = this.body.sheet.anims[name];
+    this.anim = def ? { def, t: 0 } : null;
+  }
+
   step(dt, power, follow = true) {
     // in as the aura comes, out quickly once the blow is struck
     this.power += (power - this.power) * Math.min(1, dt * (power > this.power ? 6 : 12));
-    const m = this.body.mesh;
+    const { body } = this;
+    const m = body.mesh;
     const u = this.mesh.material.uniforms;
-    if (follow || !this.shown) {
-      const tex = this.body.mat.map;
+    const foot = body.footX ?? m.position.x;
+    if (this.anim) {
+      // a frame of their sheet of its own, shown as SpriteBody.setFrame shows one, facing as they do
+      const a = this.anim;
+      a.t += dt;
+      const { frames, fps } = a.def;
+      const index = frames[Math.floor(a.t * fps) % frames.length];
+      const { sheet } = body;
+      const slot = sheet.slots?.[index];
+      const big = !!(slot?.big && body.bigTex);
+      const grid = big ? sheet.big : sheet;
+      const k = slot ? slot.k : index;
+      const f = body.facing;
+      const col = k % grid.cols;
+      const row = Math.floor(k / grid.cols);
+      u.map.value = big ? body.bigTex : body.tex;
+      u.uvT.value.setUvTransform((f > 0 ? col : col + 1) / grid.cols, 1 - (row + 1) / grid.rows, f / grid.cols, 1 / grid.rows, 0, 0, 0);
+      // its middle on their feet
+      const shift = (grid.frameW / 2 - (grid.anchor ?? grid.frameW / 2)) * sheet.px;
+      this.mesh.position.set(foot + f * shift * this.scale, m.position.y, m.position.z - 0.3);
+      this.mesh.scale.set((grid.frameW / sheet.frameW) * this.scale, (grid.frameH / sheet.frameH) * this.scale, this.scale);
+      this.shown = true;
+    } else if (follow || !this.shown) {
+      const tex = body.mat.map;
       tex.updateMatrix();
       u.map.value = tex;
       u.uvT.value.copy(tex.matrix);
       // its feet where theirs are, and all of it `scale` times as far from them (a lunge too)
-      const foot = this.body.footX ?? m.position.x;
       this.mesh.position.set(foot + (m.position.x - foot) * this.scale, m.position.y, m.position.z - 0.3);
       this.mesh.scale.copy(m.scale).multiplyScalar(this.scale);
       this.shown = true;
