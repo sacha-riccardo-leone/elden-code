@@ -310,24 +310,30 @@ export const ULTS = {
     },
   },
   bandit: {
-    name: 'Tenfold Spears', pose: ['hammer', 1], aim: true,
+    // (the spear cocked back like a javelin, then thrown, his hand open: drawn; else his spear
+    // drawn back)
+    name: 'Tenfold Spears', pose: ['ult'], fallback: ['hammer', 1], release: 'throw', aim: true,
     run({ fight, fx, n, b, dir, hit }) {
       // does his line cross him?
       const along = (b.pos.x - n.pos.x) * dir[0] + (b.pos.y - n.pos.y) * dir[1];
       const off = Math.abs((b.pos.x - n.pos.x) * dir[1] - (b.pos.y - n.pos.y) * dir[0]);
       const onLine = along > 0.5 && along < 16 && off < 1.9;
       const facing = dir[0] || n.body.facing;
+      // drawn, they leave his open hand (the rig's muzzles), each his own spear at his own pixel size
+      const sheet = n.body.sheet;
+      const [ahead, up] = (sheet.anims.throw && sheet.rig.muzzles?.ult) || [0.6, 1.7];
+      const look = lookOf('ulric-spear', sheet.px, { map: TEX.spear(), w: 2.1, h: 2.1 * 9 / 70 });
       for (let i = 0; i < 10; i++) {
         const oy = 1.1 + (i % 4) * 0.45;
         const oz = ((i % 3) - 1) * 0.25;
-        const from = [n.pos.x + dir[0] * 0.6, 1.5 + (i % 3) * 0.2, n.pos.y + dir[1] * 0.6 + oz];
+        const from = [n.pos.x + dir[0] * ahead, up + ((i % 3) - 1) * 0.2, n.pos.y + dir[1] * ahead + oz];
         fx.add(new Missile(fx, {
-          map: TEX.spear(), w: 2.1, h: 2.1 * 9 / 70, from, speed: 20, delay: i * 0.07, life: onLine ? 3 : 1.1,
+          ...look, from, speed: 20, delay: i * 0.07, life: onLine ? 3 : 1.1,
           to: onLine ? () => [b.pos.x - facing * 0.5, b.lift + oy, b.pos.y + oz] : null, dir: onLine ? null : dir, turn: 6, near: 0.3,
           onHit: () => {
             hit(0.8, new THREE.Vector3(b.pos.x, oy, b.pos.y));
             addDot(b, { kind: 'poison', dps: 3, until: fight.clock + 4, src: n });
-            fx.add(new StuckSpear(fx, { follow: () => [b.pos.x, b.lift, b.pos.y], off: [-facing * 0.9, oy, oz + 0.2], dir: facing, until: 4 }));
+            fx.add(new StuckSpear(fx, { follow: () => [b.pos.x, b.lift, b.pos.y], off: [-facing * 0.9, oy, oz + 0.2], dir: facing, until: 4, look }));
           },
         }));
       }

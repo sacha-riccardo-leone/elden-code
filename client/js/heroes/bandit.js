@@ -2,9 +2,13 @@
 // in one fist and a tower shield in the other. No sorcery: the spear sweeps over his head and
 // lunges, and the shield comes up to guard.
 // Source art: assets/hero/bandit.json (59x81, from bandit-stand.webp) and bandit-kneel.json
-// (44x50, his resting squat from bandit-kneel.webp, used exactly as drawn).
+// (44x50, his resting squat from bandit-kneel.webp, used exactly as drawn). His lunge
+// (bandit-attack.json: the spear cocked over his head, thrust out past the shield, drawn back
+// upright) and his Tenfold Spears (bandit-ult.json: the spear cocked back like a javelin, then
+// thrown, his hand open) are drawn whole; the spear reaches far beyond his frame, so they're kept
+// in a bigger one (core.js, bigFrame).
 
-import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill } from './core.js';
+import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill, held } from './core.js';
 
 const FRAME = { w: 92, h: 86 };
 const MID = 33; // source column between the boots
@@ -24,6 +28,25 @@ const GRIP = { x: shaftX(52.5), y: 52.5 }; // his fist on the shaft: the spear t
 const TIP = { x: 2, y: 1.5 };
 const REACH = Math.hypot(TIP.x - GRIP.x, TIP.y - GRIP.y);
 const TIP_ANGLE = Math.atan2(TIP.y - GRIP.y, TIP.x - GRIP.x);
+
+// His drawn poses: per frame of each, the column set where his body's middle (the green tunic)
+// stands as he stands, and the row he stands on; thrown, where the spears leave his hand (`from`).
+const DRAWN = {
+  attack: [
+    { mid: 64, ground: 83 },
+    { mid: 31, ground: 83 },
+    { mid: 75, ground: 88 },
+  ],
+  ult: [
+    { mid: 67, ground: 74 },
+    { mid: 60, ground: 70, from: [108, 27] },
+  ],
+};
+// the big frame: room for the spear held level far ahead and behind, and upright above him
+const BIG = { w: 182, h: 90, anchor: 76 };
+const PX = 2.0 / 51; // world units per art pixel: his eyes sit just below the knight's visor
+// where the spears leave him, [ahead, up] of his feet in world units (ults.js)
+const muzzleAt = (d) => [(d.from[0] - d.mid) * PX, (d.ground - d.from[1]) * PX];
 
 const inHand = (x, y) => x >= HAND.x0 && x <= HAND.x1 && y >= HAND.y0 && y <= HAND.y1;
 function isSpear(x, y) {
@@ -179,20 +202,29 @@ anim('stagger', seq(2, (i) => ({ lean: -2 - i, spear: -8 - i * 4, shield: [-1, 0
 anim('collapse', [{ still: true, bob: 1 }]);
 anim('lifted', seq(2, (i) => ({ spear: -6 - i * 3, shield: [0, -1], legs: { front: { dangle: -2 - i }, back: { dangle: -2 } } })));
 anim('talk', seq(2, (i) => ({ bob: i, spear: i ? 3 : 0 })));
+// drawn whole (core.js, composeDrawn), all in the big frame: his lunge; Tenfold Spears cocked
+// and thrown
+const drawnPose = (key, k) => ({ drawn: key, frame: k, mid: DRAWN[key][k].mid, ground: DRAWN[key][k].ground, big: true });
+anim('lunge', [0, 1, 2].map((i) => drawnPose('attack', i)));
+anim('cock', [drawnPose('ult', 0)]);
+anim('throw', [drawnPose('ult', 1)]);
 
 const G = groups;
 export default {
   id: 'bandit',
   art: '/assets/hero/bandit.json',
-  extraArt: { kneel: '/assets/hero/bandit-kneel.json' },
+  extraArt: { kneel: '/assets/hero/bandit-kneel.json', ult: '/assets/hero/bandit-ult.json', attack: '/assets/hero/bandit-attack.json' },
   epithet: 'of the Broken Road',
   title: 'Bandit Knight',
   burst: ['#f0854d', '#faf2e0'],
   frame: FRAME,
+  bigFrame: BIG,
   cols: 8,
-  px: 2.0 / 51, // world units per art pixel: his eyes sit just below the knight's visor
+  px: PX,
   head: 61, // art pixels from the ground to the top of his head
-  hits: { hammer: 4, cast: 1, send: 1 },
+  hits: { hammer: 4, cast: 1, send: 1, attack: 4 },
+  lunge: { attack: 0.35 }, // (his drawing thrown forward as the spear drives out: npc.js)
+  muzzles: { ult: muzzleAt(DRAWN.ult[1]) },
   glowIntensity: 0.8,
   glowColors: [[150, 140, 120], [250, 240, 220]],
   seed: 3141,
@@ -204,6 +236,10 @@ export default {
     idle: { frames: G.idle, fps: 4 },
     walk: { frames: G.walk, fps: 9 },
     hammer: { frames: G.strike, fps: 9 },
+    // (in eighteenths of a second: the spear cocked 4, the lunge 3, drawn back 5)
+    attack: { frames: held(G.lunge, [4, 3, 5]), fps: 18 },
+    ult: { frames: G.cock, fps: 1 },
+    throw: { frames: G.throw, fps: 1 },
     read: { frames: G.study, fps: 1.4 },
     cast: { frames: G.cast, fps: 4 },
     send: { frames: G.raise, fps: 4 },
@@ -221,5 +257,5 @@ export default {
     stagger: { frames: [...G.stagger, G.idle[0]], fps: 4, once: true },
     kneelBow: { frames: [G.kneel[0], ...G.rest, G.rest[1], G.kneel[0]], fps: 2, once: true },
   },
-  groupFps: { idle: 4, walk: 9, strike: 9, cast: 4, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 1.5, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5 },
+  groupFps: { idle: 4, walk: 9, strike: 9, cast: 4, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 1.5, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, lunge: 5, cock: 1, throw: 1 },
 };

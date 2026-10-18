@@ -202,7 +202,10 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
   `bigFrame`; the giant blade glows steadily.
 - **The Bandit Knight, of the Broken Road** — `bandit.json` (+ `bandit-kneel.json`, his resting
   squat, used exactly as drawn), rigged in `client/js/heroes/bandit.js` (no sorcery: the spear sweeps
-  over his head and lunges with a trail, and the tower shield comes up to guard).
+  over his head and lunges with a trail, and the tower shield comes up to guard). His lunge
+  (`bandit-attack.json`: the spear cocked over his head, thrust out past the shield, drawn back
+  upright) and his Tenfold Spears (`bandit-ult.json`: the spear cocked back like a javelin, then
+  thrown, his hand open) are drawn whole, in his `bigFrame`.
 - **The Twofold:** one god with two forms and two names, which change with day and night. This is
   one hero, not two.
   - **Ruadan, the Red Hammer** (by night) — `champion.json`, with the hammer as its own part
@@ -437,11 +440,11 @@ It sinks again only once the fight is over and everyone has left it, you include
   - **Blows:** a hero with a drawn blow plays it, three frames landing on the second, each held as
     long as suits it (Maren's lunge a third of a second; Fortuna's slash a ninth, her follow-through
     lingering); the others swing their rig's strike. As a drawn blow lands (Maren's, Fortuna's,
-    Vael's, Jorvik's, Corisande's, Solenne's, Aurelion's), the drawing (not where they stand, nor
-    their shadow) is thrown forward a third of a unit in a flash and springs back, a little past
-    and settling (`lunge`, `client/js/npc.js`). However quick a drawn blow is, your blows come no
-    faster than the old strike's pace (`blowReady`, `client/js/pilot.js`), so the enemies' health
-    still fits.
+    Vael's, Jorvik's, Corisande's, Solenne's, Aurelion's, Ulric's), the drawing (not where they
+    stand, nor their shadow) is thrown forward a third of a unit in a flash and springs back, a
+    little past and settling (`lunge`, `client/js/npc.js`). However quick a drawn blow is, your
+    blows come no faster than the old strike's pace (`blowReady`, `client/js/pilot.js`), so the
+    enemies' health still fits.
   - **How a hit lands** (`impact` and `IMPACT`, `client/js/fight.js`):
     - Every blow, spell and ultimate that wounds the enemy turns his whole drawing white for a
       blink (never more than three times a second, however many strike him) and knocks it a few
@@ -511,23 +514,25 @@ It sinks again only once the fight is over and everyone has left it, you include
     The cuts hang in the air, and nothing lands until Wynn is back where he began, blade sheathed.
     Then it all lands at once.
   - Ulric, **Tenfold Spears** (aimed): ten spears stick in him, poison him for 4 seconds, then fall
-    away.
+    away. The spears are drawn (`ulric-spear.json`): his own spear, at his own pixel size, leaving
+    his open hand as he's drawn throwing.
   - Fortuna, **Frostfall:** three great icicles drop on him one after another, each as tall as she
     is, and shatter (`fortuna-icicle.json`, `fortuna-shatter.json`). A beat later a mass of ice
     three times their size, taller than he is, comes down on him, stands driven into the floor a
     moment, shuddering, and bursts wide, shaking the view.
-  - **Art:** Maren, Fortuna, Vael, Jorvik, Corisande, Solenne and Aurelion hold their drawn
-    poses: Maren's spear raised to the sky, its lightning crackling; Fortuna's four arms and
+  - **Art:** Maren, Fortuna, Vael, Jorvik, Corisande, Solenne, Aurelion and Ulric hold their
+    drawn poses: Maren's spear raised to the sky, its lightning crackling; Fortuna's four arms and
     greatsword raised, the frost flickering; Vael's clawed hand raised, blood streaming up his
     arm; Jorvik's staff thrust high, runes wheeling round its blazing orb; Corisande's staff held
     level like a drawn bow, motes wheeling round its blazing crystal (bare-faced, she raises it as
     she casts); Solenne wound up, the light gathered between her palms, motes drifting up from it;
     Aurelion pointing at the enemy, his sword held out low, while the giant behind him raises its
-    blade of light back over its shoulder, a glint running along it. A pose too wide for the
-    camera's close shot (Corisande's) is centred and taken in whole. An ult may be loosed in a
-    drawing of its own (`release`), held a moment as it strikes: Solenne's palms thrust out as the
-    wall leaves them; Aurelion's giant sweeping its blade low ahead of it. The others hold their
-    own rig's pose (raise, cast, strike, kneel) until their ult drawings replace it.
+    blade of light back over its shoulder, a glint running along it; Ulric's spear cocked back
+    like a javelin. A pose too wide for the camera's close shot (Corisande's) is centred and taken
+    in whole. An ult may be loosed in a drawing of its own (`release`), held a moment as it
+    strikes: Solenne's palms thrust out as the wall leaves them; Aurelion's giant sweeping its
+    blade low ahead of it; Ulric's hand open as the spears leave it. The others hold their own
+    rig's pose (raise, cast, strike, kneel) until their ult drawings replace it.
 - **Only the fight:** while a great enemy is abroad, every session works on unseen, the spectres at
   work on their islands included: no log lines about the work, no incantations, signs or gestures,
   no spirit wisps and no small talk. A fighter's signs are put away for the fight (the "!" of one

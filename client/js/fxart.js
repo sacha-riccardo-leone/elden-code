@@ -30,6 +30,7 @@ const ART = {
   'solenne-halo': '/assets/fx/solenne-halo.json',
   'solenne-light': '/assets/fx/solenne-light.json',
   'aurelion-wave': '/assets/fx/aurelion-wave.json',
+  'ulric-spear': '/assets/fx/ulric-spear.json',
   // Fenrath's great attack (fight.js, wrath): the ghost of his sword, the ring's eruption
   'fenrath-sword': '/assets/fx/fenrath-sword.json',
   'fenrath-eruption': '/assets/fx/fenrath-eruption.json',

@@ -1046,10 +1046,12 @@ export class Splash {
   dispose() { drop(this.fx.scene, this.mesh); }
 }
 
-// A spear stuck in the great enemy, `off` from his middle, until `until`; then it falls away.
+// A spear stuck in the great enemy, `off` from his middle, until `until`; then it falls away
+// (`look`: drawn, { map, w, h }, fxart.js).
 export class StuckSpear {
-  constructor(fx, { follow, off, dir, until }) {
-    this.mesh = plane(fx.scene, TEX.spear(), 2.1, 2.1 * 9 / 70, { order: 7 });
+  constructor(fx, { follow, off, dir, until, look = null }) {
+    const { map, w, h } = look || { map: TEX.spear(), w: 2.1, h: 2.1 * 9 / 70 };
+    this.mesh = plane(fx.scene, map, w, h, { order: 7 });
     this.mesh.scale.x = dir;
     this.mesh.rotation.z = (Math.random() - 0.5) * 0.25;
     Object.assign(this, { fx, follow, off, until, t: 0, falling: 0, vy: 0 });

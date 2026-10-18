@@ -5,10 +5,29 @@
     "h": 86
   },
   "columns": 8,
-  "frames": 46,
+  "frames": 51,
   "feet": {
     "x": 46,
     "y": 85
+  },
+  "big": {
+    "frame": {
+      "w": 182,
+      "h": 90,
+      "anchor": 76
+    },
+    "columns": 4,
+    "feet": {
+      "x": 76,
+      "y": 89
+    },
+    "poses": [
+      46,
+      47,
+      48,
+      49,
+      50
+    ]
   },
   "animations": {
     "idle": {
@@ -131,6 +150,26 @@
         45
       ],
       "fps": 2.5
+    },
+    "lunge": {
+      "frames": [
+        46,
+        47,
+        48
+      ],
+      "fps": 5
+    },
+    "cock": {
+      "frames": [
+        49
+      ],
+      "fps": 1
+    },
+    "throw": {
+      "frames": [
+        50
+      ],
+      "fps": 1
     }
   }
 }
