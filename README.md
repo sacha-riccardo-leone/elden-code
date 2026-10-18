@@ -564,7 +564,13 @@ It sinks again only once the fight is over and everyone has left it, you include
     units off, he leaps right onto them, a step short.
   - **His great attack (wrath):** about 30 to 40 seconds into the fight, then every 45 to 60, he
     stops and roars at the sky for two seconds (`boss-roar.json`: head thrown back, the sword held
-    high), the camera on him. Then it pulls back to show the whole arena, and he leaps up over its
+    high), the camera on him. Four shockwaves burst from his head, half a second apart, each
+    bending and smearing the picture as it sweeps out across the screen and jolting the camera.
+    Behind them the world goes **pitch black**: the arena, its pillars and torches, the sky. The
+    darkness spreads out from him slowly at first, then rushes out behind the last shockwave, and
+    only Fenrath, the fighters, you and the marks on the floor stay lit (`client/js/post.js`, a
+    pass of its own before the bloom: the red light of the marks still glows on the black). Then
+    the camera pulls back to show the whole arena, and he leaps up over its
     middle and hangs there facing you (`boss-float.json`: the sword held level over his head).
     Beside him a ghost of his own greatsword, red and see-through (`fenrath-sword.json`: his
     sword's drawing, its colours turned to red light), grows from his sword's length to about 15
@@ -579,12 +585,12 @@ It sinks again only once the fight is over and everyone has left it, you include
     Only the golden circle by his side is safe. It all takes about eleven seconds. The fighters
     see each mark and run from it (across the middle line, or in to the circle), and a line in
     the log explains each the first time. While he hangs in the air he can't be struck, only
-    spelled. A pool of blood holding him keeps him from it.
+    spelled. A pool of blood holding him keeps him from it. Half a second after the eruption the
+    light comes back, spreading out from the middle of the arena (at once if he falls first).
   - Below half health he grows wild, and his blows come quicker.
   - He says little, in red over his head. He has a line as he enters ("Thy death resteth close
     at hand."), and now and then another while he stalks ("Serve my will alone, O blade.", "*heavy
-    breathing*"). He gives a grunt on some of his leaps and landings, and roars before his great
-    attack ("*a deafening roar*"). Left facing nobody but the
+    breathing*"). He gives a grunt on some of his leaps and landings. Left facing nobody but the
     cowering Bandit Knight, he can't believe it: "*looks in disbelief*"… "Coward…".
 - **The Guardian Golem** (drawings `client/js/heroes/golem.js`, fight `client/js/golem.js`): a
   giant of black stone, about 8 units tall, with a fire in his ribcage and a double-bladed axe on
@@ -840,7 +846,7 @@ client/js/bossfx.js     the enemies' effects: crescent, lance, floor marks, the 
 client/js/director.js   event → behaviour, regions, slash-command effects, chatter, visits
 client/js/voices.js     how each character talks: base lines and every voice's version of them
 client/js/lore.js       names, epithets, session tallies, conversation topics
-client/js/post.js       bloom, tilt-shift, colour grade
+client/js/post.js       bloom, tilt-shift, colour grade; Fenrath's darkness and the shockwaves of his roar
 client/dev/sprites.html sprite-sheet viewer
 client/dev/fire.html    the fire loops, enlarged
 ```

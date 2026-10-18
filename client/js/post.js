@@ -1,6 +1,8 @@
 // The "HD-2D" look: HDR bloom on every light, a tilt-shift blur that keeps the middle of
 // the courtyard crisp, then a grade with vignette and grain: cold shadows and old-gold highlights
-// by night, fuller and sunnier colour by day (uDay, set by daylight.js).
+// by night, fuller and sunnier colour by day (uDay, set by daylight.js). And, before the bloom,
+// Fenrath's great attack (fight.js, wrath): the world gone black round what's drawn on it, and
+// the shockwaves of his roar bending the picture round his head (DarkShader).
 
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -39,6 +41,61 @@ const TiltShiftShader = {
       sum += texture2D(tDiffuse, vUv + step * 3.2307692308) * 0.0702702703;
       sum += texture2D(tDiffuse, vUv - step * 3.2307692308) * 0.0702702703;
       gl_FragColor = sum;
+    }
+  `,
+};
+
+// The dark of his great attack: the world (tDark: black wherever no character, mark or effect is
+// drawn) gone black behind a front spreading out from uDarkAt (uDarkR: its radius, in screen
+// heights) and lit again behind another (uLightR); and his roar's shockwaves (uRings: each a ring
+// round [x, y] of radius z, pushing the picture out by w and smearing it along the push).
+const DarkShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    tDark: { value: null },
+    uDark: { value: 0 },
+    uDarkAt: { value: new THREE.Vector2(0.5, 0.5) },
+    uDarkR: { value: 0 },
+    uLightR: { value: 0 },
+    uAspect: { value: 1 },
+    uRings: { value: [new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4()] },
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse, tDark;
+    uniform float uDark, uDarkR, uLightR, uAspect;
+    uniform vec2 uDarkAt;
+    uniform vec4 uRings[4];
+    varying vec2 vUv;
+    void main() {
+      vec2 aspect = vec2(uAspect, 1.0);
+      vec2 push = vec2(0.0);
+      for (int i = 0; i < 4; i++) {
+        vec4 R = uRings[i];
+        if (R.w <= 0.0) continue;
+        vec2 d = (vUv - R.xy) * aspect;
+        float len = length(d);
+        float band = 1.0 - smoothstep(0.0, 0.03 + 0.09 * R.z, abs(len - R.z));
+        if (len > 1e-4) push += d / len / aspect * band * R.w;
+      }
+      vec2 uv = vUv - push; // (the picture pushed outward)
+      vec3 c = texture2D(tDiffuse, uv).rgb;
+      if (dot(push, push) > 1e-8) {
+        // smeared along the push
+        vec2 s = push * 0.7;
+        c = c * 0.36 + (texture2D(tDiffuse, uv + s).rgb + texture2D(tDiffuse, uv - s).rgb) * 0.22
+          + (texture2D(tDiffuse, uv + s * 2.0).rgb + texture2D(tDiffuse, uv - s * 2.0).rgb) * 0.1;
+      }
+      if (uDark > 0.0) {
+        float r = length((vUv - uDarkAt) * aspect);
+        float fall = 1.0 - smoothstep(uDarkR - 0.14, uDarkR, r);
+        float rise = uLightR > 0.0 ? 1.0 - smoothstep(uLightR - 0.14, uLightR, r) : 0.0;
+        c *= 1.0 - uDark * fall * (1.0 - rise) * (1.0 - texture2D(tDark, uv).r);
+      }
+      gl_FragColor = vec4(c, 1.0);
     }
   `,
 };
@@ -88,11 +145,14 @@ const GradeShader = {
 // While an ultimate is loosed (ults.js), what keeps its colour is drawn white into a mask: its
 // meshes on a layer of their own, each in a white copy of its material (or, a ShaderMaterial with
 // a uMask uniform, the material itself told to draw its mask). Whoever stands in front of it is
-// drawn there too, in black (so they stay grey), the depth deciding who is in front of whom.
+// drawn there too, in black (so they stay grey), the depth deciding who is in front of whom. The
+// dark of his great attack has a mask of its own, of everything drawn but the world: there a soft
+// light (a mark on the floor, the ghost sword) counts whole wherever it's drawn (`lit`), its
+// light kept rather than dimmed with what's behind it.
 const MASK_LAYER = 3;
-const masks = { white: new WeakMap(), black: new WeakMap() };
-function maskOf(src, white = true) {
-  const kept = masks[white ? 'white' : 'black'];
+const masks = { white: new WeakMap(), black: new WeakMap(), lit: new WeakMap() };
+function maskOf(src, white = true, lit = false) {
+  const kept = masks[lit ? 'lit' : white ? 'white' : 'black'];
   let m = kept.get(src);
   if (!m) {
     m = new THREE.MeshBasicMaterial({ toneMapped: false, depthWrite: true, depthTest: true });
@@ -110,19 +170,32 @@ function maskOf(src, white = true) {
   m.transparent = soft;
   m.alphaTest = soft ? 0 : src.alphaTest || 0.5;
   m.depthWrite = !soft;
-  m.opacity = soft ? src.opacity ?? 1 : 1;
+  // (a soft light, lit: whole once it's a little more than faint; gone as it fades out)
+  m.opacity = soft ? Math.min(1, (src.opacity ?? 1) * (lit ? 2.5 : 1)) : 1;
   return m;
 }
+
+// What the dark of his great attack leaves lit: everything drawn but the world itself (the
+// islands, the hub, the arena, the skyline: the groups at the top of the scene; the sky and the
+// mist, `world`) and the shadows under the characters (`shade`).
+const litByDark = (o) => (o.isMesh || o.isPoints) && o.visible && !o.userData.world && !o.userData.shade;
 
 export class Post {
   constructor(renderer, scene, camera) {
     const size = renderer.getSize(new THREE.Vector2());
     Object.assign(this, { renderer, scene, camera });
     this.spot = null; // an ultimate's spotlight: { desat 0..1, meshes kept in colour }
+    this.dark = null; // his great attack's dark: { amount 0..1, at: [u, v] on screen, front, light } (fight.js)
+    this.rings = []; // his roar's shockwaves: [u, v, radius, push] (fight.js)
     this.maskRT = new THREE.WebGLRenderTarget(Math.max(1, size.x >> 1), Math.max(1, size.y >> 1));
+    this.darkRT = new THREE.WebGLRenderTarget(Math.max(1, size.x >> 1), Math.max(1, size.y >> 1));
     const target = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: 4 });
     this.composer = new EffectComposer(renderer, target);
     this.composer.addPass(new RenderPass(scene, camera));
+    this.darkPass = new ShaderPass(DarkShader);
+    this.darkPass.uniforms.tDark.value = this.darkRT.texture;
+    this.darkPass.enabled = false;
+    this.composer.addPass(this.darkPass);
     this.bloom = new UnrealBloomPass(size.clone(), 0.6, 0.55, 0.9);
     this.composer.addPass(this.bloom);
     this.tiltH = new ShaderPass(TiltShiftShader);
@@ -143,7 +216,8 @@ export class Post {
     const rw = w * ratio, rh = h * ratio;
     for (const p of [this.tiltH, this.tiltV]) p.uniforms.uResolution.value.set(rw, rh);
     this.grade.uniforms.uResolution.value.set(rw, rh);
-    this.maskRT.setSize(Math.max(1, Math.round(rw / 2)), Math.max(1, Math.round(rh / 2)));
+    this.darkPass.uniforms.uAspect.value = rw / Math.max(1, rh);
+    for (const rt of [this.maskRT, this.darkRT]) rt.setSize(Math.max(1, Math.round(rw / 2)), Math.max(1, Math.round(rh / 2)));
   }
 
   // Multisampling of the scene buffer (4 smooths block edges; 0 is much cheaper on weak GPUs).
@@ -159,12 +233,28 @@ export class Post {
     this.grade.uniforms.uTime.value = t;
     const desat = this.spot?.desat || 0;
     this.grade.uniforms.uDesat.value = desat;
-    if (desat > 0) this.renderMask();
+    if (desat > 0) this.renderMask(this.maskRT, this.spot.meshes, this.spot.occluders);
+    // his great attack: the dark, and the shockwaves of his roar
+    const dark = this.dark?.amount || 0;
+    const rings = this.rings || [];
+    this.darkPass.enabled = dark > 0 || rings.length > 0;
+    if (this.darkPass.enabled) {
+      const u = this.darkPass.uniforms;
+      u.uDark.value = dark;
+      if (dark > 0) {
+        u.uDarkAt.value.set(...this.dark.at);
+        u.uDarkR.value = this.dark.front;
+        u.uLightR.value = this.dark.light || 0;
+        this.renderMask(this.darkRT, this.scene.children.filter(litByDark), [], true);
+      }
+      u.uRings.value.forEach((v, i) => (rings[i] ? v.set(...rings[i]) : v.set(0, 0, 0, 0)));
+    }
     this.composer.render(dt);
   }
 
-  // The spotlight's mask: white wherever what keeps its colour is drawn, black elsewhere.
-  renderMask() {
+  // A mask (into `target`): white wherever `meshes` are drawn, black elsewhere (and where the
+  // `occluders` stand in front of them); `lit`: soft lights count whole (maskOf).
+  renderMask(target, meshes, occluders = [], lit = false) {
     const { renderer: r, scene, camera } = this;
     const prev = r.getRenderTarget();
     const clear = r.getClearColor(new THREE.Color());
@@ -180,13 +270,13 @@ export class Post {
       const own = m.material.uniforms?.uMask;
       swapped.push([m, m.material, own]);
       if (own) own.value = 1;
-      else m.material = maskOf(m.material, white);
+      else m.material = maskOf(m.material, white, lit && white);
       m.layers.enable(MASK_LAYER);
     };
-    for (const m of this.spot.meshes) take(m, true);
-    for (const m of this.spot.occluders || []) take(m, false);
+    for (const m of meshes) take(m, true);
+    for (const m of occluders || []) take(m, false);
     camera.layers.set(MASK_LAYER);
-    r.setRenderTarget(this.maskRT);
+    r.setRenderTarget(target);
     r.setClearColor(0x000000, 1);
     r.clear();
     r.render(scene, camera);

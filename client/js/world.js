@@ -278,6 +278,7 @@ export class World {
       }),
     );
     sky.renderOrder = -10;
+    sky.userData.world = true; // (gone black in Fenrath's great attack, post.js)
     this.sky = sky;
     this.scene.add(sky);
 
@@ -310,6 +311,7 @@ export class World {
     mist.rotation.x = -Math.PI / 2;
     mist.position.y = -16;
     mist.renderOrder = -5;
+    mist.userData.world = true;
     this.mist = mist;
     this.scene.add(mist);
   }

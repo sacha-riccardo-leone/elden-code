@@ -26,8 +26,10 @@
 //   slam  – a ring of light gathers round him for a moment, then fills: all inside it suffer;
 //   leap  – beset (crowded, or battered) or rooted too long in one place, he crouches trembling,
 //           marks where he'll come down, leaps, and lands in a crack of stone and flying debris;
-//   wrath – his great attack, now and then: he roars at the sky, leaps up over the middle of the
-//           arena and hangs there facing thee, while a ghost of his greatsword, red and
+//   wrath – his great attack, now and then: he roars at the sky (shockwaves bending the air round
+//           his head, and the world going black round everyone on the arena and the marks on
+//           its floor), leaps up over the middle of the arena and hangs there facing thee, while
+//           a ghost of his greatsword, red and
 //           see-through, grows huge beside him and cuts down one half of the arena, then the
 //           other (each marked first: get across, or dodge through it); then he comes down into
 //           the middle, and the ring round him erupts: only the golden circle by him is safe.
@@ -97,7 +99,6 @@ const SAYS = {
   enter: ['Thy death resteth close at hand.', 'Another Tarnished, come to die.'],
   stalk: ['*grunts*', '*heavy breathing*', 'Serve my will alone, O blade.', 'Thy death resteth close at hand.', '*a low, rumbling growl*', 'Kneel, Tarnished.'],
   leap: ['*grunts*'],
-  roar: ['*a deafening roar*', '*roars at the sky*'],
   alone: ['*looks in disbelief*', 'Coward…'],
 };
 const pickOf = (list) => list[Math.floor(Math.random() * list.length)];
@@ -107,9 +108,17 @@ const LEAP = { r: 3.2, height: 7, cooldown: 10 };
 // up] from him; it grows from his own sword's length to `len`, is held ready `ready` (radians) out
 // from straight up, and cuts down to `down`. The circle by him that the ring spares: `safe`; the
 // ring erupts at `spots` places, each `height` tall, rippling out from it over `ripple` seconds.
-// `cam`: how far back the camera pulls meanwhile, to show the whole arena.
+// `cam`: how far back the camera pulls meanwhile, to show the whole arena. His roar: a shockwave
+// out from his head (`head`: [ahead, up] of his feet) every `every` seconds of it, `count` in all,
+// each `life` long, out to `reach` (screen heights), pushing the picture out by `push` (of the
+// screen) at first, and jolting the camera (`shake`). The dark (post.js): it falls over `fall`
+// seconds from his first roar, slowly at first, each shockwave bending the world still lit ahead
+// of it, then rushing out behind the last; it lifts `after` seconds after the ring erupts, over
+// `lift`.
 const WRATH = {
   first: [30, 40], every: [45, 60],
+  roar: { head: [0.3, 7], every: 0.5, count: 4, life: 0.6, reach: 1.1, push: 0.045, shake: 0.3 },
+  dark: { fall: 2.2, after: 0.45, lift: 1 },
   height: 3.2,
   sword: { pivot: [2.6, 3.6], len: 15.5, ready: 0.9, down: 2.4, grow: 0.6, swap: 0.6, opacity: 0.42 },
   safe: 5.5,
@@ -303,6 +312,8 @@ export class Fight {
     this.introUntil = 0; // till then, as he enters, it shows him
     this.boss = null;
     this.fx = []; // his magic, living on by itself: flying crescents, lances, fading light, cracks
+    this.rings = []; // his roar's shockwaves (stepDark)
+    this.dark = null; // his great attack's dark, falling or lifting (stepDark)
     // (and the Tarnished's spells and ultimates, spellfx.js: they're handed this to live in)
     this.fxCtx = { scene: ctx.scene, particles: ctx.particles, add: (e) => this.fx.push(e) };
     this.cause = null;
@@ -1181,9 +1192,13 @@ export class Fight {
           color: ['#ff5a3a', '#a01818', '#2a0a0a'], size: 0.11, life: 0.9, count: 3, drag: 0.8, intensity: 2,
         });
       }
-      // (the roar shakes the ground as it goes on)
-      a.pulse = a.pulse || 0;
-      if (a.t > 0.5 * (a.pulse + 1)) { a.pulse += 1; this.ctx.rig.shake?.(0.12); }
+      // the roar's shockwaves, one after another
+      const R = WRATH.roar;
+      a.roars ??= 0;
+      if (a.roars < R.count && a.t >= a.roars * R.every) {
+        a.roars += 1;
+        this.roarRing(b);
+      }
     } else if (a.step === 2) {
       // up, and over the middle of the arena
       b.lift = WRATH.height * (1 - (1 - k) ** 2);
@@ -1347,15 +1362,17 @@ export class Fight {
     const { scene, particles, rig } = this.ctx;
     const { cx, cz } = this.ctx.world.arena;
     switch (a.step) {
-      case 0:
-        // he roars at the sky
-        this.say(pickOf(SAYS.roar), 0.1, true);
-        rig.shake?.(0.35);
+      case 0: {
+        // he roars at the sky, and the world goes dark round everyone (stepDark)
+        const R = WRATH.roar;
+        const head = new THREE.Vector3(b.pos.x + b.body.facing * R.head[0], R.head[1], b.pos.y);
+        this.dark = { t: 0, at: head, mid: new THREE.Vector3(cx, 1, cz), liftIn: null, lift: null };
         particles.emit({
           pos: [b.pos.x, 0.25, b.pos.y], spread: [3, 0.1, 1.6], vel: [0, 1.2, 0], velSpread: [3.5, 0.6, 2],
           color: ['#5a4a3e', '#3a2e28', '#6a2a2a'], size: 0.14, life: 1, count: 40, drag: 1.4, intensity: 0.9,
         });
         break;
+      }
       case 2:
         // up he springs
         a.air = true;
@@ -1426,10 +1443,60 @@ export class Fight {
       }
       case 10:
         this.erupt(b, a);
+        if (this.dark) this.dark.liftIn = WRATH.dark.after; // (and then the dark lifts)
         break;
       default:
         break;
     }
+  }
+
+  // A shockwave of his roar, out from his head (post.js bends the picture round it), jolting the camera.
+  roarRing(b) {
+    const R = WRATH.roar;
+    this.rings.push({ t: 0, at: new THREE.Vector3(b.pos.x + b.body.facing * R.head[0], R.head[1], b.pos.y) });
+    this.ctx.rig.shake?.(R.shake);
+  }
+
+  // His roar's shockwaves and his great attack's dark, as they go on (drawn by post.js, on the
+  // screen): each shockwave grows out from his head and fades; the dark falls behind a front
+  // spreading out from his head as he roars, and lifts behind one spreading out from the middle
+  // of the arena once the ring has erupted (at once, if the attack is cut short).
+  stepDark(dt) {
+    const { post, rig } = this.ctx;
+    if (!post) return;
+    const cam = rig.camera;
+    cam.updateMatrixWorld(); // (where the camera is this frame, not where it was last drawn)
+    const screen = (p) => {
+      const v = p.clone().project(cam);
+      return [(v.x + 1) / 2, (v.y + 1) / 2];
+    };
+    // (how far from there the farthest corner of the screen is, in screen heights)
+    const reach = ([u, v]) => Math.hypot(Math.max(u, 1 - u) * cam.aspect, Math.max(v, 1 - v)) + 0.15;
+    const ease = (k) => k * k * (3 - 2 * k);
+    const R = WRATH.roar;
+    this.rings = this.rings.filter((r) => (r.t += dt) < R.life);
+    post.rings = this.rings.map((r) => {
+      const k = r.t / R.life;
+      return [...screen(r.at), 0.04 + (R.reach - 0.04) * (1 - (1 - k) ** 2), R.push * (1 - k) ** 1.5];
+    });
+    const d = this.dark;
+    if (!d) { post.dark = null; return; }
+    const D = WRATH.dark;
+    d.t += dt;
+    const b = this.boss;
+    const going = !!b?.alive && b.attack?.kind === 'wrath';
+    if (!d.lift && (d.liftIn != null ? (d.liftIn -= dt) <= 0 : !going)) d.lift = { t: 0 };
+    if (d.lift) {
+      d.lift.t += dt;
+      const k = Math.min(1, d.lift.t / D.lift);
+      const at = screen(d.mid);
+      post.dark = { amount: 1, at, front: 99, light: reach(at) * ease(k) };
+      if (k >= 1) { this.dark = null; post.dark = null; }
+      return;
+    }
+    const k = Math.min(1, d.t / D.fall);
+    const at = screen(d.at);
+    post.dark = { amount: 1, at, front: k >= 1 ? 99 : reach(at) * k * k, light: 0 };
   }
 
   // A word of advice in the log, the first time it's called for in a fight.
@@ -1955,6 +2022,7 @@ export class Fight {
       if (e.step(dt)) this.fx.push(e);
       else e.dispose();
     }
+    this.stepDark(dt);
     this.updateUi(dt);
   }
 

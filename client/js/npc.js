@@ -150,6 +150,7 @@ export class SpriteBody {
     }));
     this.blob.rotation.x = -Math.PI / 2;
     this.blob.renderOrder = 1;
+    this.blob.userData.shade = true; // (in Fenrath's great attack's dark, black with the world: post.js)
     scene.add(this.mesh, this.blob);
     this.scene = scene;
     this.facing = 1;
