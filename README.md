@@ -51,11 +51,12 @@ slowly, and the motes of light about it circle it and twinkle. The one over the 
 far larger. When work calls and home is far, they fast travel: they dissolve into golden light
 and reappear at their region's Site of Grace.
 
-South of the Hold, and lower, hangs the **Training Yard** (`client/js/yard.js`), always there: a
-great five-sided platform of timber slung from the Hold's rim on two chains, standing on posts that
-run down into the mist. A stone stair comes down to it from the rim, and whoever walks it goes down
-with it (`client/js/ground.js` gives the ground's height wherever it isn't level with the Hold).
-Five straw dummies stand inside a sawdust ring (`client/js/training.js`). Blows, spells and
+South of the Hold, and lower, lies the **Training Yard** (`client/js/yard.js`), always there: a
+round floor of grey brick on a rock of its own, like the arena's but without its pillars. A stone
+stair comes down to it from the rim, and whoever walks it goes down with it (`client/js/ground.js`
+gives the ground's height wherever it isn't level with the Hold). Five straw dummies stand inside a
+sawdust ring (`client/js/training.js`); racks of the Round Table's weapons (`client/js/weapons.js`),
+an archery butt, barrels, crates and rope lanterns stand round them. Blows, spells and
 ultimates find them as they find a great enemy. A dummy wobbles as each one lands, and once it has
 taken enough it bursts into pieces, then stands whole again five seconds later. Dummies never strike
 back. On the yard your ultimate is always full: each one still freezes the world for its moment,
@@ -422,7 +423,8 @@ loosed on it is placed from its floor, as on the Hold (a group raised to its hei
     drawn over the frame, feet just above its name, head (hat, crown, staff) and blade reaching past
     the edges. Every hero is as tall as the others, by their height in the world. Clicking them
     changes them, and **Empty slot** under it frees the slot.
-  - **Add slot** adds another, up to as many as there are heroes to take.
+  - **Add slot** adds another, up to as many as there are heroes to take. **Remove slot** takes one
+    away, the last empty one (or the last of all, with its hero, if every one is taken), down to one.
   - **Start fight** works with any number chosen, none included. It raises the arena; the Round
     Table's "Summon a great enemy" only opens this window now.
   - **× or Esc** turns it down: a summons is simply let be; an enemy that came by itself turns

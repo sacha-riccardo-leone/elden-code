@@ -49,7 +49,7 @@ class Dummy {
     const w = (sheet?.w || 106) * DUMMY.px;
     const h = (sheet?.h || 108) * DUMMY.px;
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
-    // its foot (where its base meets the boards) on its place
+    // its foot (where its base meets the floor) on its place
     const foot = sheet ? (sheet.w / 2 - sheet.foot[0]) * DUMMY.px : 0;
     mesh.position.set(x + foot, YARD.y + h / 2 - 0.02, z);
     mesh.visible = !!sheet;
@@ -141,7 +141,7 @@ export class Training {
     this.dummies = DUMMY_SPOTS.map(([x, z]) => new Dummy(this, x, YARD.cz + z));
   }
 
-  // Whether n is on the yard (its boards, not the stair).
+  // Whether n is on the yard (its floor, not the stair).
   has(n) {
     return !!n && !!this.ctx.world.yard?.inside(n.pos.x, n.pos.y);
   }

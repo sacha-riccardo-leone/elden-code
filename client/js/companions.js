@@ -1,11 +1,11 @@
 // Choosing who fights beside thee, as a great enemy comes (fight.js, call). A window across the
 // middle of the screen: "Choose your companions", who is coming and why, and four tall slots (more
-// with "Add slot", up to as many heroes as there are to take). Each empty slot is a "+" that opens
-// the catalogue of heroes: how each fights, its ultimate, its manner, and where it is just now.
-// A chosen one stands in its slot, large, idling in its own art; "Empty slot" under it frees the
-// slot again, and a click on it changes it. "Start fight", with however many
-// companions are chosen (none at all included), raises the arena; × or Esc turns the enemy down.
-// The companions chosen last are in their slots again the next time.
+// with "Add slot", up to as many heroes as there are to take; fewer with "Remove slot", down to
+// one). Each empty slot is a "+" that opens the catalogue of heroes: how each fights, its
+// ultimate, its manner, and where it is just now. A chosen one stands in its slot, large, idling
+// in its own art; "Empty slot" under it frees the slot again, and a click on it changes it. "Start
+// fight", with however many companions are chosen (none at all included), raises the arena; × or
+// Esc turns the enemy down. The companions chosen last are in their slots again the next time.
 
 import { heroKey } from './combat.js';
 import { ULTS } from './ults.js';
@@ -147,6 +147,7 @@ export class Companions {
     this.foeEl = this.root.querySelector('.foe');
     this.slotsEl = this.root.querySelector('.slots');
     this.addBtn = this.root.querySelector('.add');
+    this.removeBtn = this.root.querySelector('.remove');
     this.startBtn = this.root.querySelector('.start');
     this.catalog = this.root.querySelector('.catalog');
     this.list = this.root.querySelector('.catalog .list');
@@ -160,6 +161,7 @@ export class Companions {
     this.root.querySelector('.close').addEventListener('click', () => this.close());
     this.root.querySelector('.back').addEventListener('click', () => this.closeCatalog());
     this.addBtn.addEventListener('click', () => this.addSlot());
+    this.removeBtn.addEventListener('click', () => this.removeSlot());
     this.startBtn.addEventListener('click', () => this.start());
     // (a click on the dimmed world around the window does nothing: it's this, or turning it down)
     window.addEventListener('keydown', (e) => {
@@ -236,8 +238,17 @@ export class Companions {
     this.render();
   }
 
+  // One slot fewer: the last empty one, or the last of all if every one is taken (and its companion
+  // with it). One always stays.
+  removeSlot() {
+    if (this.slots.length <= 1) return;
+    const empty = this.slots.lastIndexOf(null);
+    this.slots.splice(empty >= 0 ? empty : this.slots.length - 1, 1);
+    this.render();
+  }
+
   // The slots, each a "+" or its companion's portrait, with "Empty slot" under it; "Add slot" only
-  // while there are heroes left over for another.
+  // while there are heroes left over for another, "Remove slot" while there's more than one.
   render() {
     this.figures = [];
     this.slotsEl.replaceChildren(...this.slots.map((n, i) => {
@@ -268,6 +279,7 @@ export class Companions {
     }));
     this.addBtn.disabled = this.slots.length >= this.roster.length;
     this.addBtn.title = this.addBtn.disabled ? 'There are no more heroes to take' : '';
+    this.removeBtn.disabled = this.slots.length <= 1;
     const t = performance.now() / 1000;
     for (const f of this.figures) f.draw(t);
   }

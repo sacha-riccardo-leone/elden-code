@@ -13,7 +13,8 @@ import { Flame } from './fire.js';
 import { rippleBounds, rippling } from './ripple.js';
 import { addLevel } from './ground.js';
 
-const FLOOR = {
+// (its floor's colours: grey brick, worn to dirt and moss at the edge; the training yard's too, yard.js)
+export const FLOOR = {
   stone: ['#3e3a37', '#45403c', '#393532', '#4a4440', '#403b37'],
   dirt: ['#2a2420', '#2e2723', '#26201d'],
   moss: ['#383427', '#413c2c', '#333023'],

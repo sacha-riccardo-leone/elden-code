@@ -1,5 +1,6 @@
 // The weapons planted in the Round Table (hub.js): swords, greatswords, katanas, a scimitar, an
-// estoc, war axes, a spear, a halberd, a great hammer, each driven into the wood at its own angle.
+// estoc, war axes, a spear, a halberd, a great hammer, each driven into the wood at its own angle
+// (and the same weapons stand in the training yard's racks, yard.js).
 // Every one is built pointing up its local +Y from where it enters the table (y = 0): its point, or
 // an axe's or a hammer's head, is buried below; the hilt or the haft rises out of the wood.
 
@@ -77,21 +78,37 @@ function hammer(g, { handle }) {
   part(g, rod(0.032, 0.18), MAT.grip, 0, handle - 0.05, 0);
 }
 
-// The set, in the order they're planted round the ring.
+// The set, in the order they're planted round the ring (`pole`: a spear or a halberd, which a rack
+// holds the other way up, on its butt).
+const pole = (build) => Object.assign(build, { pole: true });
 const KINDS = [
   (g) => sword(g, { blade: 1.0, width: 0.075, guard: 0.3, grip: 0.2, bury: 0.32 }),
   (g) => axe(g, { haft: 0.95, head: 0.26 }),
   (g) => curved(g, { blade: 0.95, width: 0.045, curve: 0.07, grip: 0.28, bury: 0.3, guard: 'tsuba' }),
   (g) => sword(g, { blade: 1.35, width: 0.13, guard: 0.44, grip: 0.3, bury: 0.4, mat: MAT.dark }),
-  (g) => polearm(g, { shaft: 1.35 }),
+  pole((g) => polearm(g, { shaft: 1.35 })),
   (g) => sword(g, { blade: 1.05, width: 0.035, guard: 0.16, grip: 0.18, bury: 0.32, guardMat: MAT.gold }), // an estoc
   (g) => hammer(g, { handle: 0.9 }),
   (g) => curved(g, { blade: 0.85, width: 0.075, curve: 0.16, grip: 0.18, bury: 0.28, guard: 'cross' }), // a scimitar
   (g) => sword(g, { blade: 1.1, width: 0.085, guard: 0.34, grip: 0.22, bury: 0.34, guardMat: MAT.gold }),
-  (g) => polearm(g, { shaft: 1.3, blade: 0.22 }), // a halberd
+  pole((g) => polearm(g, { shaft: 1.3, blade: 0.22 })), // a halberd
   (g) => axe(g, { haft: 0.85, head: 0.22 }),
   (g) => curved(g, { blade: 1.0, width: 0.045, curve: 0.05, grip: 0.3, bury: 0.34, guard: 'tsuba' }),
 ];
+
+// One of the set (the `i`th) as it stands in a weapon rack (yard.js): built as it would be planted,
+// but a spear or a halberd on its butt, point up; and how far below y = 0 its lowest point lies
+// (a blade's tip, an axe's or a hammer's head, a shaft's butt: `low`, negative), so that it stands
+// on the rack's foot.
+export function weapon(i, size = 1) {
+  const g = new THREE.Group();
+  const build = KINDS[i % KINDS.length];
+  build(g);
+  g.scale.setScalar(size);
+  if (build.pole) g.rotation.z = Math.PI;
+  g.updateMatrixWorld(true);
+  return { g, low: new THREE.Box3().setFromObject(g).min.y };
+}
 
 // The ring of weapons round (x, z) on a tabletop at height `top`: each planted at its own place on
 // the ring, leaning outward at its own angle and turned its own way. `r` is a seeded random().

@@ -105,6 +105,23 @@ export class Builder {
     return m;
   }
 
+  // A thing built of several meshes (in groups of their own), set in place in the group: its meshes
+  // are moved into the group itself as they stand, so that mergeStatic folds them in with the rest.
+  adopt(obj) {
+    this.group.add(obj);
+    this.group.updateMatrixWorld(true);
+    const inv = this.group.matrixWorld.clone().invert();
+    const meshes = [];
+    obj.traverse((o) => { if (o.isMesh) meshes.push(o); });
+    for (const m of meshes) {
+      const local = inv.clone().multiply(m.matrixWorld);
+      m.parent.remove(m);
+      local.decompose(m.position, m.quaternion, m.scale);
+      this.group.add(m);
+    }
+    this.group.remove(obj);
+  }
+
   // Obstacles are given in local coordinates and stored in world coordinates.
   block(x0, z0, x1, z1) {
     this.obstacles.push({

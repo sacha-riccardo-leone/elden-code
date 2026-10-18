@@ -1,58 +1,34 @@
-// The training yard below Roundtable Hold: a great five-sided platform of timber and iron south of
-// the Hold and lower than it, slung from its rim on two chains and standing on posts that run down
-// into the mist, a stair of stone coming down to it from the rim. A sawdust ring on its boards,
-// straw dummies round it to strike (training.js), a rack of practice weapons, an archery butt,
-// barrels and crates, rope lanterns at its corners. Always there.
+// The training yard below Roundtable Hold: a round floor of grey brick on a rock of its own, south
+// of the Hold and lower than it, like the Arena of Trials (arena.js) but with no pillars; a stair of
+// stone comes down to it from the Hold's rim. A sawdust ring on its floor, straw dummies round it to
+// strike (training.js), racks of the Round Table's weapons (weapons.js), an archery butt, barrels
+// and crates, rope lanterns about its edge. Always there.
 // Its ground is lower than the Hold's (ground.js): on the stair it runs from the one to the other.
 
 import * as THREE from 'three';
 import { HUB } from './config.js';
+import * as T from './textures.js';
 import { rng } from './pixel.js';
-import { Builder, BRICK_TILE } from './build.js';
+import { Builder } from './build.js';
 import { addLevel } from './ground.js';
+import { FLOOR } from './arena.js';
+import { weapon } from './weapons.js';
 
-// The yard: how far its five corners lie from its middle (one points south, away from the Hold, and
-// its north side faces the Hold), and how far the middles of its sides do.
-const R = 13;
-const APOTHEM = R * Math.cos(Math.PI / 5);
-// The stair: half its width, its head (where it leaves the Hold's ground, just past the cliff's
-// edge), its length and its steps. `lag`: how far past a step's middle the ground under a foot
-// reaches the step's height, so that a foot sinks at most a hair into the edge of the step below.
+// The yard's radius; the stair: half its width, its head (where it leaves the Hold's ground, just
+// past the cliff's edge), its length and its steps. `lag`: how far past a step's middle the ground
+// under a foot reaches the step's height, so that a foot sinks at most a hair into the edge of the
+// step below.
+const R = 12;
 const STAIR = { half: 1.4, top: HUB.radius + 0.5, run: 7.6, steps: 16, lag: 0.14 };
-const NORTH = STAIR.top + STAIR.run; // the yard's north side, where the stair comes down
-// Its floor's height, its middle, half its width (corner to corner), its south corner, and half the
-// stair's width (where the Hold's rim opens for it, hub.js).
-export const YARD = { y: -3.2, cz: NORTH + APOTHEM, halfW: R * Math.sin(0.4 * Math.PI), south: NORTH + APOTHEM + R, stairHalf: STAIR.half };
-// Its corners from its middle, south first and round by the west, and the way each side faces, out
-// from the yard (the side from one corner to the next).
-const turn = (k) => Math.PI / 2 + k * 0.4 * Math.PI;
-const CORNERS = [0, 1, 2, 3, 4].map((k) => [R * Math.cos(turn(k)), R * Math.sin(turn(k))]);
-const SIDES = [0, 1, 2, 3, 4].map((k) => [Math.cos(turn(k + 0.5)), Math.sin(turn(k + 0.5))]);
-// where its dummies stand (training.js), from its middle: inside its sawdust ring, toward its corners
-export const DUMMY_SPOTS = CORNERS.map(([x, z]) => [x * 0.4, z * 0.4]);
+const NORTH = STAIR.top + STAIR.run; // the yard's north edge, where the stair comes down
+// Its floor's height, its middle, half its width, its south edge, and half the stair's width (where
+// the Hold's rim opens for it, hub.js).
+export const YARD = { y: -3.2, cz: NORTH + R, halfW: R, south: NORTH + 2 * R, stairHalf: STAIR.half };
+// where its dummies stand (training.js), from its middle: five, round inside its sawdust ring
+export const DUMMY_SPOTS = [0, 1, 2, 3, 4].map((k) => [5.2 * Math.cos(Math.PI / 2 + k * 0.4 * Math.PI), 5.2 * Math.sin(Math.PI / 2 + k * 0.4 * Math.PI)]);
 
-// How far a point (from the yard's middle) lies out past its sides; below 0, inside it, that far in
-// from the nearest.
-function past(x, z) {
-  let most = -Infinity;
-  for (const [nx, nz] of SIDES) most = Math.max(most, x * nx + z * nz);
-  return most - APOTHEM;
-}
-
-// Where a line across the yard, north to south at x = v (or east to west at z = v), meets its sides,
-// `m` in from them: [from, to] along it.
-function span(v, eastWest, m = 0) {
-  let lo = -Infinity;
-  let hi = Infinity;
-  for (const [nx, nz] of SIDES) {
-    const [along, across] = eastWest ? [nx, nz] : [nz, nx];
-    const room = APOTHEM - m - v * across;
-    if (Math.abs(along) < 1e-6) continue;
-    if (along > 0) hi = Math.min(hi, room / along);
-    else lo = Math.max(lo, room / along);
-  }
-  return [lo, hi];
-}
+// (how far a point lies from the yard's middle)
+const away = (x, z) => Math.hypot(x, z - YARD.cz);
 
 export class Yard extends Builder {
   constructor(world) {
@@ -60,7 +36,7 @@ export class Yard extends Builder {
     this.name = 'Training Yard';
     this.subtitle = 'Where blows are practised';
     this.mat = world.matsFor('ashen');
-    this.dark = new THREE.MeshLambertMaterial({ map: world.tex.wood, color: '#8a6c54' }); // its beams, darker than its boards
+    this.dark = new THREE.MeshLambertMaterial({ map: world.tex.wood, color: '#8a6c54' }); // (its racks' and posts' wood, darker)
     this.lanterns = [];
     this.build();
     this.mergeStatic();
@@ -74,7 +50,7 @@ export class Yard extends Builder {
   // Where its ground lies: the stair, and the yard with the air round it (an ultimate may carry
   // someone off its edge for a moment: they stay at its height).
   isLevel(x, z) {
-    return this.onStair(x, z, 0.4) || past(x, z - YARD.cz) <= 6;
+    return this.onStair(x, z, 0.4) || away(x, z) <= R + 6;
   }
 
   // The Hold's ground runs on to the stair's head, then down its steps to the yard's.
@@ -84,16 +60,16 @@ export class Yard extends Builder {
 
   // The yard, and its stair once it's left the Hold (world.areaAt).
   contains(x, z) {
-    return this.onStair(x, z, 0.4) || past(x, z - YARD.cz) <= 0;
+    return this.onStair(x, z, 0.4) || away(x, z) <= R;
   }
 
-  // Inside, for the training (training.js): on its boards.
+  // Inside, for the training (training.js): on its floor.
   inside(x, z) {
-    return past(x, z - YARD.cz) <= 0.2;
+    return away(x, z) <= R + 0.2;
   }
 
   isWalk(x, z) {
-    return past(x, z - YARD.cz) <= -0.45
+    return away(x, z) <= R - 0.6
       || (Math.abs(x) <= STAIR.half - 0.25 && z >= HUB.walkRadius - 0.5 && z <= NORTH + 0.8);
   }
 
@@ -102,65 +78,38 @@ export class Yard extends Builder {
     const { stone, stoneMoss } = this.mat;
     const { dark } = this;
     const y = YARD.y;
-    const n = -APOTHEM; // (its north side, from its middle)
+    const n = -R; // (its north edge, from its middle)
     const at = (z) => z - YARD.cz; // (from the Hold's middle to its)
     const r = rng(53);
     const v = (x, yy, z) => new THREE.Vector3(x, yy, z);
 
-    // the boards, and a beam round their edge with iron at the corners (open where the stair lands)
-    const plan = new THREE.Shape(CORNERS.map(([x, z]) => new THREE.Vector2(x, z)));
-    const geo = new THREE.ExtrudeGeometry(plan, { depth: 0.4, bevelEnabled: false });
-    geo.rotateX(Math.PI / 2); // (lying flat, its top at its height)
-    const uv = geo.attributes.uv;
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / BRICK_TILE, uv.getY(i) / BRICK_TILE);
-    const boards = new THREE.Mesh(geo, wood);
-    boards.position.y = y;
-    boards.castShadow = true;
-    boards.receiveShadow = true;
-    this.add(boards);
-    CORNERS.forEach(([x0, z0], k) => {
-      const [x1, z1] = CORNERS[(k + 1) % 5];
-      const [nx, nz] = SIDES[k];
-      const a = v(x0 + nx * 0.05, y + 0.06, z0 + nz * 0.05);
-      const b = v(x1 + nx * 0.05, y + 0.06, z1 + nz * 0.05);
-      if (nz < -0.99) {
-        // (the north side, either side of the stair's foot)
-        const gap = STAIR.half + 0.35;
-        this.beam(a, v(-gap, a.y, a.z), 0.3, dark, 0.28);
-        this.beam(v(gap, b.y, b.z), b, 0.3, dark, 0.28);
-      } else {
-        this.beam(a, b, 0.3, dark, 0.28);
-      }
-      this.box(0.42, 0.34, 0.42, iron, x0, y + 0.08, z0, { tile: 1 });
-    });
-    // the sawdust ring on them, where blows are traded
+    // its floor of grey brick, the arena's, worn to dirt and moss at the edge; a mossy lip round it
+    // (open where the stair lands) and below it a rock of its own, down into the mist
+    const tex = T.pixelTexture(T.floorCanvas(R * 2, R * 2, (cx, cz) => (Math.hypot(cx - R, cz - R) < R - 1.2 ? 1.1 : 0.35), FLOOR, 5150));
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(R, 64), new THREE.MeshLambertMaterial({ map: tex }));
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = y;
+    floor.receiveShadow = true;
+    this.add(floor);
+    const gap = Math.asin((STAIR.half + 0.4) / (R - 0.1));
+    const rim = new THREE.TorusGeometry(R - 0.1, 0.24, 4, 54, Math.PI * 2 - gap * 2);
+    rim.rotateZ(-Math.PI / 2 + gap); // (the gap to the north)
+    const lip = new THREE.Mesh(rim, stoneMoss);
+    lip.rotation.x = Math.PI / 2;
+    lip.position.y = y - 0.05;
+    this.add(lip);
+    const rock = this.mat.rockTex.clone();
+    rock.repeat.set(22, 13);
+    rock.needsUpdate = true;
+    const cliff = new THREE.Mesh(new THREE.CylinderGeometry(R, R - 2, 28, 40, 1, true), new THREE.MeshLambertMaterial({ map: rock }));
+    cliff.position.y = y - 14;
+    this.add(cliff);
+    // the sawdust ring on it, where blows are traded
     const ring = new THREE.Mesh(new THREE.RingGeometry(6.4, 6.85, 72), new THREE.MeshBasicMaterial({ color: '#c9b38a', transparent: true, opacity: 0.5, depthWrite: false }));
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(0, y + 0.012, 0);
     ring.userData.dynamic = true;
     this.add(ring);
-
-    // below: beams across, posts down into the mist braced in pairs, and struts back against the cliff
-    for (const x of [-9, -4.5, 0, 4.5, 9]) {
-      const [z0, z1] = span(x, false, 0.4);
-      this.box(0.45, 0.45, z1 - z0, dark, x, y - 0.62, (z0 + z1) / 2);
-    }
-    for (const z of [-8, -3, 2, 7]) {
-      const [x0, x1] = span(z, true, 0.4);
-      this.box(x1 - x0, 0.4, 0.4, dark, (x0 + x1) / 2, y - 0.62, z);
-    }
-    const DEEP = 14;
-    for (const [x, z] of [[-4.5, -8], [4.5, -8], [-9, 2], [9, 2], [-4.5, 7], [4.5, 7], [0, 2]]) this.box(0.42, DEEP, 0.42, dark, x, y - 0.6 - DEEP / 2, z);
-    for (const [[x0, z0], [x1, z1]] of [[[-9, 2], [-4.5, 7]], [[-4.5, 7], [4.5, 7]], [[4.5, 7], [9, 2]]]) {
-      this.beam(v(x0, y - 1, z0), v(x1, y - 5.5, z1), 0.24, dark);
-      this.beam(v(x0, y - 5.5, z0), v(x1, y - 1, z1), 0.24, dark);
-    }
-    // (the cliff's face below the Hold's rim, `h` down: how far south of the Hold's middle at x)
-    const cliff = (x, h) => Math.sqrt((HUB.radius + (1.5 * h) / 26) ** 2 - x * x) - 0.2;
-    for (const x of [-5.5, 5.5]) {
-      const h = y - 5;
-      this.beam(v(x, y - 0.8, n + 0.6), v(x * 0.6, h, at(cliff(x * 0.6, h))), 0.38, dark);
-    }
 
     // the stair of stone down from the Hold's rim: its head over the cliff's edge, its steps on a
     // slab with a keel of mossy stone under it and a pier down into the mist, low stones along its
@@ -191,53 +140,50 @@ export class Yard extends Builder {
       this.box(0.4, 0.9, 0.5, stoneMoss, x, y + 0.42, n + 0.3);
     }
 
-    // the two chains it hangs from, from iron rings on the Hold's rim down to its north corners
-    for (const side of [-1, 1]) {
-      const [cx, cz] = CORNERS[side < 0 ? 2 : 3];
-      const from = v(side * (STAIR.half + 2.4), 0.35, at(HUB.radius - 1));
-      this.box(0.34, 0.3, 0.34, iron, from.x, 0.15, from.z, { tile: 1 });
-      this.chain(from, v(cx * 0.96, y + 0.3, cz * 0.96), iron);
+    // either side of the stair's foot, a rack of the Round Table's weapons (weapons.js): barrels by
+    // the one, crates by the other; an archery butt to the west
+    this.rack(5, n + 3.4, [0, 2, 5, 4, 3], wood, dark);
+    this.rack(-5, n + 3.4, [8, 1, 7, 9, 6], wood, dark);
+    this.barrel(7.3, n + 4.4, wood);
+    this.barrel(8, n + 5.4, wood);
+    this.crates(-8.2, n + 5.4, wood, dark);
+    this.butt(-9.4, 1.8, dark);
+
+    // rope lanterns on posts about its edge: either side of the stair's foot, and round to the south
+    for (const deg of [-112, -68, 18, 90, 162]) {
+      const a = (deg * Math.PI) / 180;
+      this.lantern(Math.cos(a) * (R - 0.9), Math.sin(a) * (R - 0.9), dark, iron);
     }
-
-    // either side of the stair's foot: a rack of practice weapons and barrels by it (east), an
-    // archery butt and crates (west)
-    this.rack(4.6, n + 3.1, wood, dark);
-    this.barrel(7.0, n + 3.9, wood);
-    this.barrel(7.8, n + 4.9, wood);
-    this.butt(-4.8, n + 3.3, dark);
-    this.crates(-7.4, n + 4.6, wood, dark);
-
-    // rope lanterns on posts: at its three far corners, and either side of the stair's foot
-    for (const k of [0, 1, 4]) this.lantern(CORNERS[k][0] * 0.92, CORNERS[k][1] * 0.92, dark, iron);
-    for (const side of [-1, 1]) this.lantern(side * 5.9, n + 0.7, dark, iron);
 
     // where its dummies stand (training.js draws them)
     for (const [x, z] of DUMMY_SPOTS) this.blockCircle(x, z, 0.5);
   }
 
-  // A chain of iron links, each turned a quarter to the last.
-  chain(from, to, mat) {
-    const len = from.distanceTo(to);
-    const links = Math.round(len / 0.26);
-    for (let i = 0; i < links; i++) {
-      const a = from.clone().lerp(to, i / links);
-      const b = from.clone().lerp(to, (i + 1) / links);
-      const link = this.beam(a, b, i % 2 ? 0.05 : 0.14, mat, i % 2 ? 0.14 : 0.05);
-      link.scale.z = 1.25;
-    }
-  }
-
-  rack(x, z, wood, dark) {
+  // A weapon rack: two posts with caps, a rail high and one low between them, a trough at their
+  // feet, and in it five of the Round Table's weapons (weapons.js, `kinds`), standing on their points
+  // and heads and leaning back against the rail, each a little its own way.
+  rack(x, z, kinds, wood, dark) {
     const y = YARD.y;
-    for (const dx of [-0.75, 0.75]) this.box(0.14, 1.5, 0.14, dark, x + dx, y + 0.75, z, { tile: 1 });
-    this.box(1.8, 0.12, 0.14, dark, x, y + 1.35, z, { tile: 1 });
-    this.box(1.8, 0.1, 0.5, dark, x, y + 0.05, z + 0.2, { tile: 1 });
-    // practice swords and a staff leaning on it
-    [[-0.5, 0.18, 1.35], [-0.1, -0.14, 1.25], [0.32, 0.1, 1.55]].forEach(([dx, tilt, h]) => {
-      this.box(0.09, h, 0.09, wood, x + dx, y + h / 2 + 0.05, z + 0.12, { tile: 1, rz: tilt, rx: -0.12 });
-      if (h < 1.5) this.box(0.34, 0.07, 0.09, dark, x + dx - Math.sin(tilt) * (h - 0.4), y + h - 0.3, z + 0.12, { tile: 1, rz: tilt });
+    const r = rng(Math.round(Math.abs(x * 31 + z * 7)) + 9);
+    const back = z - 0.14; // (where the rails run)
+    for (const dx of [-0.98, 0.98]) {
+      this.box(0.16, 1.56, 0.16, dark, x + dx, y + 0.78, back, { tile: 1 });
+      this.box(0.24, 0.1, 0.24, dark, x + dx, y + 1.61, back, { tile: 1 });
+    }
+    this.box(2.1, 0.1, 0.12, dark, x, y + 1.32, back, { tile: 1 });
+    this.box(2.1, 0.08, 0.1, dark, x, y + 0.56, back, { tile: 1 });
+    this.box(2.16, 0.16, 0.52, wood, x, y + 0.08, z + 0.06, { tile: 1 });
+    this.box(2.16, 0.1, 0.06, dark, x, y + 0.21, z + 0.3, { tile: 1 });
+    kinds.forEach((k, i) => {
+      const { g, low } = weapon(k, 1.1);
+      g.rotation.y = (r() - 0.5) * 0.7; // (turned a little on its own axis)
+      const stand = new THREE.Group();
+      stand.position.set(x - 0.76 + i * 0.38, y + 0.16 - low, z + 0.12);
+      stand.rotation.set(-0.15, 0, (r() - 0.5) * 0.12); // (leaning back against the rail)
+      stand.add(g);
+      this.adopt(stand);
     });
-    this.block(x - 1, z - 0.3, x + 1, z + 0.5);
+    this.block(x - 1.15, z - 0.3, x + 1.15, z + 0.45);
   }
 
   butt(x, z, dark) {
@@ -290,7 +236,7 @@ export class Yard extends Builder {
     this.blockCircle(x + 0.45, z + 0.15, 1.05);
   }
 
-  // A lantern on a post, hung from an arm reaching in over the boards.
+  // A lantern on a post, hung from an arm reaching in over the floor.
   lantern(x, z, dark, iron) {
     const y = YARD.y;
     this.box(0.18, 2.6, 0.18, dark, x, y + 1.3, z, { tile: 1 });
