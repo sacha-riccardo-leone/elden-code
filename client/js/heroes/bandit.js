@@ -4,9 +4,10 @@
 // Source art: assets/hero/bandit.json (59x81, from bandit-stand.webp) and bandit-kneel.json
 // (44x50, his resting squat from bandit-kneel.webp, used exactly as drawn). His lunge
 // (bandit-attack.json: the spear cocked over his head, thrust out past the shield, drawn back
-// upright) and his Tenfold Spears (bandit-ult.json: the spear cocked back like a javelin, then
-// thrown, his hand open) are drawn whole; the spear reaches far beyond his frame, so they're kept
-// in a bigger one (core.js, bigFrame).
+// upright; his size, his skin's shades and his eye those of his standing pose) and his Tenfold
+// Spears (bandit-ult.json: the spear cocked back like a javelin, then thrown, his hand open) are
+// drawn whole; the spear reaches far beyond his frame, so they're kept in a bigger one (core.js,
+// bigFrame).
 
 import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill, held } from './core.js';
 
@@ -33,9 +34,9 @@ const TIP_ANGLE = Math.atan2(TIP.y - GRIP.y, TIP.x - GRIP.x);
 // stands as he stands, and the row he stands on; thrown, where the spears leave his hand (`from`).
 const DRAWN = {
   attack: [
-    { mid: 64, ground: 83 },
-    { mid: 31, ground: 83 },
-    { mid: 75, ground: 88 },
+    { mid: 43, ground: 69 },
+    { mid: 28, ground: 51 },
+    { mid: 32, ground: 77 },
   ],
   ult: [
     { mid: 67, ground: 74 },
