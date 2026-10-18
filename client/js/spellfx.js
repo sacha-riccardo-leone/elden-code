@@ -1059,17 +1059,23 @@ const OUTLINE = {
   fragmentShader: /* glsl */ `
     uniform sampler2D map;
     uniform vec2 texel;
+    uniform vec4 cell;
     uniform vec3 color;
     uniform float uPower, uMask, uTime, uR;
     varying vec2 vUv;
+    // (only the frame's own cell of the sheet: past its edge lies the next frame, whose feet would
+    // be outlined over the head)
+    float alphaAt(vec2 p) {
+      return any(lessThan(p, cell.xy)) || any(greaterThanEqual(p, cell.zw)) ? 0.0 : texture2D(map, p).a;
+    }
     void main() {
       float a = texture2D(map, vUv).a;
       float ring = 0.0;
       for (int i = 0; i < 16; i++) {
         float ang = float(i) * 0.3927;
         vec2 dir = vec2(cos(ang), sin(ang)) * texel;
-        ring = max(ring, texture2D(map, vUv + dir * uR).a);
-        ring = max(ring, 0.6 * texture2D(map, vUv + dir * uR * 1.9).a);
+        ring = max(ring, alphaAt(vUv + dir * uR));
+        ring = max(ring, 0.6 * alphaAt(vUv + dir * uR * 1.9));
       }
       float edge = ring * (1.0 - step(0.5, a));
       float glow = edge * uPower * (0.75 + 0.25 * sin(uTime * 14.0 + vUv.y * 90.0));
@@ -1091,6 +1097,7 @@ export class Aura {
         map: { value: body.tex },
         uvT: { value: new THREE.Matrix3() },
         texel: { value: new THREE.Vector2(1 / (sheet.frameW * sheet.cols), 1 / (sheet.frameH * sheet.rows)) },
+        cell: { value: new THREE.Vector4(0, 0, 1, 1) }, // the frame shown, in the sheet: [u0, v0, u1, v1]
         color: { value: new THREE.Color(color) },
         uPower: { value: 0 },
         uMask: { value: 0 },
@@ -1132,6 +1139,9 @@ export class Aura {
     u.map.value = tex;
     u.texel.value.set(1 / (grid.frameW * grid.cols), 1 / (grid.frameH * grid.rows));
     u.uvT.value.copy(tex.matrix);
+    // (its cell: the offset and repeat npc.js set, the repeat across negative when it faces left)
+    const { offset: o, repeat: r } = tex;
+    u.cell.value.set(Math.min(o.x, o.x + r.x), Math.min(o.y, o.y + r.y), Math.max(o.x, o.x + r.x), Math.max(o.y, o.y + r.y));
     u.uPower.value = this.power;
     u.uTime.value = this.t;
     this.outline.position.copy(m.position);
