@@ -488,6 +488,18 @@ const screenAngle = (dx, dy, dz) => Math.atan2(dy * 0.9 - dz * 0.42, dx);
 // in the picture, whichever way it goes, into the view or out of it as well as across.
 let view = null;
 export function setView(camera) { view = camera; }
+
+// What lights the world for a moment (main.js, setLights: world.flash), and an effect's flash at
+// `at` (in `fx`'s space: the yard's effects are set on its lowered floor, the arena's on its risen
+// one), `look` as world.flash takes it.
+let lights = null;
+export function setLights(flash) { lights = flash; }
+function lightUp(fx, at, look) {
+  if (!lights) return;
+  const p = new THREE.Vector3(...at);
+  fx.scene?.localToWorld?.(p);
+  lights([p.x, p.y, p.z], look);
+}
 const P0 = new THREE.Vector3();
 const P1 = new THREE.Vector3();
 const BX = new THREE.Vector3();
@@ -750,9 +762,11 @@ export class Rise {
 
 // Lightning out of the sky onto (x, z): there a moment, a flash on the floor where it lands. Drawn
 // by hand (`art`, fxart.js), its frames play out over its life, `px` world units to its pixel and
-// its strike on (x, z), every other one mirrored; else it's drawn here, `height` tall.
+// its strike on (x, z), every other one mirrored; else it's drawn here, `height` tall. With `light`
+// (world.flash's look, and `up`: how high over the floor), it lights the floor and everyone near
+// for a moment as it strikes.
 export class Bolt {
-  constructor(fx, { school = 'storm', x, z, k = 0, wide = false, height = 14, life = 0.22, art = null, px = 0.06, onHit = null }) {
+  constructor(fx, { school = 'storm', x, z, k = 0, wide = false, height = 14, life = 0.22, art = null, px = 0.06, light = null, onHit = null }) {
     const sheet = art && fxArt(art);
     if (sheet) {
       const flip = k % 2 ? -1 : 1;
@@ -766,6 +780,7 @@ export class Bolt {
     }
     this.mark = floor(fx.scene, TEX.ring(school), x, z, wide ? 4.2 : 2.2, 1);
     Object.assign(this, { fx, life, t: 0 });
+    if (light) lightUp(fx, [x, light.up ?? 2, z], light);
     onHit?.(new THREE.Vector3(x, 0.5, z));
     fx.particles.emit({
       pos: [x, 0.3, z], spread: [0.3, 0.1, 0.3], vel: [0, 2.4, 0], velSpread: [2, 1.6, 1.4],

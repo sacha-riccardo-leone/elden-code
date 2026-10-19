@@ -5,7 +5,9 @@
 //
 // Lights are pooled: every brazier, torch and grace registers a light source, and only the
 // dozen closest to the camera become real PointLights, so the world can grow without the
-// shaders slowing down. The moon's shadow box follows the camera for the same reason.
+// shaders slowing down. The moon's shadow box follows the camera for the same reason. Effects
+// light the world too, for a moment (flash: a bolt striking): a flash takes a light of the pool
+// before any lamp does.
 
 import * as THREE from 'three';
 import { REGION, HUB, BRIDGE, DOUSE, slotCenterX, innerSlot } from './config.js';
@@ -105,6 +107,7 @@ export class World {
     this.lightSources = [];
     this.lightPool = [];
     this.lampLevel = 1; // how much the pooled lights count (less by day; see daylight.js)
+    this.flashes = []; // effects' lights, each for a moment (flash)
     this.sunFrom = new THREE.Vector3(-10, 24, -9); // where the moon (or sun) shines from
     this.focus = new THREE.Vector3();
     this.version = 0;
@@ -363,6 +366,37 @@ export class World {
     return src;
   }
 
+  // A flash of light from an effect (a bolt striking), at `pos` [x, y, z] in the world: its colour,
+  // how bright at its height (`power`), how far it reaches and how it falls off, how long it lasts,
+  // how quickly it comes up, and how many times it dips and comes back as it dies (`flicker`, a
+  // bolt's). It goes as bright by day as by night.
+  flash(pos, { color = '#ffffff', power = 20, reach = 10, decay = 1.5, life = 0.3, rise = 0.03, flicker = 0 } = {}) {
+    const src = {
+      pos: new THREE.Vector3(...pos), color: new THREE.Color(color), distance: reach, decay, intensity: 0,
+      flash: { power, life, rise, flicker, t: 0 },
+    };
+    this.flashes.push(src);
+    this.lightSources.push(src);
+    return src;
+  }
+
+  // The flashes, from moment to moment: up at once, then dying away (with its dips), and gone.
+  stepFlashes(dt) {
+    if (!this.flashes.length) return;
+    const over = new Set();
+    for (const s of this.flashes) {
+      const f = s.flash;
+      f.t += dt;
+      if (f.t >= f.life) { over.add(s); s.intensity = 0; continue; }
+      const k = f.t < f.rise ? f.t / f.rise : (1 - (f.t - f.rise) / (f.life - f.rise)) ** 2;
+      const dip = f.flicker ? 0.55 + 0.45 * Math.cos((f.t / f.life) * Math.PI * f.flicker) ** 2 : 1;
+      s.intensity = f.power * k * dip;
+    }
+    if (!over.size) return;
+    this.flashes = this.flashes.filter((s) => !over.has(s));
+    this.lightSources = this.lightSources.filter((s) => !over.has(s));
+  }
+
   updateLights(focus) {
     const picks = [];
     for (const s of this.lightSources) {
@@ -370,7 +404,8 @@ export class World {
       const d = Math.hypot(s.pos.x - focus.x, s.pos.z - focus.z);
       if (d > 54) continue;
       const fade = 1 - THREE.MathUtils.smoothstep(d, 34, 52);
-      picks.push({ s, fade, w: (s.intensity * fade) / (1 + (d * d) / 400) });
+      // (a flash before any lamp: it's there for a moment only)
+      picks.push({ s, fade, w: ((s.intensity * fade) / (1 + (d * d) / 400)) * (s.flash ? 1000 : 1) });
     }
     picks.sort((a, b) => b.w - a.w);
     const chosen = new Map(picks.slice(0, LIGHT_POOL).map((p) => [p.s, p.fade]));
@@ -389,7 +424,7 @@ export class World {
       l.color.copy(s.color);
       l.distance = s.distance;
       l.decay = s.decay;
-      l.intensity = s.intensity * (chosen.get(s) ?? 0) * this.lampLevel;
+      l.intensity = s.intensity * (chosen.get(s) ?? 0) * (s.flash ? 1 : this.lampLevel);
     }
   }
 
@@ -592,6 +627,7 @@ export class World {
     this.hub.update(dt, t, Math.min(1, hubResting / 3));
     this.arena.update(dt, t);
     this.yard.update(dt, t);
+    this.stepFlashes(dt);
     this.updateLights(this.focus);
     this.followShadow(this.focus, camDist);
   }

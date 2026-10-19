@@ -574,7 +574,11 @@ loosed on it is placed from its floor, as on the Hold (a group raised to its hei
     twice his pixel size).
   - Maren, **Red Storm:** red lightning rains around him, ending in one great bolt (drawn bolts,
     `maren-bolt.json` and `maren-great-bolt.json`, at twice her pixel size so they fall from out
-    of sight).
+    of sight). Each bolt lights the floor and everyone near it red as it strikes, for a third of a
+    second, flickering out; the great bolt's light is far brighter, reaches across the floor and
+    lasts most of a second, dipping twice as it dies. It's a real light, by day as by night: one of
+    the world's pooled lights, taken from the lamps for that moment (`flash`,
+    `client/js/world.js`).
   - Aurelion, **Radiant Verdict:** a great slash of light dazes him for 5 seconds, unable to fight
     or move. He strikes his pose and holds it, and a giant of his own light stands behind him, his
     drawing 1.8 times its size, golden and see-through, its feet on his, and swings the Verdict:
@@ -934,7 +938,7 @@ scripts/                install/uninstall hooks, simulator
 client/js/title.js      the title screen: the pixel-art wordmark, sigil and embers, the way in, loading
 client/js/gate.js       where the title and the world meet: set out, and ready
 client/js/sprites.js    procedural pixel-art characters (base body + equipment layers)
-client/js/world.js      sky, far skyline, mist, islands, bridges, pooled lights
+client/js/world.js      sky, far skyline, mist, islands, bridges, pooled lights (and effects' flashes)
 client/js/daylight.js   day and night: the clock, and how every light, colour and the grade change
 client/js/region.js     one project's island and its stations
 client/js/hub.js        Roundtable Hold

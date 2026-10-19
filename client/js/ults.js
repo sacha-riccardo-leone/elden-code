@@ -43,6 +43,14 @@ const CINE = { grey: 0.3, aura: 0.45, release: 1.85, back: 0.55, close: 7.5, fit
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
+// The light Maren's bolts give off as they strike (spellfx.js, Bolt; world.flash): a red flash
+// over the floor and everyone near, flickering out; the great bolt's far brighter, farther and
+// longer.
+const RED_STORM = {
+  bolt: { color: '#ff4a3a', power: 40, reach: 9, life: 0.32, flicker: 1, up: 2 },
+  great: { color: '#ff5a44', power: 140, reach: 20, life: 0.8, flicker: 2, up: 3 },
+};
+
 // How tall a pose stands (the frames of `anim` on body's sheet): from the feet to the top of the
 // drawing, in world units (a spear raised to the sky counts).
 function poseHeight(body, anim) {
@@ -236,12 +244,12 @@ export const ULTS = {
           const a = Math.random() * Math.PI * 2;
           const r = Math.sqrt(Math.random()) * 2.6;
           // (her bolts, drawn at twice her own pixel size: tall enough to fall from out of sight)
-          fx.add(new Bolt(fx, { x: b.pos.x + Math.cos(a) * r, z: b.pos.y + Math.sin(a) * r * 0.7, k, life: 0.3, art: 'maren-bolt', px: 0.06, onHit: (at) => hit(1, at) }));
+          fx.add(new Bolt(fx, { x: b.pos.x + Math.cos(a) * r, z: b.pos.y + Math.sin(a) * r * 0.7, k, life: 0.3, art: 'maren-bolt', px: 0.06, light: RED_STORM.bolt, onHit: (at) => hit(1, at) }));
           fight.ctx.rig?.shake?.(0.12);
           k += 1;
         }
         if (t < 2) return true;
-        fx.add(new Bolt(fx, { x: b.pos.x, z: b.pos.y + 0.1, wide: true, height: 18, life: 0.5, art: 'maren-great-bolt', px: 0.075, onHit: (at) => hit(14, at) }));
+        fx.add(new Bolt(fx, { x: b.pos.x, z: b.pos.y + 0.1, wide: true, height: 18, life: 0.5, art: 'maren-great-bolt', px: 0.075, light: RED_STORM.great, onHit: (at) => hit(14, at) }));
         fx.add(new Burst(fx, { school: 'storm', at: [b.pos.x, 1.5, b.pos.y], size: 4.4, sparks: 70 }));
         fight.ctx.rig?.shake?.(0.75);
         return false;
