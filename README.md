@@ -512,6 +512,13 @@ loosed on it is placed from its floor, as on the Hold (a group raised to its hei
     rather than turned upside down going leftward. Beams (Vael's lash, Solenne's lance) lie along
     the line from the caster to what they strike, turned toward the camera, so they end on it
     whichever way they run; Ulric's spears stay stuck the way they were thrown.
+  - **Stuck in the drawing:** what flies is judged a hit by a forgiving zone round the enemy's
+    feet, but it lands on his drawing: over the last stretch it flies on onto the edge of his body
+    on the side it came from (his middle on that row, not a blade held out or a tail), at the
+    height it flew, kept to his torso, in his drawing's plane; spells burst there, and spears stick
+    there, their point a little way in (`spellfx.js`, `pinOn`, reading the frame he shows). A stuck
+    spear goes with his drawing as he's knocked back, turns as he turns, and drops as soon as his
+    pose has moved away from it. So too on the training yard's dummies.
   - **Playing them:** as a mage, a left click casts; as Fortuna, left click swings her blade and
     right click casts.
   - **Aiming** (`combat.js`, `aimOf`): every attack of yours, a blow, a spell, a thrown spear, an

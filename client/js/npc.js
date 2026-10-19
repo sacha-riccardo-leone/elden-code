@@ -349,6 +349,36 @@ export class SpriteBody {
     L.intensity = Math.min(GLOW_LIGHT.most, GLOW_LIGHT.k * Math.sqrt(g.n) * px) * seen;
   }
 
+  // The frame shown, as a drawing in the world (spellfx.js pins what sticks in it to it): its pixel's
+  // size, its frame's size (w, h), whether a pixel is drawn (columns as drawn, facing right; rows
+  // from the top), where a column and a row stand in the world (x, height) and back, where it stands
+  // (`ax`: its feet, its lunge and knock with them), its feet's height (`base`), its plane (`z`), the
+  // way it faces, and the column its middle stands on (`mid`).
+  drawing() {
+    const grid = this.grid;
+    const alpha = grid === this.sheet ? this.atlas.alpha : grid.alpha;
+    if (!alpha || this.frame < 0) return null;
+    const { frameW: FW, frameH: FH, cols } = grid;
+    const k = this.sheet.slots?.[this.frame]?.k ?? this.frame;
+    const ox = (k % cols) * FW;
+    const oy = Math.floor(k / cols) * FH;
+    const W = FW * cols;
+    const px = this.sheet.px;
+    const f = this.shown || this.facing;
+    const anchor = grid.anchor ?? FW / 2;
+    const m = this.mesh;
+    const ax = m.position.x - this.facing * this.shift;
+    const base = m.position.y;
+    return {
+      px, w: FW, h: FH, facing: f, ax, base, z: m.position.z, mid: anchor,
+      opaque: (c, r) => c >= 0 && r >= 0 && c < FW && r < FH && alpha[((oy + r) * W + ox + c) * 4 + 3] > 0,
+      x: (c) => ax + f * (c + 0.5 - anchor) * px,
+      y: (r) => base + (FH - r - 0.5) * px,
+      col: (x) => Math.floor(((x - ax) * f) / px - 0.5 + anchor),
+      row: (y) => Math.floor(FH - (y - base) / px - 0.5),
+    };
+  }
+
   // Alpha test against the atlas so clicks on transparent corners fall through.
   hitTest(uv) {
     const grid = this.grid;

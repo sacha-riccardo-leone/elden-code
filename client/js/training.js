@@ -31,7 +31,7 @@ import * as THREE from 'three';
 import { YARD, DUMMY_SPOTS, BOSS_DUMMY } from './yard.js';
 import { fxArt } from './fxart.js';
 import { flashing } from './npc.js';
-import { styleOf, castSpell, muzzleOf, stepStatus, RANGED, blow, casts, heroKey, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot } from './combat.js';
+import { styleOf, castSpell, muzzleOf, stepStatus, RANGED, blow, casts, heroKey, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot, struckOf } from './combat.js';
 import { groundAt } from './ground.js';
 import { Spark } from './spellfx.js';
 
@@ -119,6 +119,27 @@ class Dummy {
   ankle() {
     const [ax, ay] = GREAT.ankle.at;
     return [this.pos.x + ax * GREAT.px, ay * GREAT.px];
+  }
+
+  // Its frame shown, as a drawing in the world (spellfx.js pins what sticks in it to it), as a
+  // character's is (npc.js, SpriteBody.drawing): never turned, standing where its mesh stands, its
+  // middle its post (where its foot is).
+  drawing() {
+    const rows = this.sheet?.rows?.[this.frame];
+    if (!rows) return null;
+    const px = this.great ? GREAT.px : DUMMY.px;
+    const { w, h } = this.sheet;
+    const m = this.body.mesh;
+    const left = m.position.x - (w / 2) * px;
+    const base = m.position.y - (h / 2) * px;
+    return {
+      px, w, h, facing: 1, ax: left, base, z: m.position.z, mid: this.sheet.foot[0],
+      opaque: (c, r) => c >= 0 && r >= 0 && c < w && r < h && rows[r][c] !== '.',
+      x: (c) => left + (c + 0.5) * px,
+      y: (r) => base + (h - r - 0.5) * px,
+      col: (x) => Math.floor((x - left) / px),
+      row: (y) => Math.floor(h - (y - base) / px),
+    };
   }
 
   show(k) {
@@ -330,9 +351,8 @@ export class Training {
   playerCast(n, at) {
     const aim = aimSpell(n, at);
     const standing = () => (this.dummies || []).filter((d) => d.standing);
-    const struckOf = (d) => ({ target: d, at: () => [d.pos.x, 0, d.pos.y] });
     aim.meets = (x, z) => {
-      const d = standing().find((s) => meets(x, z, aim.dir, s.pos.x, s.pos.y, s.kind.radius, s.kind.depth, AIM.spell));
+      const d = standing().find((s) => meets(x, z, aim.dir, s.pos.x, s.pos.y, s.kind.radius, s.kind.depth, AIM.spell, AIM.early));
       return d ? struckOf(d) : null;
     };
     aim.first = (reach) => {

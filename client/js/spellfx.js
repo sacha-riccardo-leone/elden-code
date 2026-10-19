@@ -579,11 +579,13 @@ function lieAlong(mesh, from, to) {
 // `frames`: textures it flips through; `light`: the light it carries (shine), lighting what it
 // passes. Aimed (thine: combat.js, aimSpell), it keeps to its line (`guide`: { from, dir }), coming
 // back onto it if it set off aside, and strikes whatever it comes up to on the way (`strike(x, z)`:
-// what it has met there, if anything, handed on to onHit).
+// what it has met there, if anything, handed on to onHit). With `land` (how far behind its point its
+// middle is), it flies on onto the drawing of what it met, the last of the way, and strikes there,
+// pinned to it (pinOn: handed on to onHit too), rather than in the air beside it.
 export class Missile {
   constructor(fx, { map, w, h, from, to = null, dir = null, speed = 10, turn = 7, near = 0.5, life = 3,
     trail = null, trailRate = 40, trailSize = 0.06, spin = 0, upright = false, frames = null, fps = 10, onHit = null, onEnd = null, delay = 0, rise = 0, wobble = 0, light = null,
-    guide = null, strike = null }) {
+    guide = null, strike = null, land = null }) {
     this.fx = fx;
     this.mesh = plane(fx.scene, frames ? frames[0] : map, w, h);
     this.mesh.visible = delay <= 0;
@@ -593,7 +595,7 @@ export class Missile {
     const d = Math.hypot(tx - from[0], ty - from[1], tz - from[2]) || 1;
     // (it may set off upward first, and curve onto its mark)
     this.vel = new THREE.Vector3(((tx - from[0]) / d) * speed, ((ty - from[1]) / d) * speed + rise, ((tz - from[2]) / d) * speed);
-    Object.assign(this, { to, dir, speed, turn, near, life, trail, trailRate, trailSize, spin, upright, frames, fps, onHit, onEnd, delay, wobble, guide, strike, t: 0, done: false, struck: null });
+    Object.assign(this, { to, dir, speed, turn, near, life, trail, trailRate, trailSize, spin, upright, frames, fps, onHit, onEnd, delay, wobble, guide, strike, land, t: 0, done: false, struck: null, pin: null });
     this.mesh.position.copy(this.pos);
   }
 
@@ -644,6 +646,8 @@ export class Missile {
     const met = this.strike?.(this.pos.x, this.pos.z);
     if (met) {
       this.struck = met;
+      this.strike = null;
+      if (this.land != null && this.landOn(met)) return true;
       this.finish(true);
       return false;
     }
@@ -651,10 +655,25 @@ export class Missile {
     return true;
   }
 
+  // On course for something (`met`): onto the point of its drawing it's pinned to, the last of the
+  // way, homing there as it moves (and only so far off its line as it was forgiven).
+  landOn(met) {
+    const g = this.guide?.dir;
+    const v = Math.hypot(this.vel.x, this.vel.z) || 1;
+    const way = g || [this.vel.x / v, this.vel.z / v];
+    P0.copy(this.pos);
+    this.mesh.parent?.localToWorld(P0);
+    const pin = pinOn(met, P0, way);
+    if (!pin?.land(this.mesh.parent, this.land)) return false;
+    Object.assign(this, { pin, guide: null, turn: 40, near: 0.12, life: this.t + 1 });
+    this.to = () => pin.land(this.mesh.parent, this.land) || [this.pos.x, this.pos.y, this.pos.z];
+    return true;
+  }
+
   finish(hit) {
     this.done = true;
     this.light?.end(0.12);
-    if (hit) this.onHit?.(this.pos.clone(), this.struck);
+    if (hit) this.onHit?.(this.pos.clone(), this.struck, this.pin);
     else this.onEnd?.(this.pos.clone());
   }
 
@@ -1230,35 +1249,56 @@ export class Splash {
 // (`look`: drawn, { map, w, h }, fxart.js).
 // (`way` [dx, dz]: the way it was thrown, which it points, as it shows on the screen; else `dir`,
 // left or right. `motes`: the school of the motes it sheds while it's stuck, his ultimate's poison;
-// none, a spear simply thrown.)
+// none, a spear simply thrown. `pin`, in place of `follow` and `off`: stuck in his drawing (pinOn),
+// it goes with it as he's knocked back, turns as he turns, and drops as soon as what was drawn
+// there has moved away from it.)
 export class StuckSpear {
-  constructor(fx, { follow, off, dir, way = null, until, look = null, motes = 'poison' }) {
+  constructor(fx, { follow = null, off = null, dir, way = null, until, look = null, motes = 'poison', pin = null }) {
     const { map, w, h } = look || { map: TEX.spear(), w: 2.1, h: 2.1 * 9 / 70 };
     this.mesh = plane(fx.scene, map, w, h, { order: 7 });
     this.mesh.scale.x = dir;
     this.mesh.rotation.z = (Math.random() - 0.5) * 0.25;
-    Object.assign(this, { fx, follow, off, way, until, motes, t: 0, falling: 0, vy: 0, jitter: (Math.random() - 0.5) * 0.25 });
+    Object.assign(this, { fx, follow, off, way, until, motes, pin, t: 0, falling: 0, vy: 0, jitter: (Math.random() - 0.5) * 0.25, pointed: null });
     // (where it's stuck from the first, not where it was made, till its first step)
-    const [bx, by, bz] = follow();
-    this.mesh.position.set(bx + off[0], by + off[1], bz + off[2]);
+    if (pin) this.pinned();
+    else {
+      const [bx, by, bz] = follow();
+      this.mesh.position.set(bx + off[0], by + off[1], bz + off[2]);
+    }
+  }
+
+  // In his drawing: its point where it's pinned, its shaft back the way it flew (turned as he
+  // turns). Whether it's still there to be.
+  pinned() {
+    const p = this.pin.now();
+    const at = p && this.pin.land(this.mesh.parent, PIN.back);
+    if (!at) return false;
+    this.mesh.position.set(at[0], at[1], at[2]);
+    if (p.way[0] !== this.pointed) {
+      this.pointed = p.way[0];
+      pointAt(this.mesh, screenAngleAt(this.mesh.parent, this.mesh.position, DIR.set(p.way[0], 0, p.way[1])) + this.jitter, {});
+    }
+    return true;
   }
 
   step(dt) {
     this.t += dt;
-    const [bx, by, bz] = this.follow();
-    if (this.t < this.until) {
+    if (this.pin && !this.loose) {
+      if (this.t < this.until && this.pin.holds() && this.pinned()) {
+        this.shed(dt);
+        return true;
+      }
+      this.loose = true; // (it lets go, and drops from where it was)
+    }
+    if (!this.pin && this.t < this.until) {
+      const [bx, by, bz] = this.follow();
       this.mesh.position.set(bx + this.off[0], by + this.off[1], bz + this.off[2]);
       if (this.way && !this.aimed) {
         this.aimed = true;
         const keep = { way: this.mesh.scale.x < 0 ? -1 : 1 };
         pointAt(this.mesh, screenAngleAt(this.mesh.parent, this.mesh.position, DIR.set(this.way[0], 0, this.way[1])) + this.jitter, keep);
       }
-      if (this.motes && Math.random() < dt * 3) {
-        this.fx.particles.emit({
-          pos: [this.mesh.position.x, this.mesh.position.y, this.mesh.position.z], spread: [0.1, 0.1, 0.1], vel: [0, 0.8, 0], velSpread: [0.2, 0.3, 0.2],
-          color: motesOf(this.motes), size: 0.07, life: 0.7, count: 1, drag: 0.8, intensity: 1.8,
-        });
-      }
+      this.shed(dt);
       return true;
     }
     // loose: it drops and fades
@@ -1270,7 +1310,118 @@ export class StuckSpear {
     return this.falling < 0.6;
   }
 
+  // (its motes, now and then, while it's stuck)
+  shed(dt) {
+    if (!this.motes || Math.random() >= dt * 3) return;
+    this.fx.particles.emit({
+      pos: [this.mesh.position.x, this.mesh.position.y, this.mesh.position.z], spread: [0.1, 0.1, 0.1], vel: [0, 0.8, 0], velSpread: [0.2, 0.3, 0.2],
+      color: motesOf(this.motes), size: 0.07, life: 0.7, count: 1, drag: 0.8, intensity: 1.8,
+    });
+  }
+
   dispose() { drop(this.fx.scene, this.mesh); }
+}
+
+// ---------------------------------------------------------------------------------------------
+// pinned to a drawing
+
+// What strikes something (combat.js, struckOf) lands on its drawing (`struck.drawing()`: the frame
+// it shows, as npc.js and training.js make it), and what sticks in it stays pinned there, not to the
+// ground where it stands: at the height it struck at, kept to the drawing's middle (`band`: between
+// those shares of its drawn height, its torso rather than a blade's tip or a foot), on the edge of
+// what's drawn there on the side it came from, `inset` world units into it (somewhere between, and
+// `spread` of its height up or down, so that several don't stick in one spot; or, come within `front`
+// of straight into the view or out of it, in the middle of what's drawn there), `ahead` of the
+// drawing so that it shows over it. Of what's drawn on that row it takes his body (where his middle
+// stands), not a blade held out or a tail. It goes with the drawing as it's knocked back and turns as
+// it turns; it holds while something's drawn within `grip` of it. (`back`: a spear's middle, behind
+// its point.)
+const PIN = { band: [0.3, 0.75], inset: [0.14, 0.4], spread: 0.12, front: 0.3, ahead: 0.12, grip: 0.12, back: 0.9 };
+const PW = new THREE.Vector3();
+const rowDrawn = (d, r) => {
+  for (let c = 0; c < d.w; c++) if (d.opaque(c, r)) return true;
+  return false;
+};
+
+// The pin on `struck` for something that met it at `at` (in the world) flying `way` [dx, dz]: null if
+// it has no drawing, or nothing's drawn in its middle.
+export function pinOn(struck, at, way) {
+  const d = struck?.drawing?.();
+  if (!d) return null;
+  let top = -1;
+  let bottom = -1;
+  for (let r = 0; r < d.h; r++) {
+    if (!rowDrawn(d, r)) continue;
+    if (top < 0) top = r;
+    bottom = r;
+  }
+  if (top < 0) return null;
+  // (rows from the top: its middle, between the band's shares of its height above its lowest row)
+  const lo = top + Math.round((bottom - top) * (1 - PIN.band[1]));
+  const hi = top + Math.round((bottom - top) * (1 - PIN.band[0]));
+  const r0 = Math.min(hi, Math.max(lo, d.row(at.y) + Math.round((Math.random() - 0.5) * PIN.spread * (bottom - top))));
+  let r = -1;
+  for (let k = 0; k <= hi - lo && r < 0; k++) {
+    if (r0 - k >= lo && rowDrawn(d, r0 - k)) r = r0 - k;
+    else if (r0 + k <= hi && rowDrawn(d, r0 + k)) r = r0 + k;
+  }
+  if (r < 0) return null;
+  // what's drawn on that row, in runs (a gap of a pixel or two closed), and of them his body's: the
+  // one his middle (`mid`) stands in, else the nearest to it; not a blade held out, nor a tail
+  const runs = [];
+  for (let c = 0; c < d.w; c++) {
+    if (!d.opaque(c, r)) continue;
+    const last = runs[runs.length - 1];
+    if (last && c - last[1] <= 3) last[1] = c;
+    else runs.push([c, c]);
+  }
+  let [c0, c1] = runs[0];
+  let near = Infinity;
+  for (const [a, z] of runs) {
+    const off = d.mid < a ? a - d.mid : d.mid > z ? d.mid - z : 0;
+    if (off < near) { near = off; [c0, c1] = [a, z]; }
+  }
+  let c = (c0 + c1) / 2;
+  if (Math.abs(way[0]) >= PIN.front) {
+    // flying rightward, it came from the world's left: the drawing's first columns, if it faces right
+    const inset = (PIN.inset[0] + Math.random() * (PIN.inset[1] - PIN.inset[0])) / d.px;
+    c = (way[0] > 0) === (d.facing > 0) ? Math.min(c1, c0 + inset) : Math.max(c0, c1 - inset);
+  }
+  return {
+    struck, way: [...way], facing: d.facing, lx: (d.x(c) - d.ax) * d.facing, ly: d.y(r) - d.base,
+    // where its point is now (in the world), and the way it points (turned as the drawing turns)
+    now() {
+      const e = struck.drawing();
+      if (!e) return null;
+      return { tip: [e.ax + this.lx * e.facing, e.base + this.ly, e.z + PIN.ahead], way: [this.way[0] * e.facing * this.facing, this.way[1]] };
+    },
+    // whether something's still drawn about its point
+    holds() {
+      const e = struck.drawing();
+      if (!e) return false;
+      const cc = e.col(e.ax + this.lx * e.facing);
+      const rr = e.row(e.base + this.ly);
+      const k = Math.max(2, Math.round(PIN.grip / e.px));
+      for (let dr = -k; dr <= k; dr++) for (let dc = -k; dc <= k; dc++) if (e.opaque(cc + dc, rr + dr)) return true;
+      return false;
+    },
+    // where something `back` behind its point (along the way it points) is, in `space`
+    land(space, back) {
+      const p = this.now();
+      if (!p) return null;
+      PW.set(p.tip[0] - p.way[0] * back, p.tip[1], p.tip[2] - p.way[1] * back);
+      space?.worldToLocal?.(PW);
+      return [PW.x, PW.y, PW.z];
+    },
+  };
+}
+
+// A point in the world, in `space`'s coordinates (an effect's group: the yard's lowered floor, the
+// arena's risen one).
+export function inSpace(space, [x, y, z]) {
+  PW.set(x, y, z);
+  space?.worldToLocal?.(PW);
+  return [PW.x, PW.y, PW.z];
 }
 
 // ---------------------------------------------------------------------------------------------

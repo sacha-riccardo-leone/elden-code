@@ -45,7 +45,7 @@ import { GOLEM, GOLEM_MOVES, GolemMind } from './golem.js';
 import { setFoe } from './voices.js';
 import { clearRipples, rippleAt, stepRipples } from './ripple.js';
 import { groundAt } from './ground.js';
-import { styleOf, blow, castSpell, muzzleOf, SPELL, RANGED, ultFill, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot } from './combat.js';
+import { styleOf, blow, castSpell, muzzleOf, SPELL, RANGED, ultFill, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot, struckOf } from './combat.js';
 
 // reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
 // lane: how far out of his line (in depth) a swing or a lunge still catches someone
@@ -714,8 +714,8 @@ export class Fight {
     const b = this.boss;
     const aim = aimSpell(n, at);
     const live = () => !!b && b.alive && b.state !== 'enter' && this.state === 'fighting' && this.inArena(n) && (b.lift || 0) <= 2;
-    const struck = b && { target: b, at: () => [b.pos.x, b.lift || 0, b.pos.y] };
-    aim.meets = (x, z) => (live() && meets(x, z, aim.dir, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, AIM.spell) ? struck : null);
+    const struck = b && struckOf(b);
+    aim.meets = (x, z) => (live() && meets(x, z, aim.dir, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, AIM.spell, AIM.early) ? struck : null);
     aim.first = (reach) => {
       if (!live()) return null;
       const along = onAim(aim.from[0], aim.from[2], aim.dir, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, reach, AIM.spell);

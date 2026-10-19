@@ -42,8 +42,9 @@ const ART = {
 
 const sheets = new Map();
 
-// { frames: [texture…], w, h, foot: [x, y] }, in art pixels; `foot` is where it meets the ground,
-// the middle of its lowest rows (a bolt's strike), at its bottom edge.
+// { frames: [texture…], w, h, foot: [x, y], rows }, in art pixels; `foot` is where it meets the
+// ground, the middle of its lowest rows (a bolt's strike), at its bottom edge; `rows`, each frame's
+// rows as drawn ('.' where nothing is: what sticks in a dummy is pinned to its drawing, spellfx.js).
 function sheetOf(json) {
   const rgb = json.palette.map((h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)));
   const { w, h } = json.frames[0];
@@ -65,7 +66,7 @@ function sheetOf(json) {
     g.putImageData(img, 0, 0);
     return texture(c);
   });
-  return { frames, w, h, foot: [count ? sum / count + 0.5 : w / 2, h] };
+  return { frames, w, h, foot: [count ? sum / count + 0.5 : w / 2, h], rows: json.frames.map((f) => f.rows) };
 }
 
 export async function loadFxArt() {

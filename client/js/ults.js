@@ -32,7 +32,7 @@
 import * as THREE from 'three';
 import { Particles } from './particles.js';
 import { Aura, Stand, Missile, Wall, Pool, Slash, Cut, Drop, Bolt, Burst, StuckSpear, Splash, TEX, motesOf, shine } from './spellfx.js';
-import { ULT, ultPower, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt, meets, AIM } from './combat.js';
+import { ULT, ultPower, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt, meets, AIM, struckOf } from './combat.js';
 import { lookOf, fxArt } from './fxart.js';
 import { groundAt } from './ground.js';
 
@@ -392,13 +392,14 @@ export const ULTS = {
         const from = [n.pos.x + dir[0] * reach, up + ((i % 3) - 1) * 0.2, n.pos.y + dir[1] * reach + oz];
         fx.add(new Missile(fx, {
           ...look, from, dir, guide: { from: [from[0], oy, from[2]], dir }, speed: 20, delay: i * 0.07, life: 0.8, turn: 6,
-          strike: (x, z) => (b.alive && meets(x, z, dir, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, AIM.spell) ? b : null),
-          onHit: (at) => {
+          strike: (x, z) => (b.alive && meets(x, z, dir, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, AIM.spell, AIM.early) ? struckOf(b) : null),
+          land: 0.9, // (onto his drawing, its point in him: spellfx.js, pinOn)
+          onHit: (at, struck, pin) => {
             hit(0.8, new THREE.Vector3(at.x, at.y, at.z));
             addDot(b, { kind: 'poison', dps: 3, until: fight.clock + 4, src: n });
-            // (its point where it bit, the shaft back along the way it flew, moving with him)
-            const off = [at.x - b.pos.x - dir[0] * 0.9, at.y - (b.lift || 0), at.z - b.pos.y - dir[1] * 0.9 + 0.2];
-            fx.add(new StuckSpear(fx, { follow: () => [b.pos.x, b.lift || 0, b.pos.y], off, dir: facing, way: dir, until: 4, look }));
+            // (stuck in his drawing, moving and turning with it; else where it bit, moving with him)
+            if (pin) fx.add(new StuckSpear(fx, { pin, dir: facing, until: 4, look }));
+            else fx.add(new StuckSpear(fx, { follow: () => [b.pos.x, b.lift || 0, b.pos.y], off: [at.x - b.pos.x, at.y - (b.lift || 0), at.z - b.pos.y + 0.2], dir: facing, way: dir, until: 4, look }));
           },
         }));
       }
