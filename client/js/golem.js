@@ -28,7 +28,8 @@
 
 import { ARENA } from './config.js';
 import { SpriteBody } from './npc.js';
-import { AirWave, Decal, Meteor } from './bossfx.js';
+import { AirWave, Decal, Meteor, FIRE_LIGHT } from './bossfx.js';
+import { flash, carry } from './lights.js';
 import { addRipple, rippleAt } from './ripple.js';
 import { SPOTS } from './heroes/golem.js';
 import { rootedAt } from './combat.js';
@@ -414,11 +415,14 @@ export class GolemMind {
     const [x] = this.spot(SPOTS.heart);
     const r = GOLEM.heart.r;
     const z = b.pos.y + 0.7; // (on the floor just in front of him)
-    this.heart = { x, z, r, decal: new Decal(this.floor.scene, 'heart', x, z, r * 2 * 96 / 90) };
+    // (and its light, the fire in his chest laid open)
+    const light = carry(this.floor.scene, [x, 1, z + 0.4], { color: FIRE_LIGHT, power: 32, reach: 13, waver: 0.8, keep: true });
+    this.heart = { x, z, r, decal: new Decal(this.floor.scene, 'heart', x, z, r * 2 * 96 / 90), light };
   }
 
   closeHeart() {
     this.heart?.decal.dispose();
+    this.heart?.light.end(0.6);
     this.heart = null;
   }
 
@@ -466,6 +470,16 @@ export class GolemMind {
     let jitter = 0;
     // (the marks brighten as the blow gathers; the reach of a shockwave stays faint)
     if (b.marks.length && a.step === 0) for (const m of b.marks) if (!m.faint) m.opacity = (0.2 + 0.45 * k) * (0.8 + 0.2 * Math.sin(t * 24));
+    if (a.kind === 'fire' && (a.step === 2 || a.step === 3)) {
+      // the fire's light from his chest: coming up as it gathers, full as he spits it
+      const [cx, cy] = this.spot(SPOTS.chest);
+      a.fire ??= carry(this.floor.scene, [cx, cy, b.pos.y + 0.8], { color: FIRE_LIGHT, power: 45, reach: 20, waver: 1, level: 0 });
+      a.fire.at(cx, cy, b.pos.y + 0.8);
+      a.fire.level = a.step === 2 ? 0.5 * k : 1;
+    } else if (a.fire) {
+      a.fire.end(0.5);
+      a.fire = null;
+    }
     if (a.kind === 'fire' && a.step === 2) {
       // gathering the fire: he shakes side to side
       jitter = (Math.floor(a.t * 20) % 2 ? 1 : -1) * 0.12;
@@ -746,9 +760,10 @@ export class GolemMind {
             color: FIRE, size: 0.12, life: 0.4, count: 2, drag: 1, intensity: 2.6,
           });
           if (on) return true;
-          // it lands: fire bursts, the stone cracks, and all on the mark suffer
+          // it lands: fire bursts (a flash of it), the stone cracks, and all on the mark suffer
           landed = true;
-          rock.mesh.visible = false;
+          rock.land();
+          flash(scene, [x, 1, z + 0.3], { color: FIRE_LIGHT, power: 90, reach: 14, life: 0.45, flicker: 1, rise: 0.02 });
           const i = a.opt.spots.indexOf(spot);
           if (i >= 0) a.opt.spots.splice(i, 1);
           this.fight.strike((px, pz) => Math.hypot(px - x, pz - z) <= M.r, GOLEM.hurt.meteor);
@@ -776,6 +791,8 @@ export class GolemMind {
   // (from Boss.endMove: a move cut short, or over)
   endMove() {
     this.dropAxe();
+    const a = this.b.attack;
+    if (a?.fire) { a.fire.end(0.5); a.fire = null; }
   }
 
   dispose() {

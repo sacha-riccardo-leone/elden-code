@@ -37,7 +37,8 @@
 import * as THREE from 'three';
 import { ARENA, HUB, HUB_LAYOUT, CROWD, LINE, BOSS_CAM } from './config.js';
 import { SpriteBody } from './npc.js';
-import { Crescent, Decal, Spike, GhostSword, Eruption } from './bossfx.js';
+import { Crescent, Decal, Spike, GhostSword, Eruption, RED_LIGHT } from './bossfx.js';
+import { flash } from './lights.js';
 import { fxArt } from './fxart.js';
 import { Spark } from './spellfx.js';
 import { GOLEM, GOLEM_MOVES, GolemMind } from './golem.js';
@@ -1317,6 +1318,7 @@ export class Fight {
         for (const m of b.marks) m.dispose();
         b.marks = [];
         const fill = new Decal(scene, 'fill', x, z, decalSize('fill', SLAM.r));
+        flash(scene, [x, 1.2, z + 0.4], { color: RED_LIGHT, power: 100, reach: SLAM.r * 3, life: 0.7, rise: 0.03 });
         let life = 0;
         this.fx.push({
           step: (dt) => { life += dt; fill.opacity = Math.max(0, 1 - life / 0.7); return life < 0.7; },
@@ -1348,6 +1350,7 @@ export class Fight {
         for (const m of b.marks) m.dispose();
         b.marks = [];
         const crack = new Decal(scene, 'crack', a.x, a.z, LEAP.r * 2.6, { glow: false });
+        flash(scene, [a.x, 1, a.z + 0.4], { color: RED_LIGHT, power: 40, reach: 12, life: 0.45 }); // (the red at the cracks' hearts)
         let life = 0;
         this.fx.push({
           step: (dt) => { life += dt; crack.opacity = Math.min(1, Math.max(0, (7 - life) / 2)); return life < 7; },
@@ -1565,12 +1568,13 @@ export class Fight {
     if (a.mark) this.unmark(b, a.mark);
     a.mark = null;
     this.strike((px, pz) => covers('half', cx, cz, { side }, px, pz, 0), HURT.cut, null, true);
-    const flash = new Decal(scene, 'half', cx, cz, FLOOR_R * 2 * 96 / 92);
-    flash.mesh.scale.x = side < 0 ? 1 : -1;
+    const lit = new Decal(scene, 'half', cx, cz, FLOOR_R * 2 * 96 / 92);
+    lit.mesh.scale.x = side < 0 ? 1 : -1;
+    flash(scene, [cx + side * FLOOR_R * 0.45, 3, cz + 0.5], { color: RED_LIGHT, power: 140, reach: FLOOR_R * 1.4, life: 0.6, rise: 0.03 });
     let life = 0;
     this.fx.push({
-      step: (dt) => { life += dt; flash.opacity = Math.max(0, 1 - life / 0.6); return life < 0.6; },
-      dispose: () => flash.dispose(),
+      step: (dt) => { life += dt; lit.opacity = Math.max(0, 1 - life / 0.6); return life < 0.6; },
+      dispose: () => lit.dispose(),
     });
     particles.emit({
       pos: [cx + side * 9, 0.4, cz], spread: [8, 0.3, 12], vel: [0, 3, 0], velSpread: [2, 2, 2],
@@ -1591,11 +1595,17 @@ export class Fight {
     for (const m of a.rings || []) this.unmark(b, m);
     a.rings = null;
     this.strike((px, pz) => covers('ring', cx, cz, { safe: inner }, px, pz, 0), HURT.ring, null, true);
-    const flash = new Decal(scene, 'annulus', cx, cz, FLOOR_R * 2 * 96 / 92, { arg: inner / FLOOR_R });
+    const lit = new Decal(scene, 'annulus', cx, cz, FLOOR_R * 2 * 96 / 92, { arg: inner / FLOOR_R });
+    // (the ring's light all round it: four flashes about it, between the golden circle and the edge)
+    const mid = (inner + R) / 2;
+    for (let k = 0; k < 4; k++) {
+      const ang = (k / 4) * Math.PI * 2 + Math.PI / 4;
+      flash(scene, [cx + Math.cos(ang) * mid, 2, cz + Math.sin(ang) * mid * 0.8 + 0.4], { color: RED_LIGHT, power: 80, reach: 20, life: 0.9, rise: 0.05 });
+    }
     let life = 0;
     this.fx.push({
-      step: (dt) => { life += dt; flash.opacity = Math.max(0, 1 - life / 0.9); return life < 0.9; },
-      dispose: () => flash.dispose(),
+      step: (dt) => { life += dt; lit.opacity = Math.max(0, 1 - life / 0.9); return life < 0.9; },
+      dispose: () => lit.dispose(),
     });
     const art = fxArt('fenrath-eruption');
     if (art) {

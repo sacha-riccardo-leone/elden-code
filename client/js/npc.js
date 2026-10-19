@@ -10,6 +10,7 @@ import { groundAt } from './ground.js';
 import { ANIMS, buildIcon, makeLook, sheetForLook } from './sprites.js';
 import { STATIONS, TIMING, FAST_TRAVEL, HUB_LAYOUT, CROWD } from './config.js';
 import { nameFor, classTitle } from './lore.js';
+import { lamp, unlamp, placeLamp, flash } from './lights.js';
 
 const SPEED = { wander: 1.25, rest: 2.3, visit: 2.0, journey: 2.7, urgent: 3.6 };
 const URGENT = new Set(['work', 'wait', 'channel', 'leave']);
@@ -84,6 +85,15 @@ function pixelTex(canvas) {
 // the characters, so they take its light more gently (lit), need little of the self-light that
 // keeps them legible in the dark (self), and their magic glows less (glow).
 export const SPRITE_LIGHT = { lit: { value: 1 }, self: { value: 1 }, glow: { value: 1 }, flash: { value: 0.42 } };
+
+// What glows on a character (its sheet's glow, heroes/core.js: a crystal, an orb, a blade of light,
+// the fire in the Golem's chest) lights the world round it, as a lamp does (lights.js; world.js
+// pools them, and dims them by day): coloured as it glows, from where it glows in the frame shown
+// (so that the light swings with the blade), out before the drawing (it lights it too, but less than
+// what's round it), the brighter the more of it there is (`k`, up to `most`). A wisp of spirit-light
+// likewise.
+const GLOW_LIGHT = { k: 14, most: 6, reach: 6.5, decay: 1.6, ahead: 1.2, wisp: { color: '#7fc0ff', power: 2.5, reach: 4 } };
+const HSL = { h: 0, s: 0, l: 0 };
 
 // A billboard driven by a sprite sheet: { color, glow, alpha, frameW, frameH, cols, rows,
 // anims, px (world units per pixel), head (pixels to the top of the head), hits, lunge }, and a
@@ -185,6 +195,7 @@ export class SpriteBody {
     this.frame = -1;
     this.shown = 0; // the facing the texture last drew (`facing` is set freely; tick catches it up)
     this.anim = null;
+    this.lamp = null; // the light of what glows on it (shine), once it shows any
   }
 
   // Frame `index` (of the sheet's poses), facing -1 or 1. A big pose is drawn from its own sheet:
@@ -313,6 +324,29 @@ export class SpriteBody {
     this.blob.position.set(x, y + 0.015, z + 0.05);
     const s = 1 - Math.min(0.5, lift * 0.35);
     this.blob.scale.set(s, s, 1);
+    this.shine();
+  }
+
+  // The light of what glows in the frame shown (GLOW_LIGHT), as much of it as is seen.
+  shine() {
+    const g = this.sheet.glows?.[this.frame];
+    if (!this.lamp) {
+      if (!g) return;
+      this.lamp = lamp(GLOW_LIGHT.reach, GLOW_LIGHT.decay);
+      if (!this.lamp) return;
+    }
+    const L = this.lamp;
+    const m = this.mesh;
+    const seen = m.visible && m.parent ? this.mat.opacity : 0;
+    if (!g || seen < 0.02) { L.intensity = 0; return; }
+    const grid = this.grid;
+    const px = this.sheet.px;
+    const anchor = grid.anchor ?? grid.frameW / 2;
+    placeLamp(L, m.parent, this.footX + this.facing * (g.x + 0.5 - anchor) * px, m.position.y + (grid.frameH - g.y - 0.5) * px, m.position.z + GLOW_LIGHT.ahead);
+    // (its colour a little deeper than the glow's, white-hot as that is at its heart)
+    L.color.setRGB(g.rgb[0] / 255, g.rgb[1] / 255, g.rgb[2] / 255, THREE.SRGBColorSpace).getHSL(HSL);
+    L.color.setHSL(HSL.h + (this.sheet.hue || 0) / 360, Math.min(1, HSL.s * 1.2 + 0.1), HSL.l);
+    L.intensity = Math.min(GLOW_LIGHT.most, GLOW_LIGHT.k * Math.sqrt(g.n) * px) * seen;
   }
 
   // Alpha test against the atlas so clicks on transparent corners fall through.
@@ -340,6 +374,8 @@ export class SpriteBody {
   }
 
   dispose() {
+    unlamp(this.lamp);
+    this.lamp = null;
     this.scene.remove(this.mesh, this.blob);
     this.tex.dispose();
     this.glowTex.dispose();
@@ -390,6 +426,8 @@ class Spirit {
     this.leaving = false;
     this.pulse = 0;
     this.phase = Math.random() * 6;
+    this.lamp = lamp(GLOW_LIGHT.wisp.reach);
+    this.lamp?.color.set(GLOW_LIGHT.wisp.color);
     owner.ctx.particles.emit({
       pos: [this.pos.x, groundAt(this.pos.x, this.pos.y) + 1.4, this.pos.y], spread: [0.2, 0.3, 0.2], vel: [0, 0.6, 0], velSpread: [0.6, 0.4, 0.6],
       color: ['#7fc8ff', '#b4e2ff', '#4e8fd0'], size: 0.08, life: 1.1, count: 18, drag: 1, intensity: 1.8,
@@ -409,6 +447,10 @@ class Spirit {
     const size = (0.42 + this.pulse * 0.25) * (0.9 + 0.1 * Math.sin(t * 9 + this.phase));
     this.sprite.scale.set(size, size, 1);
     this.sprite.material.opacity = (0.75 + this.pulse * 0.25) * this.fade;
+    if (this.lamp) {
+      placeLamp(this.lamp, null, this.pos.x, y, this.pos.y + 0.3);
+      this.lamp.intensity = GLOW_LIGHT.wisp.power * this.fade * (1 + this.pulse);
+    }
     // a mote now and then, more while it works
     if (this.fade > 0.5 && Math.random() < dt * (o.working ? 6 : 2)) {
       o.ctx.particles.emit({
@@ -429,6 +471,7 @@ class Spirit {
   }
 
   dispose() {
+    unlamp(this.lamp);
     this.owner.ctx.scene.remove(this.sprite);
     this.sprite.material.dispose();
   }
@@ -731,6 +774,7 @@ export class Npc {
   }
 
   goldBurst() {
+    flash(null, [this.pos.x, groundAt(this.pos.x, this.pos.y) + 1.2, this.pos.y + 0.3], { color: '#ffc860', power: 20, reach: 8, life: 1, rise: 0.15 });
     this.ctx.particles.emit({
       pos: [this.pos.x, groundAt(this.pos.x, this.pos.y) + 0.4, this.pos.y], spread: [0.3, 0.6, 0.2], vel: [0, 2.4, 0], velSpread: [0.5, 1, 0.5],
       color: ['#ffd27a', '#fff1b8', '#ffb347'], size: 0.08, life: 1.3, count: 34, drag: 0.8, intensity: 2.4,

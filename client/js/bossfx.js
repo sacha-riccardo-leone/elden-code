@@ -12,10 +12,16 @@
 //   Eruption – the ring's red light tearing up out of the floor (drawn, fxart.js), all over it.
 // The Golem's: AirWave (the shock in the air flying on past the lunge's point), Meteor (a fireball
 // falling out of the sky). (His shockwaves along the ground ripple the floor itself: ripple.js.)
+// The red light and the fireballs light the world round them as they go (lights.js).
 
 import * as THREE from 'three';
 import { rng } from './pixel.js';
 import { rippling } from './ripple.js';
+import { flash, carry } from './lights.js';
+
+// The red light as it falls on the world (and the fire's, the Golem's).
+export const RED_LIGHT = '#ff3a2a';
+export const FIRE_LIGHT = '#ff8a2a';
 
 const RED = {
   core: [255, 236, 226],
@@ -183,7 +189,8 @@ export class Crescent {
     this.mesh.position.set(x, y, z);
     this.mesh.renderOrder = 6;
     scene.add(this.mesh);
-    Object.assign(this, { scene, dir, speed, life, t: 0, x, z, hit: new Set() });
+    Object.assign(this, { scene, dir, speed, life, t: 0, x, y, z, hit: new Set() });
+    this.light = carry(scene, [x, y, z + 0.3], { color: RED_LIGHT, power: 40, reach: 14 });
   }
 
   // returns false once it has faded
@@ -192,10 +199,13 @@ export class Crescent {
     this.x += this.dir * this.speed * dt;
     this.mesh.position.x = this.x;
     this.mesh.material.opacity = Math.max(0, 1 - Math.max(0, this.t - this.life * 0.6) / (this.life * 0.4));
+    this.light.at(this.x, this.y, this.z + 0.3);
+    this.light.level = this.mesh.material.opacity;
     return this.t < this.life;
   }
 
   dispose() {
+    this.light.end(0.1);
     this.scene.remove(this.mesh);
     this.mesh.material.map.dispose();
     this.mesh.material.dispose();
@@ -215,6 +225,7 @@ export class Spike {
     scene.add(this.mesh);
     this.scene = scene;
     this.t = 0;
+    this.light = carry(scene, [x + (dir * len) / 2, y, z + 0.4], { color: RED_LIGHT, power: 45, reach: len / 2 + 6, level: 0 });
   }
 
   step(dt, life) {
@@ -222,10 +233,12 @@ export class Spike {
     const k = this.t / life;
     this.mesh.material.opacity = k < 0.15 ? k / 0.15 : Math.max(0, 1 - (k - 0.6) / 0.4);
     this.mesh.scale.y = 0.9 + 0.1 * Math.sin(this.t * 60); // it shivers
+    this.light.level = this.mesh.material.opacity;
     return this.t < life;
   }
 
   dispose() {
+    this.light.end(0.1);
     this.scene.remove(this.mesh);
     this.mesh.material.map.dispose();
     this.mesh.material.dispose();
@@ -346,6 +359,8 @@ export class GhostSword {
     this.mesh = make(0, 7);
     this.copies = [make(0, 6), make(0, 6), make(0, 6)];
     Object.assign(this, { scene, geo, angle: 0, len: 1, opacity: 0, trail: 0 });
+    // (its red light from the middle of its blade, the brighter the more it shows)
+    this.light = carry(scene, [x, y, z + 0.4], { color: RED_LIGHT, power: 60, reach: 22, level: 0 });
     this.place();
   }
 
@@ -358,9 +373,14 @@ export class GhostSword {
     this.mesh.material.opacity = this.opacity;
     // (the copies show only as it cuts: each fainter)
     this.copies.forEach((m, i) => { m.material.opacity = this.trail ? this.opacity * (0.45 - i * 0.13) : 0; });
+    const p = this.mesh.position;
+    const half = this.len / 2;
+    this.light.at(p.x + Math.sin(this.angle) * half, p.y - Math.cos(this.angle) * half, p.z + 0.4);
+    this.light.level = Math.min(1, this.opacity / 0.42);
   }
 
   dispose() {
+    this.light.end(0.2);
     for (const m of [this.mesh, ...this.copies]) {
       this.scene.remove(m);
       m.material.dispose();
@@ -372,19 +392,20 @@ export class GhostSword {
 export class Eruption {
   // Red light tearing up out of the floor at each of `spots` ([x, z, delay]): the drawing's frames
   // (`art`, fxart.js: crack, burst, full, fading) played out `fps` a second, each `height` tall,
-  // its foot on the floor; then gone. Returns false from step once all have played.
+  // its foot on the floor; then gone. Returns false from step once all have played. Every few of
+  // them flash red light round them as they tear up (as many as the world's lights allow).
   constructor(scene, art, spots, { height = 2.8, fps = 12 } = {}) {
     const k = height / art.h;
     const geo = new THREE.PlaneGeometry(art.w * k, height);
     geo.translate(0, height / 2, 0);
-    this.items = spots.map(([x, z, delay]) => {
+    this.items = spots.map(([x, z, delay], i) => {
       const m = new THREE.Mesh(geo, glowing(art.frames[0], 0));
       m.position.set(x, 0, z);
       m.scale.x = Math.random() < 0.5 ? -1 : 1;
       m.renderOrder = 6;
       m.visible = false;
       scene.add(m);
-      return { m, delay };
+      return { m, delay, lit: i % 9 === 0 }; // (`lit`: one that flashes)
     });
     Object.assign(this, { scene, geo, art, fps, t: 0 });
   }
@@ -399,6 +420,9 @@ export class Eruption {
       if (f < 0) { on = true; continue; }
       if (f >= last + 1) { it.m.visible = false; continue; }
       on = true;
+      if (!it.m.visible && it.lit) {
+        flash(this.scene, [it.m.position.x, this.geo.parameters.height * 0.45, it.m.position.z + 0.3], { color: RED_LIGHT, power: 50, reach: 12, life: 0.55, rise: 0.04 });
+      }
       it.m.visible = true;
       const i = Math.min(frames.length - 1, Math.floor(f) <= 2 ? Math.floor(f) : Math.floor(f) - 1);
       it.m.material.map = frames[i];
@@ -482,12 +506,14 @@ function fireballCanvas() {
 }
 
 export class Meteor {
-  // falling out of the sky onto (x, z) over `dur` seconds, from `drift` to the side of it
+  // falling out of the sky onto (x, z) over `dur` seconds, from `drift` to the side of it; its fire
+  // lighting the floor more and more as it comes down onto it (till it lands: land)
   constructor(scene, x, z, { dur = 0.9, height = 22, drift = 5, size = 1.5 } = {}) {
     this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(size, size), glowing(texture(fireballCanvas())));
     this.mesh.renderOrder = 6;
     scene.add(this.mesh);
     Object.assign(this, { scene, x, z, dur, height, drift, t: 0 });
+    this.light = carry(scene, [x, height, z], { color: FIRE_LIGHT, power: 32, reach: 15, waver: 0.6 });
     this.place(0);
   }
 
@@ -495,6 +521,14 @@ export class Meteor {
     // speeding up as it falls
     const e = k * k;
     this.mesh.position.set(this.x - this.drift * (1 - e), 0.6 + this.height * (1 - e), this.z);
+    const p = this.mesh.position;
+    this.light.at(p.x, p.y + 0.4, p.z + 0.3);
+  }
+
+  // it strikes the floor: its fire goes out of the sky (the flash it makes is the Golem's: golem.js)
+  land() {
+    this.mesh.visible = false;
+    this.light.end(0.05);
   }
 
   // returns false once it has landed
@@ -509,6 +543,7 @@ export class Meteor {
   get pos() { return this.mesh.position; }
 
   dispose() {
+    this.light.end(0.05);
     this.scene.remove(this.mesh);
     this.mesh.material.map.dispose();
     this.mesh.material.dispose();

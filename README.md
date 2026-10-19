@@ -808,6 +808,32 @@ slow dusk or dawn into the other (all in `client/js/daylight.js`).
 The hour comes from the real clock, so every tab and every reload agree on it. Add `?time=day` or
 `?time=night` to the address to hold one, or `?time=fast` to watch a whole day pass in two minutes.
 
+### Light
+
+Whatever shines lights the world round it: the floor, the walls, and everyone near, in its own
+colour. The world keeps 16 real lights and hands them to whatever counts most where the camera
+looks (`client/js/world.js`); one handed from one source to another dies away before the next
+comes up, so nothing blinks.
+
+- **Lamps:** braziers, torches, candles, lanterns and graces, as ever; less by day.
+- **What glows on a character:** Corisande's crystal, Solenne's ring, Fortuna's frost blade,
+  Maren's red lightning, Vael's blood magic, Ruadan's maul, the spectres' glow, a subagent's wisp.
+  Each light comes from where the glow is in the frame shown, so it swings with a blade, and it
+  sits a step in front of them, lighting what's round them more than themselves. Their colour and
+  strength come from the sheet's own glow (`client/js/heroes/core.js`, `client/js/npc.js`). Like
+  the lamps, they matter less by day.
+- **Effects** (`client/js/lights.js`), as bright by day as by night, and given a light before any
+  lamp:
+  - for as long as they last: a spell or a tome in flight, Corisande's glintstone arrow, Solenne's
+    wall of dawn, Aurelion's wave and the golden giant behind him, the aura round whoever looses
+    an ultimate (from behind them), Fenrath's crescent, lance and ghost sword, the Golem's
+    meteors (each lighting the floor more and more as it falls) and the fire in his chest as he
+    gathers it, spits it, and lies felled with it laid open;
+  - for a moment: each burst where something strikes home, hit sparks, Maren's bolts (the great
+    one brightest of all), Ruadan's golden explosion, pillars and spikes out of the floor, beams,
+    Wynn's cuts, Fenrath's slam, landing, half-arena cuts and eruption, each meteor landing, a
+    fast traveller going and coming in golden light, and the Twofold's and the Witch's change.
+
 ## How they talk
 
 Every line anyone says starts from a **base line** ("I'm tired…", "Going to work!", "Good luck,
@@ -938,7 +964,8 @@ scripts/                install/uninstall hooks, simulator
 client/js/title.js      the title screen: the pixel-art wordmark, sigil and embers, the way in, loading
 client/js/gate.js       where the title and the world meet: set out, and ready
 client/js/sprites.js    procedural pixel-art characters (base body + equipment layers)
-client/js/world.js      sky, far skyline, mist, islands, bridges, pooled lights (and effects' flashes)
+client/js/world.js      sky, far skyline, mist, islands, bridges, pooled lights
+client/js/lights.js     what lights the world besides its lamps: effects, and what glows on characters
 client/js/daylight.js   day and night: the clock, and how every light, colour and the grade change
 client/js/region.js     one project's island and its stations
 client/js/hub.js        Roundtable Hold

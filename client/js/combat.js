@@ -9,7 +9,7 @@
 // him where he stands (a pool of blood), bleed or poison him (his health running down by itself),
 // and knock him back.
 
-import { Missile, Beam, Rise, Burst, TEX, motesOf } from './spellfx.js';
+import { Missile, Beam, Rise, Burst, TEX, motesOf, shine } from './spellfx.js';
 import { lookOf } from './fxart.js';
 
 // By hero id (a hero of two looks fights as whichever it wears). `muzzle`: where a mage's spells
@@ -175,7 +175,7 @@ export function castSpell(fx, n, { target, dir, hit }) {
       // (fanned out to one side at first: it comes round onto him)
       const away = side ? [from[0] - n.body.facing * 0.2, from[1], from[2] + side * 0.08] : from;
       const m = new Missile(fx, {
-        ...o, from: away, trail,
+        ...o, from: away, trail, light: shine(school, 6 * size, 6),
         to: target, dir: target ? null : dir, turn: side ? 3.5 : 7, life: target ? 3 : 1.4,
         onHit: (at) => land(at, share, size),
       });

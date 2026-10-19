@@ -22,7 +22,8 @@ const variants = new Map(); // colour index -> sheet
 export function spectreSheet(base, k) {
   const c = SPECTRE_COLORS[k % SPECTRE_COLORS.length];
   if (!c.hue) return base;
-  if (!variants.has(k)) variants.set(k, { ...base, color: recolor(base.color, c.hue), glow: recolor(base.glow, c.hue) });
+  // (`hue`: how far its glow's colour is turned, for the light it gives: npc.js)
+  if (!variants.has(k)) variants.set(k, { ...base, hue: c.hue, color: recolor(base.color, c.hue), glow: recolor(base.glow, c.hue) });
   return variants.get(k);
 }
 

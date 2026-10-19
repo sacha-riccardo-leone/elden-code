@@ -12,13 +12,16 @@
 //   Slash   – a crescent of light flying at its mark; Cut, a cut left hanging in the air
 //   Drop    – an icicle falling out of the sky onto its mark
 //   Aura    – a shining outline round whoever looses an ultimate, a glow behind them
-// Each is { step(dt) → still going?, dispose() }, kept in fight.fx.
+// Each is { step(dt) → still going?, dispose() }, kept in fight.fx. What shines lights the world
+// round it too (lights.js), in its school's light (SHINE): what flies, for as long as it flies; a
+// burst, a bolt, a beam, a pillar, for a moment as they strike.
 
 import * as THREE from 'three';
 import { rng } from './pixel.js';
 import { canvasOf, texture } from './bossfx.js';
 import { rippling } from './ripple.js';
 import { fxArt } from './fxart.js';
+import { flash, carry } from './lights.js';
 
 // Each school's light, white-hot to dark: [core, hot, mid, deep, dark].
 export const LIGHT = {
@@ -34,6 +37,17 @@ export const LIGHT = {
 const hex = ([r, g, b]) => `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 // a school's light as particle colours, hottest first
 export const motesOf = (school) => LIGHT[school].slice(0, 4).map(hex);
+
+// Each school's light as it falls on the world round it (lights.js), and how much of it there is
+// (blood and poison barely shine); `shine(school, power, reach, more)`: a look for flash or carry.
+const SHINE = {
+  rune: ['#ffc862', 1], glintstone: ['#78c0ff', 1], blood: ['#ff3a44', 0.45], holy: ['#ffd870', 1],
+  frost: ['#94e2ff', 0.9], storm: ['#ff4a3a', 1], poison: ['#a8e060', 0.4], steel: ['#e6efff', 0.9],
+};
+export const shine = (school, power, reach, more = {}) => {
+  const [color, k] = SHINE[school] || SHINE.steel;
+  return { color, power: power * k, reach, ...more };
+};
 
 // Light: drawn over what's behind it, a little past white so the bloom catches it (untinted, unlike
 // the great enemy's red light, bossfx.js).
@@ -489,17 +503,6 @@ const screenAngle = (dx, dy, dz) => Math.atan2(dy * 0.9 - dz * 0.42, dx);
 let view = null;
 export function setView(camera) { view = camera; }
 
-// What lights the world for a moment (main.js, setLights: world.flash), and an effect's flash at
-// `at` (in `fx`'s space: the yard's effects are set on its lowered floor, the arena's on its risen
-// one), `look` as world.flash takes it.
-let lights = null;
-export function setLights(flash) { lights = flash; }
-function lightUp(fx, at, look) {
-  if (!lights) return;
-  const p = new THREE.Vector3(...at);
-  fx.scene?.localToWorld?.(p);
-  lights([p.x, p.y, p.z], look);
-}
 const P0 = new THREE.Vector3();
 const P1 = new THREE.Vector3();
 const BX = new THREE.Vector3();
@@ -571,13 +574,15 @@ function lieAlong(mesh, from, to) {
 // flies rather than pointing the way it goes (which, otherwise, it does as it shows on the screen,
 // into the view or out of it as well as across); `upright`: it keeps upright as it points, mirrored
 // rather than upside down going leftward (an arrow's light on top, a tome's covers);
-// `frames`: textures it flips through.
+// `frames`: textures it flips through; `light`: the light it carries (shine), lighting what it
+// passes.
 export class Missile {
   constructor(fx, { map, w, h, from, to = null, dir = null, speed = 10, turn = 7, near = 0.5, life = 3,
-    trail = null, trailRate = 40, trailSize = 0.06, spin = 0, upright = false, frames = null, fps = 10, onHit = null, onEnd = null, delay = 0, rise = 0, wobble = 0 }) {
+    trail = null, trailRate = 40, trailSize = 0.06, spin = 0, upright = false, frames = null, fps = 10, onHit = null, onEnd = null, delay = 0, rise = 0, wobble = 0, light = null }) {
     this.fx = fx;
     this.mesh = plane(fx.scene, frames ? frames[0] : map, w, h);
     this.mesh.visible = delay <= 0;
+    this.light = light ? carry(fx.scene, from, { ...light, level: delay > 0 ? 0 : 1 }) : null;
     this.pos = new THREE.Vector3(...from);
     const [tx, ty, tz] = to ? to() : [from[0] + (dir?.[0] ?? 1), from[1], from[2] + (dir?.[1] ?? 0)];
     const d = Math.hypot(tx - from[0], ty - from[1], tz - from[2]) || 1;
@@ -593,6 +598,7 @@ export class Missile {
       this.delay -= dt;
       if (this.delay > 0) return true;
       this.mesh.visible = true;
+      if (this.light) this.light.level = 1;
     }
     this.t += dt;
     if (this.to) {
@@ -612,6 +618,7 @@ export class Missile {
     this.pos.addScaledVector(this.vel, dt);
     const wob = this.wobble ? Math.sin(this.t * 14) * this.wobble : 0;
     this.mesh.position.set(this.pos.x, this.pos.y + wob, this.pos.z);
+    this.light?.at(this.pos.x, this.pos.y + wob, this.pos.z + 0.3);
     if (this.spin) this.mesh.rotation.z += this.spin * dt;
     else pointAt(this.mesh, screenAngleAt(this.mesh.parent, this.pos, this.vel), this.upright ? this : null);
     if (this.frames) this.mesh.material.map = this.frames[Math.floor(this.t * this.fps) % this.frames.length];
@@ -627,18 +634,22 @@ export class Missile {
 
   finish(hit) {
     this.done = true;
+    this.light?.end(0.12);
     if (hit) this.onHit?.(this.pos.clone());
     else this.onEnd?.(this.pos.clone());
   }
 
-  dispose() { drop(this.fx.scene, this.mesh); }
+  dispose() {
+    this.light?.end(0.08);
+    drop(this.fx.scene, this.mesh);
+  }
 }
 
 // A lance of light from `from` to `to`, there at once, flickering a moment and fading. Drawn by
 // hand (`art`, fxart.js: a lash of blood), it's stretched evenly from the one to the other, its
 // thick end at `from`, and plays its frames out over its life; or (`tile`: a lance of holy light,
 // drawn running on from edge to edge) it's `width` thick and its drawing is repeated along it,
-// flickering between its frames and flowing on.
+// flickering between its frames and flowing on. It lights all along it as long as it lasts.
 export class Beam {
   constructor(fx, { school, from, to, width = 0.32, life = 0.3, art = null, tile = false, onHit = null }) {
     const [x0, y0, z0] = from;
@@ -661,6 +672,7 @@ export class Beam {
     this.mesh = plane(fx.scene, map, len, sheet && !tile ? (len * sheet.h) / sheet.w : width, { order: 7 });
     this.mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
     lieAlong(this.mesh, from, to);
+    flash(fx.scene, [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2 + 0.3], shine(school, 80 * width, len / 2 + 5, { life, rise: 0.03 }));
     this.fx = fx;
     this.life = life;
     this.t = 0;
@@ -701,7 +713,8 @@ export class Beam {
 // Something rising out of the floor at (x, z): the floor marked first (`warn` seconds), then it
 // thrusts up (`map`, w x h), strikes (onHit) and sinks away. Drawn by hand (`art`, fxart.js), it
 // plays its own frames instead (breaking through, half, full, cracking apart), `px` world units to
-// its pixel, its foot on (x, z); its mark may be drawn too (`markArt`, `markSize` across).
+// its pixel, its foot on (x, z); its mark may be drawn too (`markArt`, `markSize` across). As it
+// thrusts up it lights round it, the taller the brighter.
 export class Rise {
   constructor(fx, { school, x, z, map, w, h, art = null, px = 0.02, mark = null, markArt = null, markSize = 2.4, warn = 0.45, life = 0.7, onHit = null }) {
     this.fx = fx;
@@ -731,6 +744,7 @@ export class Rise {
     if (!this.struck) {
       this.struck = true;
       this.mesh.visible = true;
+      flash(this.fx.scene, [this.x, Math.min(this.h / 2, 2.5), this.z + 0.3], shine(this.school, 12 + 8 * this.h, 6 + 1.5 * this.h, { life: this.life * 0.7, rise: 0.05 }));
       this.onHit?.(new THREE.Vector3(this.x, 1, this.z));
       this.fx.particles.emit({
         pos: [this.x, 0.2, this.z], spread: [0.6, 0.1, 0.4], vel: [0, 2.6, 0], velSpread: [1.4, 1.2, 1],
@@ -780,7 +794,7 @@ export class Bolt {
     }
     this.mark = floor(fx.scene, TEX.ring(school), x, z, wide ? 4.2 : 2.2, 1);
     Object.assign(this, { fx, life, t: 0 });
-    if (light) lightUp(fx, [x, light.up ?? 2, z], light);
+    if (light) flash(fx.scene, [x, light.up ?? 2, z], light);
     onHit?.(new THREE.Vector3(x, 0.5, z));
     fx.particles.emit({
       pos: [x, 0.3, z], spread: [0.3, 0.1, 0.3], vel: [0, 2.4, 0], velSpread: [2, 1.6, 1.4],
@@ -810,7 +824,7 @@ export class Bolt {
 
 // A blow striking home at `at`: a spark of sharp lines in the striker's light (`color`, '#rrggbb')
 // flung the way the blow went (`dir`, -1 or 1), `size` world units tall, three frames in a flash;
-// drawn over whatever it strikes (it would be lost inside him).
+// drawn over whatever it strikes (it would be lost inside him); its light a glint round it.
 export class Spark {
   constructor(fx, { color, at, dir = 1, size = 1, life = 0.16 }) {
     const w = (size * 32) / 24;
@@ -819,6 +833,7 @@ export class Spark {
     this.mesh.scale.x = dir;
     // (its heart, 8 of its 32 columns in, on the spot)
     this.mesh.position.set(at[0] + (w / 2 - (w * 8.5) / 32) * dir, at[1], at[2]);
+    flash(fx.scene, [at[0], at[1], at[2] + 0.3], { color, power: 8 * size, reach: 5, life: 0.14, rise: 0.01 });
     Object.assign(this, { fx, color, life, t: 0 });
   }
 
@@ -833,10 +848,13 @@ export class Spark {
   dispose() { drop(this.fx.scene, this.mesh); }
 }
 
-// A burst where something strikes home: a flash of rays, a ring spreading on the floor, sparks.
+// A burst where something strikes home: a flash of rays, a ring spreading on the floor, sparks;
+// and its light round it a moment, the bigger the brighter, farther and longer (unless `light`
+// is false: another light already there).
 export class Burst {
-  constructor(fx, { school, at, size = 2, ring = true, sparks = 30, life = 0.45 }) {
+  constructor(fx, { school, at, size = 2, ring = true, sparks = 30, life = 0.45, light = true }) {
     const [x, y, z] = at;
+    if (light) flash(fx.scene, [x, y, z + 0.3], shine(school, 12 * size ** 1.5, 4 + 3 * size, { life: 0.25 + 0.06 * size, rise: 0.02 }));
     this.flash = plane(fx.scene, TEX.burst(school), size, size, { order: 8 });
     this.flash.position.set(x, y, z + 0.15);
     this.flash.rotation.z = Math.random() * Math.PI;
@@ -867,7 +885,8 @@ export class Burst {
 }
 
 // The wall of light: a tall crescent flying `dir` ([dx, dz], one of the four ways) from (x, z),
-// `range` far; `hits(x, z)` asks, as it goes, whether it has reached its mark.
+// `range` far; `hits(x, z)` asks, as it goes, whether it has reached its mark. It carries its light
+// along the floor.
 export class Wall {
   // drawn (`art`, fxart.js), it plays its frames: forming as it leaves, full as it flies, fading at
   // the end of its run
@@ -879,11 +898,13 @@ export class Wall {
     // flying into or out of the view: seen face on, as a broad arc
     if (dir[0] === 0) { this.mesh.rotation.z = (dir[1] > 0 ? -1 : 1) * Math.PI / 2; this.mesh.scale.set(1.8, 1, 1); }
     Object.assign(this, { fx, x, z, dir, speed, range, height, hits, onHit, gone: 0, t: 0, struck: false });
+    this.light = carry(fx.scene, [x, height * 0.4, z + 0.4], shine('holy', 50, 15));
     this.place();
   }
 
   place() {
     this.mesh.position.set(this.x, this.dir[0] === 0 ? 1.6 : this.height / 2, this.z + 0.1);
+    this.light.at(this.x, this.height * 0.4, this.z + 0.4);
   }
 
   step(dt) {
@@ -906,10 +927,14 @@ export class Wall {
     const k = this.gone / this.range;
     if (this.frames) this.mesh.material.map = this.frames[k < 0.08 ? 0 : k < 0.75 ? 1 : 2];
     this.mesh.material.opacity = k < 0.75 ? 1 : Math.max(0, 1 - (k - 0.75) / 0.25);
+    this.light.level = this.mesh.material.opacity;
     return k < 1;
   }
 
-  dispose() { drop(this.fx.scene, this.mesh); }
+  dispose() {
+    this.light.end(0.1);
+    drop(this.fx.scene, this.mesh);
+  }
 }
 
 // A pool of blood on the floor at (x, z), `r` across its middle, for `life` seconds: it spreads,
@@ -959,7 +984,8 @@ export class Pool {
   dispose() { drop(this.fx.scene, this.mesh); }
 }
 
-// A crescent of light flying at its mark (to()), striking it once (onHit), fading out past it.
+// A crescent of light flying at its mark (to()), striking it once (onHit), fading out past it; its
+// light carried along with it.
 export class Slash {
   // drawn (`art`, fxart.js; `px` world units to its pixel), it stands on the floor and plays its
   // frames: forming as it leaves, full as it flies, stretching as it strikes, then fading
@@ -972,6 +998,7 @@ export class Slash {
     this.pos = new THREE.Vector3(...from);
     if (sheet) this.pos.y = (sheet.h * px) / 2;
     Object.assign(this, { fx, to, speed, onHit, school, t: 0, struck: false, fade: 0, fadeFor: sheet ? 0.32 : 0.25 });
+    this.light = carry(fx.scene, [this.pos.x, this.pos.y, this.pos.z + 0.4], shine(school, 45, 14));
     this.place();
   }
 
@@ -985,6 +1012,7 @@ export class Slash {
     const [gx, gz] = this.going || [1, 0];
     pointAt(this.mesh, screenAngleAt(this.mesh.parent, this.pos, DIR.set(gx, 0, gz)), this);
     this.mesh.position.copy(this.pos);
+    this.light.at(this.pos.x, this.pos.y, this.pos.z + 0.4);
   }
 
   step(dt) {
@@ -1013,6 +1041,7 @@ export class Slash {
     } else {
       this.mesh.material.opacity = Math.max(0, 1 - this.fade / this.fadeFor);
     }
+    this.light.level = this.mesh.material.opacity;
     if (Math.random() < dt * 40) {
       this.fx.particles.emit({
         pos: [this.pos.x, this.pos.y, this.pos.z], spread: [0.1, 0.8, 0.1], vel: [0, 0.4, 0], velSpread: [0.4, 0.4, 0.3],
@@ -1022,10 +1051,14 @@ export class Slash {
     return this.t < 3 && this.fade < this.fadeFor;
   }
 
-  dispose() { drop(this.fx.scene, this.mesh); }
+  dispose() {
+    this.light.end(0.1);
+    drop(this.fx.scene, this.mesh);
+  }
 }
 
-// A cut hanging in the air: a thin line of light from a to b, flaring when it's settled (flare()).
+// A cut hanging in the air: a thin line of light from a to b, flaring when it's settled (flare());
+// drawn across, it glints round it a moment.
 export class Cut {
   constructor(fx, { a, b, school = 'steel', width = 0.07, art = null, px = 0 }) {
     const [x0, y0, z0] = a;
@@ -1047,6 +1080,7 @@ export class Cut {
       this.flip = 1;
     }
     this.mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2 + 0.2);
+    flash(fx.scene, [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2 + 0.4], shine(school, 18, len / 2 + 4, { life: 0.22, rise: 0.02 }));
     this.drawn = !!sheet;
     this.grow = 0.05;
     this.mesh.scale.x = this.grow * this.flip;
@@ -1148,14 +1182,16 @@ export class Drop {
 }
 
 // A drawn effect (fxart.js) played once where something lands (an icicle's shatter): its frames at
-// `fps`, `px` world units to its pixel, its foot on (x, z), mirrored or not.
+// `fps`, `px` world units to its pixel, its foot on (x, z), mirrored or not; `light`, a flash of it
+// (world.flash's look), a third of its height up.
 export class Splash {
-  constructor(fx, { art, x, z, px, fps = 14, flip = false }) {
+  constructor(fx, { art, x, z, px, fps = 14, flip = false, light = null }) {
     const sheet = fxArt(art);
     const s = flip ? -1 : 1;
     this.mesh = plane(fx.scene, sheet.frames[0], sheet.w * px, sheet.h * px, { order: 8 });
     this.mesh.scale.x = s;
     this.mesh.position.set(x + (sheet.w / 2 - sheet.foot[0]) * px * s, (sheet.h / 2) * px - 0.05, z);
+    if (light) flash(fx.scene, [x, (sheet.h * px) / 3, z + 0.4], light);
     Object.assign(this, { fx, frames: sheet.frames, fps, t: 0 });
   }
 
@@ -1253,7 +1289,7 @@ const OUTLINE = {
 
 // Round someone (a SpriteBody) loosing an ultimate: a shining outline in their light, a glow
 // behind them, and motes rising and swirling in (their own particles, which go on while the world
-// stands still). `power` 0..1 brings it in and out.
+// stands still), and their light falling round them. `power` 0..1 brings it in and out.
 export class Aura {
   constructor(scene, particles, body, color, { radius = 2.4 } = {}) {
     const sheet = body.sheet;
@@ -1288,6 +1324,8 @@ export class Aura {
     this.glow.renderOrder = 1;
     scene.add(this.outline, this.glow);
     Object.assign(this, { scene, particles, body, color, power: 0, t: 0, h });
+    // (its light from behind them, as the glow is: it falls round them, not on them)
+    this.light = carry(scene, [body.mesh.position.x, body.mesh.position.y + h * 0.35, body.mesh.position.z - 0.6], { color, power: 16, reach: 9, level: 0 });
   }
 
   // the meshes that keep their colour while the world goes grey (post.js)
@@ -1316,6 +1354,8 @@ export class Aura {
     this.glow.position.set(this.body.footX ?? m.position.x, m.position.y + this.h * 0.32, m.position.z - 0.05);
     this.glow.scale.setScalar(0.9 + 0.12 * Math.sin(this.t * 6));
     this.glow.material.opacity = this.power * 0.55;
+    this.light.at(this.glow.position.x, m.position.y + this.h * 0.35, m.position.z - 0.6);
+    this.light.level = this.power;
     // motes: rising round them, and drawn in toward them
     if (this.power > 0.3 && Math.random() < dt * 60) {
       const a = Math.random() * Math.PI * 2;
@@ -1330,6 +1370,7 @@ export class Aura {
   }
 
   dispose() {
+    this.light.end(0.2);
     this.scene.remove(this.outline, this.glow);
     this.outline.material.dispose();
     this.glow.material.dispose();
@@ -1362,7 +1403,8 @@ const STAND = {
 // `scale` times its size, its feet on theirs, golden and see-through. It shows the frame they show,
 // so it swings as they swing, or plays an animation of their sheet on its own (`play`: Aurelion's
 // giant swings the Verdict while he strikes a pose); once they're let go of the pose (`follow`
-// false) it keeps its last. `power` 0..1 brings it in and out.
+// false) it keeps its last. `power` 0..1 brings it in and out, and its golden light with it, falling
+// round them from its chest.
 export class Stand {
   constructor(scene, body, { scale = 1.8, colors = ['#4a3208', '#9c7414', '#e8bc30', '#fde070'] } = {}) {
     const [c0, c1, c2, c3] = colors.map((c) => new THREE.Color(c));
@@ -1389,6 +1431,7 @@ export class Stand {
     this.mesh.visible = false;
     scene.add(this.mesh);
     Object.assign(this, { scene, body, scale, power: 0, anim: null });
+    this.light = carry(scene, [body.mesh.position.x, body.mesh.position.y + 2, body.mesh.position.z - 0.6], { color: colors[3], power: 35, reach: 16, level: 0 });
   }
 
   // (it keeps its colour while the world goes grey, post.js)
@@ -1440,9 +1483,14 @@ export class Stand {
     }
     u.uPower.value = this.power;
     this.mesh.visible = this.power > 0.02;
+    // (its light from its chest, behind them as it stands: the frame's middle, as tall as it is)
+    const tall = body.sheet.frameH * body.sheet.px * this.scale;
+    this.light.at(foot, m.position.y + tall * 0.42, m.position.z - 0.6);
+    this.light.level = this.power;
   }
 
   dispose() {
+    this.light.end(0.25);
     this.scene.remove(this.mesh);
     this.mesh.material.dispose();
   }

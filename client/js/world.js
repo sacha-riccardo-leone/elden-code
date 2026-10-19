@@ -4,10 +4,12 @@
 // appears, joined by stone bridges.
 //
 // Lights are pooled: every brazier, torch and grace registers a light source, and only the
-// dozen closest to the camera become real PointLights, so the world can grow without the
-// shaders slowing down. The moon's shadow box follows the camera for the same reason. Effects
-// light the world too, for a moment (flash: a bolt striking): a flash takes a light of the pool
-// before any lamp does.
+// sixteen closest to the camera become real PointLights, so the world can grow without the
+// shaders slowing down. The moon's shadow box follows the camera for the same reason. Whatever
+// glows lights the world too: the characters' glowing parts (npc.js), and effects, for a moment
+// (flash: a bolt striking) or for as long as they last (glow: a meteor falling); an effect's light
+// takes one of the pool before any lamp does. A light handed from one source to another dies away
+// first, and the next comes up, so that nothing blinks.
 
 import * as THREE from 'three';
 import { REGION, HUB, BRIDGE, DOUSE, slotCenterX, innerSlot } from './config.js';
@@ -21,7 +23,9 @@ import { Arena } from './arena.js';
 import { Yard } from './yard.js';
 import { Builder, NOISE_GLSL, UV_VERT, glowTexture, scaleBoxUV, BRICK_TILE } from './build.js';
 
-const LIGHT_POOL = 12;
+const LIGHT_POOL = 16;
+const HANDOVER = 0.3; // seconds a pooled light takes to die away from one source, or come up on the next
+const IDLE = 1.5; // seconds an effect's carried light is left alone before it's let go (glow)
 const BIOME_MEMORY = 'elden-code:biomes';
 
 const SKY_VERT = /* glsl */ `
@@ -355,7 +359,7 @@ export class World {
     this.fill = fill;
     for (let i = 0; i < LIGHT_POOL; i++) {
       const l = new THREE.PointLight('#ffffff', 0, 10, 1.5);
-      l.userData.src = null;
+      Object.assign(l.userData, { src: null, level: 0, leaving: false, fade: 0 });
       this.scene.add(l);
       this.lightPool.push(l);
     }
@@ -366,28 +370,63 @@ export class World {
     return src;
   }
 
+  removeLightSource(src) {
+    const i = this.lightSources.indexOf(src);
+    if (i >= 0) this.lightSources.splice(i, 1);
+  }
+
   // A flash of light from an effect (a bolt striking), at `pos` [x, y, z] in the world: its colour,
   // how bright at its height (`power`), how far it reaches and how it falls off, how long it lasts,
   // how quickly it comes up, and how many times it dips and comes back as it dies (`flicker`, a
   // bolt's). It goes as bright by day as by night.
   flash(pos, { color = '#ffffff', power = 20, reach = 10, decay = 1.5, life = 0.3, rise = 0.03, flicker = 0 } = {}) {
-    const src = {
-      pos: new THREE.Vector3(...pos), color: new THREE.Color(color), distance: reach, decay, intensity: 0,
-      flash: { power, life, rise, flicker, t: 0 },
+    return this.effectLight(pos, color, reach, decay, { power, life, rise, flicker, t: 0 });
+  }
+
+  // A light an effect carries for as long as it lasts (a meteor falling, an arrow in flight, the fire
+  // in the Golem's chest), at `pos` [x, y, z] in the world: its colour, how bright (`power`), how
+  // far it reaches, and how much it wavers, as a flame does (`waver`, 0..1). Its handle moves it
+  // (`at`), brightens or dims it (`level`, its share of its power) and lets it go (`end`: it dies
+  // away over `fade` seconds). One its effect leaves alone (neither moved nor dimmed) for IDLE
+  // seconds of the world's time is let go by itself, unless it's to stay where it is (`keep`).
+  glow(pos, { color = '#ffffff', power = 10, reach = 8, decay = 1.5, waver = 0, level = 1, keep = false } = {}) {
+    const src = this.effectLight(pos, color, reach, decay, { power, level, waver, keep, held: true, life: Infinity, t: 0, idle: 0 });
+    const f = src.flash;
+    return {
+      at(x, y, z) { src.pos.set(x, y, z); f.idle = 0; },
+      get level() { return f.level; },
+      set level(v) { f.level = v; f.idle = 0; },
+      end(fade = 0.15) {
+        if (!f.held) return;
+        Object.assign(f, { held: false, from: src.intensity, life: fade, t: 0 });
+      },
     };
+  }
+
+  effectLight(pos, color, reach, decay, flash) {
+    const src = { pos: new THREE.Vector3(...pos), color: new THREE.Color(color), distance: reach, decay, intensity: 0, flash };
     this.flashes.push(src);
     this.lightSources.push(src);
     return src;
   }
 
-  // The flashes, from moment to moment: up at once, then dying away (with its dips), and gone.
+  // The effects' lights, from moment to moment: a flash up at once, then dying away (with its
+  // dips), and gone; a carried one as bright as its level says (wavering, a flame's), till it's let
+  // go and dies away.
   stepFlashes(dt) {
     if (!this.flashes.length) return;
     const over = new Set();
     for (const s of this.flashes) {
       const f = s.flash;
       f.t += dt;
+      if (f.held && !f.keep && (f.idle += dt) > IDLE) Object.assign(f, { held: false, from: s.intensity, life: 0.3, t: 0 });
+      if (f.held) {
+        const waver = f.waver ? 1 - f.waver * 0.35 * (0.5 + 0.5 * Math.sin(f.t * 17 + 2 * Math.sin(f.t * 5.3))) : 1;
+        s.intensity = f.power * f.level * waver;
+        continue;
+      }
       if (f.t >= f.life) { over.add(s); s.intensity = 0; continue; }
+      if (f.from != null) { s.intensity = f.from * (1 - f.t / f.life) ** 2; continue; }
       const k = f.t < f.rise ? f.t / f.rise : (1 - (f.t - f.rise) / (f.life - f.rise)) ** 2;
       const dip = f.flicker ? 0.55 + 0.45 * Math.cos((f.t / f.life) * Math.PI * f.flicker) ** 2 : 1;
       s.intensity = f.power * k * dip;
@@ -397,34 +436,55 @@ export class World {
     this.lightSources = this.lightSources.filter((s) => !over.has(s));
   }
 
-  updateLights(focus) {
+  // The pool's lights, given to the sources that count most where the camera looks (`dt`: real
+  // time, so that a light handed on goes on dying away while the world stands still).
+  updateLights(focus, dt = 0) {
     const picks = [];
     for (const s of this.lightSources) {
       if (s.intensity <= 0.01) continue;
       const d = Math.hypot(s.pos.x - focus.x, s.pos.z - focus.z);
       if (d > 54) continue;
       const fade = 1 - THREE.MathUtils.smoothstep(d, 34, 52);
-      // (a flash before any lamp: it's there for a moment only)
-      picks.push({ s, fade, w: ((s.intensity * fade) / (1 + (d * d) / 400)) * (s.flash ? 1000 : 1) });
+      // (an effect's light before any lamp: it's there for a moment only; and one that has a light
+      // keeps it against another that counts only a little more, so that they don't keep trading it)
+      picks.push({ s, fade, w: ((s.intensity * fade) / (1 + (d * d) / 400)) * (s.flash ? 1000 : 1) * (s.pooled ? 1.3 : 1) });
     }
     picks.sort((a, b) => b.w - a.w);
     const chosen = new Map(picks.slice(0, LIGHT_POOL).map((p) => [p.s, p.fade]));
-    const free = [];
+    // A light no longer chosen dies away before it's handed on, and the source it goes to comes up
+    // on it; an effect's light takes one at once, cutting short one that's dying away.
+    const taken = new Set();
     for (const l of this.lightPool) {
-      if (l.userData.src && chosen.has(l.userData.src)) continue;
-      l.userData.src = null;
-      free.push(l);
+      const u = l.userData;
+      if (!u.src) continue;
+      u.leaving = !chosen.has(u.src);
+      if (u.leaving && u.src.intensity <= 0.01) { u.src.pooled = false; u.src = null; continue; } // (dark already: free at once)
+      taken.add(u.src);
     }
-    const taken = new Set(this.lightPool.map((l) => l.userData.src).filter(Boolean));
-    for (const s of chosen.keys()) if (!taken.has(s) && free.length) free.pop().userData.src = s;
+    for (const s of chosen.keys()) {
+      if (taken.has(s)) continue;
+      let l = this.lightPool.find((p) => !p.userData.src);
+      if (!l && s.flash) {
+        for (const p of this.lightPool) if (p.userData.leaving && (!l || p.userData.level < l.userData.level)) l = p;
+      }
+      if (!l) continue; // (it waits for a light to come free)
+      if (l.userData.src) l.userData.src.pooled = false;
+      Object.assign(l.userData, { src: s, leaving: false, level: s.flash ? 1 : 0 });
+      s.pooled = true;
+    }
+    const step = dt / HANDOVER;
     for (const l of this.lightPool) {
-      const s = l.userData.src;
+      const u = l.userData;
+      const s = u.src;
       if (!s) { l.intensity = 0; continue; }
+      u.level = Math.min(1, Math.max(0, u.level + (u.leaving ? -step : step)));
+      if (u.leaving && u.level <= 0) { s.pooled = false; u.src = null; l.intensity = 0; continue; }
+      if (!u.leaving) u.fade = chosen.get(s);
       l.position.copy(s.pos);
       l.color.copy(s.color);
       l.distance = s.distance;
       l.decay = s.decay;
-      l.intensity = s.intensity * (chosen.get(s) ?? 0) * (s.flash ? 1 : this.lampLevel);
+      l.intensity = s.intensity * u.fade * u.level * (s.flash ? 1 : this.lampLevel);
     }
   }
 
@@ -627,8 +687,14 @@ export class World {
     this.hub.update(dt, t, Math.min(1, hubResting / 3));
     this.arena.update(dt, t);
     this.yard.update(dt, t);
-    this.stepFlashes(dt);
-    this.updateLights(this.focus);
     this.followShadow(this.focus, camDist);
+  }
+
+  // The lights, once everything has moved this frame (main.js): the effects' (on the world's time,
+  // `dt`), and the pool given out again (`real`: the time that's passed, even while the world
+  // stands still), so that a flash shows in the very frame its effect does.
+  lightUp(dt, real) {
+    this.stepFlashes(dt);
+    this.updateLights(this.focus, real);
   }
 }

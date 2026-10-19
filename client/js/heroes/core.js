@@ -431,9 +431,30 @@ export function sheetPixels(rig, json, extras = {}) {
     tops.push(top);
     return [lo, hi];
   });
+  // what glows in each frame, as it lights the world round it (npc.js): how much (each glowing
+  // pixel counted by how bright its glow is), its middle in the frame, and its colour
+  const glows = frames.map(({ glow: g }) => {
+    let n = 0;
+    let sx = 0;
+    let sy = 0;
+    const rgb = [0, 0, 0];
+    for (let y = 0; y < g.h; y++) {
+      for (let x = 0; x < g.w; x++) {
+        const v = g.c[y * g.w + x];
+        if (v <= 0) continue;
+        const c = rig.glowColors[v - 1];
+        const w = (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255;
+        n += w;
+        sx += x * w;
+        sy += y * w;
+        for (let i = 0; i < 3; i++) rgb[i] += c[i] * w;
+      }
+    }
+    return n > 0.5 ? { n, x: sx / n, y: sy / n, rgb: rgb.map((v) => v / n) } : null;
+  });
   const base = lay(rig.frame, rig.cols, counts[0], false);
   const big = counts[1] ? lay(rig.bigFrame, rig.bigCols || Math.min(counts[1], 4), counts[1], true) : null;
-  return { ...base, frameCount: frames.length, slots, tops, spans, big };
+  return { ...base, frameCount: frames.length, slots, tops, spans, big, glows };
 }
 
 // Browser: fetch a hero's art and turn it into a sheet the NPC renderer understands.
@@ -479,6 +500,7 @@ export async function loadSheet(rig) {
     tops: px.tops,
     spans: px.spans,
     big,
+    glows: px.glows,
     anims: rig.anims,
     px: rig.px,
     head: rig.head,

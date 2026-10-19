@@ -9,6 +9,7 @@ import { SPECTRE_COLORS, spectreSheet } from './spectres.js';
 import { conversation } from './lore.js';
 import { speak, voiceOf } from './voices.js';
 import { groundAt } from './ground.js';
+import { carry } from './lights.js';
 
 const COMMAND_FX = {
   'code-review': { title: 'Incantation of Scrutiny', icon: 'eye' },
@@ -149,7 +150,9 @@ export class Director {
       const twofold = n.heroActor === 'twofold';
       if (!twofold && this.clock - (n.shiftedAt ?? -Infinity) < MASK.gap) continue;
       const timing = twofold ? SHIFT : VEIL;
-      n.shift = { to: want, t: 0, stage: 0, glow: 0, timing, told: twofold };
+      // (and its light round them: golden, or the glintstone's)
+      const light = carry(null, [n.pos.x, groundAt(n.pos.x, n.pos.y) + 1.3, n.pos.y + 0.5], { color: twofold ? '#ffc860' : '#78c0ff', power: 16, reach: 8, level: 0 });
+      n.shift = { to: want, t: 0, stage: 0, glow: 0, timing, told: twofold, light };
       n.shiftedAt = this.clock;
       n.action = { kind: 'transform', anim: 'cast', t: 0, dur: timing.end };
       n.body.play('cast', true);
@@ -164,6 +167,9 @@ export class Director {
     const middle = n.forms[n.forms[s.to]?.rig.via];
     s.t += dt;
     s.glow -= dt;
+    // (the light comes up as it gathers, and dies away once the new form has burst out)
+    s.light.at(n.pos.x, groundAt(n.pos.x, n.pos.y) + 1.3, n.pos.y + 0.5);
+    s.light.level = s.t < timing.reveal ? Math.min(1, s.t / 0.3) : Math.max(0, 1 - (s.t - timing.reveal) / Math.max(0.1, timing.end - timing.reveal));
     if (s.glow <= 0 && s.stage < 2) {
       s.glow = 0.12;
       this.ctx.particles.emit({
@@ -185,7 +191,10 @@ export class Director {
       n.body.play('idle', true);
       if (s.told) this.log(`…and becomes ${n.displayName}`, 'gold', n);
     }
-    if (s.t >= timing.end) n.shift = null;
+    if (s.t >= timing.end) {
+      s.light.end(0.2);
+      n.shift = null;
+    }
   }
 
   // Maren the Stormbound: the player's own character, not a session's. While the player is someone

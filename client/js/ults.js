@@ -31,7 +31,7 @@
 
 import * as THREE from 'three';
 import { Particles } from './particles.js';
-import { Aura, Stand, Missile, Wall, Pool, Slash, Cut, Drop, Bolt, Burst, StuckSpear, Splash, TEX, motesOf } from './spellfx.js';
+import { Aura, Stand, Missile, Wall, Pool, Slash, Cut, Drop, Bolt, Burst, StuckSpear, Splash, TEX, motesOf, shine } from './spellfx.js';
 import { ULT, ultPower, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt } from './combat.js';
 import { lookOf, fxArt } from './fxart.js';
 import { groundAt } from './ground.js';
@@ -47,9 +47,11 @@ const rand = (a, b) => a + Math.random() * (b - a);
 // over the floor and everyone near, flickering out; the great bolt's far brighter, farther and
 // longer.
 const RED_STORM = {
-  bolt: { color: '#ff4a3a', power: 40, reach: 9, life: 0.32, flicker: 1, up: 2 },
-  great: { color: '#ff5a44', power: 140, reach: 20, life: 0.8, flicker: 2, up: 3 },
+  bolt: { color: '#ff4a3a', power: 80, reach: 18, life: 0.32, flicker: 1, up: 2 },
+  great: { color: '#ff5a44', power: 280, reach: 40, life: 0.8, flicker: 2, up: 3 },
 };
+// And the golden explosion Ruadan's maul raises (spellfx.js, Splash): a great flash, flickering.
+const RUADAN_LIGHT = { color: '#ffc040', power: 180, reach: 30, life: 0.8, flicker: 1, rise: 0.04 };
 
 // How tall a pose stands (the frames of `anim` on body's sheet): from the feet to the top of the
 // drawing, in world units (a spear raised to the sky counts).
@@ -105,7 +107,7 @@ export const ULTS = {
         const up = 1.4 + (i % 3) * 0.6;
         fx.add(new Missile(fx, {
           ...look, upright: true, from,
-          to: () => fight.bossPoint(up), speed: 8.5, turn: 4, rise: 2.5, delay: i * 0.11, life: 5, trail: motesOf('rune'),
+          to: () => fight.bossPoint(up), speed: 8.5, turn: 4, rise: 2.5, delay: i * 0.11, life: 5, trail: motesOf('rune'), light: shine('rune', 8, 7),
           onHit: (at) => {
             hit(3.2, at);
             fx.add(new Burst(fx, { school: 'rune', at: [at.x, at.y, at.z], size: 1.7, ring: false, sparks: 16 }));
@@ -128,7 +130,7 @@ export const ULTS = {
       const [x, y, z] = muzzleOf(n, 'ult');
       fx.add(new Missile(fx, {
         ...look, upright: true, from: [x - n.body.facing * look.w * 0.45, y, z], to: () => fight.bossPoint(2), speed: 14, turn: 3, life: 4,
-        trail: [...motesOf('glintstone'), '#ffffff'], trailRate: 160, trailSize: 0.09,
+        trail: [...motesOf('glintstone'), '#ffffff'], trailRate: 160, trailSize: 0.09, light: shine('glintstone', 45, 15),
         onHit: (at) => {
           hit(22, at);
           fx.add(new Burst(fx, { school: 'glintstone', at: [at.x, at.y, at.z], size: 4, sparks: 60 }));
@@ -216,7 +218,7 @@ export const ULTS = {
           n.action = { kind: 'ult', anim: 'slam', t: 0, dur: 0.75 };
           n.body.play('slam', true);
           const head = [to.x + n.body.facing * 37 * px, to.y - 0.25];
-          if (fxArt('ruadan-explosion')) fx.add(new Splash(fx, { art: 'ruadan-explosion', x: head[0], z: head[1], px: px * 2, fps: 10 }));
+          if (fxArt('ruadan-explosion')) fx.add(new Splash(fx, { art: 'ruadan-explosion', x: head[0], z: head[1], px: px * 2, fps: 10, light: RUADAN_LIGHT }));
           else fx.add(new Burst(fx, { school: 'holy', at: [head[0], 0.9, head[1]], size: 5.5, sparks: 80 }));
           fx.add(new Burst(fx, { school: 'holy', at: [head[0], 0.6, head[1]], size: 2.6, ring: false, sparks: 50 }));
         } else {
@@ -250,7 +252,7 @@ export const ULTS = {
         }
         if (t < 2) return true;
         fx.add(new Bolt(fx, { x: b.pos.x, z: b.pos.y + 0.1, wide: true, height: 18, life: 0.5, art: 'maren-great-bolt', px: 0.075, light: RED_STORM.great, onHit: (at) => hit(14, at) }));
-        fx.add(new Burst(fx, { school: 'storm', at: [b.pos.x, 1.5, b.pos.y], size: 4.4, sparks: 70 }));
+        fx.add(new Burst(fx, { school: 'storm', at: [b.pos.x, 1.5, b.pos.y], size: 4.4, sparks: 70, light: false })); // (the great bolt's own light is there)
         fight.ctx.rig?.shake?.(0.75);
         return false;
       }));

@@ -29,7 +29,8 @@ import { Crowd } from './crowd.js';
 import { Guide } from './guide.js';
 import { Ults } from './ults.js';
 import { Training } from './training.js';
-import { setView, setLights } from './spellfx.js';
+import { setView } from './spellfx.js';
+import { setLights } from './lights.js';
 import { groundAt } from './ground.js';
 import { Companions } from './companions.js';
 import { PUBLIC_DEMO } from './mode.js';
@@ -52,7 +53,7 @@ setView(camera); // (what flies points the way it goes, as it shows through this
 const rig = new CameraRig(camera);
 const particles = new Particles(scene);
 const world = new World(scene, particles);
-setLights((at, look) => world.flash(at, look)); // (effects light the world for a moment: spellfx.js)
+setLights(world); // (what glows lights the world round it: lights.js)
 const nav = new Nav(world);
 const ui = new UI(camera, canvas);
 // The Stormbound Knight is worn by Maren (thee); the sessions share the other heroes.
@@ -360,6 +361,7 @@ function step(dt) {
   if (fight.hunting() && ui.fanOwner?.piloted) ui.closeFan(); // (thy gestures fold away as a great enemy comes)
   particles.update(wdt, t);
   ults.update(dt, wdt);
+  world.lightUp(wdt, dt); // (once all that shines has moved, or begun)
   ui.overview = rig.dist > 40;
   ui.setFocusArea(world.areaAt(rig.cur.x, rig.cur.z), t);
   ui.updateLabels(areas());
