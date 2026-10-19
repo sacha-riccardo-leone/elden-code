@@ -447,7 +447,9 @@ Boss fights happen in the **Arena of Trials**, a wide ring of broken pillars (ra
 from the mist north of Roundtable Hold once you call for the fight, and stands higher than the
 Hold: a stone stair climbs to it from the Hold's rim. It sinks again only once the fight is over
 and everyone has left it, you included (`client/js/fight.js`, `client/js/arena.js`). Everything
-loosed on it is placed from its floor, as on the Hold (a group raised to its height, `ARENA.y`).
+loosed on it is placed from its floor, as on the Hold (a group raised to its height, `ARENA.y`);
+a spell or spear you loose off it (in the Hold, on a bridge, on the stair) is placed from the
+ground under you instead, so it flies at your hand's height there too.
 
 - **What brings one:**
   - **Summoned:** at the Round Table (**E**).

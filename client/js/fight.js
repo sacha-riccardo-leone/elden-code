@@ -331,8 +331,10 @@ export class Fight {
         emit: (o) => ctx.particles.emit({ ...o, pos: raised(o.pos), attract: o.attract && { ...o.attract, y: o.attract.y + groundAt(o.attract.x, o.attract.z) } }),
       },
     };
-    // (and the Tarnished's spells and ultimates, spellfx.js: they're handed this to live in)
+    // (and the Tarnished's spells and ultimates, spellfx.js: they're handed this to live in; thine
+    // off the arena, one set at the ground under thee: fxFor)
     this.fxCtx = { scene: floor, particles: this.floor.particles, add: (e) => this.fx.push(e) };
+    this.loose = new Map(); // ground height -> its fxCtx
     this.cause = null;
     this.calling = null; // one coming, while thou choosest thy companions: { cause, kind, at }
     this.companions = new Set(); // those thou took with thee into the fight
@@ -725,7 +727,26 @@ export class Fight {
       const [px, , pz] = this.spellPoint(); // (what rises, rises under where a spell strikes him)
       return { along: Math.max(0.5, along), x: px, z: pz, struck };
     };
-    castSpell(this.fxCtx, n, { aim, hit: (p, share) => this.spellHit(n, share, p, true) });
+    castSpell(this.fxFor(n), n, { aim, hit: (p, share) => this.spellHit(n, share, p, true) });
+  }
+
+  // Where a spell of thine is set (spellfx.js places all of it from the floor): on the arena's floor,
+  // in its group (fxCtx); off it (in the Hold, on a bridge, on the stair up), in one set at the ground
+  // under thee, so that it flies at the height it flies at from there, not the arena floor's height
+  // above it.
+  fxFor(n) {
+    const y = Math.round(groundAt(n.pos.x, n.pos.y) * 20) / 20;
+    if (Math.abs(y - ARENA.y) < 0.03) return this.fxCtx;
+    let fx = this.loose.get(y);
+    if (!fx) {
+      const g = new THREE.Group();
+      g.position.y = y;
+      this.ctx.scene.add(g);
+      g.updateMatrixWorld(true);
+      fx = { scene: g, particles: this.floor.particles, add: (e) => this.fx.push(e) };
+      this.loose.set(y, fx);
+    }
+    return fx;
   }
 
   // R: thine ultimate, full, loosed (an aimed one the way thou pointest: it finds him only if he
