@@ -243,6 +243,21 @@ export class Training {
     return best;
   }
 
+  // The nearest dummy standing on the line `dir` [dx, dz] from n, as an aimed ultimate finds its
+  // mark (ults.js: ahead of it, and within `half` of the line), if one does.
+  onLine(n, dir, half = 1.9) {
+    let best = null;
+    let bd = Infinity;
+    for (const d of this.dummies || []) {
+      if (!d.standing) continue;
+      const dx = d.pos.x - n.pos.x;
+      const dz = d.pos.y - n.pos.y;
+      const along = dx * dir[0] + dz * dir[1];
+      if (along > 0.5 && along < 16 && Math.abs(dx * dir[1] - dz * dir[0]) < half && along < bd) { bd = along; best = d; }
+    }
+    return best;
+  }
+
   // The point of the dummy aimed at (`up` above its feet), where spells and ultimates fly (ults.js).
   bossPoint(up = 2) {
     const b = this.boss;
@@ -345,7 +360,7 @@ export class Training {
       const dx = (at ? at.x : n.pos.x + n.body.facing) - n.pos.x;
       const dz = (at ? at.z : n.pos.y) - n.pos.y;
       dir = Math.abs(dx) >= Math.abs(dz) ? [Math.sign(dx) || n.body.facing, 0] : [0, Math.sign(dz)];
-      d = this.target(n, dir, REACH, 0.3);
+      d = this.onLine(n, dir) || this.target(n, dir, REACH, 0.3); // (else it flies on past)
     } else {
       const side = at ? [Math.sign(at.x - n.pos.x) || n.body.facing, 0] : [n.body.facing, 0];
       d = this.target(n, side, REACH, -0.2) || this.target(n, [-side[0], 0], REACH, -0.2);
