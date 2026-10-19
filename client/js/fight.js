@@ -267,6 +267,7 @@ class Boss {
     const airborne = (this.attack?.kind === 'leap' && this.attack.step >= 1 && this.attack.step <= 2) || !!this.attack?.air;
     if (this.hp <= 0) {
       const lying = this.mind?.lying;
+      this.mind?.dies?.(lying);
       this.state = 'dying';
       this.t = 0;
       this.endMove();
@@ -450,6 +451,7 @@ export class Fight {
     this.hinted = false;
     this.state = 'rising';
     this.t = 0;
+    if (this.kind === 'golem') this.ctx.sound?.load('golem'); // (his sounds, ready by the time he comes: golem.js)
     world.arena.raise();
     ui.banner('A Great Enemy Approaches', `${whyOf(cause)} · Face it in the Arena of Trials`, 'red');
     ui.log('The Arena of Trials rises north of Roundtable Hold', 'red', { region: world.arena });
@@ -1001,7 +1003,8 @@ export class Fight {
     // where he's been standing: rooted too long and he'll want to leap elsewhere
     if (b.pos.distanceTo(b.anchor) > 3) { b.anchor.copy(b.pos); b.anchorT = 0; } else b.anchorT += dt;
     // (held, he's still as stone; dazed, he sways; slowed, all of him is slow)
-    b.body.tick(held ? (dazed ? dt * 0.4 : 0) : dt * pace, moving ? 0.8 * fast : 0.7);
+    const frame = b.body.tick(held ? (dazed ? dt * 0.4 : 0) : dt * pace, moving ? 0.8 * fast : 0.7);
+    if (frame != null) b.mind?.onFrame?.(b.body.anim?.name, frame); // (the Golem's feet set down, his body hitting the floor)
     b.body.place(b.pos.x + jitter + b.body.facing * b.offset, groundAt(b.pos.x, b.pos.y) + rippleAt(b.pos.x, b.pos.y), b.pos.y, b.lift);
     // his shadow: wide and deep (he's long, and heavy), a little smaller the higher he leaps (and
     // longer, the Golem lying on his face); Fenrath's set back under his paws, so they stand in it

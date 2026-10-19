@@ -24,7 +24,12 @@
 // Hemmed in again soon after a slam, he doesn't slam again: he rolls out of the crowd into open
 // ground (a somersault over his axe, blows passing over him meanwhile), and turns back on them
 // with his other blows.
-// He says nothing.
+// He says nothing; but he's heard (audio.js; Sacha's recordings, cut and levelled: README), each sound
+// on the very moment of what makes it: each foot as it's set down (the walk's frames where it lands),
+// the axe or the pole raised (its whoosh) and striking (the boom), a blow his stone turns (a clang),
+// the ankle cracking and his stone crumbling as he passes out, and his body hitting the floor on the
+// frame it does (the ground shaking and the dust then too), the fire roaring up as he spits it and
+// burning on while he does, and each meteor landing.
 
 import { ARENA } from './config.js';
 import { SpriteBody } from './npc.js';
@@ -116,6 +121,32 @@ export class GolemMind {
     this.slamIn = rand(12, 16);
     this.fireIn = rand(20, 28);
     this.told = new Set(); // (the hints in the log, each said once)
+  }
+
+  // A sound of his (audio.js, SOUNDS: golem-…), where he is (or at x, z).
+  sound(name, x = this.b.pos.x, z = this.b.pos.y, volume = 1) {
+    return this.ctx.sound?.play(`golem-${name}`, { at: [x, z], volume }) || null;
+  }
+
+  // One of his drawings comes up (fight.js): a foot set down as he walks (the front one on the walk's
+  // first frame, the back one halfway: heroes/golem.js), and, passing out or dying, his body on the
+  // floor (the fall's last drawing): the ground shakes and the dust flies, then, as it's heard.
+  onFrame(name, i) {
+    const b = this.b;
+    if (name === 'walk' && (i === 0 || i === 4)) {
+      this.sound('step', b.pos.x + b.body.facing * (i === 0 ? 0.35 : -0.35));
+    } else if ((name === 'fall' || name === 'collapse') && i === 4) {
+      this.sound('fall-hit', this.spot(SPOTS.heart)[0]);
+      this.ctx.rig.shake?.(0.35);
+      this.dust(this.spot(SPOTS.heart)[0], b.pos.y, 3.5, 60);
+    }
+  }
+
+  // Felled for good (fight.js): as he passes out, unless he lies felled already.
+  dies(lying) {
+    if (lying) return;
+    this.sound('fall-crack');
+    this.sound('fall-crumble');
   }
 
   // A spot of his (SPOTS: art px from his middle, forward and up) in the world: [x, height].
@@ -242,6 +273,7 @@ export class GolemMind {
   // still. The striker (`n`) bounces off it: its drawing thrown back the way it came, past the
   // lunge its blow began (npc.js).
   clang(x, z, n = null) {
+    this.sound('clang', x, z);
     this.floor.particles.emit({
       pos: [x, 1.2, z + 0.2], spread: [0.2, 0.3, 0.2], vel: [0, 1.2, 0], velSpread: [1.4, 1, 0.8],
       color: [...STONE, '#ffe6b0'], size: 0.06, life: 0.4, count: 10, drag: 1.6, intensity: 1.2,
@@ -374,20 +406,21 @@ export class GolemMind {
     b.t = 0;
     this.weakT = 0;
     b.pose('fall', true);
+    this.sound('fall-crack');
+    this.sound('fall-crumble');
     this.tell('fall', 'The Golem falls! Strike the fire in his chest from within the golden circle', 'gold');
   }
 
   // Falling, felled, getting up (fight.stepBoss, for these states).
   stepState(dt) {
     const b = this.b;
-    const { rig } = this.ctx;
     if (b.state === 'falling') {
-      if (b.t >= 1.35) {
+      // (once his body has hit the floor, on the fall's last drawing: onFrame shook it)
+      const a = b.body.anim;
+      if (b.t >= 1.35 && (a?.name !== 'fall' || a.index >= a.def.frames.length - 1)) {
         b.state = 'down';
         b.t = 0;
         b.pose('down');
-        rig.shake?.(0.35);
-        this.dust(this.spot(SPOTS.heart)[0], b.pos.y, 3.5, 60);
         this.openHeart();
       }
     } else if (b.state === 'down') {
@@ -458,6 +491,7 @@ export class GolemMind {
     b.state = 'attack';
     b.idleT = 0;
     this.nextStep();
+    if (kind !== 'roll') this.sound('windup'); // (the axe or the pole raised)
   }
 
   // The move goes on: the marks pulse, he shakes, spits fire; at the end of each step, the next.
@@ -480,6 +514,7 @@ export class GolemMind {
       a.fire.end(0.5);
       a.fire = null;
     }
+    if (a.roar && !(a.kind === 'fire' && a.step === 3)) this.hush(a);
     if (a.kind === 'fire' && a.step === 2) {
       // gathering the fire: he shakes side to side
       jitter = (Math.floor(a.t * 20) % 2 ? 1 : -1) * 0.12;
@@ -528,6 +563,7 @@ export class GolemMind {
         b.marks.push(Object.assign(new Decal(scene, 'ring', a.ix, z, GOLEM.wave.swing * 2 * 48 / 44, { opacity: 0.22 }), { faint: true }));
         break;
       case 'swing:2': {
+        this.sound('strike', a.ix);
         for (const m of b.marks) m.dispose();
         b.marks = [];
         this.fight.strike((px, pz) => Math.hypot(px - a.ix, pz - z) <= GOLEM.swing.r, H.swing);
@@ -537,6 +573,7 @@ export class GolemMind {
       case 'lunge:1': {
         // the thrust, to the point and far past it: a shock in the air flying on
         const [tip, ty] = this.spot(SPOTS.lunge);
+        this.sound('strike', tip, z, 0.75);
         this.fight.strike((px, pz) => covers(a, px, pz, Math.abs(tip - b.pos.x)), H.lunge);
         const w = new AirWave(scene, tip, ty, z, a.dir, GOLEM.lunge.air);
         this.fight.fx.push({
@@ -561,16 +598,19 @@ export class GolemMind {
         break;
       case 'slam:1':
       case 'slam:3':
+        this.sound('strike', a.ix);
         for (const m of b.marks) m.dispose();
         b.marks = [];
         this.groundHit(a.ix, z, GOLEM.wave.slam, H.slam, 0.3, GOLEM.wave.amp.slam);
         break;
       case 'slam:5':
         // the last: the whole arena
+        this.sound('strike', a.ix, z, 1.15);
         this.groundHit(a.ix, z, GOLEM.wave.last, H.last, 0.6, GOLEM.wave.amp.last);
         break;
       case 'fire:1': {
         // the pole driven into the ground, and left there: no shockwave, only the crack
+        this.sound('strike', a.ix);
         for (const m of b.marks) m.dispose();
         b.marks = [];
         this.crack(a.ix, z, 5);
@@ -593,6 +633,10 @@ export class GolemMind {
         a.spit = 0;
         break;
       }
+      case 'fire:3':
+        // the fire roars up out of his chest, and burns on while he spits it (hush, as it ends)
+        a.roar = [this.sound('fire-start'), this.sound('fire')];
+        break;
       case 'roll:6':
         this.slamIn = Math.max(this.slamIn, 6);
         this.sinceTurn = GOLEM.turn.every;
@@ -763,6 +807,7 @@ export class GolemMind {
           // it lands: fire bursts (a flash of it), the stone cracks, and all on the mark suffer
           landed = true;
           rock.land();
+          this.sound('meteor', x, z);
           flash(scene, [x, 1, z + 0.3], { color: FIRE_LIGHT, power: 90, reach: 14, life: 0.45, flicker: 1, rise: 0.02 });
           const i = a.opt.spots.indexOf(spot);
           if (i >= 0) a.opt.spots.splice(i, 1);
@@ -793,11 +838,19 @@ export class GolemMind {
     this.dropAxe();
     const a = this.b.attack;
     if (a?.fire) { a.fire.end(0.5); a.fire = null; }
+    if (a?.roar) this.hush(a);
+  }
+
+  // The fire's roar dies away (its move over, or cut short).
+  hush(a) {
+    for (const v of a.roar || []) v?.stop(0.6);
+    a.roar = null;
   }
 
   dispose() {
     this.dropAxe();
     this.closeHeart();
+    if (this.b.attack?.roar) this.hush(this.b.attack);
   }
 }
 

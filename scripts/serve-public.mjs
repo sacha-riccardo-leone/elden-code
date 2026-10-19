@@ -10,7 +10,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'd
 const PORT = Number(process.env.PORT) || 7788;
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8', '.woff2': 'font/woff2',
+  '.json': 'application/json; charset=utf-8', '.woff2': 'font/woff2', '.mp3': 'audio/mpeg',
 };
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
 const headersFor = (url) => Object.fromEntries(config.headers

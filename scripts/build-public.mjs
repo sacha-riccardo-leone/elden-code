@@ -7,7 +7,8 @@
 // It's the game as it is, with mode.js switched to PUBLIC_DEMO: no bridge and no real data, an
 // endless world of made-up sessions (client/js/demo.js). Only what the page loads is copied: the
 // client's code and styles, the art grids (JSON, not the preview GIFs and source images), the
-// parts of Three.js it imports and the two fonts. The page carries the local bridge's
+// sounds as the game cut them (not the recordings they were cut from), the parts of Three.js it
+// imports and the two fonts. The page carries the local bridge's
 // Content-Security-Policy itself (a meta tag allowing exactly its import map, by hash); the other
 // security headers are in the repository's vercel.json, which also tells Vercel how to build this
 // when it deploys from GitHub, and are copied next to the build for npm run deploy:public.
@@ -88,6 +89,9 @@ write(path.join(OUT, 'js', 'mode.js'), [
 walk(path.join(CLIENT, 'assets'), (p) => p.endsWith('.json') && !p.endsWith('-sheet.json'), (p) => copy(p, path.join(OUT, rel(p))));
 // and the drawing of the grace itself (grace.js)
 copy(path.join(CLIENT, 'assets', 'fx', 'grace-core.png'), path.join(OUT, 'assets', 'fx', 'grace-core.png'));
+// the sounds, each set as the game cut it (client/assets/sfx/<set>: audio.js's SOUNDS), not the
+// recordings beside them it was cut from
+for (const set of ['golem']) walk(path.join(CLIENT, 'assets', 'sfx', set), (p) => p.endsWith('.mp3'), (p) => copy(p, path.join(OUT, rel(p))));
 
 // Three.js: the build, and the addons the code imports with everything they import in turn
 const imports = (file) => [...fs.readFileSync(file, 'utf8').matchAll(/(?:import|export)[^'"]*?from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]/g)].map((m) => m[1] || m[2]);

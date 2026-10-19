@@ -126,7 +126,8 @@ can **become any character**: click one and choose **Become …** in the fan ove
     and throws a spear as Ulric. Every attack goes the way you point (see **Aiming**, under great
     enemies).
     **Space** dodges. **C** crouches. **Q**, in a fight against a great enemy, turns the camera's
-    focus on it and back on you. **R** looses your ultimate once its bar is full.
+    focus on it and back on you. **R** looses your ultimate once its bar is full. **V** turns the
+    sound off and on.
   - **B** (or clicking yourself) opens your fan of gestures over your head (or **1–8**). Nearby
     Tarnished may answer. There are no gestures while a great enemy is abroad: the fan folds away
     and comes back once the fight is over.
@@ -867,6 +868,30 @@ comes up, so nothing blinks.
     Wynn's cuts, Fenrath's slam, landing, half-arena cuts and eruption, each meteor landing, a
     fast traveller going and coming in golden light, and the Twofold's and the Witch's change.
 
+## Sound
+
+The Lands Between have begun to be heard, the Guardian Golem first (`client/js/audio.js`, Web
+Audio). His sounds are cut from Sacha's recordings (`client/assets/sfx/Golem Guardian`, kept as
+they are and never deployed) into `client/assets/sfx/golem`: 20 small MP3 clips, about 0.6 MB in
+all. Each footstep of the two footstep recordings is cut out on its own (11 steps), every other
+sound from where it starts, and each is levelled to one peak (`dontuse.wav` is left out, as named).
+
+- **On the moment of what makes it:**
+  - a footstep as each of his feet is set down: the walk's first and fifth drawings, where a foot
+    lands, one of the 11 at random, a little different each time;
+  - a whoosh as the axe or the pole is raised, and a boom on the drawing where it strikes: the
+    swing, the thrust, each slam, the pole driven in for his fire;
+  - a clang when his stone turns a blow;
+  - as he passes out (or dies), the ankle cracking and his stone crumbling, then his body hitting
+    the floor on the drawing where it does (the ground shakes and the dust flies then too);
+  - the fire roaring up as he spits it, burning on, looped, while he does, and dying away as he
+    stops;
+  - each meteor as it lands.
+- **Where it happens:** quieter the farther it is from where the camera looks, to the left or the
+  right as it shows on the screen, and never too many of one at once (eight meteors).
+- Nothing sounds before you set out: a browser lets a page play sound only once it's been clicked.
+  **V** turns the sound off and on, and it's remembered.
+
 ## How they talk
 
 Every line anyone says starts from a **base line** ("I'm tired…", "Going to work!", "Good luck,
@@ -999,6 +1024,7 @@ client/js/gate.js       where the title and the world meet: set out, and ready
 client/js/sprites.js    procedural pixel-art characters (base body + equipment layers)
 client/js/world.js      sky, far skyline, mist, islands, bridges, pooled lights
 client/js/lights.js     what lights the world besides its lamps: effects, and what glows on characters
+client/js/audio.js      sound: the clips, played where and when things happen (the Golem's)
 client/js/daylight.js   day and night: the clock, and how every light, colour and the grade change
 client/js/region.js     one project's island and its stations
 client/js/hub.js        Roundtable Hold

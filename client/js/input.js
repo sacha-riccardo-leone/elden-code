@@ -1,7 +1,8 @@
 // Pointer and keyboard, for whoever thou art (Maren, or whoever thou hast become; pilot.js): WASD /
 // arrows walk (Shift runs), left click strikes (a mage casts), right click casts (whoever casts:
 // Fortuna, the mages; Ulric throws his spear), R looses thine ultimate once it's full, C crouches, B (or a click on thyself) opens thy fan
-// of gestures, number keys gesture, E uses what's in reach (interact.js), M shows the map. Click
+// of gestures, number keys gesture, E uses what's in reach (interact.js), M shows the map, V turns
+// the sound off and on (audio.js). Click
 // another Tarnished to inspect it and open its fan, which offers to become them; drag it to carry
 // it elsewhere; scroll to zoom. Z/X travel by grace between areas, H to Roundtable Hold. In the
 // thick of a fight on the arena (fight.js) nobody can be clicked: every click is a blow.
@@ -171,6 +172,7 @@ export class Input {
     if (e.code === 'KeyQ') this.actions.focus();
     if (e.code === 'KeyR') this.actions.ult?.(this.pointer ? this.aimAt(this.pointer) : null);
     if (e.code === 'KeyB') this.actions.fan();
+    if (e.code === 'KeyV') this.actions.sound?.();
     const n = Number(e.key);
     if (n >= 1 && n <= GESTURES.length) this.actions.emote(GESTURES[n - 1].key); // only thou gesturest
     if (e.key === '+' || e.key === '=') this.rig.zoom(-200);

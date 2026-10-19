@@ -31,6 +31,7 @@ import { Ults } from './ults.js';
 import { Training } from './training.js';
 import { setView } from './spellfx.js';
 import { setLights } from './lights.js';
+import { Sound } from './audio.js';
 import { groundAt } from './ground.js';
 import { Companions } from './companions.js';
 import { PUBLIC_DEMO } from './mode.js';
@@ -51,6 +52,9 @@ scene.fog = new THREE.FogExp2('#16171d', 0.0105);
 const camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.5, 1500);
 setView(camera); // (what flies points the way it goes, as it shows through this: spellfx.js)
 const rig = new CameraRig(camera);
+// what's heard, from where the camera looks (audio.js); it may begin once thou settest out
+const sound = new Sound();
+sound.view = { camera, focus: rig.target };
 const particles = new Particles(scene);
 const world = new World(scene, particles);
 setLights(world); // (what glows lights the world round it: lights.js)
@@ -73,6 +77,7 @@ world.hub.lightFires(fireArt);
 world.arena.lightFires(fireArt);
 const playerSheet = allHeroes.find((s) => s.hero === 'knight') || null;
 const ctx = { scene, world, nav, particles, ui, director: null, heroSheets: allHeroes.filter((s) => s !== playerSheet), bossSheet, golemSheet, spectreSheet };
+ctx.sound = sound;
 const director = new Director(ctx);
 ctx.director = director;
 const keys = new Set();
@@ -204,6 +209,8 @@ new Input({
   floor: () => (pilot.npc ? groundAt(pilot.npc.pos.x, pilot.npc.pos.y) : 0),
   actions: {
     emote: (key) => pilot.npc && director.gesture(pilot.npc, key),
+    // V: the sound off, or on again
+    sound: () => ui.log(sound.toggle() ? 'Sound on' : 'Sound off', 'dim'),
     attack: (at) => pilot.attack(at),
     spell: (at) => pilot.cast(at), // right click: a spell (Fortuna, the mages)
     ult: (at) => (training.has(pilot.npc) ? training : fight).playerUlt(at), // R: thine ultimate, once full (ults.js; always, on the training yard)
@@ -407,6 +414,10 @@ window.elden = {
 // demo's sessions start, and time runs.
 function begin() {
   entered = true;
+  // (thou'st clicked to set out: sound may begin, and any click or key after wakes it if it's held)
+  sound.unlock();
+  window.addEventListener('pointerdown', () => sound.unlock());
+  window.addEventListener('keydown', () => sound.unlock());
   spawnPlayer();
   if (PUBLIC_DEMO) demo.startWorld();
   else if (new URLSearchParams(window.location.search).has('demo')) setTimeout(toggleDemo, 600);

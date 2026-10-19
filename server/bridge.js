@@ -42,6 +42,7 @@ const MIME = {
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
+  '.mp3': 'audio/mpeg', // (the sounds: client/js/audio.js)
 };
 
 function loadToken() {
