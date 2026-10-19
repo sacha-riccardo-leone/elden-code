@@ -21,8 +21,8 @@ export const SOUNDS = {
   'golem-windup': { set: 'golem', clips: ['windup'], volume: 0.7, vary: 0.05, most: 2, half: 24 },
   'golem-strike': { set: 'golem', clips: ['strike'], volume: 0.9, vary: 0.04, most: 3, half: 30 },
   'golem-clang': { set: 'golem', clips: ['clang'], volume: 0.55, vary: 0.08, most: 3, half: 20 },
-  'golem-fall-crack': { set: 'golem', clips: ['fall-crack'], volume: 0.9, most: 1, half: 26 },
-  'golem-fall-crumble': { set: 'golem', clips: ['fall-crumble'], volume: 0.7, most: 1, half: 26 },
+  'golem-fall-start-1': { set: 'golem', clips: ['fall-start-1'], volume: 0.9, most: 1, half: 26 },
+  'golem-fall-start-2': { set: 'golem', clips: ['fall-start-2'], volume: 0.8, most: 1, half: 26 },
   'golem-fall-hit': { set: 'golem', clips: ['fall-hit'], volume: 1, most: 1, half: 30 },
   'golem-fire-start': { set: 'golem', clips: ['fire-start'], volume: 0.8, most: 1, half: 30 },
   'golem-fire': { set: 'golem', clips: ['fire'], volume: 0.75, most: 1, half: 30, loop: [1.2, 2.6] },
@@ -84,9 +84,10 @@ export class Sound {
   }
 
   // Plays a sound (SOUNDS) where something happens (`at`: [x, z] in the world; none, wherever one
-  // is), `volume` times its own. Returns what's sounding (stop(fade) ends it: a looped one sounds
-  // till then), or null if nothing can be heard.
-  play(name, { at = null, volume = 1 } = {}) {
+  // is), `volume` times its own, `delay` seconds from now. Returns what's sounding (stop(fade) ends
+  // it, or keeps it from ever beginning: a looped one sounds till then), or null if nothing can be
+  // heard.
+  play(name, { at = null, volume = 1, delay = 0 } = {}) {
     const s = SOUNDS[name];
     this.log.push([performance.now() / 1000, name]);
     if (this.log.length > 200) this.log.splice(0, 100);
@@ -117,13 +118,15 @@ export class Sound {
       node = node.connect(p);
     }
     node.connect(this.out);
-    src.start(0, Math.min(LEAD, buf.duration / 2));
+    const begins = this.ctx.currentTime + delay;
+    src.start(begins, Math.min(LEAD, buf.duration / 2));
     const voice = {
       done: false,
       stop: (fade = 0.2) => {
         if (voice.done) return;
         voice.done = true;
         const t = this.ctx.currentTime;
+        if (t < begins) { src.stop(t); return; } // (not begun: it never will)
         g.gain.cancelScheduledValues(t);
         g.gain.setValueAtTime(g.gain.value, t);
         g.gain.linearRampToValueAtTime(0, t + fade);

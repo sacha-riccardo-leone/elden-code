@@ -27,9 +27,10 @@
 // He says nothing; but he's heard (audio.js; Sacha's recordings, cut and levelled: README), each sound
 // on the very moment of what makes it: each foot as it's set down (the walk's frames where it lands),
 // the axe or the pole raised (its whoosh) and striking (the boom), a blow his stone turns (a clang),
-// the ankle cracking and his stone crumbling as he passes out, and his body hitting the floor on the
-// frame it does (the ground shaking and the dust then too), the fire roaring up as he spits it and
-// burning on while he does, and each meteor landing.
+// as he passes out, the first of its two sounds and, halfway through it, the second on top of it (on
+// while he lies felled, dying away as he gets up), and his body hitting the floor on the frame it
+// does (the ground shaking and the dust then too), the fire roaring up as he spits it and burning on
+// while he does, and each meteor landing.
 
 import { ARENA } from './config.js';
 import { SpriteBody } from './npc.js';
@@ -94,6 +95,9 @@ export const GOLEM_MOVES = {
 };
 
 const rand = (a, b) => a + Math.random() * (b - a);
+// (seconds into the first of his passing-out sounds the second comes in on top of it: about half its
+// length, so that they sound together only a moment)
+const PASSING = 2.0;
 // how long he travels as he rolls: through its middle five drawings
 const ROLL_TRAVEL = GOLEM_MOVES.roll.steps.slice(1, 6).reduce((t, [, d]) => t + d, 0);
 const FIRE = ['#fff6c8', '#ffd24a', '#ff8a14', '#e0380a'];
@@ -123,9 +127,17 @@ export class GolemMind {
     this.told = new Set(); // (the hints in the log, each said once)
   }
 
-  // A sound of his (audio.js, SOUNDS: golem-…), where he is (or at x, z).
-  sound(name, x = this.b.pos.x, z = this.b.pos.y, volume = 1) {
-    return this.ctx.sound?.play(`golem-${name}`, { at: [x, z], volume }) || null;
+  // A sound of his (audio.js, SOUNDS: golem-…), where he is (or at x, z), `delay` seconds from now.
+  sound(name, x = this.b.pos.x, z = this.b.pos.y, volume = 1, delay = 0) {
+    return this.ctx.sound?.play(`golem-${name}`, { at: [x, z], volume, delay }) || null;
+  }
+
+  // Passing out (or dying): the first of its sounds, and the second coming in on top of it halfway
+  // through (PASSING), going on while he lies felled (hushed as he gets up, or as the fight ends).
+  passOut() {
+    this.passing?.stop(0.3);
+    this.sound('fall-start-1');
+    this.passing = this.sound('fall-start-2', this.b.pos.x, this.b.pos.y, 1, PASSING);
   }
 
   // One of his drawings comes up (fight.js): a foot set down as he walks (the front one on the walk's
@@ -144,9 +156,7 @@ export class GolemMind {
 
   // Felled for good (fight.js): as he passes out, unless he lies felled already.
   dies(lying) {
-    if (lying) return;
-    this.sound('fall-crack');
-    this.sound('fall-crumble');
+    if (!lying) this.passOut();
   }
 
   // A spot of his (SPOTS: art px from his middle, forward and up) in the world: [x, height].
@@ -406,8 +416,7 @@ export class GolemMind {
     b.t = 0;
     this.weakT = 0;
     b.pose('fall', true);
-    this.sound('fall-crack');
-    this.sound('fall-crumble');
+    this.passOut();
     this.tell('fall', 'The Golem falls! Strike the fire in his chest from within the golden circle', 'gold');
   }
 
@@ -430,6 +439,8 @@ export class GolemMind {
         b.t = 0;
         b.pose('rise', true);
         this.closeHeart();
+        this.passing?.stop(1.2);
+        this.passing = null;
       }
     } else if (b.state === 'rising') {
       if (b.t >= 1.75) {
@@ -851,6 +862,8 @@ export class GolemMind {
     this.dropAxe();
     this.closeHeart();
     if (this.b.attack?.roar) this.hush(this.b.attack);
+    this.passing?.stop(1);
+    this.passing = null;
   }
 }
 

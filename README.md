@@ -875,6 +875,7 @@ Audio). His sounds are cut from Sacha's recordings (`client/assets/sfx/Golem Gua
 they are and never deployed) into `client/assets/sfx/golem`: 20 small MP3 clips, about 0.6 MB in
 all. Each footstep of the two footstep recordings is cut out on its own (11 steps), every other
 sound from where it starts, and each is levelled to one peak (`dontuse.wav` is left out, as named).
+`scripts/cut-golem-sfx.mjs` cuts them again, from the recordings, whenever they change.
 
 - **On the moment of what makes it:**
   - a footstep as each of his feet is set down: the walk's first and fifth drawings, where a foot
@@ -882,8 +883,10 @@ sound from where it starts, and each is levelled to one peak (`dontuse.wav` is l
   - a whoosh as the axe or the pole is raised, and a boom on the drawing where it strikes: the
     swing, the thrust, each slam, the pole driven in for his fire;
   - a clang when his stone turns a blow;
-  - as he passes out (or dies), the ankle cracking and his stone crumbling, then his body hitting
-    the floor on the drawing where it does (the ground shakes and the dust flies then too);
+  - as he passes out (or dies), `passing_out_start_1`, and halfway through it `passing_out_start_2`
+    on top of it, the two sounding together only a moment; the second goes on while he lies felled
+    and dies away as he gets up. His body hits the floor on the drawing where it does, heard then
+    (the ground shakes and the dust flies then too);
   - the fire roaring up as he spits it, burning on, looped, while he does, and dying away as he
     stops;
   - each meteor as it lands.
