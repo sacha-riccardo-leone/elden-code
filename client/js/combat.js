@@ -6,13 +6,18 @@
 //
 // Ulric has no sorcery, but played by thee he throws his spear as a mage casts (throwSpear).
 //
+// Thine (whoever thou art) go the way thou pointest: every blow, spell and thrown spear along the
+// line on the screen from thee to the pointer (aimOf), finding what stands on it, or a little off it.
+//
 // Also here: what the ultimates can do to him besides wounding him (status): hold him still (as
 // the iaijutsu's cuts are made), stun him (dazed, he neither fights nor moves), slow him and root
 // him where he stands (a pool of blood), bleed or poison him (his health running down by itself),
 // and knock him back.
 
+import * as THREE from 'three';
 import { Missile, Beam, Rise, Burst, Spark, StuckSpear, TEX, motesOf, shine } from './spellfx.js';
 import { lookOf } from './fxart.js';
+import { groundAt } from './ground.js';
 
 // By hero id (a hero of two looks fights as whichever it wears). `muzzle`: where a mage's spells
 // leave from, [ahead, up] of its feet in world units (the orb, the crystal, the fist, the ring),
@@ -75,8 +80,88 @@ export function blow(n, kind, { spell = false, ...more } = {}) {
 // Where a spell of n's leaves from, in the world: where its rig's drawn pose holds it, if it says
 // (`which`: the thrust that looses a spell, or the ultimate's pose), else where its style says.
 export function muzzleOf(n, which = 'attack') {
-  const [ahead, up] = n.body?.sheet?.rig?.muzzles?.[which] || styleOf(n).muzzle || [0.6, 1.4];
+  const [ahead, up] = muzzleSpot(n, which);
   return [n.pos.x + n.body.facing * ahead, up + (n.lift || 0), n.pos.y + 0.05];
+}
+// (and that spot as it stands from n's feet: [ahead, up], world units)
+export const muzzleSpot = (n, which = 'attack') => n.body?.sheet?.rig?.muzzles?.[which] || styleOf(n).muzzle || [0.6, 1.4];
+
+// ---------------------------------------------------------------------------------------------
+// aiming (thine: pilot.js, and the places thou strikest, fight.js and training.js)
+
+// How far off thy line a blow or a spell still finds what it was aimed at (beyond that one's body,
+// world units: `blow`, `spell`), and how far a spell flies before it's spent (`reach`).
+export const AIM = { blow: 0.6, spell: 1.0, reach: RANGED.reach + 4 };
+const AIM_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const AIM_AT = new THREE.Vector3();
+
+// The way n aims (`at`: where thou pointest, input.js, with its ray): from n to the pointer, as a
+// way [dx, dz] on the floor. The pointer is taken where its ray crosses the height the attack goes
+// at (`up` over the ground under n), so that on the screen the line runs from n's middle at that
+// height to the pointer, and what flies along it passes right under the pointer. Pointing nowhere,
+// or at n itself, the way it faces.
+export function aimOf(n, at, up) {
+  if (!at) return [n.body.facing, 0];
+  let x = at.x;
+  let z = at.z;
+  if (at.ray) {
+    AIM_PLANE.constant = -(groundAt(n.pos.x, n.pos.y) + up);
+    if (at.ray.intersectPlane(AIM_PLANE, AIM_AT)) { x = AIM_AT.x; z = AIM_AT.z; }
+  }
+  const dx = x - n.pos.x;
+  const dz = z - n.pos.y;
+  const d = Math.hypot(dx, dz);
+  return d > 0.05 ? [dx / d, dz / d] : [n.body.facing, 0];
+}
+
+// How high n's middle stands over the ground under it (where its blow goes).
+export const middleOf = (n) => (n.body.sheet.head ?? 60) * n.body.sheet.px * 0.55 + (n.lift || 0);
+
+// The way a blow of n's goes: thine, the way thou aimed it (pilot.js); anyone else's, the way it faces.
+export const wayOf = (n) => n.action?.aim || [n.body.facing, 0];
+
+// Where something standing at (tx, tz), `rx` across and `rz` deep (half its body each way), lies on
+// the line from (ox, oz) the way `dir` goes: how far along it, if it stands within `reach` ahead
+// (and its body), or no more than `back` behind (a blow finds what's at one's very side), and no
+// farther off the line than its body and `margin`; else null.
+export function onAim(ox, oz, dir, tx, tz, rx, rz, reach, margin, back = 0.6) {
+  const dx = tx - ox;
+  const dz = tz - oz;
+  const along = dx * dir[0] + dz * dir[1];
+  const half = Math.hypot(rx * dir[1], rz * dir[0]); // (its body across the line)
+  const deep = Math.hypot(rx * dir[0], rz * dir[1]); // (and along it)
+  return along > -back && along < reach + deep && Math.abs(dx * dir[1] - dz * dir[0]) <= half + margin ? along : null;
+}
+
+// Whether what flies the way `dir` goes, now at (x, z), has come up to something at (tx, tz) (`rx`,
+// `rz` as above): on course for it (no farther off its line than its body and `margin`), and at its
+// near side, or not long past it.
+export function meets(x, z, dir, tx, tz, rx, rz, margin) {
+  const dx = tx - x;
+  const dz = tz - z;
+  const along = dx * dir[0] + dz * dir[1];
+  const deep = Math.hypot(rx * dir[0], rz * dir[1]);
+  return along <= deep && along > -deep - 1.5 && Math.abs(dx * dir[1] - dz * dir[0]) <= Math.hypot(rx * dir[1], rz * dir[0]) + margin;
+}
+
+// Thy spell's line: the way to the pointer at the height it flies at (aimOf); where it leaves from,
+// on that line (out to where thy pose holds it, ahead of thee, nearer thee as the line turns into
+// the view or out of it, where no drawing reaches); the floor where thou pointest, within its reach
+// (for what rises out of the floor); and how far it flies. The place it's cast on adds what stands
+// on the line: `meets(x, z)`, what something flying along it has come up to, and `first(reach)`, the
+// first standing on it ({ along, x, z, struck }); each struck thing as { target, at() }, at() its
+// place (its feet), as it moves.
+export function aimSpell(n, at) {
+  const [ahead, up] = muzzleSpot(n);
+  const lift = n.lift || 0;
+  const dir = aimOf(n, at, up + lift);
+  const r = ahead * Math.abs(dir[0]) + 0.35 * Math.abs(dir[1]);
+  const from = [n.pos.x + dir[0] * r, up + lift, n.pos.y + dir[1] * r + 0.05];
+  const gx = at ? at.x - n.pos.x : dir[0] * 6;
+  const gz = at ? at.z - n.pos.y : dir[1] * 6;
+  const gd = Math.hypot(gx, gz) || 1;
+  const k = Math.min(AIM.reach, Math.max(2, gd)) / gd;
+  return { dir, from, ground: [n.pos.x + gx * k, n.pos.y + gz * k], reach: AIM.reach, meets: () => null, first: () => null };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -162,23 +247,38 @@ const SPELLS = {
   ],
 };
 
-// n casts one of its spells. `target()`: the point it's cast at (followed, homing), or null to
-// cast it straight on `dir` ([dx, dz]) into nothing; `hit(at, share)`: it lands, `share` of an
-// ordinary spell's strength.
-export function castSpell(fx, n, { target, dir, hit }) {
-  if (styleOf(n).throws) { throwSpear(fx, n, { target, dir, hit }); return; }
+// n casts one of its spells. `target()`: the point it's cast at (followed, homing: a fighter's at
+// him); thine, `aim` (aimSpell), straight along thy line, striking what it meets; or neither, straight
+// on `dir` ([dx, dz]) into nothing. `hit(at, share, struck)`: it lands, `share` of an ordinary
+// spell's strength (aimed, on what it struck).
+export function castSpell(fx, n, { target = null, dir = null, aim = null, hit }) {
+  if (styleOf(n).throws) { throwSpear(fx, n, { aim, dir, hit }); return; }
   const school = styleOf(n).school;
   const list = SPELLS[school];
   if (!list) return;
-  const from = muzzleOf(n);
+  const from = aim ? aim.from : muzzleOf(n);
   const trail = motesOf(school);
-  const land = (at, share, size = 1) => {
+  const land = (at, share, size = 1, struck = null) => {
     fx.add(new Burst(fx, { school, at: [at.x, at.y, at.z], size: 1.3 * size, ring: false, sparks: Math.round(14 * size) }));
-    hit(at, share);
+    hit(at, share, struck);
   };
   const c = {
     px: n.body.sheet.px, // (the caster's pixel size, for spells drawn to match it)
     missile: ({ side = 0, share = 1, size = 1, ...o }) => {
+      if (aim) {
+        // along thy line (a volley fanned out to one side at first comes back onto it), striking
+        // what it comes up to
+        const m = new Missile(fx, {
+          light: shine(school, 6 * size, 6), ...o, from, trail, dir: aim.dir, guide: { from, dir: aim.dir }, turn: side ? 3.5 : 7,
+          life: aim.reach / (o.speed ?? 10), strike: aim.meets, onHit: (at, struck) => land(at, share, size, struck),
+        });
+        if (side) {
+          m.vel.x -= aim.dir[1] * side;
+          m.vel.z += aim.dir[0] * side;
+        }
+        fx.add(m);
+        return;
+      }
       // (fanned out to one side at first: it comes round onto him)
       const away = side ? [from[0] - n.body.facing * 0.2, from[1], from[2] + side * 0.08] : from;
       const m = new Missile(fx, {
@@ -190,11 +290,26 @@ export function castSpell(fx, n, { target, dir, hit }) {
       fx.add(m);
     },
     rise: ({ share = 1, ...o }) => {
+      if (aim) {
+        // under what stands first on thy line; else out of the floor where thou pointest
+        const on = aim.first(aim.reach);
+        const [x, z] = on ? [on.x, on.z] : aim.ground;
+        fx.add(new Rise(fx, { school, x, z, ...o, onHit: on ? (at) => land(at, share, 1, on.struck) : null }));
+        return;
+      }
       // (cast straight on into nothing, it rises where it would have struck, a few steps ahead)
       const [x, , z] = target ? target() : [from[0] + dir[0] * 6, 0, from[2] + dir[1] * 6];
       fx.add(new Rise(fx, { school, x, z, ...o, onHit: target ? (at) => land(at, share) : null }));
     },
     beam: ({ share = 1, width, art = null, tile = false }) => {
+      if (aim) {
+        // along thy line, to what stands first on it; else on into nothing
+        const on = aim.first(aim.reach);
+        const len = on ? Math.max(1, on.along) : 9;
+        const end = [from[0] + aim.dir[0] * len, from[1], from[2] + aim.dir[1] * len];
+        fx.add(new Beam(fx, { school, from, to: end, width, art, tile, onHit: on ? (at) => land(at, share, 1, on.struck) : null }));
+        return;
+      }
       const to = target ? target() : [from[0] + dir[0] * 9, from[1], from[2] + dir[1] * 9];
       fx.add(new Beam(fx, { school, from, to, width, art, tile, onHit: target ? (at) => land(at, share) : null }));
     },
@@ -203,24 +318,27 @@ export function castSpell(fx, n, { target, dir, hit }) {
 }
 
 // Ulric's spear, thrown (his right click, a spell to him: pilot.js): his own spear, drawn as his
-// Tenfold Spears are (ults.js), leaving his open hand fast and flying straight; onto the mark, if
-// there is one, striking it as a spell does, a spark of his colour where it bites, and staying stuck
-// in it a moment, the way it was thrown; else on into nothing.
-const SPEAR = { speed: 34, life: 0.8, stuck: 1.2 };
-function throwSpear(fx, n, { target, dir, hit }) {
-  const from = muzzleOf(n);
+// Tenfold Spears are (ults.js), leaving his open hand fast and flying straight along thy line (or,
+// unaimed, the way he faces); striking what it comes up to as a spell does, a spark of his colour
+// where it bites, and staying stuck in it a moment, the way it flew, as it moves; else on into
+// nothing.
+const SPEAR = { speed: 34, stuck: 1.2 };
+function throwSpear(fx, n, { aim = null, dir = null, hit }) {
   const facing = n.body.facing;
+  const line = aim || { dir: dir || [facing, 0], from: muzzleOf(n), reach: AIM.reach, meets: () => null };
+  const { from, dir: way } = line;
   const look = lookOf('ulric-spear', n.body.sheet.px, { map: TEX.spear(), w: 2.1, h: 2.1 * 9 / 70 });
   fx.add(new Missile(fx, {
-    ...look, from, to: target, dir: target ? null : dir, speed: SPEAR.speed, turn: 14, near: 0.4, life: target ? 2 : SPEAR.life,
-    onHit: (at) => {
-      const wx = at.x - from[0];
-      const wz = at.z - from[2];
-      const wl = Math.hypot(wx, wz) || 1;
-      const way = [wx / wl, wz / wl]; // (the way it flew)
+    ...look, from, dir: way, guide: { from, dir: way }, speed: SPEAR.speed, turn: 14, life: line.reach / SPEAR.speed, strike: line.meets,
+    onHit: (at, struck) => {
       fx.add(new Spark(fx, { color: styleOf(n).color, at: [at.x, at.y, at.z + 0.3], dir: Math.sign(way[0]) || facing, size: 1.3 }));
-      fx.add(new StuckSpear(fx, { follow: target, off: [-way[0] * 0.9, 0, -way[1] * 0.9 + 0.2], dir: facing, way, until: SPEAR.stuck, look, motes: null }));
-      hit(at, 1);
+      if (struck) {
+        // (its point where it bit, the shaft back along the way it flew)
+        const [bx, by, bz] = struck.at();
+        const off = [at.x - bx - way[0] * 0.9, at.y - by, at.z - bz - way[1] * 0.9 + 0.2];
+        fx.add(new StuckSpear(fx, { follow: struck.at, off, dir: facing, way, until: SPEAR.stuck, look, motes: null }));
+      }
+      hit(at, 1, struck);
     },
   }));
 }

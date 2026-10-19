@@ -31,7 +31,7 @@ import * as THREE from 'three';
 import { YARD, DUMMY_SPOTS, BOSS_DUMMY } from './yard.js';
 import { fxArt } from './fxart.js';
 import { flashing } from './npc.js';
-import { styleOf, castSpell, muzzleOf, stepStatus, RANGED, blow, casts, heroKey } from './combat.js';
+import { styleOf, castSpell, muzzleOf, stepStatus, RANGED, blow, casts, heroKey, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot } from './combat.js';
 import { groundAt } from './ground.js';
 import { Spark } from './spellfx.js';
 
@@ -264,29 +264,30 @@ export class Training {
     return b ? [b.pos.x, b.lift + up, b.pos.y + 0.2] : [0, 0, 0];
   }
 
-  // Thy blow lands (pilot.js → director.strikeFrom): the dummy in front of thee, if one stands there;
-  // the great one only on its cracked ankle (within the blow's reach, just ahead of thee), its wood
-  // turning it anywhere else.
+  // Thy blow lands (pilot.js → director.strikeFrom): the nearest dummy on its line within reach (or
+  // a little off it: combat.js, AIM); the great one only on its cracked ankle, its wood turning it
+  // anywhere else.
   strikeFrom(p) {
+    const way = wayOf(p);
     const g = this.dummies?.find((x) => x.great);
     if (g) {
       const [ax, ay] = g.ankle();
-      const ahead = (ax - p.pos.x) * p.body.facing;
-      if (ahead > -0.4 && ahead < TURNED.reach + GREAT.ankle.r && Math.abs(p.pos.y - g.pos.y) < GREAT.ankle.r + 0.4) {
+      if (onAim(p.pos.x, p.pos.y, way, ax, g.pos.y, GREAT.ankle.r, GREAT.ankle.r + 0.4, TURNED.reach, AIM.blow, 0.4) != null) {
         this.landed(p, g, [ax, ay, g.pos.y + 0.3]);
         return true;
       }
-      const front = (g.pos.x - p.pos.x) * p.body.facing;
-      if (front > -0.6 && front < DUMMY.reach + g.kind.radius && Math.abs(g.pos.y - p.pos.y) < g.kind.depth) {
-        this.turned(p, p.pos.x + p.body.facing * TURNED.reach, p.pos.y);
+      if (onAim(p.pos.x, p.pos.y, way, g.pos.x, g.pos.y, g.kind.radius, g.kind.depth, DUMMY.reach, AIM.blow) != null) {
+        this.turned(p, p.pos.x + way[0] * TURNED.reach, p.pos.y + way[1] * TURNED.reach);
         return true;
       }
     }
-    const d = (this.dummies || []).find((x) => {
-      if (!x.standing || x.great) return false;
-      const ahead = (x.pos.x - p.pos.x) * p.body.facing;
-      return ahead > -0.6 && ahead < DUMMY.reach + x.kind.radius && Math.abs(x.pos.y - p.pos.y) < x.kind.depth;
-    });
+    let d = null;
+    let best = Infinity;
+    for (const x of this.dummies || []) {
+      if (!x.standing || x.great) continue;
+      const along = onAim(p.pos.x, p.pos.y, way, x.pos.x, x.pos.y, x.kind.radius, x.kind.depth, DUMMY.reach, AIM.blow);
+      if (along != null && along < best) { best = along; d = x; }
+    }
     if (!d) return false;
     this.landed(p, d, [p.pos.x + (d.pos.x - p.pos.x) * 0.6, 1.3, (p.pos.y + d.pos.y) / 2 + 0.3]);
     return true;
@@ -323,32 +324,39 @@ export class Training {
     this.ctx.ui?.log(text, 'gold');
   }
 
-  // Thy spell (pilot.js), toward where thou pointest: it finds the dummy that way, if one stands
-  // there, else flies on into nothing.
+  // Thy spell (pilot.js), the way thou pointest (combat.js, aimSpell): straight along thy line,
+  // striking the first dummy it comes up to on it (or a little off it), else on into nothing. (The
+  // great one it strikes on its cracked ankle, as a spell does the Golem: what rises, rises there.)
   playerCast(n, at) {
-    const from = muzzleOf(n);
-    let dir = [n.body.facing, 0];
-    if (at) {
-      const dx = at.x - from[0];
-      const dz = at.z - from[2];
-      const d = Math.hypot(dx, dz);
-      if (d > 0.2) dir = [dx / d, dz / d];
-    }
-    const d = this.target(n, dir, RANGED.reach + 4, 0.8);
-    // (at the great one, its cracked ankle, as at the Golem)
-    const target = d ? () => (d.great ? [...d.ankle(), d.pos.y + 0.2] : [d.pos.x, 1.3, d.pos.y + 0.2]) : null;
+    const aim = aimSpell(n, at);
+    const standing = () => (this.dummies || []).filter((d) => d.standing);
+    const struckOf = (d) => ({ target: d, at: () => [d.pos.x, 0, d.pos.y] });
+    aim.meets = (x, z) => {
+      const d = standing().find((s) => meets(x, z, aim.dir, s.pos.x, s.pos.y, s.kind.radius, s.kind.depth, AIM.spell));
+      return d ? struckOf(d) : null;
+    };
+    aim.first = (reach) => {
+      let best = null;
+      for (const d of standing()) {
+        const along = onAim(aim.from[0], aim.from[2], aim.dir, d.pos.x, d.pos.y, d.kind.radius, d.kind.depth, reach, AIM.spell);
+        if (along == null || (best && along >= best.along)) continue;
+        best = { along: Math.max(0.5, along), x: d.great ? d.ankle()[0] : d.pos.x, z: d.pos.y + (d.great ? 0.2 : 0), struck: struckOf(d) };
+      }
+      return best;
+    };
     castSpell(this.fxCtx, n, {
-      target, dir,
-      hit: () => {
-        if (!d) return;
+      aim,
+      hit: (p, share, struck) => {
+        const d = struck?.target;
+        if (!d?.standing) return;
         this.hitStop(STOP.spell);
         d.struck(DUMMY.spell, Math.sign(d.pos.x - n.pos.x) || 1);
       },
     });
   }
 
-  // R: thine ultimate (always full here), at the dummy in front of thee (an aimed one: the way
-  // thou pointest, one of the four).
+  // R: thine ultimate (always full here), at the dummy in front of thee (an aimed one: the way thou
+  // pointest, at the dummy on that line, if one stands there; else it flies on past the nearest).
   playerUlt(at) {
     const { pilot, ults } = this.ctx;
     const n = pilot.npc;
@@ -357,10 +365,8 @@ export class Training {
     let dir = null;
     let d = null;
     if (ults.of(n)?.aim) {
-      const dx = (at ? at.x : n.pos.x + n.body.facing) - n.pos.x;
-      const dz = (at ? at.z : n.pos.y) - n.pos.y;
-      dir = Math.abs(dx) >= Math.abs(dz) ? [Math.sign(dx) || n.body.facing, 0] : [0, Math.sign(dz)];
-      d = this.onLine(n, dir) || this.target(n, dir, REACH, 0.3); // (else it flies on past)
+      dir = aimOf(n, at, muzzleSpot(n, 'ult')[1] + (n.lift || 0));
+      d = this.onLine(n, dir) || this.target(n, dir, REACH, -1); // (else it flies on past)
     } else {
       const side = at ? [Math.sign(at.x - n.pos.x) || n.body.facing, 0] : [n.body.facing, 0];
       d = this.target(n, side, REACH, -0.2) || this.target(n, [-side[0], 0], REACH, -0.2);
@@ -545,7 +551,11 @@ export class Training {
     const { ults } = this.ctx;
     const u = ults?.of(n);
     if (!u || heroKey(n) === 'bandit' || ults.active) return false;
-    const dir = u.aim ? [Math.sign(d.pos.x - n.pos.x) || n.body.facing, 0] : null;
+    // (an aimed one straight at its dummy)
+    const dx = d.pos.x - n.pos.x;
+    const dz = d.pos.y - n.pos.y;
+    const len = Math.hypot(dx, dz) || 1;
+    const dir = u.aim ? [dx / len, dz / len] : null;
     return ults.startQuiet(n, { place: this, b: d, dir });
   }
 

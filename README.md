@@ -121,9 +121,10 @@ can **become any character**: click one and choose **Become …** in the fan ove
 - **Controls** (whoever you are):
   - **W A S D** or the arrow keys to walk, **Shift** to run; cross the bridges to other islands.
     The camera stays on you.
-  - **Left click** strikes with the character's own attack (a Tarnished in front of you staggers;
+  - **Left click** strikes with the character's own attack (a Tarnished in its way staggers;
     it's all for show); a mage casts a spell instead. **Right click** casts as Fortuna or a mage,
-    and throws a spear as Ulric.
+    and throws a spear as Ulric. Every attack goes the way you point (see **Aiming**, under great
+    enemies).
     **Space** dodges. **C** crouches. **Q**, in a fight against a great enemy, turns the camera's
     focus on it and back on you. **R** looses your ultimate once its bar is full.
   - **B** (or clicking yourself) opens your fan of gestures over your head (or **1–8**). Nearby
@@ -497,9 +498,9 @@ loosed on it is placed from its floor, as on the Hold (a group raised to its hei
   - **Up close:** Ruadan, Maren, Aurelion, Wynn and Ulric. Ulric still hides; his style only
     matters when you play him. Then right click throws his spear as a mage casts: cocked back like
     a javelin and thrown (the two drawings of his Tenfold Spears), it leaves his open hand fast
-    (34 units a second, against a mage's 9 to 14), flies straight onto the enemy if he's within
-    about 35° of where you point (on the training yard, the dummy that way), strikes as hard as a
-    spell with a spark of his green, and stays stuck in him a moment the way it was thrown (no
+    (34 units a second, against a mage's 9 to 14), flies straight the way you point, strikes the
+    enemy (on the training yard, a dummy) if it comes up to him on that line or a little off it, as
+    hard as a spell, with a spark of his green, and stays stuck in him a moment the way it flew (no
     poison: that's his ultimate's); otherwise it flies on into nothing.
   - **Fortuna** does both, switching between her frost blade and frost cast from afar (a shard, or
     ice out of the floor), both drawn (`fortuna-shard.json`, `fortuna-spikes.json`) at her own
@@ -511,9 +512,25 @@ loosed on it is placed from its floor, as on the Hold (a group raised to its hei
     rather than turned upside down going leftward. Beams (Vael's lash, Solenne's lance) lie along
     the line from the caster to what they strike, turned toward the camera, so they end on it
     whichever way they run; Ulric's spears stay stuck the way they were thrown.
-  - **Playing them:** as a mage, a left click casts toward the pointer. The spell homes on the
-    enemy if he's within about 35° of where you point; otherwise it flies off into nothing. As
-    Fortuna, left click swings her blade and right click casts.
+  - **Playing them:** as a mage, a left click casts; as Fortuna, left click swings her blade and
+    right click casts.
+  - **Aiming** (`combat.js`, `aimOf`): every attack of yours, a blow, a spell, a thrown spear, an
+    aimed ultimate, goes along the line on the screen from your character to the pointer, at any
+    angle. The pointer is taken at the height the attack goes at, so what flies passes right under
+    it.
+    - A blow strikes what stands on that line within its reach, in any direction (straight up or
+      down the screen too), the Golem's and the great dummy's ankles included.
+    - A spell or a spear flies straight along it, homing on nothing: it leaves from the line (as
+      far out as the drawn pose holds it, nearer as the line turns into the view or out of it) and
+      strikes the first thing it comes up to. A volley set off to the sides comes back onto the
+      line.
+    - A beam runs along the line to the first thing on it; what rises out of the floor rises under
+      the first thing on it, else right where you point.
+    - **A little off still counts:** a blow finds what's up to 0.6 beyond its body from the line,
+      a spell up to 1 (`AIM`). Against a straw dummy, a spell lands up to about 1.6 off the line,
+      and misses beyond.
+    - Fighters and those training still strike the way they face, and their spells still find
+      the enemy wherever he is.
   - **Blows:** a hero with a drawn blow plays it, three frames landing on the second, each held as
     long as suits it (Maren's lunge a third of a second; Fortuna's slash a ninth, her follow-through
     lingering); the others swing their rig's strike. As a drawn blow lands (Maren's, Fortuna's,
@@ -560,8 +577,11 @@ loosed on it is placed from its floor, as on the Hold (a group raised to its hei
     motes swirling in). Then they strike, and the world moves and colours again,
     about 2.4 seconds in all. If you aren't on the arena (fallen and resting at the Hold), an NPC's
     ult simply fires, with no freeze.
-  - **Aimed ones** (Solenne's, Ulric's) go one of four ways: toward the pointer for you, and only
-    hit if the enemy stands in that line. The others walk into line first.
+  - **Aimed ones** (Solenne's, Ulric's) go the way you point (any angle, as every attack of
+    yours does), straight at him when loosed by anyone else, and only hit if the enemy stands on
+    that line, or a little off it: Ulric's spears fly straight along it, sticking where they
+    bite; Solenne's wall is seen face on when it goes more into the view or out of it than
+    across. The others walk into line first.
   - Jorvik, **Flight of Tomes:** seven golden tomes take wing and dash into him, each spent as it
     strikes. The tomes are drawn (`jorvik-tome.json`), beating their covers, and keep upright as
     they fly.

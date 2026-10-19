@@ -45,7 +45,7 @@ import { GOLEM, GOLEM_MOVES, GolemMind } from './golem.js';
 import { setFoe } from './voices.js';
 import { clearRipples, rippleAt, stepRipples } from './ripple.js';
 import { groundAt } from './ground.js';
-import { styleOf, blow, castSpell, muzzleOf, SPELL, RANGED, ultFill, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause } from './combat.js';
+import { styleOf, blow, castSpell, muzzleOf, SPELL, RANGED, ultFill, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot } from './combat.js';
 
 // reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
 // lane: how far out of his line (in depth) a swing or a lunge still catches someone
@@ -568,13 +568,13 @@ export class Fight {
   // ------------------------------------------------------------------------------------------
   // blows
 
-  // Thy blow lands (pilot.js → director.strikeFrom): the enemy, if it stands in front of thee.
+  // Thy blow lands (pilot.js → director.strikeFrom): the enemy, if he stands on its line within
+  // reach (or a little off it: combat.js, AIM).
   strikeFrom(p) {
     const b = this.boss;
     if (!b || !b.alive || b.lift > 2) return false;
     if (b.mind) return b.mind.playerBlow(p); // (the Golem: only his weak points, golem.js)
-    const ahead = (b.pos.x - p.pos.x) * p.body.facing;
-    if (ahead < -0.6 || ahead > b.kind.reach + b.kind.radius || Math.abs(b.pos.y - p.pos.y) > b.kind.depth) return false;
+    if (onAim(p.pos.x, p.pos.y, wayOf(p), b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, b.kind.reach, AIM.blow) == null) return false;
     this.hit(b, DAMAGE.player, null, p, true, 'blow');
     return true;
   }
@@ -708,41 +708,33 @@ export class Fight {
     castSpell(this.fxCtx, n, { target: () => this.spellPoint(), hit: (at, share) => this.spellHit(n, share, at) });
   }
 
-  // Thy spell (pilot.js), toward where thou pointest: it finds him if he's that way (within a
-  // little), else flies on into nothing.
+  // Thy spell (pilot.js), the way thou pointest (combat.js, aimSpell): straight along thy line,
+  // striking him if he stands on it (or a little off it), else on into nothing.
   playerCast(n, at) {
     const b = this.boss;
-    const from = muzzleOf(n);
-    let dir = [n.body.facing, 0];
-    if (at) {
-      const dx = at.x - from[0];
-      const dz = at.z - from[2];
-      const d = Math.hypot(dx, dz);
-      if (d > 0.2) dir = [dx / d, dz / d];
-    }
-    let target = null;
-    if (b && b.alive && b.state !== 'enter' && this.state === 'fighting' && this.inArena(n)) {
-      const bx = b.pos.x - n.pos.x;
-      const bz = b.pos.y - n.pos.y;
-      const bd = Math.hypot(bx, bz) || 1;
-      if (bd < RANGED.reach + 4 && (bx * dir[0] + bz * dir[1]) / bd > 0.8) target = () => this.spellPoint();
-    }
-    castSpell(this.fxCtx, n, { target, dir, hit: (p, share) => this.spellHit(n, share, p, true) });
+    const aim = aimSpell(n, at);
+    const live = () => !!b && b.alive && b.state !== 'enter' && this.state === 'fighting' && this.inArena(n) && (b.lift || 0) <= 2;
+    const struck = b && { target: b, at: () => [b.pos.x, b.lift || 0, b.pos.y] };
+    aim.meets = (x, z) => (live() && meets(x, z, aim.dir, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, AIM.spell) ? struck : null);
+    aim.first = (reach) => {
+      if (!live()) return null;
+      const along = onAim(aim.from[0], aim.from[2], aim.dir, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, reach, AIM.spell);
+      if (along == null) return null;
+      const [px, , pz] = this.spellPoint(); // (what rises, rises under where a spell strikes him)
+      return { along: Math.max(0.5, along), x: px, z: pz, struck };
+    };
+    castSpell(this.fxCtx, n, { aim, hit: (p, share) => this.spellHit(n, share, p, true) });
   }
 
-  // R: thine ultimate, full, loosed (an aimed one toward the pointer, one of the four ways: it
-  // finds him only if he stands in that line).
+  // R: thine ultimate, full, loosed (an aimed one the way thou pointest: it finds him only if he
+  // stands on that line, or near it).
   playerUlt(at) {
     const { pilot, ults } = this.ctx;
     const n = pilot.npc;
     if (!n || pilot.dead || (pilot.ult || 0) < 1 || !this.inArena(n) || !ults?.ready(n, true)) return false;
     if (n.travel || n.shift || (n.action && !['attack', 'cast', 'hurt', 'crouch', 'use', 'gesture'].includes(n.action.kind))) return false;
-    let dir = null;
-    if (ults.of(n)?.aim) {
-      const dx = (at ? at.x : n.pos.x + n.body.facing) - n.pos.x;
-      const dz = (at ? at.z : n.pos.y) - n.pos.y;
-      dir = Math.abs(dx) >= Math.abs(dz) ? [Math.sign(dx) || n.body.facing, 0] : [0, Math.sign(dz)];
-    }
+    // (an aimed one along the line to the pointer, at the height it goes at)
+    const dir = ults.of(n)?.aim ? aimOf(n, at, muzzleSpot(n, 'ult')[1] + (n.lift || 0)) : null;
     return ults.start(n, { dir, player: true });
   }
 

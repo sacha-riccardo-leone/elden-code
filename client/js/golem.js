@@ -32,7 +32,7 @@ import { AirWave, Decal, Meteor, FIRE_LIGHT } from './bossfx.js';
 import { flash, carry } from './lights.js';
 import { addRipple, rippleAt } from './ripple.js';
 import { SPOTS } from './heroes/golem.js';
-import { rootedAt } from './combat.js';
+import { rootedAt, onAim, wayOf, AIM } from './combat.js';
 import { Spark } from './spellfx.js';
 
 export const GOLEM = {
@@ -144,21 +144,23 @@ export class GolemMind {
   // ------------------------------------------------------------------------------------------
   // blows on him
 
-  // Thy blow (fight.strikeFrom): whether it landed on him, whatever it did.
+  // Thy blow (fight.strikeFrom): whether it landed on him, whatever it did (along the line thou
+  // aimed it, and a little off it: combat.js, AIM).
   playerBlow(p) {
-    return this.blow(p, GOLEM.ankle.player, 1, GOLEM.heart.player);
+    return this.blow(p, GOLEM.ankle.player, 1, GOLEM.heart.player, AIM.blow);
   }
 
-  // A fighter's blow, at the turn of its swing.
+  // A fighter's blow, at the turn of its swing (the way it faces).
   fighterBlow(n) {
     return this.blow(n, GOLEM.ankle.fighter, GOLEM.ankle.weight, GOLEM.heart.fighter);
   }
 
-  blow(n, ankleDmg, weight, heartDmg) {
+  blow(n, ankleDmg, weight, heartDmg, margin = 0) {
     const b = this.b;
     if (!b.alive || b.state === 'enter' || b.lift > 2) return false;
     if (b.attack?.kind === 'roll') return false; // (rolling, he's never where the blow lands)
-    const reach = n.pos.x + n.body.facing * 1.5; // where the blow lands
+    const way = wayOf(n);
+    const [rx, rz] = [n.pos.x + way[0] * 1.5, n.pos.y + way[1] * 1.5]; // where the blow lands
     if (b.state === 'down' && this.heart) {
       const h = this.heart;
       if (Math.hypot(n.pos.x - h.x, n.pos.y - h.z) <= h.r) {
@@ -172,14 +174,13 @@ export class GolemMind {
         return true;
       }
       // the stone of his back: nothing
-      if (Math.abs(reach - b.pos.x) < 5 && Math.abs(n.pos.y - b.pos.y) < 2.4) { this.clang(reach, n.pos.y, n); return true; }
+      if (Math.abs(rx - b.pos.x) < 5 && Math.abs(rz - b.pos.y) < 2.4) { this.clang(rx, rz, n); return true; }
       return false;
     }
     if (this.lying) return false;
-    // the cracked ankle: within the blow's reach, just ahead of the striker
+    // the cracked ankle: within the blow's reach, on its line
     const [ax, ay] = this.spot(SPOTS.ankle);
-    const ahead = (ax - n.pos.x) * n.body.facing;
-    if (ahead > -0.4 && ahead < 1.5 + GOLEM.ankle.r && Math.abs(n.pos.y - b.pos.y) < GOLEM.ankle.r + 0.4) {
+    if (onAim(n.pos.x, n.pos.y, way, ax, b.pos.y, GOLEM.ankle.r, GOLEM.ankle.r + 0.4, 1.5, margin, 0.4) != null) {
       const was = this.weak;
       this.ankle += weight;
       this.fight.hit(b, ankleDmg, [ax, ay, b.pos.y + 0.2], n, true, 'blow');
@@ -193,9 +194,8 @@ export class GolemMind {
       return true;
     }
     // anywhere else on him: the stone turns it
-    const front = (b.pos.x - n.pos.x) * n.body.facing;
-    if (front > -0.6 && front < b.kind.reach + b.kind.radius && Math.abs(b.pos.y - n.pos.y) < b.kind.depth) {
-      this.clang(reach, n.pos.y, n);
+    if (onAim(n.pos.x, n.pos.y, way, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, b.kind.reach, margin) != null) {
+      this.clang(rx, rz, n);
       this.tell('stone', 'Stone turns thy blows: strike the Golem\'s cracked ankle, low on his back leg');
       return true;
     }

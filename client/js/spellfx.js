@@ -510,6 +510,8 @@ const BY = new THREE.Vector3();
 const BZ = new THREE.Vector3();
 const BM = new THREE.Matrix4();
 const DIR = new THREE.Vector3(); // (a way something goes, for screenAngleAt)
+const GUIDE = new THREE.Vector3(); // (the way back onto a line: Missile)
+const GUIDE_PULL = 2.5; // (how hard: a share of the way off it, a second)
 
 // The angle on the screen (counterclockwise from the right) of a movement `d` made at `at` (in
 // `parent`'s space: the yard's effects are set on its lowered floor): where its two ends land in
@@ -575,10 +577,13 @@ function lieAlong(mesh, from, to) {
 // into the view or out of it as well as across); `upright`: it keeps upright as it points, mirrored
 // rather than upside down going leftward (an arrow's light on top, a tome's covers);
 // `frames`: textures it flips through; `light`: the light it carries (shine), lighting what it
-// passes.
+// passes. Aimed (thine: combat.js, aimSpell), it keeps to its line (`guide`: { from, dir }), coming
+// back onto it if it set off aside, and strikes whatever it comes up to on the way (`strike(x, z)`:
+// what it has met there, if anything, handed on to onHit).
 export class Missile {
   constructor(fx, { map, w, h, from, to = null, dir = null, speed = 10, turn = 7, near = 0.5, life = 3,
-    trail = null, trailRate = 40, trailSize = 0.06, spin = 0, upright = false, frames = null, fps = 10, onHit = null, onEnd = null, delay = 0, rise = 0, wobble = 0, light = null }) {
+    trail = null, trailRate = 40, trailSize = 0.06, spin = 0, upright = false, frames = null, fps = 10, onHit = null, onEnd = null, delay = 0, rise = 0, wobble = 0, light = null,
+    guide = null, strike = null }) {
     this.fx = fx;
     this.mesh = plane(fx.scene, frames ? frames[0] : map, w, h);
     this.mesh.visible = delay <= 0;
@@ -588,7 +593,7 @@ export class Missile {
     const d = Math.hypot(tx - from[0], ty - from[1], tz - from[2]) || 1;
     // (it may set off upward first, and curve onto its mark)
     this.vel = new THREE.Vector3(((tx - from[0]) / d) * speed, ((ty - from[1]) / d) * speed + rise, ((tz - from[2]) / d) * speed);
-    Object.assign(this, { to, dir, speed, turn, near, life, trail, trailRate, trailSize, spin, upright, frames, fps, onHit, onEnd, delay, wobble, t: 0, done: false });
+    Object.assign(this, { to, dir, speed, turn, near, life, trail, trailRate, trailSize, spin, upright, frames, fps, onHit, onEnd, delay, wobble, guide, strike, t: 0, done: false, struck: null });
     this.mesh.position.copy(this.pos);
   }
 
@@ -614,6 +619,14 @@ export class Missile {
       want.multiplyScalar(this.speed / dist);
       const k = Math.min(1, dt * this.turn * (1 + this.t * 2));
       this.vel.lerp(want, k).setLength(this.speed);
+    } else if (this.guide) {
+      // along its line, pulled back onto it from aside (and from above or below)
+      const g = this.guide;
+      const ox = this.pos.x - g.from[0];
+      const oz = this.pos.z - g.from[2];
+      const t = ox * g.dir[0] + oz * g.dir[1];
+      GUIDE.set(g.dir[0] * this.speed - (ox - g.dir[0] * t) * GUIDE_PULL, -(this.pos.y - g.from[1]) * GUIDE_PULL, g.dir[1] * this.speed - (oz - g.dir[1] * t) * GUIDE_PULL);
+      this.vel.lerp(GUIDE.setLength(this.speed), Math.min(1, dt * this.turn));
     }
     this.pos.addScaledVector(this.vel, dt);
     const wob = this.wobble ? Math.sin(this.t * 14) * this.wobble : 0;
@@ -628,6 +641,12 @@ export class Missile {
         velSpread: [0.25, 0.25, 0.2], color: this.trail, size: this.trailSize, life: 0.45, count: 2, drag: 2, intensity: 2.4,
       });
     }
+    const met = this.strike?.(this.pos.x, this.pos.z);
+    if (met) {
+      this.struck = met;
+      this.finish(true);
+      return false;
+    }
     if (this.t >= this.life) { this.finish(false); return false; }
     return true;
   }
@@ -635,7 +654,7 @@ export class Missile {
   finish(hit) {
     this.done = true;
     this.light?.end(0.12);
-    if (hit) this.onHit?.(this.pos.clone());
+    if (hit) this.onHit?.(this.pos.clone(), this.struck);
     else this.onEnd?.(this.pos.clone());
   }
 
@@ -895,15 +914,16 @@ export class Wall {
     this.frames = sheet?.frames || null;
     this.mesh = plane(fx.scene, sheet ? sheet.frames[0] : TEX.wall(), sheet ? (height * sheet.w) / sheet.h : height * 0.56, height, { order: 7 });
     this.mesh.scale.x = dir[0] < 0 ? -1 : 1;
-    // flying into or out of the view: seen face on, as a broad arc
-    if (dir[0] === 0) { this.mesh.rotation.z = (dir[1] > 0 ? -1 : 1) * Math.PI / 2; this.mesh.scale.set(1.8, 1, 1); }
-    Object.assign(this, { fx, x, z, dir, speed, range, height, hits, onHit, gone: 0, t: 0, struck: false });
+    // flying more into or out of the view than across: seen face on, as a broad arc
+    const ahead = Math.abs(dir[1]) > Math.abs(dir[0]);
+    if (ahead) { this.mesh.rotation.z = (dir[1] > 0 ? -1 : 1) * Math.PI / 2; this.mesh.scale.set(1.8, 1, 1); }
+    Object.assign(this, { fx, x, z, dir, ahead, speed, range, height, hits, onHit, gone: 0, t: 0, struck: false });
     this.light = carry(fx.scene, [x, height * 0.4, z + 0.4], shine('holy', 50, 15));
     this.place();
   }
 
   place() {
-    this.mesh.position.set(this.x, this.dir[0] === 0 ? 1.6 : this.height / 2, this.z + 0.1);
+    this.mesh.position.set(this.x, this.ahead ? 1.6 : this.height / 2, this.z + 0.1);
     this.light.at(this.x, this.height * 0.4, this.z + 0.4);
   }
 

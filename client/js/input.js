@@ -68,6 +68,14 @@ export class Input {
     return this.ray.ray.intersectPlane(this.plane, this.hit) ? this.hit.clone() : null;
   }
 
+  // Where thou pointest, aiming: the ground there, carrying the pointer's ray (`ray`), so that an
+  // attack can be aimed at the height it goes at (combat.js, aimOf).
+  aimAt(e) {
+    const p = this.groundAt(e);
+    if (p) p.ray = this.ray.ray.clone();
+    return p;
+  }
+
   down(e) {
     if (e.button !== 0 && e.button !== 2) return;
     this.canvas.setPointerCapture?.(e.pointerId);
@@ -119,14 +127,14 @@ export class Input {
     }
     // the right button: a spell toward where it was pressed
     if (e.button === 2) {
-      if (!p.moved) this.actions.spell?.(this.groundAt(e));
+      if (!p.moved) this.actions.spell?.(this.aimAt(e));
       return;
     }
     if (p.moved || e.button !== 0) return;
     if (this.battle()) {
       // mid-fight, a click is a blow, even with a fan open (it just folds)
       if (this.director.selected || this.ui.fanOwner) { this.director.select(null); this.ui.closeFan(); }
-      this.actions.attack(this.groundAt(e));
+      this.actions.attack(this.aimAt(e));
       return;
     }
     if (p.npc?.piloted) {
@@ -138,7 +146,7 @@ export class Input {
       this.director.select(null);
       this.ui.closeFan();
     } else {
-      this.actions.attack(this.groundAt(e));
+      this.actions.attack(this.aimAt(e));
     }
   }
 
@@ -161,7 +169,7 @@ export class Input {
     if (e.code === 'KeyM' || e.key === '0') this.travel.overview();
     if (e.code === 'KeyC') this.actions.crouch();
     if (e.code === 'KeyQ') this.actions.focus();
-    if (e.code === 'KeyR') this.actions.ult?.(this.pointer ? this.groundAt(this.pointer) : null);
+    if (e.code === 'KeyR') this.actions.ult?.(this.pointer ? this.aimAt(this.pointer) : null);
     if (e.code === 'KeyB') this.actions.fan();
     const n = Number(e.key);
     if (n >= 1 && n <= GESTURES.length) this.actions.emote(GESTURES[n - 1].key); // only thou gesturest

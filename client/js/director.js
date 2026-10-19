@@ -10,6 +10,7 @@ import { conversation } from './lore.js';
 import { speak, voiceOf } from './voices.js';
 import { groundAt } from './ground.js';
 import { carry } from './lights.js';
+import { wayOf } from './combat.js';
 
 const COMMAND_FX = {
   'code-review': { title: 'Incantation of Scrutiny', icon: 'eye' },
@@ -389,18 +390,22 @@ export class Director {
     }
   }
 
-  // Maren's blow lands: whoever stands just in front of her staggers (it's all for show).
+  // Maren's blow lands: whoever stands just in front of her, on its line, staggers (it's all for
+  // show).
   strikeFrom(p) {
     // in the arena, a great enemy takes the blow; fellow fighters are spared it; on the training
     // yard, a dummy (training.js), those training there spared it likewise
     const { fight, training } = this.ctx;
     if (fight?.active) fight.strikeFrom(p);
     if (training?.has(p)) training.strikeFrom(p);
+    const [wx, wz] = wayOf(p);
     for (const n of this.npcs.values()) {
       if (n === p || n.dead || n.dragged || n.travel || n.fade < 1 || n.intent.kind === 'leave') continue;
       if (n.fighter || n.trainee || n.spectre) continue; // (a blow passes through a spectre)
-      const ahead = (n.pos.x - p.pos.x) * p.body.facing;
-      if (ahead < -0.3 || ahead > 2.8 || Math.abs(n.pos.y - p.pos.y) > 1.3) continue;
+      const dx = n.pos.x - p.pos.x;
+      const dz = n.pos.y - p.pos.y;
+      const ahead = dx * wx + dz * wz;
+      if (ahead < -0.3 || ahead > 2.8 || Math.abs(dx * wz - dz * wx) > 1.3) continue;
       n.body.facing = p.pos.x > n.pos.x ? 1 : -1;
       n.stagger();
       if (this.clock > (n.struckAt ?? -Infinity) + 4 && Math.random() < 0.8) this.remark(n, 'struck', p, 0.5);

@@ -14,7 +14,7 @@
 // has her blade, with the right button; combat.js; Ulric, with the right button, throws his spear),
 // and an ultimate, once full, is loosed with R (ults.js).
 
-import { styleOf, blow, canCast } from './combat.js';
+import { styleOf, blow, canCast, aimOf, middleOf, muzzleSpot } from './combat.js';
 import { groundAt } from './ground.js';
 
 const WALK = 3.4;
@@ -162,14 +162,16 @@ export class Pilot {
     });
   }
 
-  // One blow (the character's own strike) toward where the click landed (`at`, on the ground);
-  // whoever stands in front staggers. A mage casts instead (cast).
+  // One blow (the character's own strike) the way thou pointest (`at`: where, input.js): along the
+  // line on the screen from thy middle to the pointer (combat.js, aimOf), finding whoever stands on
+  // it within reach (they stagger), or a little off it. A mage casts instead (cast).
   attack(at = null) {
     const n = this.npc;
     if (styleOf(n).range === 'far') { this.cast(at); return; }
     if (this.busy(n) || !this.paced(n)) return;
-    if (at && Math.abs(at.x - n.pos.x) > 0.2) n.body.facing = at.x > n.pos.x ? 1 : -1;
-    blow(n, 'attack');
+    const aim = aimOf(n, at, middleOf(n));
+    if (Math.abs(aim[0]) > 0.05) n.body.facing = aim[0] > 0 ? 1 : -1;
+    blow(n, 'attack', { aim });
   }
 
   // Whether thy next blow (or spell) may come yet; if so, when the one after it may. A drawn blow
@@ -189,7 +191,9 @@ export class Pilot {
   cast(at = null) {
     const n = this.npc;
     if (this.busy(n) || !canCast(n) || !this.paced(n)) return;
-    if (at && Math.abs(at.x - n.pos.x) > 0.2) n.body.facing = at.x > n.pos.x ? 1 : -1;
+    // (turned the way it goes: along the line to the pointer, at the height it flies at)
+    const aim = aimOf(n, at, muzzleSpot(n)[1] + (n.lift || 0));
+    if (Math.abs(aim[0]) > 0.05) n.body.facing = aim[0] > 0 ? 1 : -1;
     blow(n, 'cast', { spell: true, at });
   }
 

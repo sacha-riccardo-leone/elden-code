@@ -4,8 +4,8 @@
 // whoever looses it; the camera closes on them and an aura of their own light shines round them;
 // then they strike, and the world moves and colours again (about two seconds in all).
 //
-// Some are aimed: loosed one of the four ways (thou: toward the pointer), they find him only if he
-// stands in their line; the rest find him wherever he is.
+// Some are aimed: loosed the way thou pointest (anyone else's, straight at him), they find him
+// only if he stands on their line, or near it; the rest find him wherever he is.
 // Those training on the yard loose theirs now and then at their dummies, quietly (startQuiet): in
 // their pose, their aura round them, as long as ever, but the world goes on, in its colours, and
 // the camera stays where it is, not even jolted.
@@ -32,7 +32,7 @@
 import * as THREE from 'three';
 import { Particles } from './particles.js';
 import { Aura, Stand, Missile, Wall, Pool, Slash, Cut, Drop, Bolt, Burst, StuckSpear, Splash, TEX, motesOf, shine } from './spellfx.js';
-import { ULT, ultPower, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt } from './combat.js';
+import { ULT, ultPower, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt, meets, AIM } from './combat.js';
 import { lookOf, fxArt } from './fxart.js';
 import { groundAt } from './ground.js';
 
@@ -87,6 +87,14 @@ const poseOf = (u, n) => (n.body.sheet.anims[u.pose[0]] ? u.pose : u.fallback ||
 
 // what runs as a fight effect (fight.fx): step(dt) → still going?
 const effect = (step, dispose = () => {}) => ({ step, dispose });
+
+// The way from n straight at b, [dx, dz] (an aimed one loosed by anyone but thee).
+function straightAt(n, b) {
+  const dx = b.pos.x - n.pos.x;
+  const dz = b.pos.y - n.pos.y;
+  const d = Math.hypot(dx, dz);
+  return d > 0.05 ? [dx / d, dz / d] : [n.body.facing, 0];
+}
 
 // ---------------------------------------------------------------------------------------------
 // each one: its name, the pose held as it gathers (an animation, and a frame to hold, or none to
@@ -162,12 +170,17 @@ export const ULTS = {
     // raises her ring)
     name: 'Wall of Dawn', pose: ['ult'], fallback: ['send'], release: 'loose', aim: true,
     run({ fight, fx, n, b, dir, hit }) {
-      // it strikes him if it reaches him in its lane; drawn, it leaves her palms
+      // it strikes him if it reaches him in its lane (any way it goes); drawn, it leaves her palms
       const lane = 2.4;
       const [ahead] = n.body.sheet.rig.muzzles?.ult || [0.8];
       fx.add(new Wall(fx, {
         x: n.pos.x + dir[0] * ahead, z: n.pos.y + dir[1] * ahead, dir, art: 'solenne-wall', height: 4.2,
-        hits: (x, z) => b.alive && (dir[0] ? Math.abs(b.pos.y - z) < lane && (b.pos.x - x) * dir[0] < 0.6 : Math.abs(b.pos.x - x) < lane && (b.pos.y - z) * dir[1] < 0.6),
+        hits: (x, z) => {
+          if (!b.alive) return false;
+          const dx = b.pos.x - x;
+          const dz = b.pos.y - z;
+          return Math.abs(dx * dir[1] - dz * dir[0]) < lane && dx * dir[0] + dz * dir[1] < 0.6;
+        },
         onHit: (at) => {
           hit(26, at);
           fx.add(new Burst(fx, { school: 'holy', at: [b.pos.x, 2, b.pos.y], size: 4, sparks: 50 }));
@@ -364,26 +377,28 @@ export const ULTS = {
     // drawn back)
     name: 'Tenfold Spears', pose: ['ult'], fallback: ['hammer', 1], release: 'throw', aim: true,
     run({ fight, fx, n, b, dir, hit }) {
-      // does his line cross him?
-      const along = (b.pos.x - n.pos.x) * dir[0] + (b.pos.y - n.pos.y) * dir[1];
-      const off = Math.abs((b.pos.x - n.pos.x) * dir[1] - (b.pos.y - n.pos.y) * dir[0]);
-      const onLine = along > 0.5 && along < 16 && off < 1.9;
-      const facing = dir[0] || n.body.facing;
-      // drawn, they leave his open hand (the rig's muzzles), each his own spear at his own pixel size
+      // straight along his line, each sticking in him if it comes up to him on it (or a little off
+      // it: combat.js, AIM), else flying on past
+      const facing = Math.sign(dir[0]) || n.body.facing;
+      // drawn, they leave his open hand (the rig's muzzles: on his line, out to it, nearer him as the
+      // line turns into the view or out of it), each his own spear at his own pixel size
       const sheet = n.body.sheet;
       const [ahead, up] = (sheet.anims.throw && sheet.rig.muzzles?.ult) || [0.6, 1.7];
+      const reach = ahead * Math.abs(dir[0]) + 0.35 * Math.abs(dir[1]);
       const look = lookOf('ulric-spear', sheet.px, { map: TEX.spear(), w: 2.1, h: 2.1 * 9 / 70 });
       for (let i = 0; i < 10; i++) {
-        const oy = 1.1 + (i % 4) * 0.45;
+        const oy = 1.1 + (i % 4) * 0.45; // (how high in him it's meant to bite: it drifts to it as it flies)
         const oz = ((i % 3) - 1) * 0.25;
-        const from = [n.pos.x + dir[0] * ahead, up + ((i % 3) - 1) * 0.2, n.pos.y + dir[1] * ahead + oz];
+        const from = [n.pos.x + dir[0] * reach, up + ((i % 3) - 1) * 0.2, n.pos.y + dir[1] * reach + oz];
         fx.add(new Missile(fx, {
-          ...look, from, speed: 20, delay: i * 0.07, life: onLine ? 3 : 1.1,
-          to: onLine ? () => [b.pos.x - facing * 0.5, b.lift + oy, b.pos.y + oz] : null, dir: onLine ? null : dir, turn: 6, near: 0.3,
-          onHit: () => {
-            hit(0.8, new THREE.Vector3(b.pos.x, oy, b.pos.y));
+          ...look, from, dir, guide: { from: [from[0], oy, from[2]], dir }, speed: 20, delay: i * 0.07, life: 0.8, turn: 6,
+          strike: (x, z) => (b.alive && meets(x, z, dir, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, AIM.spell) ? b : null),
+          onHit: (at) => {
+            hit(0.8, new THREE.Vector3(at.x, at.y, at.z));
             addDot(b, { kind: 'poison', dps: 3, until: fight.clock + 4, src: n });
-            fx.add(new StuckSpear(fx, { follow: () => [b.pos.x, b.lift, b.pos.y], off: [-dir[0] * 0.9, oy, -dir[1] * 0.9 + oz + 0.2], dir: facing, way: dir, until: 4, look }));
+            // (its point where it bit, the shaft back along the way it flew, moving with him)
+            const off = [at.x - b.pos.x - dir[0] * 0.9, at.y - (b.lift || 0), at.z - b.pos.y - dir[1] * 0.9 + 0.2];
+            fx.add(new StuckSpear(fx, { follow: () => [b.pos.x, b.lift || 0, b.pos.y], off, dir: facing, way: dir, until: 4, look }));
           },
         }));
       }
@@ -479,7 +494,7 @@ export class Ults {
     const fight = this.placeOf(n);
     const b = fight?.boss;
     if (!u || !b) return false;
-    if (u.aim && !dir) dir = [Math.sign(b.pos.x - n.pos.x) || n.body.facing, 0];
+    if (u.aim && !dir) dir = straightAt(n, b);
     n.body.facing = dir?.[0] ? (dir[0] > 0 ? 1 : -1) : b.pos.x >= n.pos.x ? 1 : -1;
     // nobody watching (thou art not on the arena, fallen and resting at the Hold): it's simply
     // loosed, the world going on as it was
@@ -547,7 +562,7 @@ export class Ults {
   startQuiet(n, { place, b, dir = null }) {
     const u = this.of(n);
     if (!u || !b || n.dead) return false;
-    if (u.aim && !dir) dir = [Math.sign(b.pos.x - n.pos.x) || n.body.facing, 0];
+    if (u.aim && !dir) dir = straightAt(n, b);
     n.body.facing = dir?.[0] ? (dir[0] > 0 ? 1 : -1) : b.pos.x >= n.pos.x ? 1 : -1;
     const pose = poseOf(u, n);
     const at = u.at ?? CINE.release;
