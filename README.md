@@ -893,8 +893,19 @@ sound from where it starts, and each is levelled to one peak (`dontuse.wav` is l
   - each meteor as it lands.
 - **Where it happens:** quieter the farther it is from where the camera looks, to the left or the
   right as it shows on the screen, and never too many of one at once (eight meteors).
+- **Music** (Sacha's pieces, `client/assets/sfx/Music`, kept as they are and never deployed,
+  levelled into `client/assets/music` by `scripts/cut-music.mjs`: stereo MP3s, 6.5 MB in all, the
+  two ambient pieces alike and the arena's a little louder):
+  - while no great enemy stands in the arena, `ambient_1` and `ambient_2`, one after the other, a
+    breath (3 s) apart, on and on;
+  - as one enters it, the ambient dies away and `arena` comes in, from its start, and plays over
+    again as long as he stands; felled (or gone), it dies away, and after a moment's quiet the
+    ambient comes back where it left off.
+
+  The pieces stream as they play (each from its own player, never decoded whole), quieter than
+  the sounds of the fight (`MUSIC` in `client/js/audio.js`: how loud, how fast each comes and goes).
 - Nothing sounds before you set out: a browser lets a page play sound only once it's been clicked.
-  **V** turns the sound off and on, and it's remembered.
+  **V** turns the sound and the music off and on, and it's remembered.
 
 ## How they talk
 
@@ -1028,7 +1039,7 @@ client/js/gate.js       where the title and the world meet: set out, and ready
 client/js/sprites.js    procedural pixel-art characters (base body + equipment layers)
 client/js/world.js      sky, far skyline, mist, islands, bridges, pooled lights
 client/js/lights.js     what lights the world besides its lamps: effects, and what glows on characters
-client/js/audio.js      sound: the clips, played where and when things happen (the Golem's)
+client/js/audio.js      sound: the clips, played where and when things happen (the Golem's), and the music
 client/js/daylight.js   day and night: the clock, and how every light, colour and the grade change
 client/js/region.js     one project's island and its stations
 client/js/hub.js        Roundtable Hold

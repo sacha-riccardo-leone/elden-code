@@ -3,8 +3,9 @@
 // in the world, at the moment they happen there (the Golem's foot set down on the frame it lands on,
 // golem.js): quieter the farther from where the camera looks, to the left or the right as they show
 // on the screen, a little different each time (`vary`), and never too many of one at once (`most`).
-// Nothing sounds before thou settest out (a browser lets a page make a sound only once it's been
-// clicked: unlock), and V turns it all off and on again (remembered).
+// And the music (Music, below): the ambient pieces while nothing's fought, the arena's while a great
+// enemy stands in it. Nothing sounds before thou settest out (a browser lets a page make a sound only
+// once it's been clicked: unlock), and V turns it all off and on again (remembered).
 
 import * as THREE from 'three';
 
@@ -30,6 +31,19 @@ export const SOUNDS = {
 };
 const LEAD = 0.04;
 
+// The music, by the mood the world is in (main.js): its pieces (played in turn), how loud, the
+// breath between one piece's end and the next's start (s), how long it waits before coming in once
+// another mood has had its turn (the ambient: a moment's quiet after a fight), how long it takes to
+// come in and to die away, whether it begins from its start each time (else where it left off),
+// and whether its piece repeats, on and on.
+const TUNES = '/assets/music/';
+export const MUSIC = {
+  // while no great enemy stands in the arena
+  calm: { pieces: ['ambient-1', 'ambient-2'], volume: 0.45, gap: 3, wait: 4, fadeIn: 4, fadeOut: 2.5 },
+  // as one enters it (fight.js), till he's felled or the fight is over
+  fight: { pieces: ['arena'], volume: 0.55, gap: 0, wait: 0, fadeIn: 0.3, fadeOut: 3, fresh: true, loop: true },
+};
+
 export class Sound {
   constructor() {
     this.ctx = null; // (made once the page has been clicked: unlock)
@@ -42,6 +56,7 @@ export class Sound {
     this.view = null; // { camera, focus }: where it's heard from (main.js)
     this.log = []; // (what was played lately: [seconds, name])
     this.p = new THREE.Vector3();
+    this.music = new Music(this);
   }
 
   // The page has been clicked: sound may begin (and go on, if the browser had held it).
@@ -56,6 +71,7 @@ export class Sound {
       for (const set of this.wanted || []) this.load(set);
     }
     if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    this.music.unlock();
   }
 
   // Fetches and decodes a set's clips (once), ready for when they're wanted.
@@ -150,5 +166,142 @@ export class Sound {
     this.p.set(at[0], focus.y, at[1]).project(camera);
     const pan = Math.max(-0.8, Math.min(0.8, this.p.x * 0.75));
     return [gain, Number.isFinite(pan) ? pan : 0];
+  }
+}
+
+// A piece's loudness on its way to `to` over `secs`, from where it is now (even mid-way through
+// another fade: worked out from that fade, as the gain itself can't be trusted to tell). Returns when
+// it gets there (the sound's clock).
+function fadeTo(tr, to, secs, ctx) {
+  const t = ctx.currentTime;
+  const f = tr.fade;
+  const from = !f ? tr.gain.gain.value : t >= f.t1 ? f.to : f.from + (f.to - f.from) * ((t - f.t0) / (f.t1 - f.t0));
+  const t1 = t + Math.max(0.02, secs);
+  const g = tr.gain.gain;
+  g.cancelScheduledValues(t);
+  g.setValueAtTime(from, t);
+  g.linearRampToValueAtTime(to, t1);
+  tr.fade = { from, to, t0: t, t1 };
+  return t1;
+}
+
+// The music (Sacha's pieces, levelled: client/assets/music, README; MUSIC above). Each piece streams
+// as it plays (minutes long, they're never decoded whole) from its own player, into its own gain
+// (for its fades), into the sound's out (so V hushes it too). One mood dies away as the other comes
+// in; one that has died away is stopped, kept where it was (or wound back to its start, `fresh`).
+class Music {
+  constructor(sound) {
+    this.sound = sound;
+    this.bus = null;
+    this.tracks = new Map(); // piece -> { el, gain, fade, on, primed }
+    this.moods = new Map(); // mood -> { at (its piece), playing, pending, wait, fade, stopAt }
+    this.mood = null;
+  }
+
+  // The page clicked (Sound.unlock): the players made, and each begun and stopped again at once (a
+  // browser may let a page begin one later only if it was first begun on a click).
+  unlock() {
+    const ctx = this.sound.ctx;
+    if (!ctx) return;
+    if (!this.bus) {
+      this.bus = ctx.createGain();
+      this.bus.connect(this.sound.out);
+    }
+    for (const def of Object.values(MUSIC)) {
+      for (const piece of def.pieces) {
+        const tr = this.track(piece);
+        if (tr.primed) continue;
+        tr.el.play().then(() => {
+          tr.primed = true;
+          if (!tr.on) tr.el.pause();
+        }).catch(() => {});
+      }
+    }
+  }
+
+  track(piece) {
+    let tr = this.tracks.get(piece);
+    if (!tr) {
+      const ctx = this.sound.ctx;
+      const el = new Audio(`${TUNES}${piece}.mp3`);
+      el.preload = 'auto';
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      ctx.createMediaElementSource(el).connect(gain).connect(this.bus);
+      tr = { el, gain, fade: null, on: false, primed: false };
+      this.tracks.set(piece, tr);
+    }
+    return tr;
+  }
+
+  state(mood) {
+    let m = this.moods.get(mood);
+    if (!m) {
+      m = { at: 0, playing: false, pending: false, wait: 0, fade: null, stopAt: 0 };
+      this.moods.set(mood, m);
+    }
+    return m;
+  }
+
+  // Each frame (main.js): the mood the world is in ('calm', or 'fight'), and the music follows it.
+  update(mood, dt) {
+    const ctx = this.sound.ctx;
+    if (!this.bus || ctx.state !== 'running' || !MUSIC[mood]) return;
+    if (mood !== this.mood) {
+      if (this.mood) this.leave(this.mood);
+      const m = this.state(mood);
+      m.pending = true;
+      m.wait = this.mood ? MUSIC[mood].wait : 1; // (the very first: a moment after thou settest out)
+      m.fade = null;
+      this.mood = mood;
+    }
+    for (const [name, m] of this.moods) {
+      if (m.stopAt && ctx.currentTime >= m.stopAt) {
+        m.stopAt = 0;
+        const tr = this.track(MUSIC[name].pieces[m.at]);
+        tr.el.pause();
+        tr.on = false;
+        if (MUSIC[name].fresh) tr.el.currentTime = 0;
+      }
+    }
+    const def = MUSIC[mood];
+    const m = this.state(mood);
+    if (m.pending) {
+      if ((m.wait -= dt) <= 0) this.start(mood);
+      return;
+    }
+    // a piece over (a repeating one never is): the next, a breath on, coming in as it begins
+    const tr = this.track(def.pieces[m.at]);
+    if (m.playing && tr.el.ended) {
+      m.playing = false;
+      tr.on = false;
+      m.at = (m.at + 1) % def.pieces.length;
+      m.pending = true;
+      m.wait = def.gap;
+      m.fade = 0.05;
+    }
+  }
+
+  start(mood) {
+    const def = MUSIC[mood];
+    const m = this.state(mood);
+    const tr = this.track(def.pieces[m.at]);
+    if (def.fresh || tr.el.ended) tr.el.currentTime = 0;
+    tr.el.loop = !!def.loop;
+    fadeTo(tr, def.volume, m.fade ?? def.fadeIn, this.sound.ctx);
+    tr.on = true;
+    tr.el.play().catch(() => {});
+    m.playing = true;
+    m.pending = false;
+    m.stopAt = 0; // (dying away, it comes back instead)
+  }
+
+  leave(mood) {
+    const def = MUSIC[mood];
+    const m = this.state(mood);
+    m.pending = false;
+    if (!m.playing) return;
+    m.playing = false;
+    m.stopAt = fadeTo(this.track(def.pieces[m.at]), 0, def.fadeOut, this.sound.ctx) + 0.05;
   }
 }

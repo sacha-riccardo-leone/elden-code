@@ -103,6 +103,16 @@ function cspFor(html) {
   ].join('; ');
 }
 
+// A Range header's one stretch of a file `size` bytes long: [start, end] (inclusive), null if none
+// is asked for (or one this can't read: the whole file then), false if it lies outside the file.
+function rangeOf(header, size) {
+  const m = /^bytes=(\d*)-(\d*)$/.exec(header || '');
+  if (!m || (!m[1] && !m[2])) return null;
+  const start = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2]));
+  const end = m[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
+  return start < size && start <= end ? [start, end] : false;
+}
+
 function serveStatic(req, res, pathname) {
   if (pathname === '/') pathname = '/index.html';
   if (pathname === '/debug') pathname = '/debug.html';
@@ -116,8 +126,19 @@ function serveStatic(req, res, pathname) {
     if (!type) return send(res, 404, 'Not found');
     fs.readFile(file, (err, data) => {
       if (err) return send(res, 404, 'Not found');
-      const headers = { 'Content-Type': type, 'Cache-Control': 'no-cache' };
+      const headers = { 'Content-Type': type, 'Cache-Control': 'no-cache', 'Accept-Ranges': 'bytes' };
       if (type.startsWith('text/html')) headers['Content-Security-Policy'] = cspFor(data.toString('utf8'));
+      // (a stretch of it, as a player streaming a piece of music asks: client/js/audio.js)
+      const range = rangeOf(req.headers.range, data.length);
+      if (range === false) {
+        res.writeHead(416, baseHeaders({ 'Content-Range': `bytes */${data.length}` }));
+        return res.end();
+      }
+      if (range) {
+        const [start, end] = range;
+        res.writeHead(206, baseHeaders({ ...headers, 'Content-Range': `bytes ${start}-${end}/${data.length}` }));
+        return res.end(data.subarray(start, end + 1));
+      }
       res.writeHead(200, baseHeaders(headers));
       res.end(data);
     });

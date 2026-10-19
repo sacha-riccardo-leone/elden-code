@@ -26,6 +26,22 @@ http.createServer((req, res) => {
     return;
   }
   // (Vercel's default for static files: always revalidate, unless vercel.json says otherwise)
-  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'public, max-age=0, must-revalidate', ...headersFor(url) });
+  const headers = { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'public, max-age=0, must-revalidate', 'Accept-Ranges': 'bytes', ...headersFor(url) };
+  // (a stretch of it, as a player streaming a piece of music asks, as Vercel would give it)
+  const size = fs.statSync(file).size;
+  const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+  if (m && (m[1] || m[2])) {
+    const start = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2]));
+    const end = m[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
+    if (start >= size || start > end) {
+      res.writeHead(416, { 'Content-Range': `bytes */${size}` });
+      res.end();
+      return;
+    }
+    res.writeHead(206, { ...headers, 'Content-Range': `bytes ${start}-${end}/${size}`, 'Content-Length': end - start + 1 });
+    fs.createReadStream(file, { start, end }).pipe(res);
+    return;
+  }
+  res.writeHead(200, headers);
   fs.createReadStream(file).pipe(res);
 }).listen(PORT, '127.0.0.1', () => console.log(`Public demo preview: http://127.0.0.1:${PORT}`));

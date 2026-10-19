@@ -369,6 +369,8 @@ function step(dt) {
   particles.update(wdt, t);
   ults.update(dt, wdt);
   world.lightUp(wdt, dt); // (once all that shines has moved, or begun)
+  // the music: the arena's while a great enemy stands in it, else the ambient (audio.js)
+  sound.music.update(fight.state === 'fighting' && fight.boss?.alive ? 'fight' : 'calm', dt);
   ui.overview = rig.dist > 40;
   ui.setFocusArea(world.areaAt(rig.cur.x, rig.cur.z), t);
   ui.updateLabels(areas());

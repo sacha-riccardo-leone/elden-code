@@ -92,6 +92,8 @@ copy(path.join(CLIENT, 'assets', 'fx', 'grace-core.png'), path.join(OUT, 'assets
 // the sounds, each set as the game cut it (client/assets/sfx/<set>: audio.js's SOUNDS), not the
 // recordings beside them it was cut from
 for (const set of ['golem']) walk(path.join(CLIENT, 'assets', 'sfx', set), (p) => p.endsWith('.mp3'), (p) => copy(p, path.join(OUT, rel(p))));
+// and the music, as levelled (client/assets/music: audio.js's MUSIC)
+walk(path.join(CLIENT, 'assets', 'music'), (p) => p.endsWith('.mp3'), (p) => copy(p, path.join(OUT, rel(p))));
 
 // Three.js: the build, and the addons the code imports with everything they import in turn
 const imports = (file) => [...fs.readFileSync(file, 'utf8').matchAll(/(?:import|export)[^'"]*?from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]/g)].map((m) => m[1] || m[2]);
