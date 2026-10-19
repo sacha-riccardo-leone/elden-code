@@ -1,6 +1,6 @@
 // Pointer and keyboard, for whoever thou art (Maren, or whoever thou hast become; pilot.js): WASD /
 // arrows walk (Shift runs), left click strikes (a mage casts), right click casts (whoever casts:
-// Fortuna, the mages), R looses thine ultimate once it's full, C crouches, B (or a click on thyself) opens thy fan
+// Fortuna, the mages; Ulric throws his spear), R looses thine ultimate once it's full, C crouches, B (or a click on thyself) opens thy fan
 // of gestures, number keys gesture, E uses what's in reach (interact.js), M shows the map. Click
 // another Tarnished to inspect it and open its fan, which offers to become them; drag it to carry
 // it elsewhere; scroll to zoom. Z/X travel by grace between areas, H to Roundtable Hold. In the

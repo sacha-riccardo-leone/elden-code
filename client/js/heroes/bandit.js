@@ -7,7 +7,8 @@
 // upright; his size, his skin's shades and his eye those of his standing pose) and his Tenfold
 // Spears (bandit-ult.json: the spear cocked back like a javelin, then thrown, his hand open) are
 // drawn whole; the spear reaches far beyond his frame, so they're kept in a bigger one (core.js,
-// bigFrame).
+// bigFrame). Played by thee, he throws a single spear with the same two drawings (right click, his
+// `spell`: combat.js).
 
 import { Img, NONE, region, blit, rotatable, drawRotated, prepareStill, composeStill, held } from './core.js';
 
@@ -223,9 +224,10 @@ export default {
   cols: 8,
   px: PX,
   head: 61, // art pixels from the ground to the top of his head
-  hits: { hammer: 4, cast: 1, send: 1, attack: 4 },
+  hits: { hammer: 4, cast: 1, send: 1, attack: 4, spell: 4 },
   lunge: { attack: 0.35 }, // (his drawing thrown forward as the spear drives out: npc.js)
-  muzzles: { ult: muzzleAt(DRAWN.ult[1]) },
+  // (where his spears leave his open hand: the Tenfold Spears, and the one he throws, right click)
+  muzzles: { ult: muzzleAt(DRAWN.ult[1]), attack: muzzleAt(DRAWN.ult[1]) },
   glowIntensity: 0.8,
   glowColors: [[150, 140, 120], [250, 240, 220]],
   seed: 3141,
@@ -241,6 +243,8 @@ export default {
     attack: { frames: held(G.lunge, [4, 3, 5]), fps: 18 },
     ult: { frames: G.cock, fps: 1 },
     throw: { frames: G.throw, fps: 1 },
+    // (a spear thrown, right click, in eighteenths of a second: cocked back 4, thrown 6)
+    spell: { frames: held([...G.cock, ...G.throw], [4, 6]), fps: 18 },
     read: { frames: G.study, fps: 1.4 },
     cast: { frames: G.cast, fps: 4 },
     send: { frames: G.raise, fps: 4 },

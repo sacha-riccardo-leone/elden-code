@@ -1209,14 +1209,18 @@ export class Splash {
 // A spear stuck in the great enemy, `off` from his middle, until `until`; then it falls away
 // (`look`: drawn, { map, w, h }, fxart.js).
 // (`way` [dx, dz]: the way it was thrown, which it points, as it shows on the screen; else `dir`,
-// left or right)
+// left or right. `motes`: the school of the motes it sheds while it's stuck, his ultimate's poison;
+// none, a spear simply thrown.)
 export class StuckSpear {
-  constructor(fx, { follow, off, dir, way = null, until, look = null }) {
+  constructor(fx, { follow, off, dir, way = null, until, look = null, motes = 'poison' }) {
     const { map, w, h } = look || { map: TEX.spear(), w: 2.1, h: 2.1 * 9 / 70 };
     this.mesh = plane(fx.scene, map, w, h, { order: 7 });
     this.mesh.scale.x = dir;
     this.mesh.rotation.z = (Math.random() - 0.5) * 0.25;
-    Object.assign(this, { fx, follow, off, way, until, t: 0, falling: 0, vy: 0, jitter: (Math.random() - 0.5) * 0.25 });
+    Object.assign(this, { fx, follow, off, way, until, motes, t: 0, falling: 0, vy: 0, jitter: (Math.random() - 0.5) * 0.25 });
+    // (where it's stuck from the first, not where it was made, till its first step)
+    const [bx, by, bz] = follow();
+    this.mesh.position.set(bx + off[0], by + off[1], bz + off[2]);
   }
 
   step(dt) {
@@ -1229,10 +1233,10 @@ export class StuckSpear {
         const keep = { way: this.mesh.scale.x < 0 ? -1 : 1 };
         pointAt(this.mesh, screenAngleAt(this.mesh.parent, this.mesh.position, DIR.set(this.way[0], 0, this.way[1])) + this.jitter, keep);
       }
-      if (Math.random() < dt * 3) {
+      if (this.motes && Math.random() < dt * 3) {
         this.fx.particles.emit({
           pos: [this.mesh.position.x, this.mesh.position.y, this.mesh.position.z], spread: [0.1, 0.1, 0.1], vel: [0, 0.8, 0], velSpread: [0.2, 0.3, 0.2],
-          color: motesOf('poison'), size: 0.07, life: 0.7, count: 1, drag: 0.8, intensity: 1.8,
+          color: motesOf(this.motes), size: 0.07, life: 0.7, count: 1, drag: 0.8, intensity: 1.8,
         });
       }
       return true;

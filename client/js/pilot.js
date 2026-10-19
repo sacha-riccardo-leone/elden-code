@@ -11,10 +11,10 @@
 //
 // The player also has health (for fights against great enemies, fight.js) and a dodge (Space): a
 // quick dash that no blow can touch. A mage casts its spells with a click (and Fortuna, who also
-// has her blade, with the right button; combat.js), and an ultimate, once full, is loosed with R
-// (ults.js).
+// has her blade, with the right button; combat.js; Ulric, with the right button, throws his spear),
+// and an ultimate, once full, is loosed with R (ults.js).
 
-import { styleOf, blow } from './combat.js';
+import { styleOf, blow, canCast } from './combat.js';
 import { groundAt } from './ground.js';
 
 const WALK = 3.4;
@@ -184,10 +184,11 @@ export class Pilot {
   }
 
   // A spell toward where the click landed (right click; a mage's left click too): for those who
-  // cast (combat.js), Fortuna among them. It's loosed at the turn of the character's blow (drive).
+  // cast (combat.js), Fortuna among them, and Ulric, who throws his spear. It's loosed at the turn
+  // of the character's blow (drive).
   cast(at = null) {
     const n = this.npc;
-    if (this.busy(n) || styleOf(n).range === 'near' || !this.paced(n)) return;
+    if (this.busy(n) || !canCast(n) || !this.paced(n)) return;
     if (at && Math.abs(at.x - n.pos.x) > 0.2) n.body.facing = at.x > n.pos.x ? 1 : -1;
     blow(n, 'cast', { spell: true, at });
   }

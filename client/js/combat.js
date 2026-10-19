@@ -4,17 +4,20 @@
 // spear or hammer. Fortuna does both: her frost blade up close, frost from afar. Every blow that
 // lands fills the striker's ultimate (ults.js).
 //
+// Ulric has no sorcery, but played by thee he throws his spear as a mage casts (throwSpear).
+//
 // Also here: what the ultimates can do to him besides wounding him (status): hold him still (as
 // the iaijutsu's cuts are made), stun him (dazed, he neither fights nor moves), slow him and root
 // him where he stands (a pool of blood), bleed or poison him (his health running down by itself),
 // and knock him back.
 
-import { Missile, Beam, Rise, Burst, TEX, motesOf, shine } from './spellfx.js';
+import { Missile, Beam, Rise, Burst, Spark, StuckSpear, TEX, motesOf, shine } from './spellfx.js';
 import { lookOf } from './fxart.js';
 
 // By hero id (a hero of two looks fights as whichever it wears). `muzzle`: where a mage's spells
 // leave from, [ahead, up] of its feet in world units (the orb, the crystal, the fist, the ring),
-// unless its rig says where its drawn poses hold it (muzzleOf).
+// unless its rig says where its drawn poses hold it (muzzleOf). `throws`: one who fights up close
+// but throws his spear for a spell, played by thee (throwSpear).
 export const STYLES = {
   runelord: { range: 'far', school: 'rune', color: '#ffc94a', muzzle: [2.0, 0.75] }, // (the orb, thrust out: heroes/runelord.js)
   sorceress: { range: 'far', school: 'glintstone', color: '#6fc3ff', muzzle: [0.72, 2.68] }, // (bare-faced; masked: heroes/sorceress.js)
@@ -25,12 +28,15 @@ export const STYLES = {
   knight: { range: 'near', color: '#ff4038' },
   paladin: { range: 'near', color: '#ffe9a0' },
   ronin: { range: 'near', color: '#d8ecff' },
-  bandit: { range: 'near', color: '#9fdc5a' },
+  bandit: { range: 'near', color: '#9fdc5a', throws: true },
 };
 const NEAR = { range: 'near', color: '#ffd27a' };
 export const heroKey = (n) => n?.hero?.hero?.split('-')[0] ?? null;
 export const styleOf = (n) => STYLES[heroKey(n)] || NEAR;
 export const casts = (n) => styleOf(n).range !== 'near';
+// Whether n has a spell for thy right click at all (pilot.js): a mage's, Fortuna's frost, Ulric's
+// spear.
+export const canCast = (n) => !!(SPELLS[styleOf(n).school] || styleOf(n).throws);
 
 // How hard a spell hits (`share` 1: an ordinary one): a fighter's, and thine. Less than a blade's
 // blow, for being safe from afar (and Fenrath goes after whoever keeps it up: fight.js, HUNT).
@@ -160,6 +166,7 @@ const SPELLS = {
 // cast it straight on `dir` ([dx, dz]) into nothing; `hit(at, share)`: it lands, `share` of an
 // ordinary spell's strength.
 export function castSpell(fx, n, { target, dir, hit }) {
+  if (styleOf(n).throws) { throwSpear(fx, n, { target, dir, hit }); return; }
   const school = styleOf(n).school;
   const list = SPELLS[school];
   if (!list) return;
@@ -193,6 +200,29 @@ export function castSpell(fx, n, { target, dir, hit }) {
     },
   };
   pick(list).cast(c);
+}
+
+// Ulric's spear, thrown (his right click, a spell to him: pilot.js): his own spear, drawn as his
+// Tenfold Spears are (ults.js), leaving his open hand fast and flying straight; onto the mark, if
+// there is one, striking it as a spell does, a spark of his colour where it bites, and staying stuck
+// in it a moment, the way it was thrown; else on into nothing.
+const SPEAR = { speed: 34, life: 0.8, stuck: 1.2 };
+function throwSpear(fx, n, { target, dir, hit }) {
+  const from = muzzleOf(n);
+  const facing = n.body.facing;
+  const look = lookOf('ulric-spear', n.body.sheet.px, { map: TEX.spear(), w: 2.1, h: 2.1 * 9 / 70 });
+  fx.add(new Missile(fx, {
+    ...look, from, to: target, dir: target ? null : dir, speed: SPEAR.speed, turn: 14, near: 0.4, life: target ? 2 : SPEAR.life,
+    onHit: (at) => {
+      const wx = at.x - from[0];
+      const wz = at.z - from[2];
+      const wl = Math.hypot(wx, wz) || 1;
+      const way = [wx / wl, wz / wl]; // (the way it flew)
+      fx.add(new Spark(fx, { color: styleOf(n).color, at: [at.x, at.y, at.z + 0.3], dir: Math.sign(way[0]) || facing, size: 1.3 }));
+      fx.add(new StuckSpear(fx, { follow: target, off: [-way[0] * 0.9, 0, -way[1] * 0.9 + 0.2], dir: facing, way, until: SPEAR.stuck, look, motes: null }));
+      hit(at, 1);
+    },
+  }));
 }
 
 // ---------------------------------------------------------------------------------------------

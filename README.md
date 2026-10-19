@@ -122,7 +122,8 @@ can **become any character**: click one and choose **Become …** in the fan ove
   - **W A S D** or the arrow keys to walk, **Shift** to run; cross the bridges to other islands.
     The camera stays on you.
   - **Left click** strikes with the character's own attack (a Tarnished in front of you staggers;
-    it's all for show); a mage casts a spell instead. **Right click** casts as Fortuna or a mage.
+    it's all for show); a mage casts a spell instead. **Right click** casts as Fortuna or a mage,
+    and throws a spear as Ulric.
     **Space** dodges. **C** crouches. **Q**, in a fight against a great enemy, turns the camera's
     focus on it and back on you. **R** looses your ultimate once its bar is full.
   - **B** (or clicking yourself) opens your fan of gestures over your head (or **1–8**). Nearby
@@ -494,7 +495,12 @@ loosed on it is placed from its floor, as on the Hold (a group raised to its hei
       `solenne-halo.json`, turning and keeping level as it flies; `solenne-light.json`, falling,
       striking and fading). The lance and the halo leave from her ring as her cast thrusts it out.
   - **Up close:** Ruadan, Maren, Aurelion, Wynn and Ulric. Ulric still hides; his style only
-    matters when you play him.
+    matters when you play him. Then right click throws his spear as a mage casts: cocked back like
+    a javelin and thrown (the two drawings of his Tenfold Spears), it leaves his open hand fast
+    (34 units a second, against a mage's 9 to 14), flies straight onto the enemy if he's within
+    about 35° of where you point (on the training yard, the dummy that way), strikes as hard as a
+    spell with a spark of his green, and stays stuck in him a moment the way it was thrown (no
+    poison: that's his ultimate's); otherwise it flies on into nothing.
   - **Fortuna** does both, switching between her frost blade and frost cast from afar (a shard, or
     ice out of the floor), both drawn (`fortuna-shard.json`, `fortuna-spikes.json`) at her own
     pixel size.
