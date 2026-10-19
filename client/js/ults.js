@@ -6,6 +6,9 @@
 //
 // Some are aimed: loosed one of the four ways (thou: toward the pointer), they find him only if he
 // stands in their line; the rest find him wherever he is.
+// Those training on the yard loose theirs now and then at their dummies, quietly (startQuiet): in
+// their pose, their aura round them, as long as ever, but the world goes on, in its colours, and
+// the camera stays where it is, not even jolted.
 //   Jorvik, the Rune Lord – Flight of Tomes: golden tomes take wing and dash into him, each spent
 //                          as it strikes
 //   Corisande            – Glintstone Arrow: a crystal arrow trailing light, that finds its mark
@@ -430,6 +433,7 @@ export class Ults {
     // its own motes: they go on while the world stands still
     this.particles = new Particles(ctx.scene, 800);
     this.active = null; // { n, u, key, t, at (when it is loosed), dir, player, aura, released, saved }
+    this.quiet = []; // those loosed quietly (startQuiet): { n, u, pose, t, at, dir, aura, stand, place, b, released }
     this.lastEnd = -Infinity;
     this.clock = 0;
     const el = document.getElementById('ult-title');
@@ -526,9 +530,74 @@ export class Ults {
     return { at: [x, Math.max(1.25, tall * 0.42) + (a.n.lift || 0) + groundAt(p.x, p.y), p.y], dist };
   }
 
-  update(dt) {
+  // n looses its ultimate quietly (one training on the yard, training.js): at `b` (its dummy, on
+  // `place`), the way `dir` says if it's aimed. It gathers in its pose with its aura round it (and
+  // Aurelion's giant behind him) as long as one watched would, and strikes; but nothing stands still
+  // for it, nothing goes grey, and the camera neither closes on it nor shakes.
+  startQuiet(n, { place, b, dir = null }) {
+    const u = this.of(n);
+    if (!u || !b || n.dead) return false;
+    if (u.aim && !dir) dir = [Math.sign(b.pos.x - n.pos.x) || n.body.facing, 0];
+    n.body.facing = dir?.[0] ? (dir[0] > 0 ? 1 : -1) : b.pos.x >= n.pos.x ? 1 : -1;
+    const pose = poseOf(u, n);
+    const at = u.at ?? CINE.release;
+    n.action = { kind: 'ult', anim: pose[0], t: 0, dur: at + 0.05 };
+    n.body.play(pose[0], true);
+    const aura = new Aura(this.ctx.scene, this.particles, n.body, styleOf(n).color, { radius: heroKey(n) === 'sorceress' ? 4.5 : 2.5 });
+    const stand = u.stand ? new Stand(this.ctx.scene, n.body, u.stand) : null;
+    const own = stand && u.stand.gather && pose[0] === u.pose[0] && n.body.sheet.anims[u.stand.gather] ? u.stand.gather : null;
+    if (own) stand.play(own);
+    // (what it's loosed on: its place, but with the camera left out of it, and its own dummy
+    // where the place's aimed point would be)
+    const quiet = Object.create(place);
+    quiet.ctx = { ...place.ctx, rig: null };
+    quiet.bossPoint = (up = 2) => [b.pos.x, (b.lift || 0) + up, b.pos.y + 0.2];
+    this.quiet.push({ n, u, pose, t: 0, at, dir, aura, stand, place, quiet, b, released: false });
+    return true;
+  }
+
+  // A quiet one, on the world's time (`dt`: none while it stands still for thine): still while it
+  // gathers (a held pose kept on its frame), then loosed, then its light fading.
+  stepQuiet(q, dt) {
+    const { n, u } = q;
+    if (n.dead || !n.body?.mesh?.parent) {
+      q.aura.dispose();
+      q.stand?.dispose();
+      return false;
+    }
+    q.t += dt;
+    if (!q.released) {
+      const [anim, hold] = q.pose;
+      if (hold != null) {
+        const frames = n.body.sheet.anims[anim]?.frames || [];
+        n.body.setFrame(frames[Math.min(hold, frames.length - 1)] ?? 0, n.body.facing);
+      }
+      if (q.t >= q.at) {
+        q.released = true;
+        const loose = u.release && n.body.sheet.anims[u.release] ? u.release : null;
+        n.action = { kind: 'ult', anim: loose || q.pose[0], t: 0, dur: loose ? 0.6 : 0.35 };
+        if (loose) n.body.play(loose, true);
+        if (q.stand?.anim && u.stand.release) q.stand.play(u.stand.release);
+        const power = ultPower(q.b);
+        u.run({ fight: q.quiet, fx: q.place.fxCtx, n, b: q.b, dir: q.dir, hit: (share, at) => q.place.ultHit(n, share * power, at, q.b) });
+      }
+    }
+    q.aura.step(dt, q.t > CINE.aura && q.t < q.at + 0.25 ? 1 : 0);
+    q.stand?.step(dt, q.t > CINE.grey && q.t < q.at + 0.35 ? 1 : 0, n.action?.kind === 'ult');
+    if (q.released && q.t >= q.at + CINE.back + 0.2) {
+      q.aura.dispose();
+      q.stand?.dispose();
+      return false;
+    }
+    return true;
+  }
+
+  // (`wdt`: the world's time, standing still while an ultimate is gathered or a blow lands, for the
+  // quiet ones)
+  update(dt, wdt = dt) {
     this.clock += dt;
     this.particles.update(dt, this.clock);
+    if (this.quiet.length) this.quiet = this.quiet.filter((q) => this.stepQuiet(q, wdt));
     const a = this.active;
     if (!a) return;
     const { post, rig } = this.ctx;

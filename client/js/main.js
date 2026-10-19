@@ -356,7 +356,7 @@ function step(dt) {
   document.body.classList.toggle('in-battle', fight.inBattle()); // (no labels to click mid-fight)
   if (fight.hunting() && ui.fanOwner?.piloted) ui.closeFan(); // (thy gestures fold away as a great enemy comes)
   particles.update(wdt, t);
-  ults.update(dt);
+  ults.update(dt, wdt);
   ui.overview = rig.dist > 40;
   ui.setFocusArea(world.areaAt(rig.cur.x, rig.cur.z), t);
   ui.updateLabels(areas());

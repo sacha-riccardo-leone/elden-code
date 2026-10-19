@@ -80,7 +80,12 @@ send it back on its own. Training, a Tarnished has stopped working: what its ses
 until it leaves the yard, and nothing of its work shows meanwhile (no signs over its head, no
 gestures, no trips to its stations, no spirit ashes), as in a fight. It takes a post (beside a
 straw dummy, behind the great one at its cracked ankle, or, a caster, off to one side) and strikes
-or casts there every so often, now and then going over to another dummy. A Tarnished with nothing
+or casts there every so often, now and then going over to another dummy. Rarely (a minute or more
+into its training, then every few minutes, and never two within twenty seconds on the yard) it
+looses its ultimate at its dummy, quietly: it gathers in its pose with its aura round it, as long as
+ever, but the world doesn't stand still for it or go grey, and the camera neither closes on it nor
+shakes (`client/js/ults.js`, `startQuiet`). Ulric never does: his spears are thine to loose alone.
+A Tarnished with nothing
 to do, a hero without a quest or one whose session has been idle a while, sometimes goes to train
 of its own accord (a few at most at once, never while a great enemy is abroad). It goes back as soon
 as its session has work for it, or after a minute or two, and then waits a few minutes before

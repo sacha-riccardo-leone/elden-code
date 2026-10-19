@@ -13,7 +13,9 @@
 // waits till it leaves (npc.js, setIntent), and no sign of its work shows meanwhile (director.js),
 // nor gestures, nor words of it. It comes by grace, takes a post (beside a straw dummy, behind the
 // great one at its cracked ankle, or, a caster, off to one side), and strikes or casts there every
-// so often, now and then going over to another dummy.
+// so often, now and then going over to another dummy; and, rarely, looses its ultimate at it,
+// quietly (ults.js, startQuiet: nothing stands still for it, nothing goes grey, and the camera
+// stays with thee).
 //
 // Thy blows, spells and ultimates find a dummy as they find a great enemy on the arena (fight.js):
 // a dummy has the few things of his they ask after (where it stands, its body, that it lives), and
@@ -29,7 +31,7 @@ import * as THREE from 'three';
 import { YARD, DUMMY_SPOTS, BOSS_DUMMY } from './yard.js';
 import { fxArt } from './fxart.js';
 import { flashing } from './npc.js';
-import { styleOf, castSpell, muzzleOf, stepStatus, RANGED, blow, casts } from './combat.js';
+import { styleOf, castSpell, muzzleOf, stepStatus, RANGED, blow, casts, heroKey } from './combat.js';
 import { groundAt } from './ground.js';
 import { Spark } from './spellfx.js';
 
@@ -59,12 +61,14 @@ const REACH = 40; // how far an ultimate finds a dummy: across the yard
 // dummy (of thine); how far off a caster stands; how long before each goes over to another dummy;
 // and one that comes of itself: how long it stays, how many may at once, how long its session must
 // have been idle first, how long after it last trained (or was sent back) before it comes again, and
-// the chance of it, each look round, every `every` seconds.
+// the chance of it, each look round, every `every` seconds. Their ultimates, rarely: seconds of
+// training before the first, between one and the next, and between any two on the yard.
 const TRAIN = {
   beside: 1.6, ankle: [2.0, 2.3],
   blow: [1.3, 2.8], cast: [2.2, 3.8], hurt: { blow: 0.6, spell: 0.5 },
   ring: [6, 8.5], swap: [25, 50],
   self: { stay: [60, 150], most: 3, idle: 40, rest: 180, chance: 0.04, every: 4 },
+  ult: { first: [40, 100], every: [90, 180], gap: 20 },
 };
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -189,6 +193,7 @@ export class Training {
     this.dummies = null; // (made once their drawing has loaded: start)
     this.told = new Set(); // (the hints in the log, each said once)
     this.lookIn = TRAIN.self.every; // (till it next looks for one with nothing to do: lookRound)
+    this.lastUlt = -Infinity; // (when one training last loosed its ultimate)
     // the button under each one training, to send it back (placeButtons)
     this.btnRoot = document.getElementById('trainees');
     this.btns = new Map();
@@ -352,9 +357,9 @@ export class Training {
     return ults.start(n, { dir, player: true });
   }
 
-  // An ultimate's blow lands on the dummy it was loosed at.
-  ultHit(n, amount) {
-    const b = this.boss;
+  // An ultimate's blow lands on the dummy it was loosed at (thine: the one last aimed at; one of
+  // those training: its own, `b`).
+  ultHit(n, amount, at = null, b = this.boss) {
     if (!b) return;
     b.struck(amount, Math.sign(b.pos.x - n.pos.x) || 1);
   }
@@ -409,7 +414,10 @@ export class Training {
     n.inTalk = false;
     if (n.action && n.action.kind !== 'transform') n.action = null;
     const resume = n.piloted ? n.resume : n.intent;
-    n.trainee = { self, resume, post: null, cd: rand(0.4, 1.6), swapAt: 0, until: self ? this.clock + rand(...TRAIN.self.stay) : Infinity };
+    n.trainee = {
+      self, resume, post: null, cd: rand(0.4, 1.6), swapAt: 0, until: self ? this.clock + rand(...TRAIN.self.stay) : Infinity,
+      ultIn: rand(...TRAIN.ult.first),
+    };
     if (n.piloted) { n.resume = { kind: 'train' }; return; } // (thou holdest it: it trains once thou lettest go)
     n.intent = { kind: 'none' };
     n.setIntent({ kind: 'train' });
@@ -473,7 +481,14 @@ export class Training {
     }
     n.body.facing = p.face;
     t.cd -= dt;
-    if (t.cd > 0 || !p.dummy.standing) return false;
+    t.ultIn -= dt;
+    if (!p.dummy.standing) return false;
+    // rarely, its ultimate (never two too close together on the yard)
+    if (t.ultIn <= 0 && this.clock - this.lastUlt > TRAIN.ult.gap) {
+      t.ultIn = rand(...TRAIN.ult.every);
+      if (this.ultQuiet(n, p.dummy)) { this.lastUlt = this.clock; return false; }
+    }
+    if (t.cd > 0) return false;
     blow(n, p.cast ? 'trainCast' : 'trainAttack', { spell: p.cast, dummy: p.dummy });
     t.cd = rand(...(p.cast ? TRAIN.cast : TRAIN.blow));
     return false;
@@ -507,6 +522,16 @@ export class Training {
       if (score < bs) { bs = score; best = o; }
     }
     return best && { ...best, tries: 0 };
+  }
+
+  // One training looses its ultimate at its dummy, quietly (ults.js, startQuiet); but never Ulric's
+  // spears, loosed by thy hand alone.
+  ultQuiet(n, d) {
+    const { ults } = this.ctx;
+    const u = ults?.of(n);
+    if (!u || heroKey(n) === 'bandit' || ults.active) return false;
+    const dir = u.aim ? [Math.sign(d.pos.x - n.pos.x) || n.body.facing, 0] : null;
+    return ults.startQuiet(n, { place: this, b: d, dir });
   }
 
   // A blow of one training lands, at the turn of its swing (update): on the great one's cracked
