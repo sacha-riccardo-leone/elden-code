@@ -288,8 +288,9 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
     and to fight. She takes it off once she has been idle 12 seconds, and changes no more often
     than every 6 seconds. Between the looks, glintstone light gathers and she holds the mask up over
     her head, her staff standing by itself beside her (`sorceress-veil.json`). It takes under two
-    seconds and isn't logged. While thou art her, she leaves the mask as it is, except that she
-    puts it on as thou goest into battle.
+    seconds and isn't logged. While thou art her, she wears it on the training yard and in a fight
+    on the arena, putting it on as she walks onto them and taking it off as she walks out, so her
+    drawn blows, spell and ultimate play wherever she fights.
   - Her drawings keep all their detail: they're sampled at twice the density of their drawn pixels,
     so the finest touches (the light in her eyes) survive. Her grids are about twice the size of the
     other heroes', and her scale is half theirs, so she stands as tall as them.

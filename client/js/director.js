@@ -124,11 +124,13 @@ export class Director {
   }
 
   // The form a hero of two forms wants just now. The Twofold's turns with the hour; the Glintstone
-  // Witch wears her mask to work her sorcery (at her station, or channelling) and to fight (thou
-  // holding her, as thou goest into battle), and takes it off once she has been idle a while.
+  // Witch wears her mask to work her sorcery (at her station, or channelling) and to fight, and
+  // takes it off once she has been idle a while. Held by thee, she wears it on the training yard
+  // and in a fight on the arena, and takes it off as she walks out of them.
   wantForm(n) {
     if (n.heroActor === 'twofold') return this.formNow();
-    const busy = !!n.fighter || !!n.trainee || (n.working && n.arrived) || (n.piloted && !!this.ctx.fight?.inBattle());
+    if (n.piloted) return this.ctx.training?.has(n) || this.ctx.fight?.inBattle() ? 'masked' : 'bare';
+    const busy = !!n.fighter || !!n.trainee || (n.working && n.arrived);
     if (busy) n.busyAt = this.clock;
     return busy || this.clock - (n.busyAt ?? -Infinity) < MASK.keep ? 'masked' : 'bare';
   }
@@ -136,8 +138,8 @@ export class Director {
   // Halfway through dusk or dawn the Twofold becomes its other form: golden light gathers, the
   // drawing of the change holds a moment, then the other form bursts out under its own name. The
   // Glintstone Witch lifts her mask on or off in glintstone light, quicker and without a word in the
-  // log (she leaves it be while thou holdest her, but for putting it on as thou goest into battle:
-  // she fights in it).
+  // log (held by thee, as she walks onto the training yard or into a fight on the arena, and out of
+  // them again: she fights in it).
   updateForms(dt) {
     for (const n of this.heroes.values()) {
       if (!n.forms || n.dead) continue;
@@ -145,7 +147,7 @@ export class Director {
       const want = this.wantForm(n);
       if (n.form === want || n.dragged || n.travel || n.fade < 1) continue;
       const twofold = n.heroActor === 'twofold';
-      if (!twofold && ((n.piloted && want !== 'masked') || this.clock - (n.shiftedAt ?? -Infinity) < MASK.gap)) continue;
+      if (!twofold && this.clock - (n.shiftedAt ?? -Infinity) < MASK.gap) continue;
       const timing = twofold ? SHIFT : VEIL;
       n.shift = { to: want, t: 0, stage: 0, glow: 0, timing, told: twofold };
       n.shiftedAt = this.clock;
