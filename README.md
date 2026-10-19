@@ -498,6 +498,13 @@ loosed on it is placed from its floor, as on the Hold (a group raised to its hei
   - **Fortuna** does both, switching between her frost blade and frost cast from afar (a shard, or
     ice out of the floor), both drawn (`fortuna-shard.json`, `fortuna-spikes.json`) at her own
     pixel size.
+  - **Pointing the way they go:** whatever flies (shards, orbs, tomes, arrows, spears, Aurelion's
+    wave) is turned to point the way it goes as it shows on the screen, into the view or out of it
+    as well as across, worked out through the camera itself (`spellfx.js`, `setView`). The ones
+    that keep upright (Corisande's great shard and arrow, Jorvik's tomes, the wave) are mirrored
+    rather than turned upside down going leftward. Beams (Vael's lash, Solenne's lance) lie along
+    the line from the caster to what they strike, turned toward the camera, so they end on it
+    whichever way they run; Ulric's spears stay stuck the way they were thrown.
   - **Playing them:** as a mage, a left click casts toward the pointer. The spell homes on the
     enemy if he's within about 35° of where you point; otherwise it flies off into nothing. As
     Fortuna, left click swings her blade and right click casts.

@@ -484,12 +484,82 @@ function floor(scene, map, x, z, size, opacity = 1) {
 // height (z coming toward it reads as downward).
 const screenAngle = (dx, dy, dz) => Math.atan2(dy * 0.9 - dz * 0.42, dx);
 
+// The camera the world is seen through (main.js, setView): what flies is turned by where it shows
+// in the picture, whichever way it goes, into the view or out of it as well as across.
+let view = null;
+export function setView(camera) { view = camera; }
+const P0 = new THREE.Vector3();
+const P1 = new THREE.Vector3();
+const BX = new THREE.Vector3();
+const BY = new THREE.Vector3();
+const BZ = new THREE.Vector3();
+const BM = new THREE.Matrix4();
+const DIR = new THREE.Vector3(); // (a way something goes, for screenAngleAt)
+
+// The angle on the screen (counterclockwise from the right) of a movement `d` made at `at` (in
+// `parent`'s space: the yard's effects are set on its lowered floor): where its two ends land in
+// the picture, perspective and all. Without the camera, as seen from its usual height.
+function screenAngleAt(parent, at, d) {
+  const len = d.length();
+  if (!view || len < 1e-6) return screenAngle(d.x, d.y, d.z);
+  P0.copy(at);
+  P1.copy(at).addScaledVector(d, 0.05 / len);
+  if (parent) { parent.localToWorld(P0); parent.localToWorld(P1); }
+  P0.project(view);
+  P1.project(view);
+  return Math.atan2(P1.y - P0.y, (P1.x - P0.x) * view.aspect);
+}
+
+// How far to turn a flat drawing (it faces the way the camera looks from, not tilted up to it) so
+// that it shows at `angle` on the screen: looking down on it, the camera shortens its height.
+function planeTurn(angle) {
+  const e = view?.matrixWorld.elements;
+  const squeeze = e ? Math.max(0.2, Math.hypot(e[8], e[10])) : 0.9;
+  return Math.atan2(Math.sin(angle) / squeeze, Math.cos(angle));
+}
+
+// Turns `mesh`, a drawing pointing to the right, to point at `angle` on the screen. With `keep`
+// (its state, { way }), it stays upright: mirrored rather than turned upside down as it goes
+// leftward, and only changing over once it's turned well past straight up or down (so that one
+// flying straight into the view or out of it doesn't flicker between the two).
+function pointAt(mesh, angle, keep = null) {
+  if (!keep) {
+    mesh.rotation.z = planeTurn(angle);
+    return;
+  }
+  const c = Math.cos(angle);
+  if (!keep.way) keep.way = c < 0 ? -1 : 1;
+  else if (keep.way * c < -0.17) keep.way = -keep.way;
+  mesh.scale.x = keep.way * Math.abs(mesh.scale.x);
+  mesh.rotation.z = keep.way > 0 ? planeTurn(angle) : planeTurn(angle) - Math.PI;
+}
+
+// Lays `mesh` (a flat drawing, its length along x) along the line from `from` to `to`, turned to
+// face the camera as far as it may, so that it ends where it should whichever way it runs.
+function lieAlong(mesh, from, to) {
+  BX.set(to[0] - from[0], to[1] - from[1], to[2] - from[2]).normalize();
+  if (!view) {
+    mesh.rotation.z = screenAngle(BX.x, BX.y, BX.z);
+    return;
+  }
+  P0.copy(mesh.position);
+  if (mesh.parent) mesh.parent.localToWorld(P0);
+  BZ.setFromMatrixPosition(view.matrixWorld).sub(P0).normalize(); // (toward the camera)
+  BY.crossVectors(BZ, BX);
+  if (BY.lengthSq() < 1e-6) return; // (straight at the camera: seen end on)
+  BY.normalize();
+  BZ.crossVectors(BX, BY);
+  mesh.quaternion.setFromRotationMatrix(BM.makeBasis(BX, BY, BZ));
+  mesh.position.addScaledVector(BZ, 0.05); // (a hair toward the camera, before what it strikes)
+}
+
 // Something flying. `to()`: where it's going, followed as it moves (homing), or `dir` [dx, dz]
 // to fly straight on that way. Reaching its mark (within `near`), it calls onHit and is done; it
 // gives up after `life` seconds. `trail`: particle colours left behind it; `spin`: it turns as it
-// flies rather than pointing the way it goes; `upright`: it keeps upright, facing the way it goes
-// and leaning a little with its climb or fall (a tome beating its covers); `frames`: textures it
-// flips through.
+// flies rather than pointing the way it goes (which, otherwise, it does as it shows on the screen,
+// into the view or out of it as well as across); `upright`: it keeps upright as it points, mirrored
+// rather than upside down going leftward (an arrow's light on top, a tome's covers);
+// `frames`: textures it flips through.
 export class Missile {
   constructor(fx, { map, w, h, from, to = null, dir = null, speed = 10, turn = 7, near = 0.5, life = 3,
     trail = null, trailRate = 40, trailSize = 0.06, spin = 0, upright = false, frames = null, fps = 10, onHit = null, onEnd = null, delay = 0, rise = 0, wobble = 0 }) {
@@ -531,12 +601,7 @@ export class Missile {
     const wob = this.wobble ? Math.sin(this.t * 14) * this.wobble : 0;
     this.mesh.position.set(this.pos.x, this.pos.y + wob, this.pos.z);
     if (this.spin) this.mesh.rotation.z += this.spin * dt;
-    else if (this.upright) {
-      const way = this.vel.x < 0 ? -1 : 1;
-      const a = screenAngle(this.vel.x * way, this.vel.y, this.vel.z);
-      this.mesh.scale.x = way;
-      this.mesh.rotation.z = way * Math.max(-0.45, Math.min(0.45, a));
-    } else this.mesh.rotation.z = screenAngle(this.vel.x, this.vel.y, this.vel.z);
+    else pointAt(this.mesh, screenAngleAt(this.mesh.parent, this.pos, this.vel), this.upright ? this : null);
     if (this.frames) this.mesh.material.map = this.frames[Math.floor(this.t * this.fps) % this.frames.length];
     if (this.trail && Math.random() < dt * this.trailRate) {
       this.fx.particles.emit({
@@ -582,8 +647,8 @@ export class Beam {
     }
     this.frames = sheet && !tile ? sheet.frames : null;
     this.mesh = plane(fx.scene, map, len, sheet && !tile ? (len * sheet.h) / sheet.w : width, { order: 7 });
-    this.mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2 + 0.05);
-    this.mesh.rotation.z = screenAngle(x1 - x0, y1 - y0, z1 - z0);
+    this.mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+    lieAlong(this.mesh, from, to);
     this.fx = fx;
     this.life = life;
     this.t = 0;
@@ -895,9 +960,15 @@ export class Slash {
     this.place();
   }
 
+  // (pointing the way it goes, as it shows on the screen, upright: mirrored going leftward)
   place() {
-    const [tx, , tz] = this.to();
-    this.mesh.scale.x = tx >= this.pos.x ? 1 : -1;
+    if (!this.struck) {
+      const [tx, , tz] = this.to();
+      const d = Math.hypot(tx - this.pos.x, tz - this.pos.z);
+      if (d > 0.05) this.going = [(tx - this.pos.x) / d, (tz - this.pos.z) / d];
+    }
+    const [gx, gz] = this.going || [1, 0];
+    pointAt(this.mesh, screenAngleAt(this.mesh.parent, this.pos, DIR.set(gx, 0, gz)), this);
     this.mesh.position.copy(this.pos);
   }
 
@@ -915,7 +986,9 @@ export class Slash {
       }
     } else {
       this.fade += dt;
-      this.pos.x += this.mesh.scale.x * this.speed * dt * 0.5;
+      const [gx, gz] = this.going || [this.mesh.scale.x, 0];
+      this.pos.x += gx * this.speed * dt * 0.5;
+      this.pos.z += gz * this.speed * dt * 0.5;
     }
     this.place();
     if (this.frames) {
@@ -1084,13 +1157,15 @@ export class Splash {
 
 // A spear stuck in the great enemy, `off` from his middle, until `until`; then it falls away
 // (`look`: drawn, { map, w, h }, fxart.js).
+// (`way` [dx, dz]: the way it was thrown, which it points, as it shows on the screen; else `dir`,
+// left or right)
 export class StuckSpear {
-  constructor(fx, { follow, off, dir, until, look = null }) {
+  constructor(fx, { follow, off, dir, way = null, until, look = null }) {
     const { map, w, h } = look || { map: TEX.spear(), w: 2.1, h: 2.1 * 9 / 70 };
     this.mesh = plane(fx.scene, map, w, h, { order: 7 });
     this.mesh.scale.x = dir;
     this.mesh.rotation.z = (Math.random() - 0.5) * 0.25;
-    Object.assign(this, { fx, follow, off, until, t: 0, falling: 0, vy: 0 });
+    Object.assign(this, { fx, follow, off, way, until, t: 0, falling: 0, vy: 0, jitter: (Math.random() - 0.5) * 0.25 });
   }
 
   step(dt) {
@@ -1098,6 +1173,11 @@ export class StuckSpear {
     const [bx, by, bz] = this.follow();
     if (this.t < this.until) {
       this.mesh.position.set(bx + this.off[0], by + this.off[1], bz + this.off[2]);
+      if (this.way && !this.aimed) {
+        this.aimed = true;
+        const keep = { way: this.mesh.scale.x < 0 ? -1 : 1 };
+        pointAt(this.mesh, screenAngleAt(this.mesh.parent, this.mesh.position, DIR.set(this.way[0], 0, this.way[1])) + this.jitter, keep);
+      }
       if (Math.random() < dt * 3) {
         this.fx.particles.emit({
           pos: [this.mesh.position.x, this.mesh.position.y, this.mesh.position.z], spread: [0.1, 0.1, 0.1], vel: [0, 0.8, 0], velSpread: [0.2, 0.3, 0.2],

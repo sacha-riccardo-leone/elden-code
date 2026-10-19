@@ -29,6 +29,7 @@ import { Crowd } from './crowd.js';
 import { Guide } from './guide.js';
 import { Ults } from './ults.js';
 import { Training } from './training.js';
+import { setView } from './spellfx.js';
 import { groundAt } from './ground.js';
 import { Companions } from './companions.js';
 import { PUBLIC_DEMO } from './mode.js';
@@ -47,6 +48,7 @@ scene.background = new THREE.Color('#0b0c10');
 scene.fog = new THREE.FogExp2('#16171d', 0.0105);
 
 const camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.5, 1500);
+setView(camera); // (what flies points the way it goes, as it shows through this: spellfx.js)
 const rig = new CameraRig(camera);
 const particles = new Particles(scene);
 const world = new World(scene, particles);

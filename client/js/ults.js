@@ -373,7 +373,7 @@ export const ULTS = {
           onHit: () => {
             hit(0.8, new THREE.Vector3(b.pos.x, oy, b.pos.y));
             addDot(b, { kind: 'poison', dps: 3, until: fight.clock + 4, src: n });
-            fx.add(new StuckSpear(fx, { follow: () => [b.pos.x, b.lift, b.pos.y], off: [-facing * 0.9, oy, oz + 0.2], dir: facing, until: 4, look }));
+            fx.add(new StuckSpear(fx, { follow: () => [b.pos.x, b.lift, b.pos.y], off: [-dir[0] * 0.9, oy, -dir[1] * 0.9 + oz + 0.2], dir: facing, way: dir, until: 4, look }));
           },
         }));
       }
