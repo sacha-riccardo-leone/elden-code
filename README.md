@@ -883,12 +883,13 @@ sound from where it starts, and each is levelled to one peak (`dontuse.wav` is l
   - a whoosh as the axe or the pole is raised, and a boom on the drawing where it strikes: the
     swing, the thrust, each slam, the pole driven in for his fire;
   - a clang when his stone turns a blow;
-  - as he passes out (or dies), `passing_out_start_1`, and halfway through it `passing_out_start_2`
-    on top of it, the two sounding together only a moment; the second goes on while he lies felled
-    and dies away as he gets up. His body hits the floor on the drawing where it does, heard then
-    (the ground shakes and the dust flies then too);
-  - the fire roaring up as he spits it, burning on, looped, while he does, and dying away as he
-    stops;
+  - as he passes out (or dies), his stone crumbling as he falls: `passing_out_start_1` at once, from
+    its first crackle (the faint stretch before it left out), and halfway through his fall
+    `passing_out_start_2` on top of it; both stop as his body hits the floor, on the drawing where it
+    does, and the ground hit is heard then (the ground shakes and the dust flies then too). Nothing
+    crumbles while he lies felled;
+  - the fire roaring up as he spits it (begun 0.3 s before, so that the roar is at its loudest as
+    the fire comes), the blaze burning on, looped, while he does, and dying away as he stops;
   - each meteor as it lands.
 - **Where it happens:** quieter the farther it is from where the camera looks, to the left or the
   right as it shows on the screen, and never too many of one at once (eight meteors).

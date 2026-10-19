@@ -19,13 +19,15 @@ const clips = [
   ['windup', 'golem_anticipation_atk.wav', 0.04, 0.95, -3, 0, 0.3],
   ['strike', 'golem_atk.wav', 0, 1.9, -2, 0, 0.5],
   ['clang', 'golem_not_ankle_sound.wav', 0, 1.1, -3, 0, 0.4],
-  // passing out: the first whole, and the second from its start, as long as he may lie felled (it
-  // comes in halfway through the first, on top of it, and dies away as he gets up: golem.js)
-  ['fall-start-1', 'golem_passing_out_start_1.ogg', 0, 4.0, -6, 0, 0.4],
-  ['fall-start-2', 'golem_passing_out_start_2.wav', 0, 12, -6, 0, 2.0],
+  // passing out: his stone crumbling as he falls (golem.js), heard from his first moment of falling:
+  // the first from its first crackle (the 0.9 s before it are faint), the second from its start,
+  // and no longer than his fall may last (both are stopped as his body hits the floor)
+  ['fall-start-1', 'golem_passing_out_start_1.ogg', 0.88, 1.5, -6, 0, 0.25],
+  ['fall-start-2', 'golem_passing_out_start_2.wav', 0, 3, -6, 0, 0.6],
   ['fall-hit', 'golem_passing_out_ground_hit.wav', 0, 2.9, -2, 0, 0.8],
   ['fire-start', 'golem_spitting_fire_start.wav', 0, 3.1, -3, 0, 0.15],
-  ['fire', 'golem_spitting_fire.wav', 0.3, 3.75, -3, 0, 0.5],
+  // (the blaze from where it's already roaring, its quiet lead-in left out)
+  ['fire', 'golem_spitting_fire.wav', 1.15, 2.85, -3, 0, 0.5],
   ['meteor', 'meteorite_hit.wav', 2.02, 1.6, -4, 0, 0.6],
 ];
 

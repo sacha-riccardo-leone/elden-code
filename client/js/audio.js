@@ -25,7 +25,7 @@ export const SOUNDS = {
   'golem-fall-start-2': { set: 'golem', clips: ['fall-start-2'], volume: 0.8, most: 1, half: 26 },
   'golem-fall-hit': { set: 'golem', clips: ['fall-hit'], volume: 1, most: 1, half: 30 },
   'golem-fire-start': { set: 'golem', clips: ['fire-start'], volume: 0.8, most: 1, half: 30 },
-  'golem-fire': { set: 'golem', clips: ['fire'], volume: 0.75, most: 1, half: 30, loop: [1.2, 2.6] },
+  'golem-fire': { set: 'golem', clips: ['fire'], volume: 0.75, most: 1, half: 30, loop: [0.35, 1.75] },
   'golem-meteor': { set: 'golem', clips: ['meteor'], volume: 0.5, vary: 0.1, most: 8, half: 22 },
 };
 const LEAD = 0.04;
