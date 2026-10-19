@@ -598,7 +598,8 @@ loosed on it is placed from its floor, as on the Hold (a group raised to its hei
     while the giant behind him raises its blade of light back over its shoulder, a glint running
     along it; Ulric's spear cocked back like a javelin; Ruadan crouched, gathering to leap, the
     maul low behind him; Wynn in his drawing stance, his hand on the hilt of his sheathed blade. A
-    pose too wide for the camera's close shot (Corisande's) is centred and taken in whole. An ult
+    pose too wide for the camera's close shot (Corisande's) is centred and taken in whole; Aurelion,
+    with his giant behind him, is shot from as far back but kept in the middle of the picture. An ult
     may be loosed in a drawing of its own (`release`), held a moment as it strikes: Solenne's palms
     thrust out as the wall leaves them; Aurelion's giant sweeping its blade low ahead of it;
     Ulric's hand open as the spears leave it. Ruadan's and Wynn's carry them on through drawings of

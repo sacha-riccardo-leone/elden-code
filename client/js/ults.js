@@ -511,7 +511,7 @@ export class Ults {
   // Where the camera looks, while it's on whoever looses one: their middle, close (a tall pose, a
   // little below its middle, from far enough back to show it whole above the bars at the bottom;
   // a pose too wide for that, a staff held level far out ahead, centred and taken in whole; a giant
-  // of their light behind them, taken in whole as well).
+  // of their light behind them, Aurelion's, from as far back, but with them in the middle).
   shot() {
     const a = this.active;
     if (!a || a.released) return null;
@@ -524,7 +524,7 @@ export class Ults {
     const cam = this.ctx.rig.camera;
     const across = Math.tan((cam.fov * Math.PI) / 360) * cam.aspect; // (half the width seen, per unit away)
     if (Math.max(behind, ahead) + CINE.side > dist * across) {
-      x += (a.n.body.facing * (ahead - behind)) / 2;
+      if (!a.stand) x += (a.n.body.facing * (ahead - behind)) / 2;
       dist = Math.max(dist, ((behind + ahead) / 2 + CINE.side) / across);
     }
     return { at: [x, Math.max(1.25, tall * 0.42) + (a.n.lift || 0) + groundAt(p.x, p.y), p.y], dist };
