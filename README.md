@@ -76,8 +76,9 @@ training") to choose who trains, in the same window that chooses companions for 
 whoever is training already stands in its slots, with a spare one to call another. "Train" sends
 for everyone in the slots at once, and they come by grace (arriving in front of the little grace);
 anyone taken out of a slot goes back. Each one training has a **Dismiss** button under its feet to
-send it back on its own. Training, a Tarnished has stopped working: what its session wants waits
-until it leaves the yard, and nothing of its work shows meanwhile (no signs over its head, no
+send it back on its own, shown while the pointer is on them (or they're the one inspected).
+Training, a Tarnished has stopped working: what its session wants waits until it leaves the yard,
+and nothing of its work shows meanwhile (no signs over its head, no
 gestures, no trips to its stations, no spirit ashes), as in a fight. It takes a post (beside a
 straw dummy, behind the great one at its cracked ankle, or, a caster, off to one side) and strikes
 or casts there every so often, now and then going over to another dummy. Rarely (a minute or more

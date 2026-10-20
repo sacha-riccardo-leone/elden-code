@@ -56,6 +56,7 @@ const WOBBLE = [[0.12, 'away'], [0.2, 'whole'], [0.3, 'toward'], [0.42, 'whole']
 const STOP = { blow: 0.055, spell: 0.035 }; // (thy blows hold the world still a moment, as on the arena)
 const CHIPS = ['#8a5a2a', '#b07a3e', '#e8dcc0', '#5a3a1c'];
 const REACH = 40; // how far an ultimate finds a dummy: across the yard
+const BTN_LINGER = 0.4; // (seconds a Dismiss button stays once the pointer has left the one training)
 // Those training: how far beside a straw dummy a blade stands, and behind the great one's cracked
 // ankle; the seconds between blows, and between spells; what a blow and a spell of theirs take of a
 // dummy (of thine); how far off a caster stands; how long before each goes over to another dummy;
@@ -639,11 +640,14 @@ export class Training {
   }
 
   // The button under each one training, to send it back, kept under its feet (main.js, every
-  // frame, after the camera); hidden while it's on its way, held by thee, carried, behind the
-  // camera, or seen from afar.
+  // frame, after the camera); shown only while the pointer is on it or on them (or a moment after,
+  // BTN_LINGER, so that it can be reached from them), or while they're the one inspected (on a
+  // screen without a pointer, tapped); never while it's on its way, held by thee, carried, behind
+  // the camera, or seen from afar.
   placeButtons() {
     const { ui, rig } = this.ctx;
     if (!this.btnRoot) return;
+    const now = performance.now() / 1000;
     for (const n of this.trainees()) {
       let b = this.btns.get(n);
       const show = this.has(n) && !n.travel && !n.piloted && !n.dragged && n.fade >= 1 && rig.dist < 40;
@@ -652,6 +656,8 @@ export class Training {
       const p = ui.project(this.v.set(n.pos.x, groundAt(n.pos.x, n.pos.y) + n.lift, n.pos.y));
       b.hidden = p.behind;
       b.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y) + 20}px) translate(-50%, 0)`;
+      if (n.hovered || b.over || ui.selected === n) b.wanted = now;
+      b.classList.toggle('shown', now - (b.wanted ?? -Infinity) < BTN_LINGER);
     }
     for (const [n, b] of this.btns) if (!n.trainee || n.dead) { b.remove(); this.btns.delete(n); }
   }
@@ -664,6 +670,8 @@ export class Training {
     b.title = `Send ${n.name.first} back`;
     b.setAttribute('aria-label', `Send ${n.displayName} back from training`);
     b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.addEventListener('pointerenter', () => { b.over = true; });
+    b.addEventListener('pointerleave', () => { b.over = false; });
     b.addEventListener('click', (e) => {
       e.stopPropagation();
       this.dismiss(n);

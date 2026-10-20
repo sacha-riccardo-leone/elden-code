@@ -580,7 +580,15 @@ body.in-battle .region-label { pointer-events: none; cursor: default; } /* mid-f
   color: var(--gold);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, opacity 0.15s;
+  /* shown only with the pointer on the one training, or on it (training.js, placeButtons) */
+  opacity: 0;
+  pointer-events: none;
+}
+#trainees .dismiss.shown,
+#trainees .dismiss:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 #trainees .dismiss:hover {
   background: rgba(40, 32, 20, 0.88);
