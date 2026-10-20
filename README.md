@@ -658,7 +658,8 @@ ground under you instead, so it flies at your hand's height there too.
   - Fortuna, **Frostfall:** three great icicles drop on him one after another, each as tall as she
     is, and shatter (`fortuna-icicle.json`, `fortuna-shatter.json`). A beat later a mass of ice
     three times their size, taller than he is, comes down on him, stands driven into the floor a
-    moment, shuddering, and bursts wide, shaking the view; its blow lands as it bursts.
+    moment, shuddering, and bursts wide, shaking the view. It wounds him as it lands, and again
+    as it bursts.
   - **Art:** every hero holds a drawn pose: Maren's spear raised to the sky, its lightning
     crackling; Fortuna's four arms and greatsword raised, the frost flickering; Vael's clawed hand
     raised, blood streaming up his arm; Jorvik's staff thrust high, runes wheeling round its
