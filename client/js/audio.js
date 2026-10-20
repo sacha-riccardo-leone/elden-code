@@ -14,8 +14,9 @@ const STORE = 'elden-code:sound';
 
 // The sounds, by name: the clips one is played from (one chosen each time), how loud, how much it
 // varies (loudness and pitch, a share either way), how many may sound at once, how far off it's
-// heard at half its loudness (world units), the silence its clips begin with (`lead`: the encoder's,
-// skipped so that it sounds on the very frame), and, looped, the stretch of its clip that repeats.
+// heard at half its loudness (world units), and, looped, the stretch of its clip that repeats. (A
+// clip is played from its first sound: whatever silence its decoding left before it is skipped,
+// so that it sounds on the very frame: leadOf.)
 const SET = '/assets/sfx/';
 export const SOUNDS = {
   // the Guardian Golem's (golem.js)
@@ -34,10 +35,20 @@ export const SOUNDS = {
   'ronin-ult': { set: 'ronin', clips: ['ult'], volume: 0.9, most: 1, half: 22 },
   'ronin-shine': { set: 'ronin', clips: ['shine'], volume: 0.7, most: 1, half: 18 },
   'ronin-cut': { set: 'ronin', clips: ['cut'], volume: 0.8, vary: 0.06, most: 4, half: 22 },
+  'ronin-shine-back': { set: 'ronin', clips: ['shine-back'], volume: 0.7, most: 1, half: 18 },
+  'ronin-damage': { set: 'ronin', clips: ['damage'], volume: 0.95, most: 1, half: 24 },
   // a banner revealed (ui.js), heard alike wherever one is
   'ui-banner': { set: 'ui', clips: ['banner'], volume: 0.65, most: 2 },
 };
-const LEAD = 0.04;
+// The silence a decoded clip begins with (seconds), skipped as it's played: some browsers leave
+// the encoder's at the start of an MP3, others take it out (and then there's nothing to skip: a
+// fixed skip would cut into the sound itself). Never more than a tenth of a second.
+function leadOf(buf) {
+  const d = buf.getChannelData(0);
+  const most = Math.min(d.length, Math.round(buf.sampleRate * 0.1));
+  for (let i = 0; i < most; i++) if (Math.abs(d[i]) > 1e-4) return i / buf.sampleRate;
+  return most / buf.sampleRate;
+}
 
 // The music, by the mood the world is in (main.js): its pieces (played in turn), how loud, the
 // breath between one piece's end and the next's start (s), how long it waits before coming in once
@@ -61,6 +72,7 @@ export class Sound {
     this.on = stored !== 'off';
     this.clips = new Map(); // clip path → AudioBuffer (or the promise of it)
     this.bytes = new Map(); // clip path → the promise of its file, fetched (load)
+    this.leads = new Map(); // clip path → the silence it begins with (leadOf)
     this.voices = new Map(); // sound name → what's sounding of it
     this.view = null; // { camera, focus }: where it's heard from (main.js)
     this.log = []; // (what was played lately: [seconds, name])
@@ -96,7 +108,7 @@ export class Sound {
         if (!this.ctx || this.clips.has(path)) continue;
         this.clips.set(path, this.bytes.get(path)
           .then((b) => (b ? this.ctx.decodeAudioData(b) : Promise.reject(new Error('not fetched'))))
-          .then((buf) => { this.clips.set(path, buf); return buf; })
+          .then((buf) => { this.leads.set(path, leadOf(buf)); this.clips.set(path, buf); return buf; })
           .catch((err) => { console.warn(`Sound ${path} unavailable`, err); this.clips.delete(path); }));
       }
     }
@@ -120,7 +132,8 @@ export class Sound {
     if (this.log.length > 200) this.log.splice(0, 100);
     if (!s || !this.ctx || this.ctx.state !== 'running') return null;
     const clip = s.clips[Math.floor(Math.random() * s.clips.length)];
-    const buf = this.clips.get(`${SET}${s.set}/${clip}.mp3`);
+    const path = `${SET}${s.set}/${clip}.mp3`;
+    const buf = this.clips.get(path);
     if (!(buf instanceof AudioBuffer)) return null; // (not loaded yet)
     const vary = s.vary || 0;
     const [gain, pan] = this.place(at, s.half ?? 24);
@@ -146,7 +159,7 @@ export class Sound {
     }
     node.connect(this.out);
     const begins = this.ctx.currentTime + delay;
-    src.start(begins, Math.min(LEAD, buf.duration / 2));
+    src.start(begins, Math.min(this.leads.get(path) || 0, buf.duration / 2));
     const voice = {
       done: false,
       stop: (fade = 0.2) => {

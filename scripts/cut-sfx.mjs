@@ -15,7 +15,8 @@ const SFX = path.join(repo, 'client/assets/sfx');
 
 // Each set: the folder its recordings are in (never the set's own name, not even but for its case:
 // on Windows the two would be one folder), and its clips: [name, source file, start (s), length (s),
-// peak (dBFS), fade in (s), fade out (s)].
+// peak (dBFS), fade in (s), fade out (s), and { reverse } to have that stretch played backward (its
+// fades then at the ends of what's heard)].
 const SETS = {
   golem: {
     from: 'Golem Guardian',
@@ -50,6 +51,11 @@ const SETS = {
       // each cut of his Iaijutsu: from where it's loud already (it swells from 2.12 s, silent before
       // that), and short, so that eight of them a fifth of a second apart stay apart
       ['cut', 'ult_slash.wav', 2.36, 0.7, -3, 0, 0.35],
+      // and the glare on the blade again, at the end, backward: its ring swelling into the shine and
+      // gone (0.45 s: over as the blade goes home)
+      ['shine-back', 'blade_shine.m4a', 2.53, 0.45, -4, 0.06, 0.02, { reverse: true }],
+      // all of it landing on him at once, whole (it's loud from its first instant)
+      ['damage', 'ult_damage_dealt.wav', 0, 1.7, -3, 0, 0.4],
     ],
   },
   ui: {
@@ -71,7 +77,7 @@ for (const [set, { from, clips }] of Object.entries(SETS)) {
   const OUT = path.join(SFX, set);
   fs.mkdirSync(OUT, { recursive: true });
   let total = 0;
-  for (const [name, file, start, len, peak, fin, fout] of clips) {
+  for (const [name, file, start, len, peak, fin, fout, { reverse = false } = {}] of clips) {
     const src = path.join(SRC, file);
     // the peak of that stretch, as it is
     const probe = ff(['-ss', String(start), '-t', String(len), '-i', src, '-ac', '1', '-af', 'volumedetect', '-f', 'null', '-']);
@@ -80,12 +86,12 @@ for (const [set, { from, clips }] of Object.entries(SETS)) {
     const gain = peak - max;
     const fades = [fin ? `afade=t=in:st=0:d=${fin}` : null, `afade=t=out:st=${(len - fout).toFixed(3)}:d=${fout}`].filter(Boolean);
     const out = path.join(OUT, `${name}.mp3`);
-    const r = ff(['-ss', String(start), '-t', String(len), '-i', src, '-ac', '1', '-ar', '44100', '-af', [`volume=${gain.toFixed(2)}dB`, ...fades].join(','),
+    const r = ff(['-ss', String(start), '-t', String(len), '-i', src, '-ac', '1', '-ar', '44100', '-af', [reverse ? 'areverse' : null, `volume=${gain.toFixed(2)}dB`, ...fades].filter(Boolean).join(','),
       '-codec:a', 'libmp3lame', '-b:a', '112k', out]);
     if (r.status !== 0) { console.error(name, r.stderr.slice(-400)); process.exit(1); }
     const size = fs.statSync(out).size;
     total += size;
-    console.log(`${set}/${name}.mp3  ${file} ${start.toFixed(2)}+${len}s  peak ${max.toFixed(1)} -> ${peak} dB  ${(size / 1024).toFixed(0)} KB`);
+    console.log(`${set}/${name}.mp3  ${file} ${start.toFixed(2)}+${len}s${reverse ? ' reversed' : ''}  peak ${max.toFixed(1)} -> ${peak} dB  ${(size / 1024).toFixed(0)} KB`);
   }
   console.log(`${set}: ${clips.length} clips, ${(total / 1024).toFixed(0)} KB`);
 }

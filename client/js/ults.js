@@ -365,6 +365,7 @@ export const ULTS = {
         if (!done) {
           done = true;
           for (const cut of cuts) cut.flare();
+          fight.ctx.sound?.play('ronin-damage', { at: [c.x, c.y] }); // (heard as it lands, audio.js)
           hit(32, new THREE.Vector3(c.x, 2, c.y));
           fx.add(new Burst(fx, { school: 'steel', at: [c.x, 2, c.y], size: 5, sparks: 70 }));
           fight.ctx.rig?.shake?.(0.6);

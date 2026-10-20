@@ -901,7 +901,10 @@ them again, from the recordings, whenever they change.
   - `blade_shine` half a second on, as the blade leaves the scabbard and the glare flashes up on it
     (from 2.5 s in its recording, where the shine is: before it, a click and hiss);
   - `ult_slash` on each of his eight cuts (from where it's loud, 2.36 s in: it's silent till 2.1 s,
-    then swells), short enough that they stay apart.
+    then swells), short enough that they stay apart;
+  - `blade_shine` again, backward, as the glare flashes on the blade once more at the end: its ring
+    swelling into the shine and gone as the blade goes home;
+  - `ult_damage_dealt` as the blade goes home and all of it lands on him at once.
 - **Every banner** (a great enemy approaching, felled, prevailing or turning away, *You Died*, a
   region rising, a quest fulfilled or failed): `announcement_banner_reveal` as it's revealed, from
   its first sound (0.65 s in: silent before), swelling as the banner comes up and dying away about
