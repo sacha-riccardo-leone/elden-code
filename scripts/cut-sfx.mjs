@@ -62,7 +62,7 @@ const SETS = {
       // half a second of hiss)
       ['shine', 'blade_shine.m4a', 2.5, 1.1, -4, 0, 0.5],
       // each cut of his Iaijutsu: from where it's loud already (it swells from 2.12 s, silent before
-      // that), and short, so that eight of them a fifth of a second apart stay apart
+      // that), and short, so that eight of them a ninth of a second apart stay apart
       ['cut', 'ult_slash.wav', 2.36, 0.7, -3, 0, 0.35],
       // and the glare on the blade again, at the end, backward: its ring swelling into the shine and
       // gone (0.45 s: over as the blade goes home)

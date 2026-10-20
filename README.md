@@ -626,7 +626,7 @@ ground under you instead, so it flies at your hand's height there too.
   - Wynn, **Iaijutsu:** his drawing stance for half a second, then his blade loosed a hand's
     breadth from the scabbard for another half, a glare flashing on the bared steel; then (a second
     in, sooner than the others) he cuts through him from every side while he's held still, dashing
-    through him stretched out in the cut. The cuts hang in the air (drawn, `wynn-cuts.json`, at
+    through him stretched out in the cut, eight passes in under a second. The cuts hang in the air (drawn, `wynn-cuts.json`, at
     twice his pixel size: of the four drawn, the one nearest each cut's angle, or it mirrored), and
     nothing lands until Wynn is back where he began, turned away from him: the blade loosed again,
     the glare, and as it goes home in its scabbard it all lands at once.
