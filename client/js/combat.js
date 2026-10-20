@@ -270,12 +270,12 @@ const HEARD = {
   glintstone: [{ cast: 'sorceress-projectile' }, { cast: 'sorceress-projectile' }, { cast: 'sorceress-projectile' }],
   blood: [{ cast: 'bloodbender-blob' }],
   holy: [{ cast: 'holy-spell' }, { cast: 'holy-spell' }, { cast: 'holy-light' }],
-  storm: [{ cast: 'knight-bolt' }], // (a strike of her Red Storm's)
+  storm: [{ cast: ['knight-thunder', 'knight-thunder-rise'] }], // (one of her zaps, and the rush with it)
   frost: [{ land: 'frost-lands' }, { land: 'frost-lands' }],
 };
-// A sound of n's (audio.js), heard where n stands (or at x, z).
+// A sound of n's (audio.js: one, or several together), heard where n stands (or at x, z).
 const heard = (n, name, x = n.pos.x, z = n.pos.y) => {
-  if (name) n.ctx?.sound?.play(name, { at: [x, z] });
+  for (const one of [name].flat()) if (one) n.ctx?.sound?.play(one, { at: [x, z] });
 };
 
 // n casts one of its spells. `target()`: the point it's cast at (followed, homing: a fighter's at

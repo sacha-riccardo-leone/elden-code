@@ -251,6 +251,7 @@ export const ULTS = {
   },
   knight: {
     name: 'Red Storm', pose: ['ult'],
+    heard: { start: 'knight-ult-click', zoom: 'knight-ult-zoom' }, // (as R is pressed, and the camera closing on her)
     run({ fight, fx, b, hit }) {
       let t = 0;
       let k = 0;
@@ -528,6 +529,7 @@ export class Ults {
     const tall = Math.max(2.5, poseHeight(n.body, own || pose[0]));
     const span = poseSpan(n.body, own || pose[0]);
     this.active = { n, u, pose, key, t: 0, at: u.at ?? CINE.release, dir, player, aura, stand, fight, released: false, saved: rig.distGoal, tall, span };
+    this.heard(n, u.heard?.zoom); // (the camera closing on them: shot)
     // (everyone else, and him, hide it where they stand in front of it: they stay grey)
     const others = [...this.ctx.director.npcs.values()].filter((o) => o !== n && !o.dead && o.body?.mesh).map((o) => o.body.mesh);
     post.spot = { desat: 0, meshes: [n.body.mesh, ...aura.meshes, ...(stand?.meshes || []), this.particles.points], occluders: [...others, b.body.mesh] };

@@ -1,12 +1,12 @@
 // node scripts/cut-sfx.mjs [set…]: the game's sounds (client/js/audio.js, SOUNDS), cut from Sacha's
-// recordings (client/assets/sfx/<their folder>, left as they are and never committed) into
+// recordings (client/assets/sfx/IMPORT/<their folder>, left as they are and never committed) into
 // client/assets/sfx/<set>: each sound from where it starts (a footstep alone, where a recording holds
 // several, a few seconds apart), levelled to one peak, mono MP3. Every set, or those named. Needs
 // ffmpeg. The cut points were found from the recordings' loudness (each sound's sudden rise).
 //   golem        the Guardian Golem's (golem.js), from "Golem Guardian"
 //   boss         Fenrath's (fight.js), from "Fenrath"
 //   ronin        Wynn's (heroes/ronin.js, ults.js), from "Wynn"
-//   knight       Maren's Red Storm (ults.js), from "Marren"
+//   knight       Maren's thunderbolt and Red Storm (combat.js, ults.js), from "Marren"
 //   paladin      Aurelion's Radiant Verdict and its giant (ults.js), from "Aurelion"
 //   champion     Ruadan's Hammerfall (ults.js), from "Ruadan"
 //   frost        Fortuna's spells and Frostfall (combat.js, ults.js), from "Fortuna"
@@ -32,7 +32,7 @@ const SFX = path.join(repo, 'client/assets/sfx');
 // 2: audio.js, `layer`), levelled as one so that they keep the balance they were made with].
 const SETS = {
   golem: {
-    from: 'Golem Guardian',
+    from: 'IMPORT/Golem Guardian',
     clips: [
       ...[2.43, 5.21, 8.86, 11.66, 15.26, 18.06, 21.70].map((t, i) => [`step-${i + 1}`, 'golem_footsteps_type1.mp3', t - 0.02, 1.8, -4, 0, 0.8]),
       ...[0.06, 6.76, 12.06, 18.76].map((t, i) => [`step-${i + 8}`, 'golem_footsteps_type2.wav', t - 0.02, 1.8, -4, 0, 0.8]),
@@ -52,7 +52,7 @@ const SETS = {
     ],
   },
   ronin: {
-    from: 'Wynn',
+    from: 'IMPORT/Wynn',
     clips: [
       // a blow of his (any but his Iaijutsu's), from its rise
       ['slash', 'slash.mp3', 0.06, 0.5, -4, 0, 0.15],
@@ -82,7 +82,7 @@ const SETS = {
     ],
   },
   boss: {
-    from: 'Fenrath',
+    from: 'IMPORT/Fenrath',
     clips: [
       // as he comes into the arena (from its first sound, 0.9 s in)
       ['appear', 'fenrath_appearing.wav', 0.9, 4.9, -3, 0, 1.0],
@@ -101,16 +101,24 @@ const SETS = {
     ],
   },
   knight: {
-    from: 'Marren',
+    from: 'IMPORT/Marren',
     clips: [
       // the Red Storm's bolts: six strikes out of its thunder, one picked for each bolt
       ...[8.78, 9.38, 10.53, 11.13, 12.53, 14.33].map((t, i) => [`bolt-${i + 1}`, 'maren_ult_small_lightning.mp3', t - 0.02, 0.6, -3, 0, 0.3]),
       // and the great bolt that ends it, its thunder rolling on
       ['great', 'maren_ult_big_lightning.wav', 4.36, 6.0, -2, 0, 2.0],
+      // her thunderbolt (her right click): one of the sixteen zaps in atk1, one picked each time, and
+      // with it atk2's rush (in its 2-3 s: from where it's heard, so that it peaks as the bolt is there)
+      ...[[0.90, 0.17], [1.91, 0.18], [2.70, 0.26], [3.32, 0.20], [4.41, 0.65], [5.91, 0.15], [6.31, 0.15], [6.99, 0.15], [7.74, 0.16], [8.38, 0.72], [9.49, 0.21], [10.12, 0.43], [11.74, 0.15], [12.92, 0.21], [14.15, 0.17], [15.44, 0.61]].map(([t, len], i) => [`thunder-${i + 1}`, 'maren_atk1.wav', t, len, -4, 0, 0.05]),
+      ['thunder-rise', 'maren_atk2_audiobetween2and3.wav', 2.6, 0.42, -3, 0, 0.05],
+      // her Red Storm: as R is pressed, and the camera closing on her (its 10-13 s, from where its
+      // swell is heard, peaking as the camera gets there)
+      ['ult-click', 'maren_ult_start_on_click.wav', 0, 3.5, -3, 0, 0.6],
+      ['ult-zoom', 'maren_ult_start_audiobetween10and13.wav', 10.9, 1.75, -3, 0, 0.3],
     ],
   },
   paladin: {
-    from: 'Aurelion',
+    from: 'IMPORT/Aurelion',
     clips: [
       // his Radiant Verdict loosed: the recording's third (from 4.82 s), as named
       ['ult', 'aurelion_ult_start1_at4.5s.wav', 4.82, 1.6, -3, 0, 0.5],
@@ -119,14 +127,14 @@ const SETS = {
     ],
   },
   champion: {
-    from: 'Ruadan',
+    from: 'IMPORT/Ruadan',
     clips: [
       // Hammerfall: the maul's head driven into the floor, and the golden explosion
       ['land', 'radahn_ult_landing_explosion.wav', 0, 5.5, -2, 0, 1.5],
     ],
   },
   frost: {
-    from: 'Fortuna',
+    from: 'IMPORT/Fortuna',
     clips: [
       // a spell of hers landing (the two together, from each one's first sound)
       ['lands-1', 'Fortuna_spell_atk_lands.wav', 0.73, 1.1, -3, 0, 0.4, { group: 'lands' }],
@@ -136,7 +144,7 @@ const SETS = {
     ],
   },
   sorceress: {
-    from: 'Sellen',
+    from: 'IMPORT/Sellen',
     clips: [
       // a spell of hers loosed (the two together)
       ['projectile-1', 'Sellen_projectile.wav', 0.08, 1.4, -4, 0, 0.5, { group: 'projectile' }],
@@ -146,14 +154,14 @@ const SETS = {
     ],
   },
   bloodbender: {
-    from: 'Vael',
+    from: 'IMPORT/Vael',
     clips: [
       // her gout of blood, loosed (from where it swells, 0.22 s in)
       ['blob', 'Vael_blood_blob_projectile.m4a', 0.22, 1.4, -3, 0, 0.3],
     ],
   },
   holy: {
-    from: 'Holy magic',
+    from: 'IMPORT/Holy magic',
     clips: [
       // a lance or a halo of holy light loosed (from where it swells)
       ['spell', 'magic-spell.wav', 0.15, 2.2, -3, 0, 0.6],
@@ -162,7 +170,7 @@ const SETS = {
     ],
   },
   bandit: {
-    from: 'Ulric',
+    from: 'IMPORT/Ulric',
     clips: [
       // a spear leaving his hand (the three together)
       ['woosh-1', 'spear_woosh_1.wav', 0, 0.09, -4, 0, 0.02, { group: 'woosh' }],
@@ -171,7 +179,7 @@ const SETS = {
     ],
   },
   spectre: {
-    from: 'Noble sorcerers',
+    from: 'IMPORT/Noble sorcerers',
     clips: [
       // a spectre called up (the two together: whispering spells, and a swell)
       ['appear-1', 'noble_sorcerer.wav', 0, 9, -6, 1.0, 3.0, { group: 'appear' }],
@@ -179,7 +187,7 @@ const SETS = {
     ],
   },
   work: {
-    from: 'Working',
+    from: 'IMPORT/Working',
     clips: [
       // a hammer blow on the anvil (the two together, from each one's ring)
       ['anvil-1', 'anvil-hit-1.wav', 0.22, 1.0, -4, 0, 0.4, { group: 'anvil' }],

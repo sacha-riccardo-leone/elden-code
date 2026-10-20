@@ -1,5 +1,5 @@
 // node scripts/cut-music.mjs: the music for the game (client/js/audio.js, MUSIC), from Sacha's pieces
-// (client/assets/sfx/Music, left as they are and never committed) into client/assets/music: each
+// (client/assets/sfx/IMPORT/Music, left as they are and never committed) into client/assets/music: each
 // whole, levelled to one loudness (EBU R128, integrated: the two ambient pieces alike, the arena's a
 // little louder), stereo MP3 at 128 kb/s, without the cover art and tags. Needs ffmpeg.
 import { spawnSync } from 'node:child_process';
@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const repo = process.argv[2] || path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..');
-const SRC = path.join(repo, 'client/assets/sfx/Music');
+const SRC = path.join(repo, 'client/assets/sfx/IMPORT/Music');
 const OUT = path.join(repo, 'client/assets/music');
 fs.mkdirSync(OUT, { recursive: true });
 

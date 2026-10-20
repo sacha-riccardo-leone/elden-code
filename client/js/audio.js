@@ -51,6 +51,8 @@ export const SOUNDS = {
   // and his giant, Ruadan's landing, Fortuna's mass of ice bursting, Corisande's arrow, Ulric's spears
   'knight-bolt': { set: 'knight', clips: ['bolt-1', 'bolt-2', 'bolt-3', 'bolt-4', 'bolt-5', 'bolt-6'], volume: 0.75, vary: 0.08, most: 5, half: 26 },
   'knight-great': { set: 'knight', clips: ['great'], volume: 1, most: 1, half: 34 },
+  'knight-ult-click': { set: 'knight', clips: ['ult-click'], volume: 0.9, most: 1, half: 24 },
+  'knight-ult-zoom': { set: 'knight', clips: ['ult-zoom'], volume: 0.8, most: 1, half: 24 },
   'paladin-ult': { set: 'paladin', clips: ['ult'], volume: 0.85, most: 1, half: 22 },
   'paladin-stand': { set: 'paladin', clips: ['stand'], volume: 0.8, most: 1, half: 22 },
   'champion-land': { set: 'champion', clips: ['land'], volume: 1, most: 1, half: 28 },
@@ -63,6 +65,8 @@ export const SOUNDS = {
   'holy-spell': { set: 'holy', clips: ['spell'], volume: 0.7, vary: 0.05, most: 2, half: 20 },
   'holy-light': { set: 'holy', clips: ['light'], volume: 0.8, most: 2, half: 20 },
   'frost-lands': { set: 'frost', clips: ['lands-1', 'lands-2'], layer: true, volume: 0.75, vary: 0.05, most: 3, half: 20 },
+  'knight-thunder': { set: 'knight', clips: Array.from({ length: 16 }, (_, i) => `thunder-${i + 1}`), volume: 0.75, vary: 0.05, most: 3, half: 20 },
+  'knight-thunder-rise': { set: 'knight', clips: ['thunder-rise'], volume: 0.8, most: 2, half: 20 },
   // the world's: a spectre called up, a hammer on an anvil, a spirit ash summoned (npc.js), a straw
   // dummy bursting (training.js)
   'spectre-appear': { set: 'spectre', clips: ['appear-1', 'appear-2'], layer: true, volume: 0.7, most: 2, half: 16 },

@@ -612,8 +612,8 @@ ground under you instead, so it flies at your hand's height there too.
     thrusts, straight along the line you point to the first thing on it (or on into nothing), a red
     bolt drawn by Sacha in two drawings (`maren-thunderbolt.json`), stretched from her spear to
     what it strikes and not moving: the whole bolt there in a flash, its burst on what it strikes,
-    held 0.3 s; then the bolt breaking up as it fades, 0.3 s more. Heard as a strike of her Red
-    Storm. Fought beside, she keeps to her spear.
+    held 0.3 s; then the bolt breaking up as it fades, 0.3 s more. Heard as one of her zaps with a
+    rush peaking on it (see **Sound**). Fought beside, she keeps to her spear.
   - Maren, **Red Storm:** red lightning rains around him, ending in one great bolt (drawn bolts,
     `maren-bolt.json` and `maren-great-bolt.json`, at twice her pixel size so they fall from out
     of sight). Each bolt lights the floor and everyone near it red as it strikes, for a third of a
@@ -880,8 +880,8 @@ comes up, so nothing blinks.
 
 The Lands Between are heard (`client/js/audio.js`, Web Audio): both great enemies, every hero's
 ultimate and spells, the stations, the spectres, the training yard's dummies, the banners and
-setting out. The sounds are cut from Sacha's recordings (`client/assets/sfx/<their folder>`, one per
-hero or kind, and a few loose in `client/assets/sfx`, kept as they are and never deployed) into a set
+setting out. The sounds are cut from Sacha's recordings (`client/assets/sfx/IMPORT/<their folder>`,
+one per hero or kind, and a few loose in `client/assets/sfx`, kept as they are and never deployed) into a set
 each (`client/assets/sfx/<set>`): small MP3 clips, about 2.5 MB in all. A recording that holds many
 of one sound (footsteps, landings, lightning) is cut into each of them, every other sound from where
 it starts, each levelled to one peak; a recording's 1 and 2 (and 3) are heard together, levelled as
@@ -919,8 +919,13 @@ the recordings, whenever they change; its table says what each clip is cut from.
     away; `fenrath_big_atk_sword_hit` on each cut of the ghost of his sword;
   - `fenrath_jump_landing` each time he lands, from a leap or from his great attack (the recording
     holds three landings: one at random).
+- **Maren's thunderbolt** (her right click): one of the sixteen zaps of `maren_atk1`, a different
+  one each time, and with it the rush in `maren_atk2` (between 2 and 3 s, as its name says: from
+  where it's heard, so that it peaks as the bolt is there).
 - **The ultimates**:
-  - Maren's Red Storm: each of its twelve bolts as it strikes, one of six strikes cut from
+  - Maren's Red Storm: `maren_ult_start_on_click` as R is pressed, and with it the swell of
+    `maren_ult_start` (between 10 and 13 s, as named: peaking as the camera has closed on her); then
+    each of its twelve bolts as it strikes, one of six strikes cut from
     `maren_ult_small_lightning`, and the great bolt that ends it, `maren_ult_big_lightning` (from its
     strike, 4.36 s in, its thunder rolling on);
   - Aurelion's Radiant Verdict: `aurelion_ult_start1_at4.5s` as it's loosed (its third, from 4.82 s,
@@ -945,7 +950,7 @@ the recordings, whenever they change; its table says what each clip is cut from.
   as it goes; heard alike wherever you are.
 - **Where it happens:** quieter the farther it is from where the camera looks, to the left or the
   right as it shows on the screen, and never too many of one at once (eight meteors).
-- **Music** (Sacha's pieces, `client/assets/sfx/Music`, kept as they are and never deployed,
+- **Music** (Sacha's pieces, `client/assets/sfx/IMPORT/Music`, kept as they are and never deployed,
   levelled into `client/assets/music` by `scripts/cut-music.mjs`: stereo MP3s, 6.5 MB in all, the
   two ambient pieces alike and the arena's a little louder):
   - while no great enemy stands in the arena, `ambient_1` and `ambient_2`, one after the other, a
