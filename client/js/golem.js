@@ -39,7 +39,7 @@ import { AirWave, Decal, Meteor, FIRE_LIGHT } from './bossfx.js';
 import { flash, carry } from './lights.js';
 import { addRipple, rippleAt } from './ripple.js';
 import { SPOTS } from './heroes/golem.js';
-import { rootedAt, onAim, wayOf, AIM } from './combat.js';
+import { rootedAt, onAim, wayOf, AIM, reachOf } from './combat.js';
 import { Spark } from './spellfx.js';
 
 export const GOLEM = {
@@ -215,7 +215,8 @@ export class GolemMind {
     if (!b.alive || b.state === 'enter' || b.lift > 2) return false;
     if (b.attack?.kind === 'roll') return false; // (rolling, he's never where the blow lands)
     const way = wayOf(n);
-    const [rx, rz] = [n.pos.x + way[0] * 1.5, n.pos.y + way[1] * 1.5]; // where the blow lands
+    const far = reachOf(n); // (a spear reaches farther: combat.js)
+    const [rx, rz] = [n.pos.x + way[0] * (1.5 + far), n.pos.y + way[1] * (1.5 + far)]; // where the blow lands
     if (b.state === 'down' && this.heart) {
       const h = this.heart;
       if (Math.hypot(n.pos.x - h.x, n.pos.y - h.z) <= h.r) {
@@ -235,7 +236,7 @@ export class GolemMind {
     if (this.lying) return false;
     // the cracked ankle: within the blow's reach, on its line
     const [ax, ay] = this.spot(SPOTS.ankle);
-    if (onAim(n.pos.x, n.pos.y, way, ax, b.pos.y, GOLEM.ankle.r, GOLEM.ankle.r + 0.4, 1.5, margin, 0.4) != null) {
+    if (onAim(n.pos.x, n.pos.y, way, ax, b.pos.y, GOLEM.ankle.r, GOLEM.ankle.r + 0.4, 1.5 + far, margin, 0.4) != null) {
       const was = this.weak;
       this.ankle += weight;
       this.fight.hit(b, ankleDmg, [ax, ay, b.pos.y + 0.2], n, true, 'blow');
@@ -250,7 +251,7 @@ export class GolemMind {
       return true;
     }
     // anywhere else on him: the stone turns it
-    if (onAim(n.pos.x, n.pos.y, way, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, b.kind.reach, margin) != null) {
+    if (onAim(n.pos.x, n.pos.y, way, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, b.kind.reach + far, margin) != null) {
       this.clang(rx, rz, n);
       this.tell('stone', 'Stone turns thy blows: strike the Golem\'s cracked ankle, low on his back leg');
       return true;
@@ -309,8 +310,9 @@ export class GolemMind {
     n.body.knock((n.body.sheet.lunge?.attack || 0) + 0.2, -n.body.facing);
   }
 
-  // Where a fighter goes to strike, and whether it's there: beside the cracked ankle (behind him),
-  // or, while he lies felled, into the circle by his chest.
+  // Where a fighter goes to strike, and whether it's there: beside the cracked ankle (behind him; a
+  // spear its length the farther back, combat.js), or, while he lies felled, into the circle by his
+  // chest.
   strikeSpot(n) {
     const b = this.b;
     const f = n.fighter;
@@ -323,7 +325,7 @@ export class GolemMind {
     }
     if (this.lying) return null;
     const [ax] = this.spot(SPOTS.ankle);
-    const gx = ax - b.body.facing * 1.1;
+    const gx = ax - b.body.facing * (1.1 + reachOf(n));
     const gz = b.pos.y + Math.sin(f.slot) * 0.6;
     return { goal: [gx, gz], ready: Math.abs(n.pos.x - gx) < 0.7 && Math.abs(n.pos.y - gz) < 0.9, face: ax };
   }

@@ -45,7 +45,7 @@ import { GOLEM, GOLEM_MOVES, GolemMind } from './golem.js';
 import { setFoe } from './voices.js';
 import { clearRipples, rippleAt, stepRipples } from './ripple.js';
 import { groundAt } from './ground.js';
-import { styleOf, blow, castSpell, muzzleOf, SPELL, RANGED, ultFill, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot, struckOf } from './combat.js';
+import { styleOf, blow, castSpell, muzzleOf, SPELL, RANGED, ultFill, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot, struckOf, reachOf } from './combat.js';
 
 // reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
 // lane: how far out of his line (in depth) a swing or a lunge still catches someone
@@ -574,12 +574,12 @@ export class Fight {
   // blows
 
   // Thy blow lands (pilot.js → director.strikeFrom): the enemy, if he stands on its line within
-  // reach (or a little off it: combat.js, AIM).
+  // reach (a spear's the farther: combat.js, reachOf), or a little off it (AIM).
   strikeFrom(p) {
     const b = this.boss;
     if (!b || !b.alive || b.lift > 2) return false;
     if (b.mind) return b.mind.playerBlow(p); // (the Golem: only his weak points, golem.js)
-    if (onAim(p.pos.x, p.pos.y, wayOf(p), b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, b.kind.reach, AIM.blow) == null) return false;
+    if (onAim(p.pos.x, p.pos.y, wayOf(p), b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, b.kind.reach + reachOf(p), AIM.blow) == null) return false;
     this.hit(b, DAMAGE.player, null, p, true, 'blow');
     return true;
   }
@@ -1741,12 +1741,12 @@ export class Fight {
         if (f.mode === 'circle' && f.cd <= 0 && !a && (spot || !b.mind)) f.mode = 'engage';
         if (f.mode === 'engage' && b.mind && !spot) f.mode = 'circle';
         if (f.mode === 'engage') {
-          const r = b.kind.radius + 1.4;
+          const r = b.kind.radius + 1.4 + reachOf(n); // (a spear keeps its length off him: combat.js)
           goal = spot ? spot.goal : [b.pos.x + (toX / dist) * r, b.pos.y + (toZ / dist) * r * 0.8];
           speed = 4.8;
           // (felled, they stay in the circle, striking again after a breath)
           const felled = b.state === 'down';
-          if ((spot ? spot.ready && (!felled || f.cd <= 0) : dist < b.kind.reach + b.kind.radius + 0.2) && b.lift < 1) {
+          if ((spot ? spot.ready && (!felled || f.cd <= 0) : dist < b.kind.reach + b.kind.radius + 0.2 + reachOf(n)) && b.lift < 1) {
             const faceX = spot ? spot.face : b.pos.x;
             n.body.facing = faceX > n.pos.x ? 1 : -1;
             blow(n, 'fightAttack');
@@ -2032,7 +2032,7 @@ export class Fight {
           if (a?.kind === 'fightAttack' && !a.hit && a.t >= a.hitAt) {
             a.hit = true;
             if (b.mind) b.mind.fighterBlow(n);
-            else if (b.lift < 2 && Math.hypot(b.pos.x - n.pos.x, b.pos.y - n.pos.y) < b.kind.reach + b.kind.radius + 0.4) this.hit(b, DAMAGE.fighter, null, n, true, 'blow');
+            else if (b.lift < 2 && Math.hypot(b.pos.x - n.pos.x, b.pos.y - n.pos.y) < b.kind.reach + b.kind.radius + 0.4 + reachOf(n)) this.hit(b, DAMAGE.fighter, null, n, true, 'blow');
           } else if (a?.kind === 'fightCast' && !a.hit && a.t >= a.hitAt) {
             a.hit = true;
             this.castFrom(n);

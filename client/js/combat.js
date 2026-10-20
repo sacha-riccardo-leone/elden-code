@@ -22,7 +22,8 @@ import { groundAt } from './ground.js';
 // By hero id (a hero of two looks fights as whichever it wears). `muzzle`: where a mage's spells
 // leave from, [ahead, up] of its feet in world units (the orb, the crystal, the fist, the ring),
 // unless its rig says where its drawn poses hold it (muzzleOf). `throws`: one who fights up close
-// but throws his spear for a spell, played by thee (throwSpear).
+// but throws his spear for a spell, played by thee (throwSpear). `reach`: how much farther than a
+// blade's its blow reaches (reachOf).
 export const STYLES = {
   runelord: { range: 'far', school: 'rune', color: '#ffc94a', muzzle: [2.0, 0.75] }, // (the orb, thrust out: heroes/runelord.js)
   sorceress: { range: 'far', school: 'glintstone', color: '#6fc3ff', muzzle: [0.72, 2.68] }, // (bare-faced; masked: heroes/sorceress.js)
@@ -30,15 +31,19 @@ export const STYLES = {
   queen: { range: 'far', school: 'holy', color: '#ffd75a', muzzle: [0.54, 1.01] },
   fortuna: { range: 'both', school: 'frost', color: '#8fe0ff', muzzle: [0.92, 1.78] },
   champion: { range: 'near', color: '#ffb84a' },
-  knight: { range: 'near', school: 'storm', color: '#ff4038', muzzle: [3.0, 1.52] }, // (her blows up close; played, a thunderbolt from her spear's tip too, right click: a little inside it, the bolt's line a little below its middle)
+  knight: { range: 'near', school: 'storm', color: '#ff4038', muzzle: [3.0, 1.52], reach: 1.2 }, // (her blows up close; played, a thunderbolt from her spear's tip too, right click: a little inside it, the bolt's line a little below its middle)
   paladin: { range: 'near', color: '#ffe9a0' },
   ronin: { range: 'near', color: '#d8ecff' },
-  bandit: { range: 'near', color: '#9fdc5a', throws: true },
+  bandit: { range: 'near', color: '#9fdc5a', throws: true, reach: 1.7 },
 };
 const NEAR = { range: 'near', color: '#ffd27a' };
 export const heroKey = (n) => n?.hero?.hero?.split('-')[0] ?? null;
 export const styleOf = (n) => STYLES[heroKey(n)] || NEAR;
 export const casts = (n) => styleOf(n).range !== 'near';
+// How much farther than a blade's a blow of n's reaches, world units: a spear's (Maren's, Ulric's)
+// finds whatever its drawn tip touches as it lands (3.1 and 3.6 units ahead of them, and the
+// lunge's third of a unit with it: npc.js), where a sword's goes into what it finds.
+export const reachOf = (n) => styleOf(n).reach || 0;
 // Whether n has a spell for thy right click at all (pilot.js): a mage's, Fortuna's frost, Ulric's
 // spear.
 export const canCast = (n) => !!(SPELLS[styleOf(n).school] || styleOf(n).throws);

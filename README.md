@@ -89,7 +89,8 @@ send it back on its own, shown while the pointer is on them (or they're the one 
 Training, a Tarnished has stopped working: what its session wants waits until it leaves the yard,
 and nothing of its work shows meanwhile (no signs over its head, no
 gestures, no trips to its stations, no spirit ashes), as in a fight. It takes a post (beside a
-straw dummy, behind the great one at its cracked ankle, or, a caster, off to one side) and strikes
+straw dummy, behind the great one at its cracked ankle, a spear its farther reach the farther off,
+or, a caster, off to one side) and strikes
 or casts there every so often, now and then going over to another dummy. Rarely (a minute or more
 into its training, then every few minutes, and never two within twenty seconds on the yard) it
 looses its ultimate at its dummy, quietly: it gathers in its pose with its aura round it, as long as
@@ -540,6 +541,11 @@ ground under you instead, so it flies at your hand's height there too.
     it.
     - A blow strikes what stands on that line within its reach, in any direction (straight up or
       down the screen too), the Golem's and the great dummy's ankles included.
+    - **Spears reach farther:** Maren's and Ulric's blows land on whatever the tip of their drawn
+      spear touches, 1.2 and 1.7 units farther than a blade's (their tips drawn 3.1 and 3.6 units
+      ahead of them as the blow lands, against 1.7 to 2.7 for the swords and the maul:
+      `combat.js`, `reachOf`). As fighters they strike from that much farther off, and stand that
+      much farther back from the Golem's ankle; training, from a dummy.
     - A spell or a spear flies straight along it, homing on nothing: it leaves from the line (as
       far out as the drawn pose holds it, nearer as the line turns into the view or out of it) and
       strikes the first thing it comes up to. A volley set off to the sides comes back onto the

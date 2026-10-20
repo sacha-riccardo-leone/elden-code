@@ -32,7 +32,7 @@ import * as THREE from 'three';
 import { YARD, DUMMY_SPOTS, BOSS_DUMMY } from './yard.js';
 import { fxArt } from './fxart.js';
 import { flashing } from './npc.js';
-import { styleOf, castSpell, muzzleOf, stepStatus, RANGED, blow, casts, heroKey, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot, struckOf } from './combat.js';
+import { styleOf, castSpell, muzzleOf, stepStatus, RANGED, blow, casts, heroKey, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot, struckOf, reachOf } from './combat.js';
 import { groundAt } from './ground.js';
 import { Spark } from './spellfx.js';
 import { GOLEM } from './golem.js';
@@ -70,7 +70,8 @@ const CHIPS = ['#8a5a2a', '#b07a3e', '#e8dcc0', '#5a3a1c'];
 const REACH = 40; // how far an ultimate finds a dummy: across the yard
 const BTN_LINGER = 0.4; // (seconds a Dismiss button stays once the pointer has left the one training)
 // Those training: how far beside a straw dummy a blade stands, and behind the great one's cracked
-// ankle; the seconds between blows, and between spells; what a blow and a spell of theirs take of a
+// ankle (a spear its farther reach the farther: combat.js, reachOf); the seconds between blows, and
+// between spells; what a blow and a spell of theirs take of a
 // dummy (of thine); how far off a caster stands; how long before each goes over to another dummy;
 // and one that comes of itself: how long it stays, how many may at once, how long its session must
 // have been idle first, how long after it last trained (or was sent back) before it comes again, and
@@ -84,6 +85,12 @@ const TRAIN = {
   ult: { first: [40, 100], every: [90, 180], gap: 20 },
 };
 const rand = (a, b) => a + Math.random() * (b - a);
+// Where a blow of n's meets a straw dummy (`d`): a little in front of its middle (close up, partway
+// to it), at the height of a blow.
+const meetAt = (n, d) => {
+  const k = Math.max(0.6, 1 - 0.35 / (Math.hypot(d.pos.x - n.pos.x, d.pos.y - n.pos.y) || 1));
+  return [n.pos.x + (d.pos.x - n.pos.x) * k, 1.3, n.pos.y + (d.pos.y - n.pos.y) * k + 0.3];
+};
 
 class Dummy {
   // (`great`: the great one)
@@ -319,20 +326,21 @@ export class Training {
     return b ? [b.pos.x, b.lift + up, b.pos.y + 0.2] : [0, 0, 0];
   }
 
-  // Thy blow lands (pilot.js → director.strikeFrom): the nearest dummy on its line within reach (or
-  // a little off it: combat.js, AIM); the great one only on its cracked ankle, its wood turning it
-  // anywhere else.
+  // Thy blow lands (pilot.js → director.strikeFrom): the nearest dummy on its line within reach (a
+  // spear's the farther: combat.js, reachOf), or a little off it (AIM); the great one only on its
+  // cracked ankle, its wood turning it anywhere else.
   strikeFrom(p) {
     const way = wayOf(p);
+    const far = reachOf(p);
     const g = this.dummies?.find((x) => x.great && x.standing); // (in pieces, a blow passes over it)
     if (g) {
       const [ax, ay] = g.ankle();
-      if (onAim(p.pos.x, p.pos.y, way, ax, g.pos.y, GREAT.ankle.r, GREAT.ankle.r + 0.4, TURNED.reach, AIM.blow, 0.4) != null) {
+      if (onAim(p.pos.x, p.pos.y, way, ax, g.pos.y, GREAT.ankle.r, GREAT.ankle.r + 0.4, TURNED.reach + far, AIM.blow, 0.4) != null) {
         this.landed(p, g, [ax, ay, g.pos.y + 0.3]);
         return true;
       }
-      if (onAim(p.pos.x, p.pos.y, way, g.pos.x, g.pos.y, g.kind.radius, g.kind.depth, DUMMY.reach, AIM.blow) != null) {
-        this.turned(p, p.pos.x + way[0] * TURNED.reach, p.pos.y + way[1] * TURNED.reach);
+      if (onAim(p.pos.x, p.pos.y, way, g.pos.x, g.pos.y, g.kind.radius, g.kind.depth, DUMMY.reach + far, AIM.blow) != null) {
+        this.turned(p, p.pos.x + way[0] * (TURNED.reach + far), p.pos.y + way[1] * (TURNED.reach + far));
         return true;
       }
     }
@@ -340,11 +348,11 @@ export class Training {
     let best = Infinity;
     for (const x of this.dummies || []) {
       if (!x.standing || x.great) continue;
-      const along = onAim(p.pos.x, p.pos.y, way, x.pos.x, x.pos.y, x.kind.radius, x.kind.depth, DUMMY.reach, AIM.blow);
+      const along = onAim(p.pos.x, p.pos.y, way, x.pos.x, x.pos.y, x.kind.radius, x.kind.depth, DUMMY.reach + far, AIM.blow);
       if (along != null && along < best) { best = along; d = x; }
     }
     if (!d) return false;
-    this.landed(p, d, [p.pos.x + (d.pos.x - p.pos.x) * 0.6, 1.3, (p.pos.y + d.pos.y) / 2 + 0.3]);
+    this.landed(p, d, meetAt(p, d));
     return true;
   }
 
@@ -577,6 +585,7 @@ export class Training {
     const others = this.trainees().filter((m) => m !== n && m.trainee.post && !m.fighter).map((m) => m.trainee.post);
     const free = (x, z) => world.yard.isWalk(x, z) && nav.walkable(x, z) && others.every((o) => Math.hypot(o.x - x, o.z - z) > 1.3);
     const caster = casts(n) && (styleOf(n).range === 'far' || Math.random() < 0.5);
+    const far = reachOf(n);
     const options = [];
     for (const d of this.dummies || []) {
       if (!d.standing) continue;
@@ -584,9 +593,10 @@ export class Training {
         for (const side of [-1, 1]) for (const dz of [-1.2, 0, 1.2]) options.push({ dummy: d, x: d.pos.x + side * rand(...TRAIN.ring), z: d.pos.y + dz, face: -side, cast: true });
       } else if (d.great) {
         const [ax] = d.ankle();
-        for (const dz of [0, -0.8, 0.8]) options.push({ dummy: d, x: ax - rand(...TRAIN.ankle), z: d.pos.y + dz, face: 1 });
+        for (const dz of [0, -0.8, 0.8]) options.push({ dummy: d, x: ax - rand(...TRAIN.ankle) - far, z: d.pos.y + dz, face: 1 });
       } else {
-        options.push({ dummy: d, x: d.pos.x - TRAIN.beside, z: d.pos.y, face: 1 }, { dummy: d, x: d.pos.x + TRAIN.beside, z: d.pos.y, face: -1 });
+        const off = TRAIN.beside + far;
+        options.push({ dummy: d, x: d.pos.x - off, z: d.pos.y, face: 1 }, { dummy: d, x: d.pos.x + off, z: d.pos.y, face: -1 });
       }
     }
     let best = null;
@@ -618,16 +628,17 @@ export class Training {
   // thine.
   npcBlow(n, d) {
     if (!d?.standing) return;
+    const far = reachOf(n); // (a spear's reach: combat.js)
     if (d.great) {
       const [ax, ay] = d.ankle();
       const ahead = (ax - n.pos.x) * n.body.facing;
-      if (ahead > -0.4 && ahead < TURNED.reach + GREAT.ankle.r && Math.abs(n.pos.y - d.pos.y) < GREAT.ankle.r + 0.4) this.npcLanded(n, d, [ax, ay, d.pos.y + 0.3]);
-      else this.turned(n, n.pos.x + n.body.facing * TURNED.reach, n.pos.y, false);
+      if (ahead > -0.4 && ahead < TURNED.reach + far + GREAT.ankle.r && Math.abs(n.pos.y - d.pos.y) < GREAT.ankle.r + 0.4) this.npcLanded(n, d, [ax, ay, d.pos.y + 0.3]);
+      else this.turned(n, n.pos.x + n.body.facing * (TURNED.reach + far), n.pos.y, false);
       return;
     }
     const ahead = (d.pos.x - n.pos.x) * n.body.facing;
-    if (ahead > -0.6 && ahead < DUMMY.reach + d.kind.radius && Math.abs(d.pos.y - n.pos.y) < d.kind.depth) {
-      this.npcLanded(n, d, [n.pos.x + (d.pos.x - n.pos.x) * 0.6, 1.3, (n.pos.y + d.pos.y) / 2 + 0.3]);
+    if (ahead > -0.6 && ahead < DUMMY.reach + far + d.kind.radius && Math.abs(d.pos.y - n.pos.y) < d.kind.depth) {
+      this.npcLanded(n, d, meetAt(n, d));
     }
   }
 
