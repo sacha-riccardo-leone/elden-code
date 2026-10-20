@@ -418,6 +418,7 @@ function begin() {
   entered = true;
   // (thou'st clicked to set out: sound may begin, and any click or key after wakes it if it's held)
   sound.unlock();
+  sound.load('ronin'); // (Wynn's: he may strike at any time, thou or another)
   window.addEventListener('pointerdown', () => sound.unlock());
   window.addEventListener('keydown', () => sound.unlock());
   spawnPlayer();

@@ -872,12 +872,13 @@ comes up, so nothing blinks.
 
 ## Sound
 
-The Lands Between have begun to be heard, the Guardian Golem first (`client/js/audio.js`, Web
-Audio). His sounds are cut from Sacha's recordings (`client/assets/sfx/Golem Guardian`, kept as
-they are and never deployed) into `client/assets/sfx/golem`: 20 small MP3 clips, about 0.6 MB in
-all. Each footstep of the two footstep recordings is cut out on its own (11 steps), every other
-sound from where it starts, and each is levelled to one peak (`dontuse.wav` is left out, as named).
-`scripts/cut-golem-sfx.mjs` cuts them again, from the recordings, whenever they change.
+The Lands Between have begun to be heard, the Guardian Golem and Wynn first (`client/js/audio.js`,
+Web Audio). Their sounds are cut from Sacha's recordings (`client/assets/sfx/Golem Guardian` and
+`client/assets/sfx/Wynn`, kept as they are and never deployed) into `client/assets/sfx/golem` and
+`client/assets/sfx/ronin`: small MP3 clips, about 0.6 MB in all. Each footstep of the two footstep
+recordings is cut out on its own (11 steps), every other sound from where it starts, and each is
+levelled to one peak (`dontuse.wav` is left out, as named). `node scripts/cut-sfx.mjs [set]` cuts
+them again, from the recordings, whenever they change.
 
 - **On the moment of what makes it:**
   - a footstep as each of his feet is set down: the walk's first and fifth drawings, where a foot
@@ -893,6 +894,15 @@ sound from where it starts, and each is levelled to one peak (`dontuse.wav` is l
   - the fire roaring up as he spits it (begun 0.3 s before, so that the roar is at its loudest as
     the fire comes), the blaze burning on, looped, while he does, and dying away as he stops;
   - each meteor as it lands.
+- **Wynn** (only him; whoever plays him, thee or another), each on the drawing where it happens:
+  - `slash` with every blow but his Iaijutsu's, on the drawing where his blade cuts;
+  - `ult_pressed` as his Iaijutsu is loosed (thine, as R is pressed), as he takes his stance;
+  - `unsheathe` as the blade leaves the scabbard half a second on, and `blade_shine` with it as the
+    glare flashes up on the blade (from 2.5 s in its recording, where the shine is: before it, a
+    click and hiss);
+  - `ult_slash` on each of his eight cuts (from where it's loud, 2.36 s in: it's silent till 2.1 s,
+    then swells), short enough that they stay apart;
+  - `unsheathe` again as the blade goes home in its scabbard and every cut lands.
 - **Where it happens:** quieter the farther it is from where the camera looks, to the left or the
   right as it shows on the screen, and never too many of one at once (eight meteors).
 - **Music** (Sacha's pieces, `client/assets/sfx/Music`, kept as they are and never deployed,

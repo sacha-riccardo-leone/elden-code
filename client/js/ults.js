@@ -337,11 +337,12 @@ export const ULTS = {
           n.body.play(pass);
           if (!cuts[i]) {
             // (each cut drawn across him at the angle of its pass, in front of him: drawn, Sacha's
-            // cuts at twice his pixel size)
+            // cuts at twice his pixel size; and heard, audio.js)
             const ax = Math.cos(a) * R;
             const ay = Math.sin(a) * 1.6;
             cuts[i] = new Cut(fx, { a: [c.x + ax, 2 + ay, c.y + 0.4], b: [c.x - ax, 2 - ay, c.y + 0.4], art: 'wynn-cuts', px: n.body.sheet.px * 2 });
             fx.add(cuts[i]);
+            fight.ctx.sound?.play('ronin-cut', { at: [c.x, c.y] });
           }
           if (Math.random() < dt * 60) {
             fx.particles.emit({
@@ -363,6 +364,7 @@ export const ULTS = {
         n.body.play(drawn ? 'stance' : 'idle');
         if (!done) {
           done = true;
+          fight.ctx.sound?.play('ronin-unsheathe', { at: [n.pos.x, n.pos.y] }); // (the blade sheathed)
           for (const cut of cuts) cut.flare();
           hit(32, new THREE.Vector3(c.x, 2, c.y));
           fx.add(new Burst(fx, { school: 'steel', at: [c.x, 2, c.y], size: 5, sparks: 70 }));

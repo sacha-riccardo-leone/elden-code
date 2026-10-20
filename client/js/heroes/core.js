@@ -507,5 +507,6 @@ export async function loadSheet(rig) {
     hits: rig.hits,
     glowIntensity: rig.glowIntensity,
     lunge: rig.lunge,
+    sounds: rig.sounds,
   };
 }

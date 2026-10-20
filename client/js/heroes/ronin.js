@@ -310,6 +310,10 @@ export default {
   head: 112, // art pixels from the ground to the tip of the kasa
   hits: { hammer: 4, cast: 1, send: 2, attack: 4 },
   lunge: { attack: 0.35 }, // (his drawing thrown forward as the blade cuts: npc.js)
+  // what's heard, by animation and step (audio.js; npc.js, heard): his blade cutting, as the cut is
+  // drawn; his Iaijutsu loosed, as he takes his stance; and, half a second on, the blade loosed from
+  // the scabbard, the glare flashing up on it (each cut, and the blade sheathed: ults.js)
+  sounds: { attack: { 4: ['ronin-slash'] }, draw: { 0: ['ronin-ult'], 6: ['ronin-unsheathe', 'ronin-shine'] } },
   glowIntensity: 0.9,
   glowColors: [[150, 140, 120], [255, 248, 228]],
   seed: 7130,

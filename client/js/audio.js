@@ -1,7 +1,8 @@
 // Sound (Web Audio): what's heard in the Lands Between. Its clips are cut from Sacha's recordings
-// and levelled (client/assets/sfx/<set>: the Golem's so far, README), and played where things happen
-// in the world, at the moment they happen there (the Golem's foot set down on the frame it lands on,
-// golem.js): quieter the farther from where the camera looks, to the left or the right as they show
+// and levelled (client/assets/sfx/<set>: the Golem's and Wynn's so far, README), and played where
+// things happen in the world, at the moment they happen there (the Golem's foot set down on the frame
+// it lands on, golem.js; Wynn's blade on the drawing where it cuts, npc.js): quieter the farther from
+// where the camera looks, to the left or the right as they show
 // on the screen, a little different each time (`vary`), and never too many of one at once (`most`).
 // And the music (Music, below): the ambient pieces while nothing's fought, the arena's while a great
 // enemy stands in it. Nothing sounds before thou settest out (a browser lets a page make a sound only
@@ -28,6 +29,12 @@ export const SOUNDS = {
   'golem-fire-start': { set: 'golem', clips: ['fire-start'], volume: 0.8, most: 1, half: 30 },
   'golem-fire': { set: 'golem', clips: ['fire'], volume: 0.75, most: 1, half: 30, loop: [0.35, 1.75] },
   'golem-meteor': { set: 'golem', clips: ['meteor'], volume: 0.5, vary: 0.1, most: 8, half: 22 },
+  // Wynn's, and nobody else's (heroes/ronin.js: on the drawings where they happen; ults.js)
+  'ronin-slash': { set: 'ronin', clips: ['slash'], volume: 0.75, vary: 0.06, most: 3, half: 18 },
+  'ronin-ult': { set: 'ronin', clips: ['ult'], volume: 0.9, most: 1, half: 22 },
+  'ronin-unsheathe': { set: 'ronin', clips: ['unsheathe'], volume: 0.8, most: 2, half: 18 },
+  'ronin-shine': { set: 'ronin', clips: ['shine'], volume: 0.7, most: 1, half: 18 },
+  'ronin-cut': { set: 'ronin', clips: ['cut'], volume: 0.8, vary: 0.06, most: 4, half: 22 },
 };
 const LEAD = 0.04;
 

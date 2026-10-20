@@ -247,11 +247,20 @@ export class SpriteBody {
       i %= a.def.frames.length;
     }
     const frame = a.def.frames[i];
-    const changed = i !== a.index;
+    const prev = a.index;
+    const changed = i !== prev;
     a.index = i;
     this.setFrame(frame, this.facing);
     const lunge = this.sheet.lunge?.[a.name];
     if (changed && lunge && this.sheet.hits?.[a.name] === i) this.lunge = { at: this.stretchAt === SPRING.t ? SPRING.t - LUNGE.out : SPRING.t, reach: lunge };
+    if (changed && this.heard && this.sheet.sounds?.[a.name]) {
+      // (each step come up since the last, even one a slow frame went past: Npc.heard)
+      const n = a.def.frames.length;
+      for (let k = prev < 0 ? 0 : (prev + 1) % n, m = 0; m < n; k = (k + 1) % n, m++) {
+        this.heard(a.name, k);
+        if (k === i) break;
+      }
+    }
     return changed ? i : null;
   }
 
@@ -521,6 +530,7 @@ export class Npc {
     this.hero = null; // the hand-drawn hero sheet this Tarnished wears, if any
     this.body = new SpriteBody(ctx.scene, this.sheetFor(this.look));
     this.body.mesh.userData.npc = this;
+    this.body.heard = (anim, k) => this.heard(anim, k);
     this.pos = new THREE.Vector2(x, z);
     this.lift = 0;
     this.intent = { kind: 'wander' };
@@ -583,6 +593,7 @@ export class Npc {
     this.body.dispose();
     this.body = new SpriteBody(this.ctx.scene, this.sheetFor(this.look));
     this.body.mesh.userData.npc = this;
+    this.body.heard = (anim, k) => this.heard(anim, k);
     this.body.facing = facing;
     this.body.play(anim);
   }
@@ -1485,6 +1496,13 @@ export class Npc {
       minX: Math.max(home.minX, this.pos.x - r), maxX: Math.min(home.maxX, this.pos.x + r),
       minZ: Math.max(home.minZ + 1, this.pos.y - r), maxZ: Math.min(home.maxZ, this.pos.y + r),
     };
+  }
+
+  // A step of one of its animations has come up with a sound to it (its sheet's `sounds`, by
+  // animation and step: Wynn's blade, heroes/ronin.js), heard where it stands (audio.js), whoever
+  // moves its drawing on (it, or ults.js as it looses its ultimate).
+  heard(anim, k) {
+    for (const name of this.body.sheet.sounds?.[anim]?.[k] || []) this.ctx.sound?.play(name, { at: [this.pos.x, this.pos.y] });
   }
 
   onFrame(step, t) {
