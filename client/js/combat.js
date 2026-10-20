@@ -247,10 +247,11 @@ const SPELLS = {
     },
   ],
   // Maren, played (her right click: she fights up close, else): a thunderbolt thrown from her
-  // spear's tip, straight along her line to what it strikes (drawn: Sacha's bolt repeated along its
-  // length, flickering between its three drawings: slower than the holy lance, and lasting longer)
+  // spear's tip, straight along her line to what it strikes (drawn: Sacha's two drawings, stretched
+  // from her spear to it, not moving: the bolt there in a flash, its burst on what it strikes, held
+  // a moment, then breaking up as it goes)
   storm: [
-    { weight: 1, cast: (c) => c.beam({ width: 1.0, share: 1, art: 'maren-thunderbolt', tile: true, life: 0.6, fps: 10, flow: 1 }) },
+    { weight: 1, cast: (c) => c.beam({ width: 1.0, share: 1, art: 'maren-thunderbolt', life: 0.6, thick: [0.7, 1.3] }) },
   ],
   // Fortuna, from afar: a frost shard, or ice out of the floor (both drawn at her own pixel size)
   frost: [

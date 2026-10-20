@@ -684,13 +684,14 @@ export class Missile {
 }
 
 // A lance of light from `from` to `to`, there at once, flickering a moment and fading. Drawn by
-// hand (`art`, fxart.js: a lash of blood), it's stretched evenly from the one to the other, its
-// thick end at `from`, and plays its frames out over its life; or (`tile`: a lance of holy light,
+// hand (`art`, fxart.js: a lash of blood, Maren's thunderbolt), it's stretched evenly from the one
+// to the other, its thick end at `from` (as thick as its drawing is for that length, kept within
+// `thick` [least, most] if given), and plays its frames out over its life; or (`tile`: a lance of holy light,
 // drawn running on from edge to edge) it's `width` thick and its drawing is repeated along it,
 // flickering between its frames (`fps` a second) and flowing on (`flow` world units a second). It
 // lights all along it as long as it lasts.
 export class Beam {
-  constructor(fx, { school, from, to, width = 0.32, life = 0.3, art = null, tile = false, fps = 24, flow = 3, onHit = null }) {
+  constructor(fx, { school, from, to, width = 0.32, life = 0.3, art = null, tile = false, fps = 24, flow = 3, thick = null, onHit = null }) {
     const [x0, y0, z0] = from;
     const [x1, y1, z1] = to;
     const len = Math.hypot(x1 - x0, y1 - y0, z1 - z0);
@@ -708,7 +709,8 @@ export class Beam {
       map.repeat.set(Math.max(1, len / 1.4), 1);
     }
     this.frames = sheet && !tile ? sheet.frames : null;
-    this.mesh = plane(fx.scene, map, len, sheet && !tile ? (len * sheet.h) / sheet.w : width, { order: 7 });
+    const drawn = sheet && !tile ? (len * sheet.h) / sheet.w : width;
+    this.mesh = plane(fx.scene, map, len, thick && sheet && !tile ? Math.min(thick[1], Math.max(thick[0], drawn)) : drawn, { order: 7 });
     this.mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
     lieAlong(this.mesh, from, to);
     flash(fx.scene, [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2 + 0.3], shine(school, 80 * width, len / 2 + 5, { life, rise: 0.03 }));
