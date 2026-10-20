@@ -248,9 +248,9 @@ const SPELLS = {
   ],
   // Maren, played (her right click: she fights up close, else): a thunderbolt thrown from her
   // spear's tip, straight along her line to what it strikes (drawn: Sacha's bolt repeated along its
-  // length, flickering between its three drawings)
+  // length, flickering between its three drawings: slower than the holy lance, and lasting longer)
   storm: [
-    { weight: 1, cast: (c) => c.beam({ width: 1.0, share: 1, art: 'maren-thunderbolt', tile: true }) },
+    { weight: 1, cast: (c) => c.beam({ width: 1.0, share: 1, art: 'maren-thunderbolt', tile: true, life: 0.6, fps: 10, flow: 1 }) },
   ],
   // Fortuna, from afar: a frost shard, or ice out of the floor (both drawn at her own pixel size)
   frost: [
@@ -334,17 +334,17 @@ export function castSpell(fx, n, { target = null, dir = null, aim = null, hit })
       const [x, , z] = target ? target() : [from[0] + dir[0] * 6, 0, from[2] + dir[1] * 6];
       fx.add(new Rise(fx, { school, x, z, ...o, onHit: target ? (at) => land(at, share) : null }));
     },
-    beam: ({ share = 1, width, art = null, tile = false }) => {
+    beam: ({ share = 1, width, art = null, tile = false, ...look }) => {
       if (aim) {
         // along thy line, to what stands first on it; else on into nothing
         const on = aim.first(aim.reach);
         const len = on ? Math.max(1, on.along) : 9;
         const end = [from[0] + aim.dir[0] * len, from[1], from[2] + aim.dir[1] * len];
-        fx.add(new Beam(fx, { school, from, to: end, width, art, tile, onHit: on ? (at) => land(at, share, 1, on.struck) : null }));
+        fx.add(new Beam(fx, { school, from, to: end, width, art, tile, ...look, onHit: on ? (at) => land(at, share, 1, on.struck) : null }));
         return;
       }
       const to = target ? target() : [from[0] + dir[0] * 9, from[1], from[2] + dir[1] * 9];
-      fx.add(new Beam(fx, { school, from, to, width, art, tile, onHit: target ? (at) => land(at, share) : null }));
+      fx.add(new Beam(fx, { school, from, to, width, art, tile, ...look, onHit: target ? (at) => land(at, share) : null }));
     },
   };
   heard(n, sounds.cast);

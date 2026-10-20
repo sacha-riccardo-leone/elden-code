@@ -687,9 +687,10 @@ export class Missile {
 // hand (`art`, fxart.js: a lash of blood), it's stretched evenly from the one to the other, its
 // thick end at `from`, and plays its frames out over its life; or (`tile`: a lance of holy light,
 // drawn running on from edge to edge) it's `width` thick and its drawing is repeated along it,
-// flickering between its frames and flowing on. It lights all along it as long as it lasts.
+// flickering between its frames (`fps` a second) and flowing on (`flow` world units a second). It
+// lights all along it as long as it lasts.
 export class Beam {
-  constructor(fx, { school, from, to, width = 0.32, life = 0.3, art = null, tile = false, onHit = null }) {
+  constructor(fx, { school, from, to, width = 0.32, life = 0.3, art = null, tile = false, fps = 24, flow = 3, onHit = null }) {
     const [x0, y0, z0] = from;
     const [x1, y1, z1] = to;
     const len = Math.hypot(x1 - x0, y1 - y0, z1 - z0);
@@ -713,6 +714,8 @@ export class Beam {
     flash(fx.scene, [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2 + 0.3], shine(school, 80 * width, len / 2 + 5, { life, rise: 0.03 }));
     this.fx = fx;
     this.life = life;
+    this.fps = fps;
+    this.flow = flow;
     this.t = 0;
     this.map = map;
     onHit?.(new THREE.Vector3(x1, y1, z1));
@@ -723,8 +726,8 @@ export class Beam {
     const k = this.t / this.life;
     if (this.tiles) {
       // (the lance flickering between its frames, flowing on, and fading)
-      const map = this.tiles[Math.floor(this.t * 24) % this.tiles.length];
-      for (const t of this.tiles) t.offset.x = -this.t * 3;
+      const map = this.tiles[Math.floor(this.t * this.fps) % this.tiles.length];
+      for (const t of this.tiles) t.offset.x = -this.t * this.flow;
       this.mesh.material.map = map;
       this.mesh.material.opacity = Math.max(0, 1 - k * k);
       return this.t < this.life;

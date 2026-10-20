@@ -611,8 +611,8 @@ ground under you instead, so it flies at your hand's height there too.
   - Maren, played, throws a **thunderbolt** with her right click: from her spear's tip as she
     thrusts, straight along the line you point to the first thing on it (or on into nothing), a red
     bolt drawn by Sacha (`maren-thunderbolt.json`: three bolts, each a strip repeated along its
-    length, flickering between them as it flows on and fades, like Solenne's lance), heard as a
-    strike of her Red Storm. Fought beside, she keeps to her spear.
+    length, flickering between them as it flows on and fades, like Solenne's lance but slower: ten
+    a second, over 0.6 s), heard as a strike of her Red Storm. Fought beside, she keeps to her spear.
   - Maren, **Red Storm:** red lightning rains around him, ending in one great bolt (drawn bolts,
     `maren-bolt.json` and `maren-great-bolt.json`, at twice her pixel size so they fall from out
     of sight). Each bolt lights the floor and everyone near it red as it strikes, for a third of a
