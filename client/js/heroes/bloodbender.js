@@ -217,6 +217,7 @@ anim('bloodcast', [0, 0, 1, 1, 2, 2].map((i) => ({ drawn: 'attack', frame: i, mi
 const G = groups;
 export default {
   id: 'bloodbender',
+  src: import.meta.url, // (its module: what its baked sheet was made from, bake.js; and where a worker draws it, core.js)
   art: '/assets/hero/bloodbender.json',
   extraArt: {
     kneel: '/assets/hero/bloodbender-kneel.json',

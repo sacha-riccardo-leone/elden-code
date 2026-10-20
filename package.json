@@ -8,6 +8,7 @@
     "hooks:uninstall": "node scripts/install-hooks.js --uninstall",
     "simulate": "node scripts/simulate.js",
     "heroes": "node scripts/build-hero-sheets.mjs",
+    "bake": "node scripts/bake-sheets.mjs",
     "build:public": "node scripts/build-public.mjs",
     "preview:public": "node scripts/serve-public.mjs",
     "deploy:public": "npm run build:public && npx vercel deploy dist/elden-code-demo --prod --yes"

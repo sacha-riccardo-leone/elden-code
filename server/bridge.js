@@ -8,12 +8,15 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { spawn } = require('child_process');
 const { validateEvent } = require('./events');
 const { Registry } = require('./registry');
 
 const PORT = Number(process.env.ELDEN_PORT) || 7777;
 const HOST = '127.0.0.1';
 const ROOT = path.resolve(__dirname, '..');
+const CLIENT = path.join(ROOT, 'client');
+const BAKED_DIR = path.join(CLIENT, 'assets', 'hero', 'baked');
 const STATE_DIR = path.join(ROOT, '.elden');
 const TOKEN_FILE = path.join(STATE_DIR, 'token');
 const MAX_BODY = 16 * 1024;
@@ -187,6 +190,62 @@ function handleEvent(req, res) {
   });
 }
 
+// The characters' sheets baked ahead of time (scripts/bake-sheets.mjs), loaded by the game as
+// pictures instead of drawn as it starts (client/js/heroes/core.js, loadSheet). Each bake names the
+// files it was made from and their fingerprint (client/js/heroes/bake.js); served, it's checked
+// against those files as they are now. Still its own, it goes out marked `trusted`, so that the page
+// needn't fetch them all to check it itself; not, it doesn't go out at all (the page draws that
+// sheet, as before), and the bakes that have fallen behind are made again meanwhile, in the
+// background, for the next time. (Baked once as the bridge starts, too: those that need it.)
+function bakedSheet(res, file) {
+  fs.readFile(file, 'utf8', (err, text) => {
+    let meta = null;
+    try { meta = err ? null : JSON.parse(text); } catch {}
+    if (!meta) return send(res, 404, 'Not baked');
+    if (!meta.trusted && !stillOwn(meta)) {
+      rebake();
+      return send(res, 404, 'Baked from other art or code');
+    }
+    res.writeHead(200, baseHeaders({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' }));
+    res.end(JSON.stringify({ ...meta, trusted: true }));
+  });
+}
+
+// Whether a bake's files are still the ones it was made from (the same hash as bake.js's hashOf).
+function stillOwn(meta) {
+  if (!Array.isArray(meta.files) || !meta.files.length || typeof meta.fingerprint !== 'string') return false;
+  try {
+    const parts = meta.files.map((name) => {
+      const file = path.join(CLIENT, name);
+      if (!file.startsWith(CLIENT + path.sep)) throw new Error('outside the client');
+      return `${name}\n${fs.readFileSync(file, 'utf8')}`;
+    });
+    return crypto.createHash('sha256').update(parts.join('\u0000')).digest('hex') === meta.fingerprint;
+  } catch {
+    return false;
+  }
+}
+
+// One bake at a time, of the stale ones only; asked for again while it runs, once more after it.
+let baking = null;
+let bakeAgain = false;
+function rebake() {
+  if (baking) { bakeAgain = true; return; }
+  bakeAgain = false;
+  let said = '';
+  baking = spawn(process.execPath, [path.join(ROOT, 'scripts', 'bake-sheets.mjs'), '--stale'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
+  baking.stdout.on('data', (d) => { said += d; });
+  baking.stderr.on('data', (d) => { said += d; });
+  baking.on('close', (code) => {
+    baking = null;
+    const last = said.trim().split('\n').pop() || '';
+    if (code !== 0) console.warn(`Baking the characters' sheets failed (the game draws them as it starts): ${last}`);
+    else if (!/^baked 0 /.test(last)) console.log(`Characters' sheets: ${last}`);
+    if (bakeAgain) rebake();
+  });
+  baking.on('error', () => { baking = null; });
+}
+
 const server = http.createServer((req, res) => {
   if (!ALLOWED_HOSTS.has(String(req.headers.host || '').toLowerCase())) return send(res, 421, 'Misdirected');
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -199,6 +258,8 @@ const server = http.createServer((req, res) => {
       'Cache-Control': 'no-store',
     });
   }
+  const baked = /^\/assets\/hero\/baked\/([\w-]+)\.json$/.exec(url.pathname);
+  if (baked) return bakedSheet(res, path.join(BAKED_DIR, `${baked[1]}.json`));
   serveStatic(req, res, url.pathname);
 });
 
@@ -217,4 +278,5 @@ server.on('error', (err) => {
 
 server.listen(PORT, HOST, () => {
   console.log(`Elden Code bridge listening on http://${HOST}:${PORT}  (debug log: /debug)`);
+  rebake();
 });

@@ -2,7 +2,11 @@
 // grid (assets/hero/*.json); a rig cuts it into parts and composes every animation frame by moving
 // those parts on the integer grid, rotating held weapons RotSprite-style, and making the glowing
 // magic (lightning, frost…) flicker and crackle. Plain data in, plain data out, so the same code
-// runs in the browser and in scripts/build-hero-sheets.mjs.
+// runs in the browser, in a worker (compose-worker.js) and in the scripts (bake-sheets.mjs: the
+// sheets baked ahead of time, loaded as pictures instead of drawn as the game starts; and
+// build-hero-sheets.mjs, the previews).
+
+import { BAKED, fingerprint } from './bake.js';
 
 export const NONE = -1;
 
@@ -457,40 +461,16 @@ export function sheetPixels(rig, json, extras = {}) {
   return { ...base, frameCount: frames.length, slots, tops, spans, big, glows };
 }
 
-// Browser: fetch a hero's art and turn it into a sheet the NPC renderer understands.
+// Browser: a hero's sheet as the NPC renderer understands it: its baked pictures, if there's a bake
+// that's still its own (bake.js; one the public build made with this very code, `trusted`, isn't
+// checked), else drawn now, in a worker if one can be had (compose-worker.js), else here.
 export async function loadSheet(rig) {
-  const fetchJson = async (url) => {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`${url}: ${res.status}`);
-    return res.json();
-  };
-  const json = await fetchJson(rig.art);
-  const extras = {};
-  for (const [k, url] of Object.entries(rig.extraArt || {})) extras[k] = await fetchJson(url);
-  const px = sheetPixels(rig, json, extras);
-  const toCanvas = (data, { width, height }) => {
-    const c = document.createElement('canvas');
-    c.width = width;
-    c.height = height;
-    c.getContext('2d').putImageData(new ImageData(data, width, height), 0, 0);
-    return c;
-  };
-  const big = px.big && {
-    color: toCanvas(px.big.color, px.big),
-    glow: toCanvas(px.big.glow, px.big),
-    alpha: px.big.color,
-    frameW: px.big.frameW,
-    frameH: px.big.frameH,
-    cols: px.big.cols,
-    rows: px.big.rows,
-    anchor: anchorOf(rig.bigFrame),
-  };
-  return {
+  const px = (await bakedSheet(rig).catch(() => null)) || canvasesOf(await composedSheet(rig));
+  return withAlpha({
     hero: rig.id,
     rig,
-    color: toCanvas(px.color, px),
-    glow: toCanvas(px.glow, px),
-    alpha: px.color,
+    color: px.color,
+    glow: px.glow,
     frameW: rig.frame.w,
     frameH: rig.frame.h,
     cols: rig.cols,
@@ -499,7 +479,7 @@ export async function loadSheet(rig) {
     slots: px.slots,
     tops: px.tops,
     spans: px.spans,
-    big,
+    big: px.big && withAlpha({ ...px.big, anchor: anchorOf(rig.bigFrame) }, px.big.alpha),
     glows: px.glows,
     anims: rig.anims,
     px: rig.px,
@@ -508,5 +488,179 @@ export async function loadSheet(rig) {
     glowIntensity: rig.glowIntensity,
     lunge: rig.lunge,
     sounds: rig.sounds,
+  }, px.alpha);
+}
+
+// A sheet's pixels (`alpha`: where each frame is drawn, for what's clicked or struck: npc.js), as
+// they are, or (baked, `alpha` a function) read out of its picture the first time they're wanted,
+// not as the game starts.
+function withAlpha(sheet, alpha) {
+  if (typeof alpha !== 'function') return Object.assign(sheet, { alpha });
+  return Object.defineProperty(sheet, 'alpha', {
+    configurable: true,
+    enumerable: true,
+    get() {
+      const pixels = alpha();
+      Object.defineProperty(this, 'alpha', { value: pixels, enumerable: true, writable: true });
+      return pixels;
+    },
+  });
+}
+
+const fetchJson = async (url) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: ${res.status}`);
+  return res.json();
+};
+const fetchText = async (url) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: ${res.status}`);
+  return res.text();
+};
+
+// Its baked sheet (scripts/bake-sheets.mjs), if it's still the one its art and code make: its
+// pictures as canvases, and the colour sheet's pixels to be read when first wanted (`alpha`); null if
+// it isn't (and none at all, a fetch failing: then it's drawn).
+async function bakedSheet(rig) {
+  const meta = await fetchJson(`${BAKED}${rig.id}.json`);
+  if (!meta.trusted && meta.fingerprint !== (await fingerprint(rig, fetchText))) return null;
+  const at = (name, pixels) => picture(`${BAKED}${rig.id}${name}.png`, pixels);
+  const [color, glow, bigColor, bigGlow] = await Promise.all([at('', true), at('-glow'), meta.big && at('-big', true), meta.big && at('-big-glow')]);
+  return {
+    color: color.canvas,
+    glow: glow.canvas,
+    alpha: color.pixels,
+    rows: meta.rows,
+    slots: meta.slots,
+    tops: meta.tops,
+    spans: meta.spans,
+    glows: meta.glows,
+    big: meta.big && { ...meta.big, color: bigColor.canvas, glow: bigGlow.canvas, alpha: bigColor.pixels },
   };
+}
+
+// A baked picture, decoded off the page's thread, as a canvas (and how to read its pixels, if
+// wanted), its colours exactly as baked: none premultiplied by alpha (its pixels are all opaque or
+// all clear) or converted to a colour space.
+async function picture(url, pixels = false) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: ${res.status}`);
+  const bitmap = await createImageBitmap(await res.blob(), { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const g = canvas.getContext('2d', pixels ? { willReadFrequently: true } : undefined);
+  g.drawImage(bitmap, 0, 0);
+  bitmap.close?.();
+  return { canvas, pixels: pixels ? () => g.getImageData(0, 0, canvas.width, canvas.height).data : null };
+}
+
+// Drawn now: in a worker (off the page's thread, a few at once), or here if none can be had.
+async function composedSheet(rig) {
+  try {
+    return await inWorker(rig);
+  } catch {
+    const json = await fetchJson(rig.art);
+    const extras = {};
+    for (const [k, url] of Object.entries(rig.extraArt || {})) extras[k] = await fetchJson(url);
+    return sheetPixels(rig, json, extras);
+  }
+}
+
+// Drawn pixels (sheetPixels) as the canvases a baked sheet comes as.
+function canvasesOf(px) {
+  const toCanvas = (data, { width, height }) => {
+    const c = document.createElement('canvas');
+    c.width = width;
+    c.height = height;
+    c.getContext('2d').putImageData(new ImageData(data, width, height), 0, 0);
+    return c;
+  };
+  return {
+    color: toCanvas(px.color, px),
+    glow: toCanvas(px.glow, px),
+    alpha: px.color,
+    rows: px.rows,
+    slots: px.slots,
+    tops: px.tops,
+    spans: px.spans,
+    glows: px.glows,
+    big: px.big && {
+      color: toCanvas(px.big.color, px.big),
+      glow: toCanvas(px.big.glow, px.big),
+      alpha: px.big.color,
+      frameW: px.big.frameW,
+      frameH: px.big.frameH,
+      cols: px.big.cols,
+      rows: px.big.rows,
+    },
+  };
+}
+
+// The workers that draw sheets off the page's thread: as many as the machine has cores to spare (at
+// most four), each drawing one sheet at a time; made when first wanted, let go once none has been
+// wanted for a few seconds. One that fails (no module workers here, say) fails its sheet, which is
+// then drawn on the page.
+let pool = null;
+function inWorker(rig) {
+  if (typeof Worker === 'undefined' || !rig.src) return Promise.reject(new Error('no workers here'));
+  pool ??= workerPool();
+  return pool.run(rig);
+}
+
+function workerPool() {
+  const size = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 4) - 1));
+  const idle = [];
+  const waiting = [];
+  const running = new Map(); // job -> { worker, resolve, reject }
+  let made = 0;
+  let next = 0;
+  let quiet = 0;
+  const me = {
+    run(rig) {
+      return new Promise((resolve, reject) => {
+        waiting.push({ job: next++, rig, resolve, reject });
+        pump();
+      });
+    },
+  };
+  const make = () => {
+    const worker = new Worker(new URL('./compose-worker.js', import.meta.url), { type: 'module' });
+    made += 1;
+    worker.onmessage = ({ data }) => {
+      const r = running.get(data.job);
+      running.delete(data.job);
+      if (data.error) r?.reject(new Error(data.error));
+      else r?.resolve(data.px);
+      idle.push(worker);
+      pump();
+    };
+    worker.onerror = (ev) => {
+      ev.preventDefault?.();
+      for (const [job, r] of running) if (r.worker === worker) { running.delete(job); r.reject(new Error(ev.message || 'worker failed')); }
+      worker.terminate();
+      made -= 1;
+      pump();
+    };
+    return worker;
+  };
+  const pump = () => {
+    while (waiting.length && (idle.length || made < size)) {
+      let worker;
+      try { worker = idle.pop() || make(); } catch (err) { for (const w of waiting.splice(0)) w.reject(err); break; }
+      const { job, rig, resolve, reject } = waiting.shift();
+      running.set(job, { worker, resolve, reject });
+      worker.postMessage({ job, id: rig.id, src: rig.src });
+    }
+    clearTimeout(quiet);
+    if (!waiting.length && !running.size) {
+      quiet = setTimeout(() => {
+        if (waiting.length || running.size) return;
+        for (const w of idle.splice(0)) w.terminate();
+        made = 0;
+        if (pool === me) pool = null;
+      }, 5000);
+    }
+  };
+  return me;
 }

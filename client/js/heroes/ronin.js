@@ -298,6 +298,7 @@ const G = groups;
 const GLARE_FLASH = [1, 3, 4, 3, 2, 1].map((g) => G.loosed[g - 1]);
 export default {
   id: 'ronin',
+  src: import.meta.url, // (its module: what its baked sheet was made from, bake.js; and where a worker draws it, core.js)
   art: '/assets/hero/ronin.json',
   extraArt: { kneel: '/assets/hero/ronin-kneel.json', attack: '/assets/hero/ronin-attack.json', ult: '/assets/hero/ronin-ult.json' },
   epithet: 'of the Iron Kasa',

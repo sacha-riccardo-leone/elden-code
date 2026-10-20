@@ -200,6 +200,7 @@ anim('thrust', [0, 0, 1, 1, 2, 2].map((i) => ({ drawn: 'attack', frame: i, mid: 
 const G = groups;
 export default {
   id: 'knight',
+  src: import.meta.url, // (its module: what its baked sheet was made from, bake.js; and where a worker draws it, core.js)
   art: '/assets/hero/knight.json',
   extraArt: { kneel: '/assets/hero/knight-kneel.json', ult: '/assets/hero/knight-ult.json', attack: '/assets/hero/knight-attack.json' },
   firstName: 'Maren',

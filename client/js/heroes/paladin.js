@@ -352,6 +352,7 @@ anim('jojo', [drawnPose('pose', 0, { light: 1 })]);
 const G = groups;
 export default {
   id: 'paladin',
+  src: import.meta.url, // (its module: what its baked sheet was made from, bake.js; and where a worker draws it, core.js)
   art: '/assets/hero/paladin.json',
   extraArt: { kneel: '/assets/hero/paladin-kneel.json', ult: '/assets/hero/paladin-ult.json', attack: '/assets/hero/paladin-attack.json', pose: '/assets/hero/paladin-pose.json' },
   firstName: 'Aurelion',

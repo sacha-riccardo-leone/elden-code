@@ -256,6 +256,7 @@ anim('release', [drawnPose('throw', 0, { light: 2 })]);
 const G = groups;
 export default {
   id: 'champion',
+  src: import.meta.url, // (its module: what its baked sheet was made from, bake.js; and where a worker draws it, core.js)
   pair: 'twofold', // one hero with two forms: see twofold.js
   form: 'night',
   via: 'dusk', // the drawing worn while becoming this form

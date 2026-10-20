@@ -169,6 +169,7 @@ const FALL = ['fall-1', 'fall-2', 'fall-3', 'fall-4', 'fall-5'].map((k) => G[k][
 const single = (k) => ({ frames: G[k], fps: 1 });
 export default {
   id: 'golem',
+  src: import.meta.url, // (its module: what its baked sheet was made from, bake.js; and where a worker draws it, core.js)
   art: '/assets/golem/golem.json',
   extraArt: Object.fromEntries(STILLS.map((k) => [k, `/assets/golem/golem-${k}.json`])),
   firstName: 'Guardian Golem',

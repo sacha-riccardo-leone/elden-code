@@ -19,6 +19,7 @@ function shiftRig({ id, form, art, frame, spec, seed }) {
   const groups = { shift: [0, 1, 2, 3] };
   return {
     id,
+    src: import.meta.url, // (its module: what its baked sheet was made from, bake.js)
     pair: 'twofold',
     form,
     shift: true, // worn only while changing; the name stays the one it is changing from

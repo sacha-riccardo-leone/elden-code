@@ -304,8 +304,11 @@ const BIG = { w: 512, h: 300, anchor: 208 };
 const muzzleAt = (fr) => [(fr.crystal.cx - fr.mid) * PX, (fr.ground - fr.crystal.cy) * PX];
 
 function lookRig(S) {
-  const FRAME = { w: 300, h: 320 };
-  const OX = FRAME.w / 2 - S.mid;
+  // (as tall as her hat, and as wide as she's ever drawn in it: her staff reaches far ahead of her
+  // and little behind, so her middle stands 74 from its left; centred, a quarter of every frame
+  // was always empty)
+  const FRAME = { w: 218, h: 320, anchor: 74 };
+  const OX = FRAME.anchor - S.mid;
   const OY = FRAME.h - 1 - S.ground;
   const inBox = (b, x, y) => x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1;
 
@@ -399,7 +402,7 @@ function lookRig(S) {
     if (p.still) {
       const f = composeStill(ctx.still, p, FRAME);
       const sp = S.kneel.spec;
-      const ox = Math.round(FRAME.w / 2 - sp.mid);
+      const ox = Math.round(FRAME.anchor - sp.mid);
       const oy = FRAME.h - 1 - sp.ground;
       kindle(f, ctx.kneelLit, p.glint || 0, colors, ox, oy);
       const put = painter(f);
@@ -465,6 +468,7 @@ function lookRig(S) {
   const set = S.drawn ? withDrawn(S.drawn) : { poses, groups, anims, groupFps };
   return {
     id: S.id,
+    src: import.meta.url, // (its module: what its baked sheet was made from, bake.js)
     pair: 'sorceress', // one hero with two looks (and the drawing between them): see director.js
     form: S.form,
     via: 'veil', // the drawing she wears while putting the mask on or taking it off
@@ -620,6 +624,7 @@ const veilPoses = seq(4, (i) => ({
 
 export const veil = {
   id: 'sorceress-veil',
+  src: import.meta.url, // (its module: what its baked sheet was made from, bake.js)
   pair: 'sorceress',
   form: 'veil',
   shift: true, // worn only while the mask goes on or comes off

@@ -326,6 +326,7 @@ anim('loose', [drawnPose('ult', 1, { big: true, light: 1 })]);
 const G = groups;
 export default {
   id: 'queen',
+  src: import.meta.url, // (its module: what its baked sheet was made from, bake.js; and where a worker draws it, core.js)
   pair: 'twofold', // one hero with two forms: see twofold.js
   form: 'day',
   via: 'dawn', // the drawing worn while becoming this form

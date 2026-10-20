@@ -161,6 +161,7 @@ const G = groups;
 const single = (k) => ({ frames: G[k], fps: 1 });
 export default {
   id: 'boss',
+  src: import.meta.url, // (its module: what its baked sheet was made from, bake.js; and where a worker draws it, core.js)
   art: '/assets/boss/boss.json',
   extraArt: Object.fromEntries(STILLS.map((k) => [k, `/assets/boss/boss-${k}.json`])),
   firstName: 'Fenrath',

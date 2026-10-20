@@ -2,6 +2,10 @@ node_modules/
 dist/
 .vercel/
 
+# the characters' sheets baked ahead of time (npm run bake; the bridge bakes them as it starts, and
+# the public build bakes its own): made from what's committed, never committed themselves
+client/assets/hero/baked/
+
 # the bridge's local state, including its secret token (never commit)
 .elden/
 

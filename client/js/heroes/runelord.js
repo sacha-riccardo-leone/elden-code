@@ -306,6 +306,7 @@ anim('staffcast', [0, 0, 1, 1, 2, 2].map((i) => ({
 const G = groups;
 export default {
   id: 'runelord',
+  src: import.meta.url, // (its module: what its baked sheet was made from, bake.js; and where a worker draws it, core.js)
   art: '/assets/hero/runelord.json',
   extraArt: {
     kneel: '/assets/hero/runelord-kneel.json',

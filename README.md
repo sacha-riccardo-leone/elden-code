@@ -346,10 +346,34 @@ its feet on the ground line, and its magic flickers as the rig's own does (`comp
 than the rest (Corisande's staff held level far out ahead) goes in the rig's `bigFrame` instead
 (`big: true`), with the character's middle on its `anchor` column: those frames are kept in a sheet
 of their own, so the rest stay small, and the drawing grows to that frame while it's shown, its
-middle where the character stands. `npm run heroes` exports each hero as `<id>-sheet.png` +
+middle where the character stands. A frame needn't be centred on the character: its `anchor` says
+where its middle is, so a frame holds only what's ever drawn in it (the Witch's staff reaches far
+ahead of her and little behind: hers is 218 wide with her middle at 74, where centred it was 300, a
+quarter of it always empty). `npm run heroes` exports each hero as `<id>-sheet.png` +
 `<id>-sheet.json` (grid and animations; with a big sheet, `<id>-big-sheet.png` too, and the poses
 on it: `big.poses`), a glow map, and an animated GIF per animation in `client/assets/hero/`. Preview
 them at <http://127.0.0.1:7777/dev/hero.html?hero=ronin>.
+
+**Baked sheets.** Drawing every frame of every character as the game starts took some 12 s (the
+Witch, Fortuna, Aurelion and Maren the longest; the Golem 2.5 s). So the sheets are baked ahead of
+time (`npm run bake`, `scripts/bake-sheets.mjs`), into `client/assets/hero/baked/` (never committed):
+each one's pictures, colour and glow (and its big poses'), what each frame holds, and the
+fingerprint of the files it was made from, its rig's module, the modules that imports, and its art
+(`client/js/heroes/bake.js`). The game loads those pictures instead, decoded off the page's thread,
+and reads their pixels only once they're wanted (what's clicked or struck); a sheet baked is the
+very sheet it would draw, pixel for pixel. A bake is used only while it's still its own:
+
+- The bridge checks each bake against those files as it serves it (`server/bridge.js`, `stillOwn`),
+  and sends it marked trusted; one that has fallen behind (a rig or its art changed) isn't sent, and
+  the bridge bakes the stale ones again meanwhile, in the background, as it does once as it starts.
+- The public build bakes its own with the code it ships (`--trusted`: never checked).
+- Served any other way, the page checks a bake itself (`fingerprint`).
+
+A sheet without a bake of its own is drawn as before, but in workers off the page's thread, a few at
+once (`client/js/heroes/compose-worker.js`), else on the page. Fenrath's and the Golem's sheets
+load only once the world is ready (no great enemy comes till its own is), and the first frame's
+shaders are compiled side by side (`compileAsync`). Ready to set out: about 1.4 s for the public
+build, 3 to 4 s locally, 5 s with nothing baked (it was 11 to 15 s).
 
 To turn new sprite images into art grids (no npm packages needed):
 
@@ -1164,10 +1188,10 @@ The other recordings carry no source of their own; any that needs a credit goes 
 
 ```
 hooks/emit.js           the Claude Code hook (sanitises and forwards)
-server/bridge.js        localhost HTTP + SSE server, static files
+server/bridge.js        localhost HTTP + SSE server, static files, and the baked sheets checked as they're served (and baked again when stale)
 server/events.js        allowlist validation
 server/registry.js      per-session state for late joiners
-scripts/                install/uninstall hooks, simulator
+scripts/                install/uninstall hooks, simulator, the art and sound tools, and bake-sheets.mjs (the characters' sheets baked ahead of time)
 client/js/title.js      the title screen: the pixel-art wordmark, sigil and embers, the way in, loading
 client/js/gate.js       where the title and the world meet: set out, and ready
 client/js/sprites.js    procedural pixel-art characters (base body + equipment layers)

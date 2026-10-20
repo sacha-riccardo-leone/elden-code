@@ -168,8 +168,9 @@ export function backgroundMask(img, { dark = 24, light = 70 } = {}) {
   return mask;
 }
 
-// A PNG of straight-alpha RGBA pixels.
-export function png(w, h, rgba) {
+// A PNG of straight-alpha RGBA pixels (a Buffer or any byte array), deflated at `level`.
+export function png(w, h, rgba, level = 9) {
+  if (!Buffer.isBuffer(rgba)) rgba = Buffer.from(rgba.buffer, rgba.byteOffset, rgba.byteLength);
   const table = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
   const crc = (b) => { let c = 0xffffffff; for (const v of b) c = table[(c ^ v) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
   const chunk = (type, data) => {
@@ -187,5 +188,5 @@ export function png(w, h, rgba) {
   ihdr[9] = 6;
   const raw = Buffer.alloc((w * 4 + 1) * h);
   for (let y = 0; y < h; y++) rgba.copy(raw, y * (w * 4 + 1) + 1, y * w * 4, (y + 1) * w * 4);
-  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw, { level })), chunk('IEND', Buffer.alloc(0))]);
 }

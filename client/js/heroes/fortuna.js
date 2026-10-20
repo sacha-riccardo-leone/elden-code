@@ -289,6 +289,7 @@ anim('frost', seq(3, (i) => ({ drawn: 'spell', frame: i, mid: [54, 50, 53][i], l
 const G = groups;
 export default {
   id: 'fortuna',
+  src: import.meta.url, // (its module: what its baked sheet was made from, bake.js; and where a worker draws it, core.js)
   art: '/assets/hero/fortuna.json',
   extraArt: {
     kneel: '/assets/hero/fortuna-kneel.json',

@@ -121,6 +121,7 @@ anim('talk', seq(2, (i) => ({ rise: 1 + i, staff: i ? 3 : 0 })));
 const G = groups;
 export default {
   id: 'spectre',
+  src: import.meta.url, // (its module: what its baked sheet was made from, bake.js; and where a worker draws it, core.js)
   art: '/assets/hero/spectre.json',
   title: 'Spectre',
   epithet: 'of the Noble Sorcerers',

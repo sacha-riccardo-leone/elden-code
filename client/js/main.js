@@ -65,14 +65,11 @@ const nav = new Nav(world);
 const ui = new UI(camera, canvas);
 ui.sound = sound;
 // The Stormbound Knight is worn by Maren (thee); the sessions share the other heroes.
-// (the great enemies of the arena too, fight.js: should one's art fail, only the other comes)
-// (and the spectres called up when every hero is busy, director.js: without their art, sessions
-// wait for a free hero instead)
-const [allHeroes, fireArt, bossSheet, golemSheet, spectreSheet] = await Promise.all([
+// (the spectres called up when every hero is busy, director.js: without their art, sessions wait
+// for a free hero instead; the great enemies of the arena come later, once the world is ready)
+const [allHeroes, fireArt, spectreSheet] = await Promise.all([
   loadHeroSheets(),
   loadFireArt(),
-  loadSheet(bossRig).catch((err) => { console.warn('Boss art unavailable', err); return null; }),
-  loadSheet(golemRig).catch((err) => { console.warn('Golem art unavailable', err); return null; }),
   loadSheet(spectreRig).catch((err) => { console.warn('Spectre art unavailable', err); return null; }),
   loadFxArt(), // (the effects drawn for the ultimates, fxart.js: kept there)
 ]);
@@ -80,7 +77,7 @@ world.fireArt = fireArt; // (each island lights its own when it's built, region.
 world.hub.lightFires(fireArt);
 world.arena.lightFires(fireArt);
 const playerSheet = allHeroes.find((s) => s.hero === 'knight') || null;
-const ctx = { scene, world, nav, particles, ui, director: null, heroSheets: allHeroes.filter((s) => s !== playerSheet), bossSheet, golemSheet, spectreSheet };
+const ctx = { scene, world, nav, particles, ui, director: null, heroSheets: allHeroes.filter((s) => s !== playerSheet), bossSheet: null, golemSheet: null, spectreSheet };
 ctx.sound = sound;
 const director = new Director(ctx);
 ctx.director = director;
@@ -450,10 +447,19 @@ try {
   rig.target.set(gx, 0.8, gz - 0.6);
   rig.snap();
   step(0);
-  if (window.innerWidth && window.innerHeight) post.render(0, t); // (a page out of sight has nothing to draw into)
+  if (window.innerWidth && window.innerHeight) { // (a page out of sight has nothing to draw into)
+    // (its shaders compiled side by side first, where the browser can, the page free meanwhile)
+    await renderer.compileAsync?.(scene, camera);
+    post.render(0, t);
+  }
 } catch (err) {
   console.error('Warming up the first frame failed (the world carries on):', err);
 }
 markReady();
+// The great enemies' drawings, only now and meanwhile: they're wanted for a fight alone, and none
+// comes till its own is ready (fight.js, kinds; should one's fail, only the other ever comes).
+for (const [key, rig] of [['bossSheet', bossRig], ['golemSheet', golemRig]]) {
+  loadSheet(rig).then((sheet) => { ctx[key] = sheet; }).catch((err) => console.warn(`${rig.id} art unavailable`, err));
+}
 await started;
 begin();

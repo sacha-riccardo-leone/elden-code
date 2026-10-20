@@ -214,6 +214,7 @@ anim('throw', [drawnPose('ult', 1)]);
 const G = groups;
 export default {
   id: 'bandit',
+  src: import.meta.url, // (its module: what its baked sheet was made from, bake.js; and where a worker draws it, core.js)
   art: '/assets/hero/bandit.json',
   extraArt: { kneel: '/assets/hero/bandit-kneel.json', ult: '/assets/hero/bandit-ult.json', attack: '/assets/hero/bandit-attack.json' },
   epithet: 'of the Broken Road',

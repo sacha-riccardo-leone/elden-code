@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { bake } from './bake-sheets.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CLIENT = path.join(ROOT, 'client');
@@ -85,8 +86,14 @@ write(path.join(OUT, 'js', 'mode.js'), [
   '',
 ].join('\n'));
 
-// the art grids the rigs load
-walk(path.join(CLIENT, 'assets'), (p) => p.endsWith('.json') && !p.endsWith('-sheet.json'), (p) => copy(p, path.join(OUT, rel(p))));
+// the art grids the rigs load (not the sheets baked here, which may be behind: they're baked afresh)
+const BAKED = `${path.sep}baked${path.sep}`;
+walk(path.join(CLIENT, 'assets'), (p) => p.endsWith('.json') && !p.endsWith('-sheet.json') && !p.includes(BAKED), (p) => copy(p, path.join(OUT, rel(p))));
+// the characters' sheets, baked with this very code (scripts/bake-sheets.mjs): the game loads them as
+// pictures, never checking them (`trusted`), instead of drawing every frame as it starts
+const baked = await bake({ out: path.join(OUT, 'assets', 'hero', 'baked'), trusted: true });
+files += fs.readdirSync(path.join(OUT, 'assets', 'hero', 'baked')).length;
+bytes += baked.bytes;
 // and the drawing of the grace itself (grace.js)
 copy(path.join(CLIENT, 'assets', 'fx', 'grace-core.png'), path.join(OUT, 'assets', 'fx', 'grace-core.png'));
 // the sounds, each set as the game cut it (client/assets/sfx/<set>: audio.js's SOUNDS; the sets of
