@@ -14,7 +14,8 @@ import { rng } from './pixel.js';
 import { Builder, seedOf } from './build.js';
 import { GraceFigure } from './grace.js';
 import { addLevel } from './ground.js';
-import { FLOOR } from './arena.js';
+import { FLOOR, discGeometry } from './arena.js';
+import { rippling } from './ripple.js';
 import { weapon } from './weapons.js';
 
 // The yard's radius (the arena's); the stair: half its width, its head (where it leaves the Hold's
@@ -137,12 +138,15 @@ export class Yard extends Builder {
     const v = (x, yy, z) => new THREE.Vector3(x, yy, z);
 
     // its floor of grey brick, the arena's, worn to dirt and moss at the edge; a mossy lip round it
-    // (open where the stair lands) and below it a rock of its own, down into the mist
+    // (open where the stair lands) and below it a rock of its own, down into the mist. (Finely
+    // divided, as the arena's, so that a shockwave can ripple it like water: the tutorial's rune
+    // rocks, tutorial.js, ripple.js.)
     const tex = T.pixelTexture(T.floorCanvas(R * 2, R * 2, (cx, cz) => (Math.hypot(cx - R, cz - R) < R - 1.2 ? 1.1 : 0.35), FLOOR, 5150));
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(R, 72), new THREE.MeshLambertMaterial({ map: tex }));
+    const floor = new THREE.Mesh(discGeometry(R, 0.25), rippling(new THREE.MeshLambertMaterial({ map: tex }), { lit: true }));
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = y;
     floor.receiveShadow = true;
+    floor.userData.dynamic = true; // (never merged with anything: its material bends it)
     this.add(floor);
     const gap = Math.asin((STAIR.half + 0.4) / (R - 0.1));
     const rim = new THREE.TorusGeometry(R - 0.1, 0.24, 4, 56, Math.PI * 2 - gap * 2);
@@ -158,7 +162,7 @@ export class Yard extends Builder {
     cliff.position.y = y - 14;
     this.add(cliff);
     // the sawdust ring on it, where blows are traded
-    const ring = new THREE.Mesh(new THREE.RingGeometry(10.2, 10.65, 96), new THREE.MeshBasicMaterial({ color: '#c9b38a', transparent: true, opacity: 0.5, depthWrite: false }));
+    const ring = new THREE.Mesh(new THREE.RingGeometry(10.2, 10.65, 96), rippling(new THREE.MeshBasicMaterial({ color: '#c9b38a', transparent: true, opacity: 0.5, depthWrite: false })));
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(0, y + 0.012, 0);
     ring.userData.dynamic = true;
@@ -207,9 +211,12 @@ export class Yard extends Builder {
 
     this.buildGrace();
 
-    // where its dummies stand (training.js draws them)
-    for (const [x, z] of DUMMY_SPOTS) this.blockCircle(x, z, 0.5);
-    this.blockCircle(BOSS_DUMMY.x, BOSS_DUMMY.z, BOSS_DUMMY.radius);
+    // where its dummies stand (training.js draws them, and puts them away for the tutorial: then
+    // nothing stands on their spots)
+    this.blocks = {
+      dummies: DUMMY_SPOTS.map(([x, z]) => this.blockCircle(x, z, 0.5)),
+      great: this.blockCircle(BOSS_DUMMY.x, BOSS_DUMMY.z, BOSS_DUMMY.radius),
+    };
   }
 
   // A weapon rack: two posts with caps, a rail high and one low between them, a trough at their

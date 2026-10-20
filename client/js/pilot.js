@@ -90,8 +90,9 @@ export class Pilot {
     return { x: Math.sign(x), z: Math.sign(z), run: this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') };
   }
 
+  // (and, in the tutorial, only within the place its step is in: tutorial.js, fence)
   canStand(x, z) {
-    return this.ctx.world.isWalkArea(x, z) && !this.ctx.world.isBlocked(x, z, PAD);
+    return this.ctx.world.isWalkArea(x, z) && !this.ctx.world.isBlocked(x, z, PAD) && (this.ctx.tutorial?.fence?.(x, z) ?? true);
   }
 
   // One step along the held direction, sliding along whatever blocks the way. Walking into

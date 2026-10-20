@@ -35,7 +35,8 @@ import { Sound, SOUNDS } from './audio.js';
 import { groundAt } from './ground.js';
 import { Companions } from './companions.js';
 import { PUBLIC_DEMO } from './mode.js';
-import { started, markReady } from './gate.js';
+import { started, markReady, again } from './gate.js';
+import { Tutorial } from './tutorial.js';
 
 const canvas = document.getElementById('scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
@@ -81,6 +82,11 @@ const ctx = { scene, world, nav, particles, ui, director: null, heroSheets: allH
 ctx.sound = sound;
 const director = new Director(ctx);
 ctx.director = director;
+// The tutorial, on the first journey (or asked for again): till it's over, the Lands Between are
+// held back (`holding`): no heroes at the Round Table, no session taken up, no phantoms, no great
+// enemy; then they set out (setOutWorld).
+const tutorial = new Tutorial(ctx, { again });
+ctx.tutorial = tutorial;
 const keys = new Set();
 const pilot = new Pilot(ctx, keys); // thee: Maren at first, or whoever thou hast become
 ctx.pilot = pilot;
@@ -104,7 +110,6 @@ function spawnPlayer() {
   const maren = director.addMaren(playerSheet, x, z);
   maren.spawn(true);
   pilot.take(maren);
-  if (PUBLIC_DEMO) director.holdRisesUntil(director.clock + 5); // the first island rises 5 s after thee
   rig.flyTo(x, z, FOLLOW_DIST);
   rig.target.set(x, 0.8, z - 0.6);
   rig.snap();
@@ -164,10 +169,11 @@ ctx.onWorldGrew = () => {
   rig.setBounds(minX, maxX);
 };
 
-// Only the one thou art can be made to gesture; anyone else's fan offers to become them.
+// Only the one thou art can be made to gesture; anyone else's fan offers to become them (in the
+// tutorial, its hero alone).
 ui.onGesture = (npc, key) => { if (npc === pilot.npc) director.gesture(npc, key); };
 ui.onBecome = (npc) => {
-  if (!npc || npc.dead || npc === pilot.npc) return;
+  if (!npc || npc.dead || npc === pilot.npc || !tutorial.pickable(npc)) return;
   director.select(null);
   ui.closeFan();
   pilot.take(npc);
@@ -202,32 +208,54 @@ document.getElementById('table-sit').addEventListener('click', () => {
   me.body.play('sit', true);
 });
 document.getElementById('table-leave').addEventListener('click', () => ui.closeTable());
+// the training yard's grace (interact.js): call the Tarnished to train, or (once asked) walk the
+// tutorial again: the page loads afresh for it (tutorial.js, replay)
+document.getElementById('grace-train').addEventListener('click', () => {
+  ui.closeGrace();
+  training.ask();
+});
+document.getElementById('grace-tutorial').addEventListener('click', () => ui.openGrace(true));
+document.getElementById('grace-yes').addEventListener('click', () => {
+  ui.closeGrace();
+  tutorial.replay();
+});
+document.getElementById('grace-no').addEventListener('click', () => ui.openGrace());
+document.getElementById('grace-leave').addEventListener('click', () => ui.closeGrace());
 let entered = false; // (thou'st set out from the title screen: begin)
+// (what thou mayst do just now: anything, but in the tutorial what its step teaches)
+const may = (kind, act) => (...args) => (tutorial.allows(kind) ? act(...args) : undefined);
 new Input({
   canvas, camera, rig, director, ui, travel, keys,
   active: () => entered && !companions.shown, // (no keys reach the world under the title screen, nor while thou choosest thy companions)
   battle: () => fight.inBattle(),
   floor: () => (pilot.npc ? groundAt(pilot.npc.pos.x, pilot.npc.pos.y) : 0),
+  allows: (kind) => tutorial.allows(kind),
+  pickable: (npc) => tutorial.pickable(npc),
   actions: {
-    emote: (key) => pilot.npc && director.gesture(pilot.npc, key),
+    emote: may('emote', (key) => pilot.npc && director.gesture(pilot.npc, key)),
     // V: the sound off, or on again
     sound: () => ui.log(sound.toggle() ? 'Sound on' : 'Sound off', 'dim'),
-    attack: (at) => pilot.attack(at),
-    spell: (at) => pilot.cast(at), // right click: a spell (Fortuna, the mages)
-    ult: (at) => (training.has(pilot.npc) ? training : fight).playerUlt(at), // R: thine ultimate, once full (ults.js; always, on the training yard)
-    crouch: () => pilot.toggleCrouch(),
-    interact: () => { if (ui.tableOpen) ui.closeTable(); else interact.press(); },
-    dodge: () => pilot.dodge(),
-    focus: () => fight.toggleFocus(), // Q: the camera on a great enemy, or back on thee
+    attack: may('attack', (at) => pilot.attack(at)),
+    spell: may('spell', (at) => pilot.cast(at)), // right click: a spell (Fortuna, the mages)
+    ult: may('ult', (at) => (training.has(pilot.npc) ? training : fight).playerUlt(at)), // R: thine ultimate, once full (ults.js; always, on the training yard)
+    crouch: may('crouch', () => pilot.toggleCrouch()),
+    interact: may('interact', () => {
+      if (ui.tableOpen) ui.closeTable();
+      else if (ui.graceOpen) ui.closeGrace();
+      else interact.press();
+    }),
+    dodge: may('dodge', () => pilot.dodge()),
+    // Q: the camera on a great enemy, or back on thee (by the training yard's great dummy, on it)
+    focus: may('focus', () => training.toggleFocus(pilot.npc) || fight.toggleFocus()),
     // B (or a click on thyself): thine own fan of gestures, over thy head (not while a great enemy
     // is abroad: no gestures then, director.gesture)
-    fan: () => {
+    fan: may('fan', () => {
       const me = pilot.npc;
       if (!me || fight.hunting()) return;
       if (ui.fanOwner === me) { ui.closeFan(); return; }
       director.select(null);
       ui.openFan(me);
-    },
+    }),
   },
 });
 const post = new Post(renderer, scene, camera);
@@ -241,7 +269,10 @@ ctx.training = training;
 training.start();
 const daylight = new Daylight({ renderer, scene, world, post, ui }); // day and night take turns
 ctx.daylight = daylight;
-director.start(); // the heroes take their seats at the Round Table (the Twofold in the form for the hour)
+// the heroes take their seats at the Round Table (the Twofold in the form for the hour); after the
+// tutorial, if there's one first
+if (!tutorial.holding) director.start();
+else fight.quietUntil = Infinity; // (and no great enemy comes meanwhile)
 const perf = new Perf(renderer, post, resize);
 const demo = new Demo(director);
 
@@ -249,6 +280,23 @@ const demo = new Demo(director);
 // bridge
 
 let connected = false;
+// (the public demo's great enemies: the first a couple of minutes after thou settest out)
+const paceDemo = () => fight.pace({ first: 100 + Math.random() * 60, invasion: [5 * 60, 9 * 60], cooldown: 5 * 60 });
+// The bridge's stream (net.js): a snapshot of the sessions, then each event as it comes. In the
+// tutorial none of it is taken up; once that's over the stream is opened afresh, and its snapshot
+// is the world as it stands then.
+let stream = null;
+function linkBridge() {
+  stream?.close();
+  stream = connect({
+    onSnapshot: (sessions) => { if (!tutorial.holding) director.snapshot(sessions); },
+    onEvent: (ev, session) => { if (!tutorial.holding) director.event(ev, session); },
+    onStatus: (ok) => {
+      connected = ok;
+      ui.setStatus(ok, demo.active);
+    },
+  });
+}
 if (PUBLIC_DEMO) {
   // The public demo: no bridge and no real data, an endless world of made-up sessions instead.
   // Islands nobody works on any more sink back into the mist, and great enemies come oftener.
@@ -256,21 +304,24 @@ if (PUBLIC_DEMO) {
   director.retireAfter = 45;
   director.riseGap = 60; // a minute between islands, to look round each before the next
   ui.noticeGap = 40; // and no more than one session banner in 40 seconds (the log has them all)
-  director.notBefore = Infinity; // no island rises before thou art up (spawnPlayer)
-  fight.pace({ first: 100 + Math.random() * 60, invasion: [5 * 60, 9 * 60], cooldown: 5 * 60 });
+  director.notBefore = Infinity; // no island rises before thou art up (setOutWorld)
+  paceDemo();
   ui.setStatus('demo', true);
 } else {
   // (the sessions take up their heroes behind the title already: they're at the Round Table when
   // thou comest in)
-  connect({
-    onSnapshot: (sessions) => director.snapshot(sessions),
-    onEvent: (ev, session) => director.event(ev, session),
-    onStatus: (ok) => {
-      connected = ok;
-      ui.setStatus(ok, demo.active);
-    },
-  });
+  linkBridge();
 }
+
+// The tutorial over: the heroes take their seats, the sessions are taken up, and the Lands Between
+// set out.
+tutorial.onDone = () => {
+  director.start();
+  fight.quietUntil = fight.clock;
+  if (PUBLIC_DEMO) paceDemo();
+  else linkBridge();
+  setOutWorld();
+};
 
 const toggleDemo = () => {
   if (PUBLIC_DEMO) return;
@@ -346,8 +397,9 @@ function step(dt) {
     if (!overview) {
       // fighting a great enemy on the arena: the camera shows him as he enters, then follows thee
       // (or, with its focus on him, Q, looks between thee and him), pulled back far enough to keep
-      // his height in view; so too by the training yard's great dummy (training.js)
-      const aim = fight.aim(me) || training.aim(me);
+      // his height in view; so too by the training yard's great dummy (training.js); and in the
+      // tutorial's last step, on the island Maren sets out for (tutorial.js)
+      const aim = tutorial.aim(me) || fight.aim(me) || training.aim(me);
       // (how far back: set as it changes between showing him and following thee, so a scroll of
       // the wheel still zooms; and as the fight ends, back to how far it was before)
       const mode = aim ? aim.mode || (aim.at ? 'boss' : 'thee') : null;
@@ -368,6 +420,7 @@ function step(dt) {
   director.update(wdt, t);
   fight.update(wdt, t);
   training.update(wdt);
+  tutorial.update(wdt, dt);
   crowd.resolve(wdt); // once everyone has moved: nobody stands inside anybody
   guide.update(wdt);
   document.body.classList.toggle('in-battle', fight.inBattle()); // (no labels to click mid-fight)
@@ -385,9 +438,12 @@ function step(dt) {
   ui.update(dt);
   training.placeButtons(); // (the button under each one training on the yard)
   training.placeBars(); // (and each dummy's health over its head)
+  tutorial.placeMark(); // (and the tutorial's mark over what's to be struck or clicked)
   interact.update();
-  // walking away from the Round Table folds its menu
+  // walking away from the Round Table folds its menu, and from the training yard's grace, its own
   if (ui.tableOpen && (!me || Math.hypot(me.pos.x - HUB_LAYOUT.table[0], me.pos.y - HUB_LAYOUT.table[1]) > 4)) ui.closeTable();
+  const [gx, gz] = world.yard.graceSpot();
+  if (ui.graceOpen && (!me || Math.hypot(me.pos.x - gx, me.pos.y - gz) > 4)) ui.closeGrace();
 }
 
 let frameErrors = 0;
@@ -414,7 +470,7 @@ function frame(now) {
 // seconds even when the tab is in the background (where requestAnimationFrame pauses).
 window.elden = {
   scene, world, director, demo, rig, renderer, travel, nav, post, perf, daylight, fight, ults,
-  pilot,
+  pilot, training, tutorial,
   get player() { return pilot.npc; },
   keys,
   advance(seconds) {
@@ -425,20 +481,29 @@ window.elden = {
 
 // The title screen (title.js) stands over all this. Behind it the camera waits where thou'lt rise
 // and draws one frame (so that what it shows is ready to be drawn, shaders and all); then the
-// world is ready (gate.js), and once thou settest out it begins: thou risest at grace, the public
-// demo's sessions start, and time runs.
+// world is ready (gate.js), and once thou settest out it begins: thou risest at grace, and the
+// tutorial begins, or the Lands Between set out, and time runs.
 function begin() {
   entered = true;
   // (thou'st clicked to set out: sound may begin, and any click or key after wakes it if it's held)
   sound.unlock();
-  sound.soon('ui-start'); // (setting out: heard as the title's button is clicked)
+  if (!again) sound.soon('ui-start'); // (setting out: heard as the title's button is clicked; not as the page comes back for the tutorial)
   window.addEventListener('pointerdown', () => sound.unlock());
   window.addEventListener('keydown', () => sound.unlock());
   spawnPlayer();
-  if (PUBLIC_DEMO) demo.startWorld();
-  else if (new URLSearchParams(window.location.search).has('demo')) setTimeout(toggleDemo, 600);
+  if (tutorial.holding) tutorial.begin();
+  else setOutWorld();
   last = performance.now();
   requestAnimationFrame(frame);
+}
+
+// The Lands Between set out: the public demo's sessions start (its first island rising 5 s after
+// thee), or, asked for (?demo), the phantoms are summoned.
+function setOutWorld() {
+  if (PUBLIC_DEMO) {
+    director.holdRisesUntil(director.clock + 5);
+    demo.startWorld();
+  } else if (new URLSearchParams(window.location.search).has('demo')) setTimeout(toggleDemo, 600);
 }
 try {
   nav.sync();

@@ -49,7 +49,7 @@ const SEAL_FRAG = /* glsl */ `
 
 // A disc of radius R in the xy plane (as CircleGeometry, uv likewise), divided into a grid of
 // `step`-sized squares: those past its edge are drawn in onto it, so the rim stays round.
-function discGeometry(R, step) {
+export function discGeometry(R, step) {
   const n = Math.ceil((2 * R) / step);
   const geo = new THREE.PlaneGeometry(2 * R, 2 * R, n, n);
   const pos = geo.attributes.position;

@@ -1467,6 +1467,9 @@ export class Npc {
       case 'leave':
         this.body.play('walk');
         return false;
+      case 'stand': // (waiting where it stands, for thee: the tutorial's hero, tutorial.js)
+        this.body.play('idle');
+        return false;
       case 'visit': {
         if (this.slot) this.body.facing = this.slot.face;
         this.body.play('sit');

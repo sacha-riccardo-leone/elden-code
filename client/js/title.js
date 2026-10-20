@@ -7,8 +7,10 @@
 // The world loads behind it meanwhile (main.js). Set out before it's ready and a sign turns at the
 // bottom right until it is (gate.js); then the title crumbles away, pixel by pixel from the middle
 // out, into the world, and only then do the game's own buttons show (body.on-title, game.css).
+// The page loaded afresh for the tutorial again (gate.js, `again`), it stands aside at once: the
+// screen stays dark till the world's ready, and the tutorial brings it in (tutorial.js).
 
-import { started, ready, setOut } from './gate.js';
+import { started, ready, setOut, again } from './gate.js';
 
 const root = document.getElementById('title');
 const canvas = document.getElementById('title-canvas');
@@ -703,20 +705,23 @@ function go() {
 // no more than a twentieth of a second, the title would linger dark over the world for as long.
 const leaving = () => clamp((performance.now() - st.leaveAt) / (LEAVE * 1000), 0, 1);
 
-Promise.all([started, ready]).then(() => {
+// Thou'st set out and the world's ready: the title crumbles away into it (or, the tutorial asked for
+// again, `skip`, it's simply taken away: the tutorial brings the world in out of black).
+function leave(skip = false) {
   st.bothAt = st.t;
   // (the loading sign, if it showed, goes first)
   const wait = st.setOutAt != null && st.t - st.setOutAt > 0.3 ? 0.25 : 0.05;
   setTimeout(() => {
     st.leaveAt = performance.now();
-    root.classList.add('leaving');
+    if (skip) gone();
+    else root.classList.add('leaving');
     document.body.classList.remove('on-title');
     document.body.classList.add('hud-in');
     setTimeout(() => document.body.classList.remove('hud-in'), 2200);
     // (and gone for good a moment after it should have, whatever became of its frames)
     setTimeout(gone, (LEAVE + 1.5) * 1000);
   }, wait * 1000);
-});
+}
 
 function gone() {
   if (!root.isConnected) return;
@@ -725,11 +730,6 @@ function gone() {
   window.removeEventListener('resize', onResize);
 }
 
-button.addEventListener('click', go);
-button.addEventListener('pointerenter', () => { st.hover = true; });
-button.addEventListener('pointerleave', () => { st.hover = false; });
-button.addEventListener('focus', () => { st.focus = true; });
-button.addEventListener('blur', () => { st.focus = false; });
 // a key or a click during the intro shows it all at once; once the way in shows, Enter takes it
 // wherever the focus is
 const onKey = (e) => {
@@ -742,8 +742,6 @@ const onPointer = () => {
   st.keys = false;
   if (!st.menu) st.skip = st.textAt != null;
 };
-window.addEventListener('keydown', onKey);
-root.addEventListener('pointerdown', onPointer);
 
 let last = performance.now();
 function loop(now) {
@@ -769,17 +767,32 @@ function onResize() {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => { resizeTimer = 0; build(); }, 120);
 }
-window.addEventListener('resize', onResize);
-
-build();
-requestAnimationFrame(loop);
-// the words wait for their fonts (local files: a moment), or for long enough
-Promise.race([
-  Promise.all(['700 32px Cinzel', '500 16px Cinzel'].map((f) => document.fonts.load(f))),
-  new Promise((resolve) => setTimeout(resolve, 2500)),
-]).catch(() => {}).then(() => {
-  fontsIn = true;
-  buildWords(L);
-  placeButton();
-  st.textAt = st.t;
-});
+if (again) {
+  // the tutorial asked for again (gate.js): no title, only the dark till the world's ready, and
+  // straight in
+  root.classList.add('skipped');
+  setOut();
+  ready.then(() => leave(true));
+} else {
+  Promise.all([started, ready]).then(() => leave());
+  button.addEventListener('click', go);
+  button.addEventListener('pointerenter', () => { st.hover = true; });
+  button.addEventListener('pointerleave', () => { st.hover = false; });
+  button.addEventListener('focus', () => { st.focus = true; });
+  button.addEventListener('blur', () => { st.focus = false; });
+  window.addEventListener('keydown', onKey);
+  root.addEventListener('pointerdown', onPointer);
+  window.addEventListener('resize', onResize);
+  build();
+  requestAnimationFrame(loop);
+  // the words wait for their fonts (local files: a moment), or for long enough
+  Promise.race([
+    Promise.all(['700 32px Cinzel', '500 16px Cinzel'].map((f) => document.fonts.load(f))),
+    new Promise((resolve) => setTimeout(resolve, 2500)),
+  ]).catch(() => {}).then(() => {
+    fontsIn = true;
+    buildWords(L);
+    placeButton();
+    st.textAt = st.t;
+  });
+}

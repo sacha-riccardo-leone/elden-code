@@ -27,6 +27,11 @@
 //
 // The yard lies lower than the Hold (YARD.y): what's loosed on it is set in a group lowered to its
 // floor, so that a spell flies at the height it flies at on the arena.
+//
+// The tutorial (tutorial.js) empties it of all but what it sets out (lessonStart): three straw
+// dummies of its own, which stay in pieces once broken, then the great one, whose cracked ankle
+// there fills thine ultimate instead of hurting it, and whom thine ultimate then breaks at a stroke.
+// By the great one, Q turns the camera on it (toggleFocus), as on a great enemy.
 
 import * as THREE from 'three';
 import { YARD, DUMMY_SPOTS, BOSS_DUMMY } from './yard.js';
@@ -56,6 +61,9 @@ const F = { whole: 0, back: 1, forward: 2, burst: 3, broken: 4 };
 const GREAT = { px: 7.1 / 260, depth: 2, shadow: 2.2, ankle: { at: [-29.2, 40.5], r: 0.9 }, hp: GOLEM.ankle.need / 2, ult: 1 / 1600, burst: 0.45, rest: 6 };
 // What a hit on the great one's ankle counts (as on the Golem's): thy blow, thy spell, theirs.
 const ANKLE = { blow: 1, spell: 0.7, theirs: GOLEM.ankle.weight };
+// In the tutorial (tutorial.js): how much of thine ultimate each of those counts fills (five blows
+// on the ankle fill it).
+const LESSON = { charge: 0.2 };
 // A dummy's health over its head (placeBars): shown for `show` seconds after each blow while it's
 // hurt; what it just lost lingers `lag` seconds, then drains away.
 const BAR = { show: 4, lag: 0.45 };
@@ -93,10 +101,12 @@ const meetAt = (n, d) => {
 };
 
 class Dummy {
-  // (`great`: the great one)
-  constructor(training, x, z, great = false) {
+  // (`great`: the great one; `block`: what keeps others off its spot, yard.js)
+  constructor(training, x, z, great = false, block = null) {
     this.training = training;
     this.great = great;
+    this.block = block;
+    this.away = false; // (put away for the tutorial: putAway)
     this.pos = new THREE.Vector2(x, z);
     this.lift = 0;
     this.alive = true;
@@ -133,6 +143,7 @@ class Dummy {
     blob.scale.y = 0.45;
     blob.position.set(x, YARD.y + 0.015, z + 0.05);
     blob.renderOrder = 1;
+    this.blob = blob;
     training.ctx.scene.add(mesh, blob);
     // (the body the ultimates and the spotlight ask after, ults.js and post.js)
     this.body = { mesh, facing: -1, flash, knock() {}, shudder() {} };
@@ -140,7 +151,34 @@ class Dummy {
     this.show(F.whole);
   }
 
-  get standing() { return !this.broken; }
+  get standing() { return !this.broken && !this.away; }
+
+  // Put away (the yard emptied for the tutorial, tutorial.js), or back again, whole: out of sight,
+  // nothing standing on its spot, nothing finding it.
+  putAway(on) {
+    this.away = on;
+    this.body.mesh.visible = !on && !!this.sheet;
+    this.blob.visible = !on;
+    if (this.block) this.block.off = on;
+    this.broken = null;
+    this.wobble = null;
+    this.hp = this.hpMax;
+    this.lag = this.hpMax;
+    this.hitAt = -Infinity;
+    this.show(F.whole);
+  }
+
+  // Gone for good (one of the tutorial's own: Training.addDummy).
+  dispose() {
+    const { scene, world } = this.training.ctx;
+    scene.remove(this.body.mesh, this.blob);
+    this.body.mesh.geometry.dispose();
+    this.body.mesh.material.dispose();
+    this.blob.geometry.dispose();
+    this.blob.material.dispose();
+    this.bar?.el.remove();
+    if (this.block) world.yard.unblock(this.block);
+  }
 
   // The great one's cracked ankle: [x, height above the floor].
   ankle() {
@@ -178,11 +216,17 @@ class Dummy {
   // Struck: it flashes (not as a poison or a bleeding ticks: `flash`), and wobbles away from the
   // blow (`dir`: the way the blow went), or bursts. A straw one takes `amount`; the great one, only
   // what the blow on its ankle counts (`ankle`: ANKLE), as the Golem's does, or, from an ultimate
-  // (`ult`: its blows, its bleeding, its poison), its share of what that deals (GREAT.ult).
+  // (`ult`: its blows, its bleeding, its poison), its share of what that deals (GREAT.ult). In the
+  // tutorial (Training.lesson) the great one takes nothing from a blow, its ankle filling thine
+  // ultimate instead, and an ultimate breaks it at a stroke.
   struck(amount, dir, flash = true, ankle = 0, ult = false) {
-    if (this.broken) return;
+    if (this.broken || this.away) return;
     if (flash) this.body.flash();
-    const lost = !this.great ? amount : ult ? amount * GREAT.ult * this.hpMax : ankle;
+    let lost = !this.great ? amount : ult ? amount * GREAT.ult * this.hpMax : ankle;
+    if (this.great && this.training.lesson) {
+      if (!ult && ankle > 0) this.training.charge(ankle);
+      lost = ult ? this.hp : 0;
+    }
     if (lost > 0) {
       this.hp -= lost;
       this.hitAt = this.training.clock;
@@ -201,6 +245,7 @@ class Dummy {
   }
 
   step(dt) {
+    if (this.away) return;
     // (its bar: what it just lost lingers a moment, then drains away)
     if (this.training.clock - this.hitAt > BAR.lag) this.lag = Math.max(this.hp, this.lag - dt * this.hpMax * 0.9);
     if (this.broken) {
@@ -209,7 +254,8 @@ class Dummy {
       b.t += dt;
       if (b.t < T.burst) return;
       this.show(F.broken);
-      if (b.t < T.burst + T.rest) return;
+      // (the tutorial's stay in pieces)
+      if (b.t < T.burst + T.rest || this.training.lesson) return;
       // whole again, in a puff of dust
       this.broken = null;
       this.hp = this.hpMax;
@@ -251,6 +297,9 @@ export class Training {
     };
     this.fxCtx = { scene: this.group, particles, add: (e) => this.fx.push(e) };
     this.dummies = null; // (made once their drawing has loaded: start)
+    this.lesson = null; // the tutorial's: { ult } (lessonStart)
+    this.extra = []; // its own dummies (addDummy)
+    this.focus = false; // the camera between thee and the great one (Q), or on thee
     this.told = new Set(); // (the hints in the log, each said once)
     this.lookIn = TRAIN.self.every; // (till it next looks for one with nothing to do: lookRound)
     this.lastUlt = -Infinity; // (when one training last loosed its ultimate)
@@ -265,9 +314,10 @@ export class Training {
   // The dummies, once the effects' art has loaded (main.js).
   start() {
     if (this.dummies) return;
+    const blocks = this.ctx.world.yard.blocks;
     this.dummies = [
-      new Dummy(this, BOSS_DUMMY.x, YARD.cz + BOSS_DUMMY.z, true),
-      ...DUMMY_SPOTS.map(([x, z]) => new Dummy(this, x, YARD.cz + z)),
+      new Dummy(this, BOSS_DUMMY.x, YARD.cz + BOSS_DUMMY.z, true, blocks?.great),
+      ...DUMMY_SPOTS.map(([x, z], i) => new Dummy(this, x, YARD.cz + z, false, blocks?.dummies[i])),
     ];
   }
 
@@ -277,11 +327,22 @@ export class Training {
   }
 
   // Where the camera looks (main.js), near the great one: from farther back and a little higher, as
-  // on the arena a great enemy is kept in view (fight.aim); elsewhere it follows thee as ever.
+  // on the arena a great enemy is kept in view (fight.aim), and with the focus on it (Q), between
+  // thee and it; elsewhere it follows thee as ever.
   aim(me) {
-    const g = this.dummies?.find((d) => d.great);
+    const g = this.dummies?.find((d) => d.great && !d.away);
     if (!g || !this.has(me) || Math.hypot(me.pos.x - g.pos.x, me.pos.y - g.pos.y) > GREAT_CAM.near) return null;
+    if (this.focus) return { at: [me.pos.x + (g.pos.x - me.pos.x) * 0.45, YARD.y + GREAT_CAM.y, me.pos.y + (g.pos.y - me.pos.y) * 0.45], dist: GREAT_CAM.dist, mode: 'great-focus' };
     return { at: [me.pos.x, YARD.y + GREAT_CAM.y, me.pos.y], dist: GREAT_CAM.dist, mode: 'great' };
+  }
+
+  // Q by the great one: the camera's focus on it, or back on thee (as on the arena: fight.js).
+  // Whether it was by it to turn.
+  toggleFocus(me) {
+    if (!this.aim(me)) return false;
+    this.focus = !this.focus;
+    this.focusUsed = true; // (the tutorial's hint, shown till then: tutorial.js)
+    return true;
   }
 
   // Whoever looses an ultimate here is watched (ults.js: the world stands still for it) if thou'rt here.
@@ -417,8 +478,9 @@ export class Training {
     });
   }
 
-  // R: thine ultimate (always full here), at the dummy in front of thee (an aimed one: the way thou
-  // pointest, at the dummy on that line, if one stands there; else it flies on past the nearest).
+  // R: thine ultimate (always full here, but in the tutorial once its bar is), at the dummy in front
+  // of thee (an aimed one: the way thou pointest, at the dummy on that line, if one stands there;
+  // else it flies on past the nearest).
   playerUlt(at) {
     const { pilot, ults } = this.ctx;
     const n = pilot.npc;
@@ -433,9 +495,9 @@ export class Training {
       const side = at ? [Math.sign(at.x - n.pos.x) || n.body.facing, 0] : [n.body.facing, 0];
       d = this.target(n, side, REACH, -0.2) || this.target(n, [-side[0], 0], REACH, -0.2);
     }
-    if (!d) return false;
+    if (!d || (this.lesson && (pilot.ult || 0) < 1)) return false;
     this.boss = d;
-    pilot.ult = 1;
+    if (!this.lesson) pilot.ult = 1;
     if (!ults.ready(n, true)) return false;
     return ults.start(n, { dir, player: true });
   }
@@ -456,6 +518,55 @@ export class Training {
     if (this.stop <= 0) return false;
     this.stop -= dt;
     return true;
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // the tutorial's (tutorial.js)
+
+  // The yard emptied for it: every dummy put away (and whoever trains sent back), the dummies its
+  // own (addDummy), and those broken staying in pieces. Its `lesson` says what it shows of the
+  // great one once that's back: thine ultimate's bar (`ult`, fight.js), filled by its cracked ankle
+  // alone (Dummy.struck, charge).
+  lessonStart() {
+    this.start();
+    this.lesson = { ult: false };
+    this.focus = false;
+    for (const n of this.trainees()) this.dismiss(n);
+    for (const d of this.dummies) d.putAway(true);
+  }
+
+  // The yard as it was: its own dummies back where they stood, whole.
+  lessonEnd() {
+    if (!this.lesson) return;
+    for (const d of [...this.extra]) this.removeDummy(d);
+    this.lesson = null;
+    this.focus = false;
+    for (const d of this.dummies) d.putAway(false);
+  }
+
+  // A straw dummy of the tutorial's own, at (x, z).
+  addDummy(x, z) {
+    const yard = this.ctx.world.yard;
+    const d = new Dummy(this, x, z, false, yard.blockCircle(x - yard.cx, z - yard.cz, 0.5));
+    this.dummies.push(d);
+    this.extra.push(d);
+    return d;
+  }
+
+  removeDummy(d) {
+    d.dispose();
+    this.dummies = this.dummies.filter((x) => x !== d);
+    this.extra = this.extra.filter((x) => x !== d);
+  }
+
+  greatOne() {
+    return this.dummies?.find((d) => d.great) || null;
+  }
+
+  // Thy blow (or spell) on the great one's cracked ankle, in the tutorial: thine ultimate fills.
+  charge(ankle) {
+    const pilot = this.ctx.pilot;
+    pilot.ult = Math.min(1, (pilot.ult || 0) + ankle * LESSON.charge);
   }
 
   // ------------------------------------------------------------------------------------------
@@ -666,8 +777,8 @@ export class Training {
   // abroad, nor more than a few at once): a hero of the Round Table without a quest, Maren when thou
   // art someone else, or one whose session has been idle a while, wandering or resting at home.
   lookRound() {
-    const { director, fight } = this.ctx;
-    if (fight?.hunting?.() || fight?.active) return;
+    const { director, fight, tutorial } = this.ctx;
+    if (fight?.hunting?.() || fight?.active || tutorial?.holding) return;
     if (this.trainees().filter((n) => n.trainee.self).length >= TRAIN.self.most) return;
     const now = performance.now() / 1000;
     for (const n of [...director.heroes.values(), director.maren]) {
@@ -775,8 +886,8 @@ export class Training {
     this.clock += dt;
     if (!this.dummies) return;
     const { pilot } = this.ctx;
-    // on the yard, thine ultimate is always full
-    if (this.has(pilot.npc)) pilot.ult = 1;
+    // on the yard, thine ultimate is always full (but in the tutorial: charge)
+    if (this.has(pilot.npc) && !this.lesson) pilot.ult = 1;
     for (const d of this.dummies) {
       d.step(dt);
       // (a poison or a bleeding wobbles it as it ticks)

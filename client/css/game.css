@@ -929,7 +929,8 @@ body.in-battle #dummy-bars { display: none; }
   pointer-events: none;
 }
 #hp[hidden] { display: none; }
-/* in a fight on the arena: how to turn the camera on the great enemy, or off it (fight.js) */
+/* by the training yard's great dummy, in the tutorial: how to turn the camera on it, or off it, as
+   on a great enemy (tutorial.js) */
 #focus-hint {
   position: fixed;
   left: 50%;
@@ -949,22 +950,179 @@ body.in-battle #dummy-bars { display: none; }
 }
 #focus-hint:hover { color: var(--gold-hi); }
 #focus-hint[hidden] { display: none; }
-#focus-hint kbd {
-  display: inline-block;
-  min-width: 34px;
-  margin: 0 8px;
-  padding: 4px 10px;
-  border: 1px solid var(--gold);
-  background: rgba(12, 10, 15, 0.85);
-  color: var(--gold-hi);
-  font: 600 21px var(--serif-title);
-  text-align: center;
-  box-shadow: 0 0 12px rgba(210, 178, 122, 0.45);
-}
+#focus-hint .key { margin: 0 8px; }
 @keyframes hintFloat {
   0%, 100% { transform: translate(-50%, -50%); opacity: 0.88; }
   50% { transform: translate(-50%, calc(-50% - 7px)); opacity: 1; }
 }
+
+/* a key to press, drawn as a key (the hint's, the tutorial's: tutorial.js): its edge deeper at the
+   bottom, lit gold once it's been pressed; four of them as on a keyboard (W over A S D, or the
+   arrows); and the mouse, the button to click lit */
+.key {
+  display: inline-block;
+  min-width: 34px;
+  padding: 4px 10px;
+  border: 1px solid var(--gold);
+  border-bottom-width: 3px;
+  background: rgba(12, 10, 15, 0.85);
+  color: var(--gold-hi);
+  font: 600 21px/1.2 var(--serif-title);
+  letter-spacing: 0.06em;
+  text-align: center;
+  box-shadow: 0 0 12px rgba(210, 178, 122, 0.45);
+  transition: background 0.25s, color 0.25s, box-shadow 0.25s;
+}
+.key.wide { min-width: 120px; }
+.key.on { background: var(--gold); color: #1a1410; box-shadow: 0 0 18px rgba(255, 220, 140, 0.9); }
+.keys { display: inline-grid; grid-template-columns: repeat(3, auto); gap: 4px; }
+.keys .key { min-width: 32px; padding: 2px 0; font-size: 17px; }
+.keys .key:first-child { grid-column: 2; grid-row: 1; }
+.keys .key:not(:first-child) { grid-row: 2; }
+.mouse {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 28px;
+  height: 40px;
+  border: 1px solid var(--gold);
+  border-radius: 14px 14px 13px 13px;
+  background: rgba(12, 10, 15, 0.85);
+  box-shadow: 0 0 12px rgba(210, 178, 122, 0.45);
+  overflow: hidden;
+}
+.mouse i { position: absolute; top: 0; width: 50%; height: 16px; border-bottom: 1px solid var(--gold); }
+.mouse i.left { left: 0; border-right: 1px solid var(--gold); }
+.mouse i.right { right: 0; }
+.mouse.left i.left,
+.mouse.right i.right { background: var(--gold-hi); animation: mouseClick 1.2s ease-in-out infinite; }
+@keyframes mouseClick { 50% { background: var(--gold); box-shadow: 0 0 10px rgba(255, 220, 140, 0.9); } }
+
+/* the tutorial (tutorial.js): what to do at the foot of the screen, the dodges in a row over it, a
+   mark over what's to be struck or clicked, the cards at its end, "Skip tutorial" at the bottom
+   right, and the black between its steps */
+#tutorial { position: fixed; inset: 0; z-index: 12; pointer-events: none; }
+.tut-prompt {
+  position: fixed;
+  left: 50%;
+  bottom: 11%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--serif-title);
+  font-size: 21px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-shadow: 0 1px 3px #000, 0 0 14px #000;
+  white-space: nowrap;
+}
+.tut-prompt small { font-size: 13px; letter-spacing: 0.3em; color: var(--gold); }
+.tut-prompt .line { display: flex; align-items: center; gap: 12px; }
+.tut-prompt.in { animation: tutIn 0.5s ease-out both; }
+@keyframes tutIn {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.tut-count {
+  position: fixed;
+  left: 50%;
+  bottom: calc(11% + 70px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--serif-title);
+  font-size: 18px;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  text-shadow: 0 1px 3px #000, 0 0 12px #000, 0 0 4px #000;
+}
+.tut-count b { display: inline-block; font-size: 34px; font-weight: 700; color: var(--gold-hi); }
+.tut-count .pips { display: inline-flex; gap: 9px; margin-left: 12px; }
+.tut-count .pips i { width: 11px; height: 11px; transform: rotate(45deg); border: 1px solid var(--gold); background: rgba(12, 10, 15, 0.85); }
+.tut-count .pips i.on { background: var(--gold-hi); box-shadow: 0 0 10px rgba(255, 220, 140, 0.9); }
+.tut-count.up b { animation: tallyUp 0.45s ease-out; }
+.tut-count.struck { animation: tallyStruck 0.45s ease-out; }
+.tut-count.struck b { color: var(--red); }
+@keyframes tallyUp { from { transform: scale(1.6); color: #fff; } }
+@keyframes tallyStruck {
+  25% { transform: translateX(calc(-50% - 7px)); }
+  75% { transform: translateX(calc(-50% + 7px)); }
+}
+.tut-mark {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 22px;
+  height: 28px;
+  filter: drop-shadow(0 0 6px rgba(255, 210, 120, 0.9)) drop-shadow(0 1px 1px #000);
+}
+.tut-mark::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(#fff4c8, #ffc85a 55%, #d9822a);
+  clip-path: polygon(30% 0, 70% 0, 70% 48%, 100% 48%, 50% 100%, 0 48%, 30% 48%);
+  animation: markBob 1s ease-in-out infinite;
+}
+@keyframes markBob { 50% { transform: translateY(-7px); } }
+.tut-card {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 32px));
+  padding: 18px 22px 16px;
+  background: var(--panel);
+  border: 1px solid rgba(201, 164, 90, 0.45);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  pointer-events: auto;
+}
+.tut-card.in { animation: tutIn 0.45s ease-out both; }
+.tut-card h3 {
+  margin: 0 0 10px;
+  font-family: var(--serif-title);
+  font-weight: 500;
+  font-size: 20px;
+  letter-spacing: 0.1em;
+  color: var(--gold-hi);
+}
+.tut-card p { margin: 0 0 10px; font-size: 17px; line-height: 1.4; }
+.tut-actions { display: flex; justify-content: center; gap: 10px; margin-top: 14px; }
+.tut-card button,
+.tut-skip {
+  font-family: var(--serif-title);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 9px 16px;
+  background: rgba(10, 9, 12, 0.7);
+  border: 1px solid var(--gold-line);
+  color: var(--gold);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.tut-card button:hover,
+.tut-skip:hover { background: rgba(40, 32, 20, 0.85); color: var(--gold-hi); border-color: var(--gold); }
+.tut-skip { position: fixed; right: 22px; bottom: 22px; }
+#tut-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: #050405;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.55s ease;
+}
+#tut-fade.on { opacity: 1; pointer-events: auto; }
+/* (and in the tutorial, neither the phantoms nor the map strip: nothing to go to yet) */
+body.tutorial #demo-btn,
+body.tutorial #regions { display: none; }
 
 /* the others in the fight, under thine (fight.js updateParty) */
 #party {
@@ -1087,8 +1245,9 @@ body.in-battle #party { top: 133px; }
   to { opacity: 0; }
 }
 
-/* the Round Table's menu */
-#table-menu {
+/* the Round Table's menu, and the training yard's grace's (main.js, ui.js) */
+#table-menu,
+#grace-menu {
   position: fixed;
   left: 50%;
   bottom: 120px;
@@ -1103,16 +1262,21 @@ body.in-battle #party { top: 133px; }
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   text-align: center;
 }
-#table-menu[hidden] { display: none; }
-#table-menu h3 {
+#table-menu[hidden],
+#grace-menu[hidden] { display: none; }
+#grace-menu > div { display: grid; gap: 8px; }
+#table-menu h3,
+#grace-menu h3 {
   margin: 0;
   font-family: var(--serif-title);
   font-weight: 500;
   letter-spacing: 0.1em;
   color: var(--gold-hi);
 }
-#table-menu .small { margin: 0 0 4px; font-size: 14px; font-style: italic; color: var(--muted); }
-#table-menu button {
+#table-menu .small,
+#grace-menu .small { margin: 0 0 4px; font-size: 14px; font-style: italic; color: var(--muted); }
+#table-menu button,
+#grace-menu button {
   font-family: var(--serif-title);
   font-size: 12px;
   letter-spacing: 0.14em;
@@ -1123,7 +1287,8 @@ body.in-battle #party { top: 133px; }
   color: var(--gold);
   cursor: pointer;
 }
-#table-menu button:hover:not(:disabled) { background: rgba(40, 32, 20, 0.85); color: var(--gold-hi); border-color: var(--gold); }
+#table-menu button:hover:not(:disabled),
+#grace-menu button:hover:not(:disabled) { background: rgba(40, 32, 20, 0.85); color: var(--gold-hi); border-color: var(--gold); }
 #table-menu button:disabled { opacity: 0.45; cursor: default; }
 #table-summon { color: #f0c27a; border-color: rgba(220, 120, 80, 0.6); }
 
@@ -1438,6 +1603,9 @@ body.public-demo a[href="/debug"] { display: none !important; }
   #log li { font-size: 15px; }
   #inspect { left: 16px; right: 16px; width: auto; top: auto; bottom: 64px; max-height: 50vh; }
   #help, #keys { right: 16px; top: 56px; }
+  .tut-skip { bottom: 64px; right: 16px; }
+  .tut-prompt { font-size: 15px; white-space: normal; width: calc(100vw - 32px); }
+  .tut-prompt .line { flex-wrap: wrap; justify-content: center; }
 }
 
 /* performance readout (P) */
@@ -1488,6 +1656,9 @@ body.public-demo a[href="/debug"] { display: none !important; }
   cursor: pointer;
 }
 #title-start:disabled { cursor: default; }
+/* (the tutorial asked for again: no title, only the dark till the world's ready, title.js) */
+#title.skipped canvas,
+#title.skipped button { display: none; }
 #title-start:focus { outline: none; } /* (the canvas lights it) */
 
 /* until thou'st set out and the world is ready, nothing of the game shows over the title; then

@@ -5,7 +5,9 @@
 // the sound off and on (audio.js). Click
 // another Tarnished to inspect it and open its fan, which offers to become them; drag it to carry
 // it elsewhere; scroll to zoom. Z/X travel by grace between areas, H to Roundtable Hold. In the
-// thick of a fight on the arena (fight.js) nobody can be clicked: every click is a blow.
+// thick of a fight on the arena (fight.js) nobody can be clicked: every click is a blow. In the
+// tutorial (tutorial.js) only what its step teaches gets through (`allows`): walking, then blows,
+// the dodge, the ultimate, a click on the one hero there (`pickable`).
 // Everything here is cosmetic: nothing is ever sent back to Claude Code.
 
 import * as THREE from 'three';
@@ -15,9 +17,11 @@ import { MOVE_KEYS } from './pilot.js';
 const DRAG_THRESHOLD = 6;
 
 export class Input {
-  constructor({ canvas, camera, rig, director, ui, travel, keys, actions, active = () => true, battle = () => false, floor = () => 0 }) {
+  constructor({ canvas, camera, rig, director, ui, travel, keys, actions, active = () => true, battle = () => false, floor = () => 0, allows = () => true, pickable = () => true }) {
     this.travel = travel;
     this.active = active; // whether the world is being played (not while the title screen stands over it)
+    this.allows = allows; // whether a kind of thing may be done just now ('move', 'travel', 'pick', 'drag', …)
+    this.pickable = pickable; // whether someone may be clicked, to inspect and become
     this.battle = battle; // whether thou art fighting on the arena
     this.floor = floor; // how high the ground lies under thee (ground.js): a click on the ground is on it
     this.keys = keys; // held movement keys, read by the player every frame
@@ -90,7 +94,7 @@ export class Input {
     if (p) {
       const dist = Math.hypot(e.clientX - p.x, e.clientY - p.y);
       if (dist > DRAG_THRESHOLD) p.moved = true;
-      if (p.npc && p.moved && !this.dragging && !p.npc.piloted && !p.npc.spectre) { // thou canst not carry thyself, nor a spectre
+      if (p.npc && p.moved && !this.dragging && !p.npc.piloted && !p.npc.spectre && this.allows('drag')) { // thou canst not carry thyself, nor a spectre
         this.dragging = p.npc;
         p.npc.pickUp();
         this.ui.hideFan();
@@ -138,10 +142,12 @@ export class Input {
       this.actions.attack(this.aimAt(e));
       return;
     }
-    if (p.npc?.piloted) {
+    // (someone may not be clicked just now, in the tutorial: the click is a blow instead)
+    const npc = p.npc && (p.npc.piloted ? this.allows('fan') : this.allows('pick') && this.pickable(p.npc)) ? p.npc : null;
+    if (npc?.piloted) {
       this.actions.fan();
-    } else if (p.npc) {
-      this.director.select(p.npc === this.director.selected ? null : p.npc);
+    } else if (npc) {
+      this.director.select(npc === this.director.selected ? null : npc);
     } else if (this.director.selected || this.ui.fanOwner) {
       // a click away from an open fan just folds it
       this.director.select(null);
@@ -156,18 +162,20 @@ export class Input {
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (MOVE_KEYS.has(e.code)) {
-      this.keys.add(e.code);
+      if (this.allows('move')) this.keys.add(e.code);
       if (e.code.startsWith('Arrow')) e.preventDefault(); // walk, don't scroll the page
       return;
     }
+    if (e.code === 'Space') e.preventDefault(); // (never a click on whatever button has the focus)
     if (e.repeat) return;
-    if (e.key === 'Escape') { this.director.select(null); this.ui.closeFan(); this.ui.closeTable(); }
-    if (e.code === 'KeyZ' || e.key === '[') this.travel.cycle(-1);
-    if (e.code === 'KeyX' || e.key === ']') this.travel.cycle(1);
+    if (e.key === 'Escape') { this.director.select(null); this.ui.closeFan(); this.ui.closeTable(); this.ui.closeGrace(); }
+    const travel = this.allows('travel');
+    if (travel && (e.code === 'KeyZ' || e.key === '[')) this.travel.cycle(-1);
+    if (travel && (e.code === 'KeyX' || e.key === ']')) this.travel.cycle(1);
     if (e.code === 'KeyE') this.actions.interact();
-    if (e.code === 'Space') { e.preventDefault(); this.actions.dodge(); }
-    if (e.code === 'KeyH' || e.key === 'Home') this.travel.home();
-    if (e.code === 'KeyM' || e.key === '0') this.travel.overview();
+    if (e.code === 'Space') this.actions.dodge();
+    if (travel && (e.code === 'KeyH' || e.key === 'Home')) this.travel.home();
+    if (travel && (e.code === 'KeyM' || e.key === '0')) this.travel.overview();
     if (e.code === 'KeyC') this.actions.crouch();
     if (e.code === 'KeyQ') this.actions.focus();
     if (e.code === 'KeyR') this.actions.ult?.(this.pointer ? this.aimAt(this.pointer) : null);

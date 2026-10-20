@@ -336,6 +336,20 @@ export class UI {
     this.tableOpen = false;
   }
 
+  // The training yard's grace (E there): call the Tarnished to train, or walk the tutorial again
+  // (after asking: `confirm`).
+  openGrace(confirm = false) {
+    $('#grace-menu').hidden = false;
+    $('#grace-menu .grace-main').hidden = confirm;
+    $('#grace-menu .grace-confirm').hidden = !confirm;
+    this.graceOpen = true;
+  }
+
+  closeGrace() {
+    $('#grace-menu').hidden = true;
+    this.graceOpen = false;
+  }
+
   // ------------------------------------------------------------------------------------------
   // selection, inspect panel and the fan of gestures
 
@@ -445,6 +459,7 @@ export class UI {
     if (k === 'wait') return 'Awaiting thy command at the gate';
     if (k === 'rest') return 'Resting at the Site of Grace';
     if (k === 'leave') return 'Passing through the fog';
+    if (k === 'stand') return 'Waiting for thee';
     if (k === 'gather') {
       if (npc.unbound) return 'At the Round Table, awaiting a quest';
       return npc.region.risen ? 'Rising from the Round Table' : `At the Round Table, awaiting ${npc.region.project}`;

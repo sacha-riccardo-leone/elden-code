@@ -2,7 +2,8 @@
 // (the forge, the scriptorium, the war table, the ritual circle, the raven tower, the fog gate, the
 // site of grace) on every island, in Roundtable Hold the Round Table, with its great grace at its
 // heart (taking a seat there rests at grace; it can also summon a great enemy to the arena), and
-// on the training yard its little grace, where thou callest the Tarnished to train (training.js).
+// on the training yard its little grace, where thou callest the Tarnished to train (training.js),
+// or walkest the tutorial again (tutorial.js).
 // A prompt shows over the nearest one in reach.
 // Using a station works it as the characters do: the forge glows and throws sparks at each blow,
 // the ritual circle spins up, a raven takes wing, the bell rings at the fog gate. Walking off (or E
@@ -42,7 +43,7 @@ export class Interact {
     }
     if (area === world.yard) {
       const [gx, gz] = world.yard.graceSpot();
-      return [{ x: gx, z: gz, reach: 2.6, label: 'Call to training', use: () => this.ctx.training.ask() }];
+      return [{ x: gx, z: gz, reach: 2.6, label: 'The yard\'s grace', use: () => this.ctx.ui.openGrace() }];
     }
     if (!area.point || area.isArena) return [];
     return Object.keys(USES).map((station) => {

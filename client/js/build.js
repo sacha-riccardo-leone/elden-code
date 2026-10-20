@@ -131,12 +131,20 @@ export class Builder {
     });
   }
 
+  // (it's returned, to be stood aside for a while, `off`, or taken away again: unblock)
   blockCircle(x, z, r) {
-    this.obstacles.push({ type: 'circle', x: this.cx + x, z: this.cz + z, r });
+    const o = { type: 'circle', x: this.cx + x, z: this.cz + z, r };
+    this.obstacles.push(o);
+    return o;
+  }
+
+  unblock(o) {
+    this.obstacles = this.obstacles.filter((x) => x !== o);
   }
 
   isBlocked(x, z, pad = 0) {
     for (const o of this.obstacles) {
+      if (o.off) continue;
       if (o.type === 'rect') {
         if (x > o.x0 - pad && x < o.x1 + pad && z > o.z0 - pad && z < o.z1 + pad) return true;
       } else if ((x - o.x) ** 2 + (z - o.z) ** 2 < (o.r + pad) ** 2) {

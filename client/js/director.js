@@ -90,8 +90,9 @@ export class Director {
   // appears when every hero is already out on a quest.
   // A hero with more than one form (the Twofold: night, day and the two drawings of the change; the
   // Glintstone Witch: masked, bare-faced and the drawing of her lifting the mask) is one actor
-  // wearing them in turn, starting with the form it wants (wantForm).
-  start() {
+  // wearing them in turn, starting with the form it wants (wantForm). (`only`: just the heroes it
+  // lets by, by id: the tutorial's one, tutorial.js; those already here stay as they are.)
+  start(only = null) {
     const [gx, gz] = HUB_LAYOUT.grace;
     const sheets = this.ctx.heroSheets || [];
     const forms = new Map();
@@ -103,7 +104,7 @@ export class Director {
       const id = sheet.rig.pair || sheet.hero;
       const own = forms.get(id);
       // (both of its forms, or not at all)
-      if (this.heroes.has(id) || (own && Object.values(own).filter((s) => !s.rig.shift).length < 2)) continue;
+      if (this.heroes.has(id) || (only && !only(id)) || (own && Object.values(own).filter((s) => !s.rig.shift).length < 2)) continue;
       const sid = `hero:${id}`;
       const npc = new Npc(this.ctx, idleSession(sid), { x: gx, z: gz + 2, region: this.ctx.world.hub });
       npc.heroActor = id;

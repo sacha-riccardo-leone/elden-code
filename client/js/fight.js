@@ -360,12 +360,10 @@ export class Fight {
       ult: document.getElementById('ult'),
       ultBar: document.querySelector('#ult i'),
       party: document.getElementById('party'),
-      focusHint: document.getElementById('focus-hint'),
       hurt: document.getElementById('hurt'),
       carry: document.getElementById('carry'),
       carryList: document.querySelector('#carry .list'),
     };
-    this.ui.focusHint.addEventListener('click', () => this.toggleFocus());
     this.dmgShown = 0;
     this.dmgUntil = 0;
     this.fallen = 0; // Tarnished fallen (for good) in this fight
@@ -762,8 +760,9 @@ export class Fight {
     return ults.start(n, { dir, player: true });
   }
 
-  // A blow lands on thee.
-  hurtPlayer(dmg) {
+  // A blow lands on thee (`from`: where it came from, [x, z], if not from him; the tutorial's
+  // shockwaves, which take no health: tutorial.js).
+  hurtPlayer(dmg, from = null) {
     const pilot = this.ctx.pilot;
     const n = pilot.npc;
     if (!n || pilot.dead || n.travel || n.action?.kind === 'dodge') return; // nothing touches thee mid-dodge, or travelling by grace
@@ -772,7 +771,8 @@ export class Fight {
     void this.ui.hurt.offsetWidth;
     this.ui.hurt.classList.add('flash');
     // (thy drawing white a moment and knocked back, the world held still, the view jolted)
-    const away = this.boss ? Math.sign(n.pos.x - this.boss.pos.x) || -n.body.facing : -n.body.facing;
+    const [fx] = from || (this.boss ? [this.boss.pos.x] : [n.pos.x]);
+    const away = Math.sign(n.pos.x - fx) || -n.body.facing;
     const W = IMPACT.wounded;
     n.body.flash();
     n.body.knock(W.knock, away);
@@ -910,9 +910,9 @@ export class Fight {
   }
 
   // Q: the camera's focus on him, or back on thee (as he enters: straight to the focus on him).
+  // (The key's taught in the tutorial, by the training yard's great dummy: tutorial.js.)
   toggleFocus() {
     if (!this.facing(this.ctx.pilot.npc)) return;
-    this.focusLearned = true; // (thou know'st the key now: the hint is no longer shown)
     if (this.clock < this.introUntil) { this.introUntil = 0; this.focus = true; return; }
     this.focus = !this.focus;
   }
@@ -2211,14 +2211,14 @@ export class Fight {
       el.bossDmg.textContent = this.clock < this.dmgUntil ? String(this.dmgShown) : '';
     }
     const pilot = this.ctx.pilot;
-    // the floating hint, once he's been shown, till thou'st used it once (Q, or a click on it)
-    el.focusHint.hidden = !(this.facing(pilot.npc) && this.clock >= this.introUntil && !this.focusLearned) || !!this.ctx.ults?.active;
     el.hp.hidden = !(this.active || pilot.hp < pilot.maxHp);
     el.hpBar.style.width = `${(100 * pilot.hp) / pilot.maxHp}%`;
-    // thine ultimate, under thy health, while thou fightest: R once it's full
+    // thine ultimate, under thy health, while thou fightest: R once it's full (and in the tutorial,
+    // by the training yard's great dummy, filling as its cracked ankle is struck: training.js)
     const me = pilot.npc;
     const ult = pilot.ult || 0;
-    el.ult.hidden = !(this.state === 'fighting' && me && !pilot.dead && this.inArena(me) && this.ctx.ults?.of(me));
+    const fighting = this.state === 'fighting' && me && !pilot.dead && this.inArena(me) && this.ctx.ults?.of(me);
+    el.ult.hidden = !(fighting || this.ctx.training?.lesson?.ult);
     el.ultBar.style.width = `${100 * ult}%`;
     el.ult.classList.toggle('full', ult >= 1);
     this.updateParty();

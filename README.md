@@ -21,7 +21,8 @@ The page opens on a pixel-art title screen in the manner of Elden Ring's (`clien
   shaded. Things fade in and out in dithered patterns, and a key or click
   shows the intro at once.
 - **Setting out:** click it, or press Enter.
-  - The world loads behind the title meanwhile, sessions already taking up their heroes (locally).
+  - The world loads behind the title meanwhile, sessions already taking up their heroes (locally;
+    on a first journey they wait till the tutorial is over: see below).
   - If it isn't ready yet, a loading sign turns at the bottom right until it is (`client/js/gate.js`).
   - Then the title crumbles away, pixel by pixel from the middle out, as Maren rises at grace:
     in 1.3 s by the clock, however slowly the world's first frames come (its shaders are compiled
@@ -31,6 +32,53 @@ The page opens on a pixel-art title screen in the manner of Elden Ring's (`clien
 - **Nothing of the game shows until then:** no buttons, log or map strip, and no keys reach the
   world.
 - **Online:** the public demo never shows **Summon phantoms**: its sessions are made up already.
+
+## The tutorial
+
+On the first journey the title gives way to a tutorial (`client/js/tutorial.js`) before the Lands
+Between set out. Once it's been walked or skipped the browser remembers it, and it doesn't come
+again by itself (`?tutorial` in the address shows it anyway).
+
+- **The world held back:** Maren rises at grace in Roundtable Hold with nothing else about: no
+  island, no heroes at the Round Table, the training yard out of sight. No session is taken up
+  meanwhile (locally the bridge's stream is opened afresh once it's over, so its snapshot is the
+  world as it stands then), the public demo's sessions wait, and no great enemy comes.
+- **How it's shown:** each step leads to the next through black. What to do is written at the
+  foot of the screen, the keys to press drawn as keys, in the gold of the hint a fight used to
+  show: W A S D and the arrows laid out as on a keyboard, Space, R, Q, and the mouse with the
+  button to click lit. Each step lets through only what it teaches and what came before, and keeps
+  you to the place it's in.
+- **The steps:**
+  1. *Walking*, at the Hold: "Move around with W A S D or the arrows". Each way lights up once
+     it's been tried; once all four have, on.
+  2. *Blows*, on the training yard, emptied of its dummies (and anyone training) but for three
+     straw ones before you, the Hold out of sight: "Destroy the three dummies · Attack with" a
+     left click (or a left or right click, for whoever casts). Broken, they stay in pieces.
+  3. *Dodging*, in the middle of the yard, three rune rocks round you (the user's drawings,
+     `client/assets/fx/rune-rock-1..3.json`, dark and with the rune alight, recoloured to the
+     yard's slabs). In turn each one's rune lights, it's lifted in blue magic (its own light, and
+     motes), held up a second and dropped, and its shockwave ripples out over the whole floor as
+     the Golem's do, though slower (the yard's floor bends with `client/js/ripple.js` too). "Dodge
+     with Space to not get hit": a dodge as its crest comes counts, on a counter over the words (0
+     / 3); a crest that reaches you strikes as a great enemy's blow does (red, thrown back) but
+     takes no health, and the count starts again. Three in a row, and on.
+  4. *The ultimate*: the great dummy comes in a puff of dust. "Strike its cracked ankle", a gold
+     arrow over it, and the hint for Q, the camera's focus on it (it no longer shows in a fight).
+     Blows on the ankle hurt it no more but fill your ultimate's bar, a fifth each; full, "Use
+     your ultimate attack with R", and the ultimate breaks it at a stroke.
+  5. *Becoming someone*, back at the Hold: a hero of the Round Table (one of those with a single
+     form, at random) rises from grace beside you and waits. "Click on them to become them", then
+     "Become" in their fan.
+  6. *Islands*: straight on, Maren, let go, waits as an island rises for her (*your-project*),
+     then sets out and works at its forge, the camera on it. A card says why they go there, and
+     where they go with nothing to do; then **Tutorial completed**: **Do it again**, or **Move
+     on** into the Lands Between (the island sinks away, Maren comes home to the Hold, and you stay
+     whoever you became).
+- **Skip tutorial**, at the bottom right, ends it at any step and brings you back to the Hold.
+- **Again:** at the training yard's grace (E there, **Tutorial**, and yes to "Use grace to do the
+  tutorial?"), or with **Do it again**. The page loads afresh for it, the title standing aside
+  (`client/js/gate.js`, `again`).
+- It's silent for now: only the game's own sounds play.
 
 ## The Lands Between Sessions
 
@@ -71,7 +119,7 @@ never feels one: a share of its health for every point the ultimate deals, a who
 (`boss-dummy-falling-broken`, splinters flying, 0.45 s), lies in a heap of its pieces six seconds
 (`boss-dummy-broken`), and stands whole again in a puff of dust. Near it the
 camera pulls back and looks a little higher to keep the whole of it in view, as it does for a great
-enemy on the arena. Eight straw dummies stand scattered round it (`client/js/training.js`), in new
+enemy on the arena, and Q turns its focus on it (between you and it) and back, as on him. Eight straw dummies stand scattered round it (`client/js/training.js`), in new
 places each time the page loads, clear of it, the stair's foot, the props and one another. Racks of
 the Round Table's weapons (`client/js/weapons.js`) flank the foot of the stair, with barrels and
 crates beside them; an archery butt stands to the west, and rope lanterns light the edge. Blows,
@@ -84,8 +132,10 @@ what it just lost lingering in white a moment before draining away; never while 
 or from afar. Dummies never strike back. On the yard your ultimate is always full: each
 one still freezes the world for its moment, but you needn't wait between them.
 
-In front of the right-hand weapon rack burns a little **Site of Grace**. Press E there ("Call to
-training") to choose who trains, in the same window that chooses companions for a great enemy:
+In front of the right-hand weapon rack burns a little **Site of Grace**. Press E there ("The
+yard's grace") for its menu: **Tutorial** walks the tutorial again (after asking "Use grace to do
+the tutorial?"), and **Call to training** chooses who trains, in the same window that chooses
+companions for a great enemy:
 whoever is training already stands in its slots, with a spare one to call another. "Train" sends
 for everyone in the slots at once, and they come by grace (arriving in front of the little grace);
 anyone taken out of a slot goes back. Each one training has a **Dismiss** button under its feet to
@@ -864,11 +914,12 @@ ground under you instead, so it flies at your hand's height there too.
 - **The fight:**
   - Enough damage in quick succession breaks his stance: he reels and takes more from every blow.
   - As you step in and he enters, the camera shows him for a few seconds, then comes back to
-    you. A large floating hint in the middle of the lower half of the screen says **Press Q to
-    focus on the boss**. Q, or a click on the hint, turns the camera's focus on him (you and him
-    both in view, pulled back to keep his height), and Q again gives it back to you. Once you've
-    used it, the hint isn't shown again. The camera stays a little further back than usual all
-    fight, and returns to your own zoom when it's over (`BOSS_CAM` in `client/js/config.js`).
+    you. Q turns the camera's focus on him (you and him both in view, pulled back to keep his
+    height), and Q again gives it back to you. The key is taught in the tutorial, by the training
+    yard's great dummy, where the hint **Press Q to focus on the boss** floats in the middle of the
+    lower half of the screen (a click on it works too); it no longer shows in a fight. The camera
+    stays a little further back than usual all fight, and returns to your own zoom when it's over
+    (`BOSS_CAM` in `client/js/config.js`).
   - Every click is a strike: nobody can be clicked, inspected or carried off until the fight is
     over.
   - The sessions' banners across the screen (a region rising, a quest fulfilled or failed, an
@@ -1193,7 +1244,8 @@ server/events.js        allowlist validation
 server/registry.js      per-session state for late joiners
 scripts/                install/uninstall hooks, simulator, the art and sound tools, and bake-sheets.mjs (the characters' sheets baked ahead of time)
 client/js/title.js      the title screen: the pixel-art wordmark, sigil and embers, the way in, loading
-client/js/gate.js       where the title and the world meet: set out, and ready
+client/js/gate.js       where the title and the world meet: set out, and ready (and the tutorial asked for again)
+client/js/tutorial.js   the tutorial on the first journey: its steps, the keys drawn as keys, the rune rocks and their shockwaves, the world held back meanwhile
 client/js/sprites.js    procedural pixel-art characters (base body + equipment layers)
 client/js/world.js      sky, far skyline, mist, islands, bridges, pooled lights
 client/js/lights.js     what lights the world besides its lamps: effects, and what glows on characters
@@ -1209,7 +1261,7 @@ client/js/pilot.js      thee: whoever the player is (Maren, or anyone become), w
 client/js/crowd.js      characters are solid: parting overlaps by weight, shoving, steering round others
 client/js/guide.js      the golden arrow on the ground that shows the way to the arena in a fight
 client/js/grace.js      the grace itself, the figure of golden light floating over every Site of Grace
-client/js/interact.js   E: using the stations and the Round Table
+client/js/interact.js   E: using the stations, the Round Table and the training yard's grace
 client/js/arena.js      the Arena of Trials, north of the Hold and higher, and the stone stair up to it
 client/js/yard.js       the Training Yard below the Hold, and the stone stair down to it
 client/js/training.js   the yard's dummies (straw, and the great one: the Golem in wood, struck only on its ankle), their health over their heads, thy blows, spells and ultimates on them, and the Tarnished training there
@@ -1217,7 +1269,7 @@ client/js/ground.js     the ground's height where it isn't level with the Hold (
 client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the fighters, thy health
 client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes
 client/js/golem.js      the Guardian Golem's fight: his weak points, his fall, shockwaves, fire
-client/js/ripple.js     the arena floor rippling like water under the Golem's shockwaves
+client/js/ripple.js     the arena floor rippling like water under the Golem's shockwaves (and the yard's, under the tutorial's rocks)
 client/js/bossfx.js     the enemies' effects: crescent, lance, floor marks, the ghost sword, the eruption, the air shock, meteors
 client/js/director.js   event → behaviour, regions, slash-command effects, chatter, visits
 client/js/voices.js     how each character talks: base lines and every voice's version of them
