@@ -4,7 +4,8 @@
 // spear or hammer. Fortuna does both: her frost blade up close, frost from afar. Every blow that
 // lands fills the striker's ultimate (ults.js).
 //
-// Ulric has no sorcery, but played by thee he throws his spear as a mage casts (throwSpear).
+// Ulric has no sorcery, but played by thee he throws his spear as a mage casts (throwSpear); and
+// Ruadan his maul, which comes back to his hand (throwMaul).
 //
 // Thine (whoever thou art) go the way thou pointest: every blow, spell and thrown spear along the
 // line on the screen from thee to the pointer (aimOf), finding what stands on it, or a little off it.
@@ -15,26 +16,26 @@
 // and knock him back.
 
 import * as THREE from 'three';
-import { Missile, Beam, Rise, Burst, Spark, StuckSpear, TEX, motesOf, shine, inSpace } from './spellfx.js';
+import { Missile, Boomerang, Beam, Rise, Burst, Spark, StuckSpear, TEX, motesOf, shine, inSpace } from './spellfx.js';
 import { lookOf } from './fxart.js';
 import { groundAt } from './ground.js';
 
 // By hero id (a hero of two looks fights as whichever it wears). `muzzle`: where a mage's spells
 // leave from, [ahead, up] of its feet in world units (the orb, the crystal, the fist, the ring),
 // unless its rig says where its drawn poses hold it (muzzleOf). `throws`: one who fights up close
-// but throws his spear for a spell, played by thee (throwSpear). `reach`: how much farther than a
-// blade's its blow reaches (reachOf).
+// but throws his weapon for a spell, played by thee: his spear (throwSpear), his maul (throwMaul).
+// `reach`: how much farther than a blade's its blow reaches (reachOf).
 export const STYLES = {
   runelord: { range: 'far', school: 'rune', color: '#ffc94a', muzzle: [2.0, 0.75] }, // (the orb, thrust out: heroes/runelord.js)
   sorceress: { range: 'far', school: 'glintstone', color: '#6fc3ff', muzzle: [0.72, 2.68] }, // (bare-faced; masked: heroes/sorceress.js)
   bloodbender: { range: 'far', school: 'blood', color: '#ff3a4a', muzzle: [0.5, 1.04] },
   queen: { range: 'far', school: 'holy', color: '#ffd75a', muzzle: [0.54, 1.01] },
   fortuna: { range: 'both', school: 'frost', color: '#8fe0ff', muzzle: [0.92, 1.78] },
-  champion: { range: 'near', color: '#ffb84a' },
+  champion: { range: 'near', color: '#ffb84a', throws: 'maul' },
   knight: { range: 'near', school: 'storm', color: '#ff4038', muzzle: [3.0, 1.52], reach: 1.2 }, // (her blows up close; played, a thunderbolt from her spear's tip too, right click: a little inside it, the bolt's line a little below its middle)
   paladin: { range: 'near', color: '#ffe9a0' },
   ronin: { range: 'near', color: '#d8ecff' },
-  bandit: { range: 'near', color: '#9fdc5a', throws: true, reach: 1.7 },
+  bandit: { range: 'near', color: '#9fdc5a', throws: 'spear', reach: 1.7 },
 };
 const NEAR = { range: 'near', color: '#ffd27a' };
 export const heroKey = (n) => n?.hero?.hero?.split('-')[0] ?? null;
@@ -45,7 +46,7 @@ export const casts = (n) => styleOf(n).range !== 'near';
 // lunge's third of a unit with it: npc.js), where a sword's goes into what it finds.
 export const reachOf = (n) => styleOf(n).reach || 0;
 // Whether n has a spell for thy right click at all (pilot.js): a mage's, Fortuna's frost, Ulric's
-// spear.
+// spear, Ruadan's maul.
 export const canCast = (n) => !!(SPELLS[styleOf(n).school] || styleOf(n).throws);
 
 // How hard a spell hits (`share` 1: an ordinary one): a fighter's, and thine. Less than a blade's
@@ -162,9 +163,10 @@ export const struckOf = (t) => ({
 // on that line (out to where thy pose holds it, ahead of thee, nearer thee as the line turns into
 // the view or out of it, where no drawing reaches); the floor where thou pointest, within its reach
 // (for what rises out of the floor); and how far it flies. The place it's cast on adds what stands
-// on the line: `meets(x, z)`, what something flying along it has come up to, and `first(reach)`, the
-// first standing on it ({ along, x, z, struck }); each struck thing as { target, at() }, at() its
-// place (its feet), as it moves.
+// on the line: `meets(x, z)`, what something flying along it has come up to (or, `meets(x, z, way,
+// early)`, flying some other way, knowing it `early` short of it: Ruadan's maul coming back), and
+// `first(reach)`, the first standing on it ({ along, x, z, struck }); each struck thing as
+// { target, at() }, at() its place (its feet), as it moves.
 export function aimSpell(n, at) {
   const [ahead, up] = muzzleSpot(n);
   const lift = n.lift || 0;
@@ -288,6 +290,7 @@ const heard = (n, name, x = n.pos.x, z = n.pos.y) => {
 // on `dir` ([dx, dz]) into nothing. `hit(at, share, struck)`: it lands, `share` of an ordinary
 // spell's strength (aimed, on what it struck).
 export function castSpell(fx, n, { target = null, dir = null, aim = null, hit }) {
+  if (styleOf(n).throws === 'maul') { throwMaul(fx, n, { aim, dir, hit }); return; }
   if (styleOf(n).throws) { throwSpear(fx, n, { aim, dir, hit }); return; }
   const school = styleOf(n).school;
   const list = SPELLS[school];
@@ -389,6 +392,41 @@ function throwSpear(fx, n, { aim = null, dir = null, hit }) {
       hit(at, 1, struck);
     },
   }));
+}
+
+// Ruadan's maul, thrown (his right click, a spell to him: pilot.js): his own maul, drawn as he holds
+// it crouching (fx/ruadan-maul.json), leaves his open hand spinning and flies along thy line (or,
+// unaimed, the way he faces) out to `reach`, slowing to a stop there, and comes back to his hand,
+// faster and faster, wherever he stands by then (spellfx.js, Boomerang): `trip` seconds out and
+// back. It strikes what it comes up to on the way out, and again on the way back, each once a way,
+// as hard as a spell each time, a spark of his gold where it lands. He holds his throw, his hand open,
+// till it's back in it (his blow lasts till then: `maul` on it, pilot.js; nothing else he does
+// begins meanwhile, his ultimate neither: ults.js); if anything takes him first (travel by grace, a
+// fall), it's back in his hand at once.
+const MAUL = { reach: 9, trip: 1.3, spin: 16, pivot: [0.33, 0.62], light: { color: '#ffb84a', power: 8, reach: 6 }, embers: ['#fceb6d', '#fad140', '#ec9a08', '#b26707'] };
+function throwMaul(fx, n, { aim = null, dir = null, hit }) {
+  const facing = n.body.facing;
+  const line = aim || { dir: dir || [facing, 0], from: muzzleOf(n), meets: () => null };
+  const { from, dir: way } = line;
+  const act = n.action;
+  // (the hand it comes back to: where it left from, kept beside him as he moves)
+  const off = [from[0] - n.pos.x, from[2] - n.pos.y];
+  const look = lookOf('ruadan-maul', n.body.sheet.px, { map: TEX.orb('holy', 5), w: 0.5, h: 0.5 });
+  const maul = new Boomerang(fx, {
+    ...look, from, dir: way, reach: MAUL.reach, trip: MAUL.trip, spin: MAUL.spin, pivot: MAUL.pivot,
+    light: MAUL.light, trail: MAUL.embers,
+    home: () => (n.action === act ? [n.pos.x + off[0], from[1], n.pos.y + off[1]] : null),
+    // (what it has come up to: its own body, not a spell's reach short of it)
+    strike: (x, z, going) => line.meets(x, z, going, 0),
+    onHit: (at, struck) => {
+      fx.add(new Spark(fx, { color: styleOf(n).color, at: [at.x, at.y, at.z + 0.2], dir: Math.sign(at.x - n.pos.x) || facing, size: 1.6 }));
+      hit(at, 1, struck);
+    },
+    // (back in his hand: his throw is over)
+    onHome: () => { if (n.action === act && act) act.dur = act.t; },
+  });
+  if (act) Object.assign(act, { dur: Infinity, maul });
+  fx.add(maul);
 }
 
 // ---------------------------------------------------------------------------------------------

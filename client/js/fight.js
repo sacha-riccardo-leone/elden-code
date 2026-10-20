@@ -720,7 +720,7 @@ export class Fight {
     const aim = aimSpell(n, at);
     const live = () => !!b && b.alive && b.state !== 'enter' && this.state === 'fighting' && this.inArena(n) && (b.lift || 0) <= 2;
     const struck = b && struckOf(b);
-    aim.meets = (x, z) => (live() && meets(x, z, aim.dir, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, AIM.spell, AIM.early) ? struck : null);
+    aim.meets = (x, z, way = aim.dir, early = AIM.early) => (live() && meets(x, z, way, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, AIM.spell, early) ? struck : null);
     aim.first = (reach) => {
       if (!live()) return null;
       const along = onAim(aim.from[0], aim.from[2], aim.dir, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, reach, AIM.spell);
@@ -790,7 +790,7 @@ export class Fight {
         this.fallen += 1;
         this.carry = { since: this.clock };
       }
-    } else if (n.action?.kind !== 'attack') {
+    } else if (n.action?.kind !== 'attack' && !n.action?.maul) { // (a blow, or Ruadan's maul out of his hand, isn't cut short)
       n.action = { kind: 'hurt', anim: 'stagger', t: 0, dur: 0.45 };
       n.body.play('stagger', true);
     }

@@ -496,6 +496,7 @@ export class Ults {
     const b = f?.boss;
     if (this.active || !b || !b.alive || b.state === 'enter' || f.state !== 'fighting' || !this.of(n)) return false;
     if (n.dead || n.travel || n.fighter?.dead) return false;
+    if (n.action?.maul) return false; // (Ruadan's maul out of his hand, thrown: combat.js)
     return player || this.clock - this.lastEnd >= ULT.gap;
   }
 

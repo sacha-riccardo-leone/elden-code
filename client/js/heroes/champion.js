@@ -8,7 +8,9 @@
 // the maul swung up over his head, brought down onto the ground in front, resting on his shoulder)
 // and his Hammerfall (champion-ult.json: the crouch, airborne with the maul raised, the slam) are
 // drawn whole; the maul reaches far above him and behind him, so they're kept in a bigger frame
-// (core.js, bigFrame).
+// (core.js, bigFrame). Played by thee, he throws the maul (right click, his `spell`: combat.js),
+// crouching as for Hammerfall, then stretched out after it, his hand open (champion-throw.json),
+// till it comes back to him.
 
 import { Img, NONE, blit, region, rotatable, drawRotated, prepareStill, composeStill, held } from './core.js';
 
@@ -47,9 +49,16 @@ const DRAWN = {
     { mid: 50, ground: 88 },
     { mid: 48, ground: 79 },
   ],
+  // (the maul thrown: his middle halfway between his feet, as in the crouch before it)
+  throw: [{ mid: 40, ground: 79, hand: [102, 24] }],
 };
-// the big frame: room for the maul raised high over him, and lying far behind him in the crouch
-const BIG = { w: 132, h: 124, anchor: 72 };
+// the big frame: room for the maul raised high over him, lying far behind him in the crouch, and
+// his hand stretched out far ahead after it as he throws it
+const BIG = { w: 144, h: 124, anchor: 72 };
+const PX = 2.8 / 96; // world units per art pixel: a head taller than the knight
+// where his thrown maul leaves his open hand, [ahead, up] of his feet in world units (combat.js,
+// throwMaul): its weight a little past his palm
+const muzzleAt = (d) => [(d.hand[0] - d.mid) * PX + 0.3, (d.ground - d.hand[1]) * PX];
 
 function prepare(art, more = {}) {
   const { src, ids, code, addColor } = art;
@@ -236,6 +245,7 @@ anim('swing', [0, 1, 2].map((i) => drawnPose('attack', i, { light: [1, 2, 1][i] 
 anim('crouch', [drawnPose('ult', 0, { light: 1 })]);
 anim('airborne', [drawnPose('ult', 1, { light: 2 })]);
 anim('slam', [drawnPose('ult', 2, { light: 2 })]);
+anim('release', [drawnPose('throw', 0, { light: 2 })]);
 
 const G = groups;
 export default {
@@ -244,7 +254,7 @@ export default {
   form: 'night',
   via: 'dusk', // the drawing worn while becoming this form
   art: '/assets/hero/champion.json',
-  extraArt: { hammer: '/assets/hero/champion-hammer.json', kneel: '/assets/hero/champion-kneel.json', attack: '/assets/hero/champion-attack.json', ult: '/assets/hero/champion-ult.json' },
+  extraArt: { hammer: '/assets/hero/champion-hammer.json', kneel: '/assets/hero/champion-kneel.json', attack: '/assets/hero/champion-attack.json', ult: '/assets/hero/champion-ult.json', throw: '/assets/hero/champion-throw.json' },
   firstName: 'Ruadan',
   epithet: 'the Red Hammer',
   title: 'Champion',
@@ -252,9 +262,10 @@ export default {
   frame: FRAME,
   bigFrame: BIG,
   cols: 8,
-  px: 2.8 / 96, // world units per art pixel: a head taller than the knight
+  px: PX,
   head: 95, // art pixels from the ground to the top of his hair
-  hits: { hammer: 4, cast: 1, send: 1, attack: 4 },
+  hits: { hammer: 4, cast: 1, send: 1, attack: 4, spell: 4 },
+  muzzles: { attack: muzzleAt(DRAWN.throw[0]) }, // (his maul thrown)
   lunge: { attack: 0.35 }, // (his drawing thrown forward as the maul comes down: npc.js)
   glowIntensity: 0.8, // he glows in many places at once: keep each one gentle
   glowColors: [[175, 108, 26], [236, 206, 140]],
@@ -272,6 +283,9 @@ export default {
     crouch: { frames: G.crouch, fps: 1 },
     airborne: { frames: G.airborne, fps: 1 },
     slam: { frames: G.slam, fps: 1 },
+    // (his maul thrown, right click, in eighteenths of a second: crouched 4, then stretched out after
+    // it, held till it comes back: combat.js)
+    spell: { frames: held([...G.crouch, ...G.release], [4, 6]), fps: 18, once: true },
     read: { frames: G.study, fps: 1.4 },
     cast: { frames: G.cast, fps: 5 },
     send: { frames: G.raise, fps: 4 },
@@ -289,5 +303,5 @@ export default {
     stagger: { frames: [...G.stagger, G.idle[0]], fps: 4, once: true },
     kneelBow: { frames: [G.kneel[0], ...G.rest, G.rest[1], G.kneel[0]], fps: 2, once: true },
   },
-  groupFps: { idle: 4, walk: 8, strike: 8, cast: 5, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 1.5, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, swing: 5, crouch: 1, airborne: 1, slam: 1 },
+  groupFps: { idle: 4, walk: 8, strike: 8, cast: 5, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 1.5, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, swing: 5, crouch: 1, airborne: 1, slam: 1, release: 1 },
 };

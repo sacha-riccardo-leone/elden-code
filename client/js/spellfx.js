@@ -683,6 +683,82 @@ export class Missile {
   }
 }
 
+// Something thrown out along a line and back to the hand that threw it (Ruadan's maul: combat.js,
+// throwMaul), spinning all the way: from `from` along `dir` (a way on the floor) out to `reach`,
+// slowing to a stop there halfway through its `trip` (seconds), then back, faster and faster, to the
+// hand (`home()`: [x, y, z] as the thrower moves; null once it can't take it back, and then it's
+// gone at once). Each way, it strikes what it comes up to (`strike(x, z, way)`: the way it's going
+// then), each thing once (`onHit(at, struck)`); back in the hand, `onHome()`. Drawn flying right
+// (mirrored flying left), turning `spin` radians a second the way it rolls along, about `pivot`
+// ([across, down] its drawing: its weight, a maul's head).
+export class Boomerang {
+  constructor(fx, { map, w, h, from, dir, reach, trip, spin, home, pivot = [0.5, 0.5], strike = null, onHit = null, onHome = null, light = null, trail = null }) {
+    this.fx = fx;
+    this.mesh = plane(fx.scene, map, w, h);
+    this.mesh.geometry.translate((0.5 - pivot[0]) * w, (pivot[1] - 0.5) * h, 0);
+    const side = Math.sign(dir[0]) || 1;
+    this.mesh.scale.x = side;
+    this.from = new THREE.Vector3(...from);
+    this.turn = new THREE.Vector3(from[0] + dir[0] * reach, from[1], from[2] + dir[1] * reach);
+    this.pos = this.from.clone();
+    this.light = light ? carry(fx.scene, from, light) : null;
+    Object.assign(this, { dir, reach, trip, spin: spin * side, home, strike, onHit, onHome, trail, t: 0, done: false, back: false, struck: new Set() });
+    this.mesh.position.copy(this.pos);
+  }
+
+  step(dt) {
+    if (this.done) return false;
+    const hand = this.home();
+    if (!hand) { this.finish(false); return false; } // (he can't take it back: gone at once)
+    this.t += dt;
+    const half = this.trip / 2;
+    let way = this.dir;
+    if (this.t < half) {
+      // out: fast from the hand, slowing to a stop at the end of its reach
+      const s = this.reach * Math.sin((Math.PI / 2) * (this.t / half));
+      this.pos.set(this.from.x + this.dir[0] * s, this.from.y, this.from.z + this.dir[1] * s);
+    } else {
+      // back: from a stop, faster and faster, onto the hand wherever it is now
+      if (!this.back) { this.back = true; this.struck.clear(); }
+      const u = Math.min(1, (this.t - half) / half);
+      const k = 1 - Math.cos((Math.PI / 2) * u);
+      const [hx, hy, hz] = hand;
+      this.pos.set(this.turn.x + (hx - this.turn.x) * k, this.turn.y + (hy - this.turn.y) * k, this.turn.z + (hz - this.turn.z) * k);
+      const dx = hx - this.turn.x;
+      const dz = hz - this.turn.z;
+      const d = Math.hypot(dx, dz) || 1;
+      way = [dx / d, dz / d];
+      if (u >= 1) { this.finish(true); return false; }
+    }
+    this.mesh.position.copy(this.pos);
+    this.mesh.rotation.z -= this.spin * dt;
+    this.light?.at(this.pos.x, this.pos.y, this.pos.z + 0.3);
+    if (this.trail && Math.random() < dt * 30) {
+      this.fx.particles.emit({
+        pos: [this.pos.x, this.pos.y, this.pos.z], spread: [0.15, 0.15, 0.1], vel: [0, 0.3, 0], velSpread: [0.4, 0.3, 0.3],
+        color: this.trail, size: 0.06, life: 0.5, count: 2, drag: 1.5, gravity: 2, intensity: 2.2,
+      });
+    }
+    const met = this.strike?.(this.pos.x, this.pos.z, way);
+    if (met && !this.struck.has(met.target)) {
+      this.struck.add(met.target);
+      this.onHit?.(this.pos.clone(), met);
+    }
+    return true;
+  }
+
+  finish(home) {
+    this.done = true;
+    this.light?.end(0.12);
+    if (home) this.onHome?.();
+  }
+
+  dispose() {
+    this.light?.end(0.08);
+    drop(this.fx.scene, this.mesh);
+  }
+}
+
 // A lance of light from `from` to `to`, there at once, flickering a moment and fading. Drawn by
 // hand (`art`, fxart.js: a lash of blood, Maren's thunderbolt), it's stretched evenly from the one
 // to the other, its thick end at `from` (as thick as its drawing is for that length, kept within

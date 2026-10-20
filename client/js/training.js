@@ -393,8 +393,8 @@ export class Training {
   playerCast(n, at) {
     const aim = aimSpell(n, at);
     const standing = () => (this.dummies || []).filter((d) => d.standing);
-    aim.meets = (x, z) => {
-      const d = standing().find((s) => meets(x, z, aim.dir, s.pos.x, s.pos.y, s.kind.radius, s.kind.depth, AIM.spell, AIM.early));
+    aim.meets = (x, z, way = aim.dir, early = AIM.early) => {
+      const d = standing().find((s) => meets(x, z, way, s.pos.x, s.pos.y, s.kind.radius, s.kind.depth, AIM.spell, early));
       return d ? struckOf(d) : null;
     };
     aim.first = (reach) => {
