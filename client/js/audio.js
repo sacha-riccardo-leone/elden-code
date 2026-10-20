@@ -32,6 +32,8 @@ export const SOUNDS = {
   'golem-fire-start': { set: 'golem', clips: ['fire-start'], volume: 0.8, most: 1, half: 30 },
   'golem-fire': { set: 'golem', clips: ['fire'], volume: 0.75, most: 1, half: 30, loop: [0.35, 1.75] },
   'golem-meteor': { set: 'golem', clips: ['meteor'], volume: 0.5, vary: 0.1, most: 8, half: 22 },
+  'golem-ankle': { set: 'golem', clips: ['ankle-1', 'ankle-2'], layer: true, volume: 0.85, vary: 0.05, most: 3, half: 24 },
+  'golem-explosion': { set: 'golem', clips: ['explosion'], volume: 0.9, most: 1, half: 30 },
   // Wynn's, and nobody else's (heroes/ronin.js: on the drawings where they happen; ults.js)
   'ronin-slash': { set: 'ronin', clips: ['slash'], volume: 0.75, vary: 0.06, most: 3, half: 18 },
   'ronin-ult': { set: 'ronin', clips: ['ult'], volume: 0.9, most: 1, half: 22 },

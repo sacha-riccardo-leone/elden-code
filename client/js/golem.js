@@ -239,6 +239,7 @@ export class GolemMind {
       const was = this.weak;
       this.ankle += weight;
       this.fight.hit(b, ankleDmg, [ax, ay, b.pos.y + 0.2], n, true, 'blow');
+      this.sound('ankle', ax); // (the crack struck: audio.js)
       // (it takes little, but the blow counts in full toward the striker's ultimate)
       this.fight.charge(n, this.fight.blowWorth(n) - ankleDmg);
       this.floor.particles.emit({
@@ -288,6 +289,7 @@ export class GolemMind {
     this.ankle += (player ? 1 : GOLEM.ankle.weight) * 0.7 * share;
     const dmg = (player ? GOLEM.ankle.player : GOLEM.ankle.fighter) * share;
     this.fight.hit(b, dmg, [ax, ay, b.pos.y + 0.2], n, true, 'spell');
+    this.sound('ankle', ax);
     this.fight.charge(n, this.fight.blowWorth(n, true) * share - dmg);
     if (!was && this.weak) this.tell('weak', 'The Golem\'s cracked ankle buckles: one more walk on it and it gives way', 'red');
     return true;
@@ -658,8 +660,10 @@ export class GolemMind {
         break;
       }
       case 'fire:3':
-        // (the fire's roar, if it hasn't begun yet: stepMove begins it a moment before)
+        // (the fire's roar, if it hasn't begun yet: stepMove begins it a moment before; and the
+        // burst of it as it comes out of him)
         if (!a.roar) this.roar(a);
+        this.sound('explosion', this.spot(SPOTS.chest)[0]);
         break;
       case 'roll:6':
         this.slamIn = Math.max(this.slamIn, 6);

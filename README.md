@@ -893,14 +893,16 @@ the recordings, whenever they change; its table says what each clip is cut from.
     lands, one of the 11 at random, a little different each time;
   - a whoosh as the axe or the pole is raised, and a boom on the drawing where it strikes: the
     swing, the thrust, each slam, the pole driven in for his fire;
-  - a clang when his stone turns a blow;
+  - a clang when his stone turns a blow; `golem_ankle_hit_1` and `_2` together when a blow or a
+    spell lands on his cracked ankle;
   - as he passes out (or dies), his stone crumbling as he falls: `passing_out_start_1` at once, from
     its first crackle (the faint stretch before it left out), and halfway through his fall
     `passing_out_start_2` on top of it; both stop as his body hits the floor, on the drawing where it
     does, and the ground hit is heard then (the ground shakes and the dust flies then too). Nothing
     crumbles while he lies felled;
   - the fire roaring up as he spits it (begun 0.3 s before, so that the roar is at its loudest as
-    the fire comes), the blaze burning on, looped, while he does, and dying away as he stops;
+    the fire comes), `golem_explosion_on_spitfire` as it bursts out of him, the blaze burning on,
+    looped, while he does, and dying away as he stops;
   - each meteor as it lands.
 - **Wynn** (only him; whoever plays him, thee or another), each on the drawing where it happens:
   - `slash` with every blow but his Iaijutsu's, on the drawing where his blade cuts;

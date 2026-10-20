@@ -49,6 +49,11 @@ const SETS = {
       // (the blaze from where it's already roaring, its quiet lead-in left out)
       ['fire', 'golem_spitting_fire.wav', 1.15, 2.85, -3, 0, 0.5],
       ['meteor', 'meteorite_hit.wav', 2.02, 1.6, -4, 0, 0.6],
+      // a blow or a spell on his cracked ankle (the two together), and the burst of his fire as he
+      // begins to spit it
+      ['ankle-1', 'golem_ankle_hit_1.wav', 0, 1.2, -3, 0, 0.4, { group: 'ankle' }],
+      ['ankle-2', 'golem_ankle_hit_2.wav', 0, 1.5, -3, 0, 0.5, { group: 'ankle' }],
+      ['explosion', 'golem_explosion_on_spitfire.wav', 0, 3.6, -2, 0, 0.6],
     ],
   },
   ronin: {
