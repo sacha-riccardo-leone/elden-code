@@ -356,7 +356,7 @@ const st = {
   menu: false, // the way in is showing, and can be taken
   setOutAt: null, // when thou set out
   bothAt: null, // when thou'd set out and the world was ready
-  leaveAt: null,
+  leaveAt: null, // when it began to crumble away (performance.now(), ms: by the clock, not by its frames)
   hover: false,
   focus: false,
   keys: false, // the keyboard in use (a focused entry then shows lit)
@@ -685,7 +685,7 @@ function frame(dt) {
       }
     }
   }
-  if (st.leaveAt != null) crumbleAway(clamp((t - st.leaveAt) / LEAVE, 0, 1));
+  if (st.leaveAt != null) crumbleAway(leaving());
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -698,18 +698,32 @@ function go() {
   setOut();
 }
 
+// How far it has crumbled away (0..1), by the clock: the world's first frames may come slowly
+// (its shaders compiled the first time a page is opened), and counting its own frames, each worth
+// no more than a twentieth of a second, the title would linger dark over the world for as long.
+const leaving = () => clamp((performance.now() - st.leaveAt) / (LEAVE * 1000), 0, 1);
+
 Promise.all([started, ready]).then(() => {
   st.bothAt = st.t;
   // (the loading sign, if it showed, goes first)
   const wait = st.setOutAt != null && st.t - st.setOutAt > 0.3 ? 0.25 : 0.05;
   setTimeout(() => {
-    st.leaveAt = st.t;
+    st.leaveAt = performance.now();
     root.classList.add('leaving');
     document.body.classList.remove('on-title');
     document.body.classList.add('hud-in');
     setTimeout(() => document.body.classList.remove('hud-in'), 2200);
+    // (and gone for good a moment after it should have, whatever became of its frames)
+    setTimeout(gone, (LEAVE + 1.5) * 1000);
   }, wait * 1000);
 });
+
+function gone() {
+  if (!root.isConnected) return;
+  root.remove();
+  window.removeEventListener('keydown', onKey);
+  window.removeEventListener('resize', onResize);
+}
 
 button.addEventListener('click', go);
 button.addEventListener('pointerenter', () => { st.hover = true; });
@@ -739,13 +753,14 @@ function loop(now) {
   const [sw, sh, sd] = L.seen;
   if (!resizeTimer && (sw !== window.innerWidth || sh !== window.innerHeight || sd !== (window.devicePixelRatio || 1))) build();
   st.t += dt;
-  frame(dt);
-  if (st.leaveAt != null && st.t - st.leaveAt >= LEAVE) {
-    root.remove();
-    window.removeEventListener('keydown', onKey);
-    window.removeEventListener('resize', onResize);
-    return;
+  // (a frame that fails to draw never stops the title for good: it would stay over the world)
+  try {
+    frame(dt);
+  } catch (err) {
+    if (!st.failed) console.error('The title failed to draw (it carries on):', err);
+    st.failed = true;
   }
+  if (st.leaveAt != null && leaving() >= 1) { gone(); return; }
   requestAnimationFrame(loop);
 }
 

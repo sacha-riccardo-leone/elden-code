@@ -303,9 +303,14 @@ document.getElementById('help-close').addEventListener('click', () => {
   helpBtn.setAttribute('aria-expanded', 'false');
 });
 
+// (the size it was last drawn at: a page first opened out of sight has none, and may be given one
+// without a resize event, so each frame looks: frame)
+let sized = [0, 0];
 function resize() {
   const w = window.innerWidth;
   const h = window.innerHeight;
+  sized = [w, h];
+  if (!w || !h) return; // (nothing to draw into yet: never a camera of 0/0, which shows nothing ever after)
   const ratio = perf.ratio(w, h);
   renderer.setPixelRatio(ratio);
   renderer.setSize(w, h, false);
@@ -391,14 +396,20 @@ function step(dt) {
 let frameErrors = 0;
 function frame(now) {
   requestAnimationFrame(frame); // asked for first, so one bad frame can never stop the world for good
+  if (window.innerWidth !== sized[0] || window.innerHeight !== sized[1]) resize();
   perf.frame(now - last);
-  const dt = Math.min((now - last) / 1000, 0.05);
+  const dt = Math.min(Math.max(0, now - last) / 1000, 0.05);
   last = now;
+  // (and drawn even if its step failed: a world that can't move on still shows)
   try {
     step(dt);
-    post.render(dt, t);
   } catch (err) {
     if (frameErrors++ % 300 === 0) console.error('A frame failed (the world carries on):', err);
+  }
+  try {
+    post.render(dt, t);
+  } catch (err) {
+    if (frameErrors++ % 300 === 0) console.error('A frame failed to draw:', err);
   }
 }
 

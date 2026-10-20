@@ -23,7 +23,11 @@ The page opens on a pixel-art title screen in the manner of Elden Ring's (`clien
 - **Setting out:** click it, or press Enter.
   - The world loads behind the title meanwhile, sessions already taking up their heroes (locally).
   - If it isn't ready yet, a loading sign turns at the bottom right until it is (`client/js/gate.js`).
-  - Then the title crumbles away, pixel by pixel from the middle out, as Maren rises at grace.
+  - Then the title crumbles away, pixel by pixel from the middle out, as Maren rises at grace:
+    in 1.3 s by the clock, however slowly the world's first frames come (its shaders are compiled
+    the first time a page is opened), and it's gone for good a moment later even if its own frames
+    stop. The world checks its size every frame too, so a page first opened out of sight (with no
+    size yet, and none ever announced) is drawn once it's shown, never left black.
 - **Nothing of the game shows until then:** no buttons, log or map strip, and no keys reach the
   world.
 - **Online:** the public demo never shows **Summon phantoms**: its sessions are made up already.
