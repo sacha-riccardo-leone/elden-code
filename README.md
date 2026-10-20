@@ -56,10 +56,16 @@ round floor of grey brick on a rock of its own, as wide as the arena's but witho
 stone stair comes down to it from the rim, and whoever walks it goes down with it
 (`client/js/ground.js` gives the ground's height wherever it isn't level with the Hold). In the
 middle of its sawdust ring stands a great dummy: the Guardian Golem in wood, halberd and all, a
-little smaller than he (7.1 units tall to his 7.9), that never breaks. As with him, its only
-weakness is its cracked ankle, low on its back leg: a blow lands only there, struck from behind it,
-and its wood turns any other (splinters and a spark, the striker bouncing off, and the first time a
-word in the log on where to strike); spells fly at the ankle; ultimates land whole. Near it the
+little smaller than he (7.1 units tall to his 7.9). As with him, its only weakness is its cracked
+ankle, low on its back leg: a blow lands only there, struck from behind it, and its wood turns any
+other (splinters and a spark, the striker bouncing off, and the first time a word in the log on
+where to strike); spells fly at the ankle; ultimates land whole. It breaks after half the blows on
+the ankle that fell him: eight of yours (each counts 1 of its 7.5, a spell 0.7, a blow or spell of
+someone training half that, as on his ankle). An ultimate takes from it besides, though his ankle
+never feels one: a share of its health for every point the ultimate deals, a whole one of yours
+(some 800) about half of it, one of theirs about a third. Broken, it bursts apart
+(`boss-dummy-falling-broken`, splinters flying, 0.45 s), lies in a heap of its pieces six seconds
+(`boss-dummy-broken`), and stands whole again in a puff of dust. Near it the
 camera pulls back and looks a little higher to keep the whole of it in view, as it does for a great
 enemy on the arena. Eight straw dummies stand scattered round it (`client/js/training.js`), in new
 places each time the page loads, clear of it, the stair's foot, the props and one another. Racks of
@@ -68,7 +74,10 @@ crates beside them; an archery butt stands to the west, and rope lanterns light 
 spells and ultimates find the dummies as they find a great enemy. A dummy flashes white as each one
 lands, as a character struck does (as briefly, and pale by night, never a light going off), and
 wobbles away from it; once a straw one has taken enough it bursts into pieces, then stands whole
-again five seconds later. Dummies never strike back. On the yard your ultimate is always full: each
+again five seconds later. Each dummy has its health in a bar over its head, its own and not the
+screen's (`placeBars`): shown only while it's hurt and for four seconds after a blow hurts it,
+what it just lost lingering in white a moment before draining away; never while it lies in pieces
+or from afar. Dummies never strike back. On the yard your ultimate is always full: each
 one still freezes the world for its moment, but you needn't wait between them.
 
 In front of the right-hand weapon rack burns a little **Site of Grace**. Press E there ("Call to
@@ -945,7 +954,7 @@ the recordings, whenever they change; its table says what each clip is cut from.
 - **The world**: `anvil-hit-1` and `-2` together with every hammer blow at a forge;
   `summoning-magic-spell` as a spirit ash (a subagent) is summoned; `noble_sorcerer` and `_2`
   together as a spectre of the Noble Sorcerers is called up at its grace; `dummy_breaking`, `_2` and
-  `_3` together as a straw dummy of the training yard bursts; and
+  `_3` together as a dummy of the training yard bursts (the great one louder); and
   `after_click_start_your_tarnished_journey` as you set out from the title.
 - **Every banner** (a great enemy approaching, felled, prevailing or turning away, *You Died*, a
   region rising, a quest fulfilled or failed): `announcement_banner_reveal` as it's revealed, from
@@ -1144,7 +1153,7 @@ client/js/grace.js      the grace itself, the figure of golden light floating ov
 client/js/interact.js   E: using the stations and the Round Table
 client/js/arena.js      the Arena of Trials, north of the Hold and higher, and the stone stair up to it
 client/js/yard.js       the Training Yard below the Hold, and the stone stair down to it
-client/js/training.js   the yard's dummies (straw, and the great one: the Golem in wood, struck only on its ankle), thy blows, spells and ultimates on them, and the Tarnished training there
+client/js/training.js   the yard's dummies (straw, and the great one: the Golem in wood, struck only on its ankle), their health over their heads, thy blows, spells and ultimates on them, and the Tarnished training there
 client/js/ground.js     the ground's height where it isn't level with the Hold (the yard, the arena, their stairs)
 client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the fighters, thy health
 client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes

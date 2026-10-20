@@ -601,6 +601,33 @@ body.in-battle .region-label { pointer-events: none; cursor: default; } /* mid-f
 }
 body.in-battle #trainees { display: none; }
 
+/* over each dummy of the training yard, its health (training.js, placeBars): its own, kept over its
+   head, shown only for a while after a blow while it's hurt; as the great enemy's bar is drawn */
+#dummy-bars {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+#dummy-bars .bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 54px;
+  height: 6px;
+  background: rgba(8, 6, 8, 0.75);
+  border: 1px solid rgba(201, 164, 90, 0.55);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+#dummy-bars .bar.great { width: 120px; height: 8px; }
+#dummy-bars .bar.shown { opacity: 1; }
+#dummy-bars .bar i { position: absolute; left: 0; top: 0; bottom: 0; }
+#dummy-bars .lag { background: #f2ecdc; } /* what it just lost, lingering */
+#dummy-bars .hp { background: linear-gradient(#b8301f, #6e120c); }
+body.in-battle #dummy-bars { display: none; }
+
 /* ---------------------------------------------------------------- fan of gestures */
 
 /* an arc of buttons opening over a character's head (the element sits at the head) */

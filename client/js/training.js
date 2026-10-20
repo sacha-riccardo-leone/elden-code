@@ -1,9 +1,10 @@
 // Training in the yard below the Hold (yard.js): straw dummies to strike, and a great one in the
 // middle, the Guardian Golem (golem.js) in wood, halberd and all. Each flashes white and wobbles as
-// a blow, a spell or an ultimate lands on it; a straw one, once it has taken enough, bursts into
-// pieces, lies in them a while, and stands whole again; the great one never breaks, and, as the
-// Golem's stone does, its wood turns every blow but those on its cracked ankle, low on its back leg.
-// They never strike back.
+// a blow, a spell or an ultimate lands on it; once it has taken enough, it bursts into pieces, lies
+// in them a while, and stands whole again. As the Golem's stone does, the great one's wood turns
+// every blow but those on its cracked ankle, low on its back leg, and it breaks after half the
+// blows there that would have him fall (or a couple of ultimates). Each has its health over its
+// head, shown once it's hurt and for a while after each blow. They never strike back.
 //
 // The Tarnished train there too: called at the yard's little grace (ask: the window that chooses
 // companions for a great enemy, companions.js), as many at once as thou wilt, each sent back again
@@ -34,6 +35,7 @@ import { flashing } from './npc.js';
 import { styleOf, castSpell, muzzleOf, stepStatus, RANGED, blow, casts, heroKey, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot, struckOf } from './combat.js';
 import { groundAt } from './ground.js';
 import { Spark } from './spellfx.js';
+import { GOLEM } from './golem.js';
 
 // A dummy: its health, what a blow and a spell of thine take of it (an ultimate's blows take what
 // they take, ults.js; a poison what it takes), how far in front of thee a blow finds it, its size
@@ -41,12 +43,22 @@ import { Spark } from './spellfx.js';
 // its drawing's frames (fx/dummy.json), whole, leaning back, leaning forward, bursting, in pieces.
 const DUMMY = { hp: 100, blow: 26, spell: 22, reach: 2.6, radius: 0.55, px: 2.3 / 104, burst: 0.32, rest: 5 };
 const F = { whole: 0, back: 1, forward: 2, burst: 3, broken: 4 };
-// The great one (fx/boss-dummy.json: whole, leaning back, leaning forward; drawn as the Golem is, on
-// his 3.6 px grid): its size (a little over seven world units tall, nine tenths of his eight), how far
-// out of thy line a blow still finds it, and its shadow's radius (it takes up BOSS_DUMMY.radius of
-// the floor, yard.js). Its cracked ankle, as his: where it is (art px from its place, forward and
-// up), and how near a blow must land to it.
-const GREAT = { px: 7.1 / 260, depth: 2, shadow: 2.2, ankle: { at: [-29.2, 40.5], r: 0.9 } };
+// The great one (fx/boss-dummy.json: whole, leaning back, leaning forward, falling apart, in pieces;
+// drawn as the Golem is, on his 3.6 px grid): its size (a little over seven world units tall, nine
+// tenths of his eight), how far out of thy line a blow still finds it, and its shadow's radius (it
+// takes up BOSS_DUMMY.radius of the floor, yard.js). Its cracked ankle, as his: where it is (art px
+// from its place, forward and up), and how near a blow must land to it. Its health, counted as his
+// ankle counts toward his fall (a blow of thine 1, a spell of thine 0.7, those training's half that:
+// golem.js), half of what fells him; what an ultimate takes of it besides (though his ankle never
+// feels one), its share of that health per point the ultimate deals (a whole one of thine deals
+// some 800, combat.js: ultPower, and takes about half of it; one of theirs, about a third); and how
+// long it's falling apart, and lies in pieces.
+const GREAT = { px: 7.1 / 260, depth: 2, shadow: 2.2, ankle: { at: [-29.2, 40.5], r: 0.9 }, hp: GOLEM.ankle.need / 2, ult: 1 / 1600, burst: 0.45, rest: 6 };
+// What a hit on the great one's ankle counts (as on the Golem's): thy blow, thy spell, theirs.
+const ANKLE = { blow: 1, spell: 0.7, theirs: GOLEM.ankle.weight };
+// A dummy's health over its head (placeBars): shown for `show` seconds after each blow while it's
+// hurt; what it just lost lingers `lag` seconds, then drains away.
+const BAR = { show: 4, lag: 0.45 };
 // Within `near` of it, the camera pulls back (`dist`) and looks a little higher (`y` above the
 // floor), to keep the whole of it in view (aim).
 const GREAT_CAM = { near: 11, dist: 28, y: 2.6 };
@@ -74,7 +86,7 @@ const TRAIN = {
 const rand = (a, b) => a + Math.random() * (b - a);
 
 class Dummy {
-  // (`great`: the great one, that never breaks)
+  // (`great`: the great one)
   constructor(training, x, z, great = false) {
     this.training = training;
     this.great = great;
@@ -85,7 +97,11 @@ class Dummy {
     this.mind = null;
     this.kind = great ? { radius: BOSS_DUMMY.radius, reach: 0, depth: GREAT.depth } : { radius: DUMMY.radius, reach: 0, depth: 0.9 };
     this.max = 8000; // (an ultimate hits it as hard as a great enemy: combat.ultPower)
-    this.hp = DUMMY.hp;
+    this.hpMax = great ? GREAT.hp : DUMMY.hp; // (its own health: a straw one's in blows' worth, the great one's in its ankle's)
+    this.hp = this.hpMax;
+    this.lag = this.hpMax; // (its bar's: what it just lost, lingering)
+    this.hitAt = -Infinity;
+    this.bar = null; // (over its head: Training.placeBars)
     this.broken = null; // { t }: bursting, then lying in pieces
     this.wobble = null; // { t, dir }
     const sheet = fxArt(great ? 'boss-dummy' : 'dummy');
@@ -96,6 +112,9 @@ class Dummy {
     const w = (sheet?.w || 106) * px;
     const h = (sheet?.h || 108) * px;
     this.mid = h / 2; // (where splinters fly from)
+    // (the top of its head, standing: its bar goes over it)
+    const top = sheet?.rows?.[0]?.findIndex((r) => /[^.]/.test(r)) ?? 0;
+    this.top = sheet ? (sheet.h - Math.max(0, top)) * px : h;
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
     mesh.onBeforeRender = onDraw;
     // its foot (where its base meets the floor; the great one's, between its feet) on its place
@@ -150,17 +169,24 @@ class Dummy {
   }
 
   // Struck: it flashes (not as a poison or a bleeding ticks: `flash`), and wobbles away from the
-  // blow (`dir`: the way the blow went), or bursts (never the great one).
-  struck(amount, dir, flash = true) {
+  // blow (`dir`: the way the blow went), or bursts. A straw one takes `amount`; the great one, only
+  // what the blow on its ankle counts (`ankle`: ANKLE), as the Golem's does, or, from an ultimate
+  // (`ult`: its blows, its bleeding, its poison), its share of what that deals (GREAT.ult).
+  struck(amount, dir, flash = true, ankle = 0, ult = false) {
     if (this.broken) return;
     if (flash) this.body.flash();
-    if (!this.great) this.hp -= amount;
+    const lost = !this.great ? amount : ult ? amount * GREAT.ult * this.hpMax : ankle;
+    if (lost > 0) {
+      this.hp -= lost;
+      this.hitAt = this.training.clock;
+    }
     if (this.hp <= 0) {
+      this.hp = 0;
       this.broken = { t: 0 };
-      this.training.ctx.sound?.play('yard-break', { at: [this.pos.x, this.pos.y] }); // (audio.js)
+      this.training.ctx.sound?.play('yard-break', { at: [this.pos.x, this.pos.y], volume: this.great ? 1.3 : 1 }); // (audio.js)
       this.wobble = null;
       this.show(F.burst);
-      this.training.chips(this, 46, 3.4);
+      this.training.chips(this, this.great ? 110 : 46, this.great ? 5 : 3.4);
       return;
     }
     this.wobble = { t: 0, dir: dir || 1 };
@@ -168,15 +194,19 @@ class Dummy {
   }
 
   step(dt) {
+    // (its bar: what it just lost lingers a moment, then drains away)
+    if (this.training.clock - this.hitAt > BAR.lag) this.lag = Math.max(this.hp, this.lag - dt * this.hpMax * 0.9);
     if (this.broken) {
       const b = this.broken;
+      const T = this.great ? GREAT : DUMMY;
       b.t += dt;
-      if (b.t < DUMMY.burst) return;
+      if (b.t < T.burst) return;
       this.show(F.broken);
-      if (b.t < DUMMY.burst + DUMMY.rest) return;
+      if (b.t < T.burst + T.rest) return;
       // whole again, in a puff of dust
       this.broken = null;
-      this.hp = DUMMY.hp;
+      this.hp = this.hpMax;
+      this.lag = this.hpMax;
       this.show(F.whole);
       this.training.dust(this);
       return;
@@ -217,8 +247,10 @@ export class Training {
     this.told = new Set(); // (the hints in the log, each said once)
     this.lookIn = TRAIN.self.every; // (till it next looks for one with nothing to do: lookRound)
     this.lastUlt = -Infinity; // (when one training last loosed its ultimate)
-    // the button under each one training, to send it back (placeButtons)
+    // the button under each one training, to send it back (placeButtons); each dummy's health over
+    // its head (placeBars)
     this.btnRoot = document.getElementById('trainees');
+    this.barRoot = document.getElementById('dummy-bars');
     this.btns = new Map();
     this.v = new THREE.Vector3();
   }
@@ -292,7 +324,7 @@ export class Training {
   // anywhere else.
   strikeFrom(p) {
     const way = wayOf(p);
-    const g = this.dummies?.find((x) => x.great);
+    const g = this.dummies?.find((x) => x.great && x.standing); // (in pieces, a blow passes over it)
     if (g) {
       const [ax, ay] = g.ankle();
       if (onAim(p.pos.x, p.pos.y, way, ax, g.pos.y, GREAT.ankle.r, GREAT.ankle.r + 0.4, TURNED.reach, AIM.blow, 0.4) != null) {
@@ -324,7 +356,7 @@ export class Training {
     this.hitStop(STOP.blow);
     p.body.stretch?.();
     this.ctx.rig?.punch?.(dir * 0.12);
-    d.struck(DUMMY.blow, dir);
+    d.struck(DUMMY.blow, dir, true, ANKLE.blow);
   }
 
   // A blow the great one's wood turns, as the Golem's stone turns one (golem.js, clang): splinters
@@ -372,7 +404,7 @@ export class Training {
         const d = struck?.target;
         if (!d?.standing) return;
         this.hitStop(STOP.spell);
-        d.struck(DUMMY.spell, Math.sign(d.pos.x - n.pos.x) || 1);
+        d.struck(DUMMY.spell, Math.sign(d.pos.x - n.pos.x) || 1, true, ANKLE.spell);
       },
     });
   }
@@ -404,7 +436,7 @@ export class Training {
   // those training: its own, `b`).
   ultHit(n, amount, at = null, b = this.boss) {
     if (!b) return;
-    b.struck(amount, Math.sign(b.pos.x - n.pos.x) || 1);
+    b.struck(amount, Math.sign(b.pos.x - n.pos.x) || 1, true, 0, true);
   }
 
   // The world holds still `secs` seconds as thy blow lands (main.js asks held).
@@ -602,7 +634,7 @@ export class Training {
   npcLanded(n, d, at) {
     const dir = Math.sign(d.pos.x - n.pos.x) || n.body.facing;
     this.fx.push(new Spark(this.fxCtx, { color: styleOf(n).color, at, dir, size: 1.4 }));
-    d.struck(DUMMY.blow * TRAIN.hurt.blow, dir);
+    d.struck(DUMMY.blow * TRAIN.hurt.blow, dir, true, ANKLE.blow * ANKLE.theirs);
   }
 
   // A spell of one training, loosed at the turn of its cast: at its dummy (the great one's ankle).
@@ -615,7 +647,7 @@ export class Training {
     castSpell(this.fxCtx, n, {
       target: () => (d.great ? [...d.ankle(), d.pos.y + 0.2] : [d.pos.x, 1.3, d.pos.y + 0.2]),
       dir: [dx / len, dz / len],
-      hit: () => { if (d.standing) d.struck(DUMMY.spell * TRAIN.hurt.spell, Math.sign(d.pos.x - n.pos.x) || 1); },
+      hit: () => { if (d.standing) d.struck(DUMMY.spell * TRAIN.hurt.spell, Math.sign(d.pos.x - n.pos.x) || 1, true, ANKLE.spell * ANKLE.theirs); },
     });
   }
 
@@ -662,6 +694,38 @@ export class Training {
     for (const [n, b] of this.btns) if (!n.trainee || n.dead) { b.remove(); this.btns.delete(n); }
   }
 
+  // Each dummy's health, a bar over its head (its own, not the screen's: it stays with it): shown
+  // only while it's hurt and for a while (BAR.show) after the blow that last hurt it; never while it
+  // lies in pieces, behind the camera, or seen from afar.
+  placeBars() {
+    if (!this.barRoot || !this.dummies) return;
+    const { ui, rig } = this.ctx;
+    for (const d of this.dummies) {
+      const want = d.standing && d.hp < d.hpMax && this.clock - d.hitAt < BAR.show && rig.dist < 40;
+      if (!want && !d.bar) continue;
+      if (!d.bar) d.bar = this.makeBar(d);
+      d.bar.el.classList.toggle('shown', want);
+      if (!want) continue;
+      const p = ui.project(this.v.set(d.pos.x, YARD.y + d.top + 0.3, d.pos.y));
+      d.bar.el.hidden = p.behind;
+      d.bar.el.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y)}px) translate(-50%, -100%)`;
+      d.bar.hp.style.width = `${(100 * d.hp) / d.hpMax}%`;
+      d.bar.lag.style.width = `${(100 * d.lag) / d.hpMax}%`;
+    }
+  }
+
+  makeBar(d) {
+    const el = document.createElement('div');
+    el.className = d.great ? 'bar great' : 'bar';
+    const lag = document.createElement('i');
+    lag.className = 'lag';
+    const hp = document.createElement('i');
+    hp.className = 'hp';
+    el.append(lag, hp);
+    this.barRoot.append(el);
+    return { el, hp, lag };
+  }
+
   button(n) {
     const b = document.createElement('button');
     b.type = 'button';
@@ -705,7 +769,7 @@ export class Training {
     for (const d of this.dummies) {
       d.step(dt);
       // (a poison or a bleeding wobbles it as it ticks)
-      stepStatus(d, this.clock, dt, { hit: (amount) => d.struck(amount, 1, false), shift: () => {}, particles: this.fxCtx.particles });
+      stepStatus(d, this.clock, dt, { hit: (amount) => d.struck(amount, 1, false, 0, true), shift: () => {}, particles: this.fxCtx.particles });
     }
     // the blows and spells of those training, at the turn of each
     for (const n of this.ctx.director.npcs.values()) {

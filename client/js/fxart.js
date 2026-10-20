@@ -44,7 +44,8 @@ const ART = {
 const sheets = new Map();
 
 // { frames: [texture…], w, h, foot: [x, y], rows }, in art pixels; `foot` is where it meets the
-// ground, the middle of its lowest rows (a bolt's strike), at its bottom edge; `rows`, each frame's
+// ground, the middle of its lowest rows (a bolt's strike), at its bottom edge (or as the art says,
+// `foot`: the great dummy's, its stand's, not its pieces'); `rows`, each frame's
 // rows as drawn ('.' where nothing is: what sticks in a dummy is pinned to its drawing, spellfx.js).
 function sheetOf(json) {
   const rgb = json.palette.map((h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)));
@@ -67,7 +68,7 @@ function sheetOf(json) {
     g.putImageData(img, 0, 0);
     return texture(c);
   });
-  return { frames, w, h, foot: [count ? sum / count + 0.5 : w / 2, h], rows: json.frames.map((f) => f.rows) };
+  return { frames, w, h, foot: json.foot || [count ? sum / count + 0.5 : w / 2, h], rows: json.frames.map((f) => f.rows) };
 }
 
 export async function loadFxArt() {
