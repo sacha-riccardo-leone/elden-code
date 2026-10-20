@@ -433,8 +433,8 @@ export const ULTS = {
           map: icicle, w: 3.4 * s, h: 0.68 * s, span: 3.4 * s, height: huge ? 9.5 : 6.5, dur: huge ? 0.85 : 0.5, delay,
           stick: huge ? 0.4 : 0, sink: 0.9,
           onHit: (at) => {
-            hit(huge ? 11.5 : 5.5, at);
-            if (!huge) return;
+            // (an icicle wounds him as it strikes; the mass, as it bursts: onShatter)
+            if (!huge) { hit(5.5, at); return; }
             // (the floor struck: a flash and chips of stone and ice at its foot)
             fx.add(new Burst(fx, { school: 'frost', at: [x, 0.3, z], size: 2.6, sparks: 30 }));
             fx.particles.emit({
@@ -445,6 +445,7 @@ export const ULTS = {
           },
           // (and, as it bursts, its ice flung out every way)
           onShatter: huge ? () => {
+            hit(11.5, new THREE.Vector3(x, 1.6, z)); // (its blow: on the very moment it bursts)
             fight.ctx.sound?.play('frost-ult-end', { at: [x, z] });
             fx.add(new Burst(fx, { school: 'frost', at: [x, 1.6, z], size: 4.5, sparks: 70 }));
             fx.particles.emit({
