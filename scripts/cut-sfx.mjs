@@ -63,6 +63,10 @@ const SETS = {
       ['slash', 'slash.mp3', 0.06, 0.5, -4, 0, 0.15],
       // his Iaijutsu loosed (thine as R is pressed), whole
       ['ult', 'ult_pressed.wav', 0, 1.3, -3, 0, 0.3],
+      // and with it his breath as he gathers himself: its first 1.1 s, the swell and the hold (it
+      // tails off for another second and a half after), fading out over its last 0.45 s as the
+      // first cut comes; a little quieter than the rest (it's loud throughout, not in one burst)
+      ['breathe', 'concentration_breathe.wav', 0.03, 1.1, -6, 0, 0.45],
       // the glare on the blade as he looses it: the shine itself, at 2.53 s (before it, a click and
       // half a second of hiss)
       ['shine', 'blade_shine.m4a', 2.5, 1.1, -4, 0, 0.5],

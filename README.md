@@ -923,7 +923,9 @@ the recordings, whenever they change; its table says what each clip is cut from.
   - each meteor as it lands.
 - **Wynn** (only him; whoever plays him, thee or another), each on the drawing where it happens:
   - `slash` with every blow but his Iaijutsu's, on the drawing where his blade cuts;
-  - `ult_pressed` as his Iaijutsu is loosed (thine, as R is pressed), as he takes his stance;
+  - `ult_pressed` as his Iaijutsu is loosed (thine, as R is pressed), as he takes his stance, and
+    with it `concentration_breathe`, his breath as he gathers himself: its first 1.1 s, fading out
+    as the first cut comes;
   - `blade_shine` half a second on, as the blade leaves the scabbard and the glare flashes up on it
     (from 2.5 s in its recording, where the shine is: before it, a click and hiss);
   - `ult_slash` on each of his eight cuts (from where it's loud, 2.36 s in: it's silent till 2.1 s,

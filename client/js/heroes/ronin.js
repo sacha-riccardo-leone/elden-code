@@ -314,7 +314,7 @@ export default {
   // drawn; his Iaijutsu loosed, as he takes his stance; half a second on, the glare flashing up on
   // the blade as it's loosed; and, the cuts made (each heard: ults.js), the glare on it again, heard
   // backward, over as the blade goes home (and all of it lands on him, heard: ults.js)
-  sounds: { attack: { 4: ['ronin-slash'] }, draw: { 0: ['ronin-ult'], 6: ['ronin-shine'] }, loosed: { 0: ['ronin-shine-back'] } },
+  sounds: { attack: { 4: ['ronin-slash'] }, draw: { 0: ['ronin-ult', 'ronin-breathe'], 6: ['ronin-shine'] }, loosed: { 0: ['ronin-shine-back'] } },
   glowIntensity: 0.9,
   glowColors: [[150, 140, 120], [255, 248, 228]],
   seed: 7130,
