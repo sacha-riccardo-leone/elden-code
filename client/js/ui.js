@@ -79,6 +79,7 @@ export class UI {
     this.inspectTimer = 0;
     this.bannerQueue = [];
     this.bannerBusy = false;
+    this.sound = null; // (what's heard as a banner is revealed: main.js, audio.js)
     this.v = new THREE.Vector3();
     this.buildFan();
     $('#inspect-close').addEventListener('click', () => this.onDeselect && this.onDeselect());
@@ -150,6 +151,7 @@ export class UI {
     this.bannerEl.classList.remove('show');
     void this.bannerEl.offsetWidth;
     this.bannerEl.classList.add('show');
+    this.sound?.play('ui-banner');
     this.bannerTimer = setTimeout(() => this.nextBanner(), 3900);
   }
 

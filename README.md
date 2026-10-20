@@ -873,9 +873,10 @@ comes up, so nothing blinks.
 ## Sound
 
 The Lands Between have begun to be heard, the Guardian Golem and Wynn first (`client/js/audio.js`,
-Web Audio). Their sounds are cut from Sacha's recordings (`client/assets/sfx/Golem Guardian` and
-`client/assets/sfx/Wynn`, kept as they are and never deployed) into `client/assets/sfx/golem` and
-`client/assets/sfx/ronin`: small MP3 clips, about 0.6 MB in all. Each footstep of the two footstep
+Web Audio), and every banner. Their sounds are cut from Sacha's recordings (`client/assets/sfx/Golem
+Guardian`, `client/assets/sfx/Wynn` and the banner's loose in `client/assets/sfx`, kept as they are
+and never deployed) into `client/assets/sfx/golem`, `client/assets/sfx/ronin` and
+`client/assets/sfx/ui`: small MP3 clips, about 0.7 MB in all. Each footstep of the two footstep
 recordings is cut out on its own (11 steps), every other sound from where it starts, and each is
 levelled to one peak (`dontuse.wav` is left out, as named). `node scripts/cut-sfx.mjs [set]` cuts
 them again, from the recordings, whenever they change.
@@ -897,12 +898,14 @@ them again, from the recordings, whenever they change.
 - **Wynn** (only him; whoever plays him, thee or another), each on the drawing where it happens:
   - `slash` with every blow but his Iaijutsu's, on the drawing where his blade cuts;
   - `ult_pressed` as his Iaijutsu is loosed (thine, as R is pressed), as he takes his stance;
-  - `unsheathe` as the blade leaves the scabbard half a second on, and `blade_shine` with it as the
-    glare flashes up on the blade (from 2.5 s in its recording, where the shine is: before it, a
-    click and hiss);
+  - `blade_shine` half a second on, as the blade leaves the scabbard and the glare flashes up on it
+    (from 2.5 s in its recording, where the shine is: before it, a click and hiss);
   - `ult_slash` on each of his eight cuts (from where it's loud, 2.36 s in: it's silent till 2.1 s,
-    then swells), short enough that they stay apart;
-  - `unsheathe` again as the blade goes home in its scabbard and every cut lands.
+    then swells), short enough that they stay apart.
+- **Every banner** (a great enemy approaching, felled, prevailing or turning away, *You Died*, a
+  region rising, a quest fulfilled or failed): `announcement_banner_reveal` as it's revealed, from
+  its first sound (0.65 s in: silent before), swelling as the banner comes up and dying away about
+  as it goes; heard alike wherever you are.
 - **Where it happens:** quieter the farther it is from where the camera looks, to the left or the
   right as it shows on the screen, and never too many of one at once (eight meteors).
 - **Music** (Sacha's pieces, `client/assets/sfx/Music`, kept as they are and never deployed,
@@ -1051,7 +1054,7 @@ client/js/gate.js       where the title and the world meet: set out, and ready
 client/js/sprites.js    procedural pixel-art characters (base body + equipment layers)
 client/js/world.js      sky, far skyline, mist, islands, bridges, pooled lights
 client/js/lights.js     what lights the world besides its lamps: effects, and what glows on characters
-client/js/audio.js      sound: the clips, played where and when things happen (the Golem's), and the music
+client/js/audio.js      sound: the clips, played where and when things happen (the Golem's, Wynn's, the banners'), and the music
 client/js/daylight.js   day and night: the clock, and how every light, colour and the grade change
 client/js/region.js     one project's island and its stations
 client/js/hub.js        Roundtable Hold

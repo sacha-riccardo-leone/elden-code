@@ -55,11 +55,14 @@ const rig = new CameraRig(camera);
 // what's heard, from where the camera looks (audio.js); it may begin once thou settest out
 const sound = new Sound();
 sound.view = { camera, focus: rig.target };
+sound.load('ronin'); // (Wynn's: he may strike at any time, thou or another)
+sound.load('ui'); // (the banners')
 const particles = new Particles(scene);
 const world = new World(scene, particles);
 setLights(world); // (what glows lights the world round it: lights.js)
 const nav = new Nav(world);
 const ui = new UI(camera, canvas);
+ui.sound = sound;
 // The Stormbound Knight is worn by Maren (thee); the sessions share the other heroes.
 // (the great enemies of the arena too, fight.js: should one's art fail, only the other comes)
 // (and the spectres called up when every hero is busy, director.js: without their art, sessions
@@ -418,7 +421,6 @@ function begin() {
   entered = true;
   // (thou'st clicked to set out: sound may begin, and any click or key after wakes it if it's held)
   sound.unlock();
-  sound.load('ronin'); // (Wynn's: he may strike at any time, thou or another)
   window.addEventListener('pointerdown', () => sound.unlock());
   window.addEventListener('keydown', () => sound.unlock());
   spawnPlayer();

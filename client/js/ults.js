@@ -364,7 +364,6 @@ export const ULTS = {
         n.body.play(drawn ? 'stance' : 'idle');
         if (!done) {
           done = true;
-          fight.ctx.sound?.play('ronin-unsheathe', { at: [n.pos.x, n.pos.y] }); // (the blade sheathed)
           for (const cut of cuts) cut.flare();
           hit(32, new THREE.Vector3(c.x, 2, c.y));
           fx.add(new Burst(fx, { school: 'steel', at: [c.x, 2, c.y], size: 5, sparks: 70 }));

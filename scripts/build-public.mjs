@@ -91,7 +91,7 @@ walk(path.join(CLIENT, 'assets'), (p) => p.endsWith('.json') && !p.endsWith('-sh
 copy(path.join(CLIENT, 'assets', 'fx', 'grace-core.png'), path.join(OUT, 'assets', 'fx', 'grace-core.png'));
 // the sounds, each set as the game cut it (client/assets/sfx/<set>: audio.js's SOUNDS), not the
 // recordings beside them it was cut from
-for (const set of ['golem', 'ronin']) walk(path.join(CLIENT, 'assets', 'sfx', set), (p) => p.endsWith('.mp3'), (p) => copy(p, path.join(OUT, rel(p))));
+for (const set of ['golem', 'ronin', 'ui']) walk(path.join(CLIENT, 'assets', 'sfx', set), (p) => p.endsWith('.mp3'), (p) => copy(p, path.join(OUT, rel(p))));
 // and the music, as levelled (client/assets/music: audio.js's MUSIC)
 walk(path.join(CLIENT, 'assets', 'music'), (p) => p.endsWith('.mp3'), (p) => copy(p, path.join(OUT, rel(p))));
 

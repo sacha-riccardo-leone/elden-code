@@ -5,6 +5,7 @@
 // ffmpeg. The cut points were found from the recordings' loudness (each sound's sudden rise).
 //   golem  the Guardian Golem's (golem.js), from "Golem Guardian"
 //   ronin  Wynn's (heroes/ronin.js, ults.js), from "Wynn"
+//   ui     the banners' (ui.js), from the recordings loose in client/assets/sfx itself
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -43,14 +44,20 @@ const SETS = {
       ['slash', 'slash.mp3', 0.06, 0.5, -4, 0, 0.15],
       // his Iaijutsu loosed (thine as R is pressed), whole
       ['ult', 'ult_pressed.wav', 0, 1.3, -3, 0, 0.3],
-      // the blade drawn from its scabbard (and sheathed again), from its rise
-      ['unsheathe', 'unsheathe.wav', 0.05, 1.0, -3, 0, 0.4],
       // the glare on the blade as he looses it: the shine itself, at 2.53 s (before it, a click and
       // half a second of hiss)
       ['shine', 'blade_shine.m4a', 2.5, 1.1, -4, 0, 0.5],
       // each cut of his Iaijutsu: from where it's loud already (it swells from 2.12 s, silent before
       // that), and short, so that eight of them a fifth of a second apart stay apart
       ['cut', 'ult_slash.wav', 2.36, 0.7, -3, 0, 0.35],
+    ],
+  },
+  ui: {
+    from: '.',
+    clips: [
+      // a banner revealed: from its first sound (0.65 s: silent before), swelling as the banner
+      // comes up, and dying away about as it goes
+      ['banner', 'announcement_banner_reveal.wav', 0.64, 4.4, -3, 0, 1.2],
     ],
   },
 };

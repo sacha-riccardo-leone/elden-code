@@ -32,9 +32,10 @@ export const SOUNDS = {
   // Wynn's, and nobody else's (heroes/ronin.js: on the drawings where they happen; ults.js)
   'ronin-slash': { set: 'ronin', clips: ['slash'], volume: 0.75, vary: 0.06, most: 3, half: 18 },
   'ronin-ult': { set: 'ronin', clips: ['ult'], volume: 0.9, most: 1, half: 22 },
-  'ronin-unsheathe': { set: 'ronin', clips: ['unsheathe'], volume: 0.8, most: 2, half: 18 },
   'ronin-shine': { set: 'ronin', clips: ['shine'], volume: 0.7, most: 1, half: 18 },
   'ronin-cut': { set: 'ronin', clips: ['cut'], volume: 0.8, vary: 0.06, most: 4, half: 22 },
+  // a banner revealed (ui.js), heard alike wherever one is
+  'ui-banner': { set: 'ui', clips: ['banner'], volume: 0.65, most: 2 },
 };
 const LEAD = 0.04;
 
@@ -46,9 +47,9 @@ const LEAD = 0.04;
 const TUNES = '/assets/music/';
 export const MUSIC = {
   // while no great enemy stands in the arena
-  calm: { pieces: ['ambient-1', 'ambient-2'], volume: 0.45, gap: 3, wait: 4, fadeIn: 4, fadeOut: 2.5 },
+  calm: { pieces: ['ambient-1', 'ambient-2'], volume: 0.22, gap: 3, wait: 4, fadeIn: 4, fadeOut: 2.5 },
   // as one enters it (fight.js), till he's felled or the fight is over
-  fight: { pieces: ['arena'], volume: 0.55, gap: 0, wait: 0, fadeIn: 0.3, fadeOut: 3, fresh: true, loop: true },
+  fight: { pieces: ['arena'], volume: 0.28, gap: 0, wait: 0, fadeIn: 0.3, fadeOut: 3, fresh: true, loop: true },
 };
 
 export class Sound {
@@ -59,6 +60,7 @@ export class Sound {
     try { stored = localStorage.getItem(STORE); } catch {}
     this.on = stored !== 'off';
     this.clips = new Map(); // clip path → AudioBuffer (or the promise of it)
+    this.bytes = new Map(); // clip path → the promise of its file, fetched (load)
     this.voices = new Map(); // sound name → what's sounding of it
     this.view = null; // { camera, focus }: where it's heard from (main.js)
     this.log = []; // (what was played lately: [seconds, name])
@@ -81,17 +83,19 @@ export class Sound {
     this.music.unlock();
   }
 
-  // Fetches and decodes a set's clips (once), ready for when they're wanted.
+  // Fetches and decodes a set's clips (once), ready for when they're wanted: fetched at once (even
+  // under the title screen), decoded as soon as sound may begin (unlock), so that nothing's missed
+  // for not being ready in the first moments after thou settest out.
   load(set) {
-    if (!this.ctx) { (this.wanted ??= new Set()).add(set); return; }
+    if (!this.ctx) (this.wanted ??= new Set()).add(set);
     for (const s of Object.values(SOUNDS)) {
       if (s.set !== set) continue;
       for (const clip of s.clips) {
         const path = `${SET}${set}/${clip}.mp3`;
-        if (this.clips.has(path)) continue;
-        this.clips.set(path, fetch(path)
-          .then((r) => r.arrayBuffer())
-          .then((b) => this.ctx.decodeAudioData(b))
+        if (!this.bytes.has(path)) this.bytes.set(path, fetch(path).then((r) => r.arrayBuffer()).catch(() => null));
+        if (!this.ctx || this.clips.has(path)) continue;
+        this.clips.set(path, this.bytes.get(path)
+          .then((b) => (b ? this.ctx.decodeAudioData(b) : Promise.reject(new Error('not fetched'))))
           .then((buf) => { this.clips.set(path, buf); return buf; })
           .catch((err) => { console.warn(`Sound ${path} unavailable`, err); this.clips.delete(path); }));
       }
