@@ -141,6 +141,7 @@ export const ULTS = {
         trail: [...motesOf('glintstone'), '#ffffff'], trailRate: 160, trailSize: 0.09, light: shine('glintstone', 45, 15),
         onHit: (at) => {
           hit(22, at);
+          fight.ctx.sound?.play('sorceress-ult-hit', { at: [at.x, at.z] });
           fx.add(new Burst(fx, { school: 'glintstone', at: [at.x, at.y, at.z], size: 4, sparks: 60 }));
           fight.ctx.rig?.shake?.(0.35);
         },
@@ -224,6 +225,7 @@ export const ULTS = {
         if (k < 1) return true;
         n.ultLift = null;
         hit(28, new THREE.Vector3(to.x, 1, to.y));
+        fight.ctx.sound?.play('champion-land', { at: [to.x, to.y] });
         if (drawn) {
           // he lands kneeling, the maul driven into the floor before him; where its head strikes, the
           // ground explodes in gold, stones flying (drawn, its pixels twice his; just behind him, so
@@ -260,11 +262,13 @@ export const ULTS = {
           const r = Math.sqrt(Math.random()) * 2.6;
           // (her bolts, drawn at twice her own pixel size: tall enough to fall from out of sight)
           fx.add(new Bolt(fx, { x: b.pos.x + Math.cos(a) * r, z: b.pos.y + Math.sin(a) * r * 0.7, k, life: 0.3, art: 'maren-bolt', px: 0.06, light: RED_STORM.bolt, onHit: (at) => hit(1, at) }));
+          fight.ctx.sound?.play('knight-bolt', { at: [b.pos.x, b.pos.y] });
           fight.ctx.rig?.shake?.(0.12);
           k += 1;
         }
         if (t < 2) return true;
         fx.add(new Bolt(fx, { x: b.pos.x, z: b.pos.y + 0.1, wide: true, height: 18, life: 0.5, art: 'maren-great-bolt', px: 0.075, light: RED_STORM.great, onHit: (at) => hit(14, at) }));
+        fight.ctx.sound?.play('knight-great', { at: [b.pos.x, b.pos.y] });
         fx.add(new Burst(fx, { school: 'storm', at: [b.pos.x, 1.5, b.pos.y], size: 4.4, sparks: 70, light: false })); // (the great bolt's own light is there)
         fight.ctx.rig?.shake?.(0.75);
         return false;
@@ -276,6 +280,7 @@ export const ULTS = {
     // Verdict: the giant blade of light raised back over its shoulder, then the sweep it ends in,
     // `stand`; else he raises his sword to the sky, the giant raising its own as he does)
     name: 'Radiant Verdict', pose: ['pose'], fallback: ['send'], release: 'pose', stand: { scale: 1.8, gather: 'ult', release: 'sweep' },
+    heard: { start: 'paladin-ult', stand: 'paladin-stand' }, // (as it's loosed, and as the giant rises: audio.js)
     run({ fight, fx, n, b, hit }) {
       // drawn, the wave leaves the giant's blade swept low ahead of him (never from past the enemy)
       const drawn = !!n.body.sheet.anims.sweep;
@@ -392,6 +397,7 @@ export const ULTS = {
         const oy = 1.1 + (i % 4) * 0.45; // (how high in him it's meant to bite: it drifts to it as it flies)
         const oz = ((i % 3) - 1) * 0.25;
         const from = [n.pos.x + dir[0] * reach, up + ((i % 3) - 1) * 0.2, n.pos.y + dir[1] * reach + oz];
+        fight.ctx.sound?.play('bandit-woosh', { at: [from[0], from[2]], delay: i * 0.07 }); // (as it leaves his hand)
         fx.add(new Missile(fx, {
           ...look, from, dir, guide: { from: [from[0], oy, from[2]], dir }, speed: 20, delay: i * 0.07, life: 0.8, turn: 6,
           strike: (x, z) => (b.alive && meets(x, z, dir, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, AIM.spell, AIM.early) ? struckOf(b) : null),
@@ -438,6 +444,7 @@ export const ULTS = {
           },
           // (and, as it bursts, its ice flung out every way)
           onShatter: huge ? () => {
+            fight.ctx.sound?.play('frost-ult-end', { at: [x, z] });
             fx.add(new Burst(fx, { school: 'frost', at: [x, 1.6, z], size: 4.5, sparks: 70 }));
             fx.particles.emit({
               pos: [x, 2, z], spread: [0.8, 1.6, 0.5], vel: [0, 3.5, 0], velSpread: [5, 3, 2.4],
@@ -497,6 +504,7 @@ export class Ults {
     const fight = this.placeOf(n);
     const b = fight?.boss;
     if (!u || !b) return false;
+    this.heard(n, u.heard?.start);
     if (u.aim && !dir) dir = straightAt(n, b);
     n.body.facing = dir?.[0] ? (dir[0] > 0 ? 1 : -1) : b.pos.x >= n.pos.x ? 1 : -1;
     // nobody watching (thou art not on the arena, fallen and resting at the Hold): it's simply
@@ -565,6 +573,7 @@ export class Ults {
   startQuiet(n, { place, b, dir = null }) {
     const u = this.of(n);
     if (!u || !b || n.dead) return false;
+    this.heard(n, u.heard?.start);
     if (u.aim && !dir) dir = straightAt(n, b);
     n.body.facing = dir?.[0] ? (dir[0] > 0 ? 1 : -1) : b.pos.x >= n.pos.x ? 1 : -1;
     const pose = poseOf(u, n);
@@ -611,6 +620,7 @@ export class Ults {
       }
     }
     q.aura.step(dt, q.t > CINE.aura && q.t < q.at + 0.25 ? 1 : 0);
+    if (q.stand && !q.standHeard && q.t > CINE.grey) { q.standHeard = true; this.heard(n, u.heard?.stand); }
     q.stand?.step(dt, q.t > CINE.grey && q.t < q.at + 0.35 ? 1 : 0, n.action?.kind === 'ult');
     if (q.released && q.t >= q.at + CINE.back + 0.2) {
       q.aura.dispose();
@@ -650,8 +660,14 @@ export class Ults {
     a.aura.step(dt, a.t > CINE.aura && a.t < a.at + 0.25 ? 1 : 0);
     // (the giant rises as the world goes grey, swings with them, and goes once the blow is struck,
     // keeping the pose it struck in)
+    if (a.stand && !a.standHeard && a.t > CINE.grey) { a.standHeard = true; this.heard(a.n, a.u.heard?.stand); }
     a.stand?.step(dt, a.t > CINE.grey && a.t < a.at + 0.35 ? 1 : 0, a.n.action?.kind === 'ult');
     if (a.released && a.t >= a.at + CINE.back + 0.2) this.finish();
+  }
+
+  // One of an ultimate's sounds (its `heard`: audio.js), where n stands.
+  heard(n, name) {
+    if (name) this.ctx.sound?.play(name, { at: [n.pos.x, n.pos.y] });
   }
 
   // It strikes: the world moves again.

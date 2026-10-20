@@ -872,14 +872,15 @@ comes up, so nothing blinks.
 
 ## Sound
 
-The Lands Between have begun to be heard, the Guardian Golem and Wynn first (`client/js/audio.js`,
-Web Audio), and every banner. Their sounds are cut from Sacha's recordings (`client/assets/sfx/Golem
-Guardian`, `client/assets/sfx/Wynn` and the banner's loose in `client/assets/sfx`, kept as they are
-and never deployed) into `client/assets/sfx/golem`, `client/assets/sfx/ronin` and
-`client/assets/sfx/ui`: small MP3 clips, about 0.7 MB in all. Each footstep of the two footstep
-recordings is cut out on its own (11 steps), every other sound from where it starts, and each is
-levelled to one peak (`dontuse.wav` is left out, as named). `node scripts/cut-sfx.mjs [set]` cuts
-them again, from the recordings, whenever they change.
+The Lands Between are heard (`client/js/audio.js`, Web Audio): both great enemies, every hero's
+ultimate and spells, the stations, the spectres, the training yard's dummies, the banners and
+setting out. The sounds are cut from Sacha's recordings (`client/assets/sfx/<their folder>`, one per
+hero or kind, and a few loose in `client/assets/sfx`, kept as they are and never deployed) into a set
+each (`client/assets/sfx/<set>`): small MP3 clips, about 2.5 MB in all. A recording that holds many
+of one sound (footsteps, landings, lightning) is cut into each of them, every other sound from where
+it starts, each levelled to one peak; a recording's 1 and 2 (and 3) are heard together, levelled as
+one (`dontuse.wav` is left out, as named). `node scripts/cut-sfx.mjs [set]` cuts them again, from
+the recordings, whenever they change; its table says what each clip is cut from.
 
 - **On the moment of what makes it:**
   - a footstep as each of his feet is set down: the walk's first and fifth drawings, where a foot
@@ -905,6 +906,33 @@ them again, from the recordings, whenever they change.
   - `blade_shine` again, backward, as the glare flashes on the blade once more at the end: its ring
     swelling into the shine and gone as the blade goes home;
   - `ult_damage_dealt` as the blade goes home and all of it lands on him at once.
+- **Fenrath** (`client/assets/sfx/Fenrath`):
+  - `fenrath_appearing` as he comes into the arena (from its first sound, 0.9 s in);
+  - his great attack: `roar` and `fenrath_big_atk_start` as he roars at the sky; as he springs up,
+    `fenrath_big_atk_during` and `fenrath_big_atk_during2` together, on till it ends, then dying
+    away; `fenrath_big_atk_sword_hit` on each cut of the ghost of his sword;
+  - `fenrath_jump_landing` each time he lands, from a leap or from his great attack (the recording
+    holds three landings: one at random).
+- **The ultimates**:
+  - Maren's Red Storm: each of its twelve bolts as it strikes, one of six strikes cut from
+    `maren_ult_small_lightning`, and the great bolt that ends it, `maren_ult_big_lightning` (from its
+    strike, 4.36 s in, its thunder rolling on);
+  - Aurelion's Radiant Verdict: `aurelion_ult_start1_at4.5s` as it's loosed (its third, from 4.82 s,
+    as its name says), and `aurelion_stand_appear` as the giant of his light rises behind him;
+  - Ruadan's Hammerfall: `radahn_ult_landing_explosion` as the maul strikes and the gold explodes;
+  - Fortuna's Frostfall: `Fortuna_ult_debris_explosion_end` as its mass of ice bursts;
+  - Corisande's Glintstone Arrow: `ult_hit` as it strikes home;
+  - Ulric's Tenfold Spears: `spear_woosh_1`, `_2` and `_3` together as each spear leaves his hand
+    (and as he throws his one spear, right click).
+- **The spells**: Corisande's `Sellen_projectile` and `_2` together as she looses one; Vael's
+  `Vael_blood_blob_projectile` as she looses her gout of blood; Solenne's `magic-spell` with a lance
+  or a halo of light, and the healing light as light falls on him; Fortuna's
+  `Fortuna_spell_atk_lands` and `_2` together as hers lands on what it struck.
+- **The world**: `anvil-hit-1` and `-2` together with every hammer blow at a forge;
+  `summoning-magic-spell` as a spirit ash (a subagent) is summoned; `noble_sorcerer` and `_2`
+  together as a spectre of the Noble Sorcerers is called up at its grace; `dummy_breaking`, `_2` and
+  `_3` together as a straw dummy of the training yard bursts; and
+  `after_click_start_your_tarnished_journey` as you set out from the title.
 - **Every banner** (a great enemy approaching, felled, prevailing or turning away, *You Died*, a
   region rising, a quest fulfilled or failed): `announcement_banner_reveal` as it's revealed, from
   its first sound (0.65 s in: silent before), swelling as the banner comes up and dying away about
@@ -1056,7 +1084,17 @@ Shown in the game too, at the foot of the **?** panel.
   - "[yasomasa_or_akazawa_inspired_bass_kick_explosion_drum_09082025](https://freesound.org/s/825797/)"
     by Artninja: four of his footsteps (`golem_footsteps_type2.wav`);
   - "[Rocks - Crumbling / Falling - Designed Rocks](https://freesound.org/s/555048/)" by Gregor
-    Quendel: his stone crumbling as he falls (`golem_passing_out_start_2.wav`).
+    Quendel: his stone crumbling as he falls (`golem_passing_out_start_2.wav`);
+  - "[Magic Healing Spell SFX - Fantasy RPG Restore Effect](https://freesound.org/s/853303/)" by
+    TommasoMotteran (credited as Coghezzi, as asked): Solenne's light falling.
+- **From [Freesound](https://freesound.org)**, under
+  [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) (non-commercial: fine for this
+  free demo, not for a game that's sold): "[DSGNVocl_Weird Whispering Spells.Dry_EM](https://freesound.org/s/763000/)"
+  by newlocknew, the spectres' whispering.
+- **Named in the recordings themselves**: Fenrath coming, by Mattias "MATRIXXX" Lahoud (Creative
+  Commons Attribution); his landings, by Nox_Sound; his great attack's drone, by In Motion Audio;
+  Aurelion's verdict, from *Melee Weapons* by Just Sound Effects (Robert Millotat); setting out, by
+  Jake Fielding.
 - **The banners' sound**: "Campana" by Hugo Barbero (Banco de sonidos), `announcement_banner_reveal.wav`.
 - **Music**: "Defending the Village" by Benjamin Botkin (`ambient_1`), "Deliverance" by Aaron Paul
   Low (`ambient_2`), "Halls of Ancients" by Ian Aisling (`arena`).

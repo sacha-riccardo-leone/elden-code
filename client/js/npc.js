@@ -1011,6 +1011,7 @@ export class Npc {
 
   setSpirits(n) {
     const alive = this.spirits.filter((s) => !s.leaving);
+    if (alive.length < n) this.ctx.sound?.play('work-summon', { at: [this.pos.x, this.pos.y] }); // (summoned: audio.js)
     while (alive.length < n) {
       const s = new Spirit(this, alive.length);
       this.spirits.push(s);
@@ -1046,6 +1047,7 @@ export class Npc {
     this.pos.set(x, z);
     this.fade = 0;
     this.sparkle(70);
+    this.ctx.sound?.play('spectre-appear', { at: [x, z] }); // (its whispering spells: audio.js)
   }
 
   // Its work done, it fades away in blue sparkles (and is gone: director.update).
@@ -1512,6 +1514,7 @@ export class Npc {
     const region = this.using ? this.using.region : this.region;
     const now = performance.now() / 1000;
     if (station === 'forge') {
+      this.ctx.sound?.play('work-anvil', { at: [this.pos.x, this.pos.y] }); // (the hammer on the anvil: audio.js)
       if (this.using || (this.slot && this.slot.index >= 0 && this.slot.index < 2)) region.forgeStrike();
       else this.ctx.particles.emit({
         pos: [this.pos.x + this.body.facing * 0.6, groundAt(this.pos.x, this.pos.y) + 0.6, this.pos.y], spread: [0.05, 0.05, 0.05], vel: [0, 1.6, 0],

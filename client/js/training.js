@@ -156,6 +156,7 @@ class Dummy {
     if (!this.great) this.hp -= amount;
     if (this.hp <= 0) {
       this.broken = { t: 0 };
+      this.training.ctx.sound?.play('yard-break', { at: [this.pos.x, this.pos.y] }); // (audio.js)
       this.wobble = null;
       this.show(F.burst);
       this.training.chips(this, 46, 3.4);

@@ -256,6 +256,20 @@ const SPELLS = {
   ],
 };
 
+// What a spell is heard as (audio.js), by school and by which of its spells (in the order listed
+// above): `cast` as it's loosed (Corisande's, Vael's gout of blood, Solenne's), `land` as it lands
+// on what it struck (Fortuna's).
+const HEARD = {
+  glintstone: [{ cast: 'sorceress-projectile' }, { cast: 'sorceress-projectile' }, { cast: 'sorceress-projectile' }],
+  blood: [{ cast: 'bloodbender-blob' }],
+  holy: [{ cast: 'holy-spell' }, { cast: 'holy-spell' }, { cast: 'holy-light' }],
+  frost: [{ land: 'frost-lands' }, { land: 'frost-lands' }],
+};
+// A sound of n's (audio.js), heard where n stands (or at x, z).
+const heard = (n, name, x = n.pos.x, z = n.pos.y) => {
+  if (name) n.ctx?.sound?.play(name, { at: [x, z] });
+};
+
 // n casts one of its spells. `target()`: the point it's cast at (followed, homing: a fighter's at
 // him); thine, `aim` (aimSpell), straight along thy line, striking what it meets; or neither, straight
 // on `dir` ([dx, dz]) into nothing. `hit(at, share, struck)`: it lands, `share` of an ordinary
@@ -267,8 +281,11 @@ export function castSpell(fx, n, { target = null, dir = null, aim = null, hit })
   if (!list) return;
   const from = aim ? aim.from : muzzleOf(n);
   const trail = motesOf(school);
+  const spell = pick(list);
+  const sounds = HEARD[school]?.[list.indexOf(spell)] || {};
   const land = (at, share, size = 1, struck = null) => {
     fx.add(new Burst(fx, { school, at: [at.x, at.y, at.z], size: 1.3 * size, ring: false, sparks: Math.round(14 * size) }));
+    heard(n, sounds.land, at.x, at.z);
     hit(at, share, struck);
   };
   const c = {
@@ -323,7 +340,8 @@ export function castSpell(fx, n, { target = null, dir = null, aim = null, hit })
       fx.add(new Beam(fx, { school, from, to, width, art, tile, onHit: target ? (at) => land(at, share) : null }));
     },
   };
-  pick(list).cast(c);
+  heard(n, sounds.cast);
+  spell.cast(c);
 }
 
 // Ulric's spear, thrown (his right click, a spell to him: pilot.js): his own spear, drawn as his
@@ -337,6 +355,7 @@ function throwSpear(fx, n, { aim = null, dir = null, hit }) {
   const line = aim || { dir: dir || [facing, 0], from: muzzleOf(n), reach: AIM.reach, meets: () => null };
   const { from, dir: way } = line;
   const look = lookOf('ulric-spear', n.body.sheet.px, { map: TEX.spear(), w: 2.1, h: 2.1 * 9 / 70 });
+  heard(n, 'bandit-woosh');
   fx.add(new Missile(fx, {
     ...look, from, dir: way, guide: { from, dir: way }, speed: SPEAR.speed, turn: 14, life: line.reach / SPEAR.speed, strike: line.meets,
     land: SPEAR.back,

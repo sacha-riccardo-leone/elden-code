@@ -3,9 +3,21 @@
 // client/assets/sfx/<set>: each sound from where it starts (a footstep alone, where a recording holds
 // several, a few seconds apart), levelled to one peak, mono MP3. Every set, or those named. Needs
 // ffmpeg. The cut points were found from the recordings' loudness (each sound's sudden rise).
-//   golem  the Guardian Golem's (golem.js), from "Golem Guardian"
-//   ronin  Wynn's (heroes/ronin.js, ults.js), from "Wynn"
-//   ui     the banners' (ui.js), from the recordings loose in client/assets/sfx itself
+//   golem        the Guardian Golem's (golem.js), from "Golem Guardian"
+//   boss         Fenrath's (fight.js), from "Fenrath"
+//   ronin        Wynn's (heroes/ronin.js, ults.js), from "Wynn"
+//   knight       Maren's Red Storm (ults.js), from "Marren"
+//   paladin      Aurelion's Radiant Verdict and its giant (ults.js), from "Aurelion"
+//   champion     Ruadan's Hammerfall (ults.js), from "Ruadan"
+//   frost        Fortuna's spells and Frostfall (combat.js, ults.js), from "Fortuna"
+//   sorceress    Corisande's spells and Glintstone Arrow (combat.js, ults.js), from "Sellen"
+//   bloodbender  Vael's gout of blood (combat.js), from "Vael"
+//   holy         Solenne's spells (combat.js), from "Holy magic"
+//   bandit       Ulric's spears (combat.js, ults.js), from "Ulric"
+//   spectre      the Noble Sorcerers' spectres (npc.js), from "Noble sorcerers"
+//   work         the stations' (npc.js), from "Working"
+//   yard         the training yard's straw dummies (training.js), from "dummy"
+//   ui           the banners' and setting out's (ui.js, main.js), from those loose in client/assets/sfx
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -16,7 +28,8 @@ const SFX = path.join(repo, 'client/assets/sfx');
 // Each set: the folder its recordings are in (never the set's own name, not even but for its case:
 // on Windows the two would be one folder), and its clips: [name, source file, start (s), length (s),
 // peak (dBFS), fade in (s), fade out (s), and { reverse } to have that stretch played backward (its
-// fades then at the ends of what's heard)].
+// fades then at the ends of what's heard), { group } for clips heard together (a recording's 1 and
+// 2: audio.js, `layer`), levelled as one so that they keep the balance they were made with].
 const SETS = {
   golem: {
     from: 'Golem Guardian',
@@ -64,6 +77,124 @@ const SETS = {
       // a banner revealed: from its first sound (0.65 s: silent before), swelling as the banner
       // comes up, and dying away about as it goes
       ['banner', 'announcement_banner_reveal.wav', 0.64, 4.4, -3, 0, 1.2],
+      // setting out, the title's button clicked: from its first sound
+      ['start', 'after_click_start_your_tarnished_journey.wav', 0.2, 4.6, -3, 0, 0.8],
+    ],
+  },
+  boss: {
+    from: 'Fenrath',
+    clips: [
+      // as he comes into the arena (from its first sound, 0.9 s in)
+      ['appear', 'fenrath_appearing.wav', 0.9, 4.9, -3, 0, 1.0],
+      // his great attack: his roar, and the rumble beginning with it
+      ['roar', 'roar.wav', 0, 3.6, -2, 0, 0.6],
+      ['wrath', 'fenrath_big_atk_start.mp3', 0, 3.9, -3, 0, 0.6],
+      // while it goes on, from his leap up (the two together; stopped as it ends)
+      ['wrath-during-1', 'fenrath_big_atk_during.wav', 0, 12, -4, 0, 1.5, { group: 'during' }],
+      ['wrath-during-2', 'fenrath_big_atk_during2.wav', 0, 12, -4, 0, 1.5, { group: 'during' }],
+      // each cut of the ghost of his sword
+      ['sword', 'fenrath_big_atk_sword_hit.wav', 0, 1.9, -2, 0, 0.5],
+      // landing (the recording holds three, one picked each time)
+      ['land-1', 'fenrath_jump_landing.wav', 0, 2.0, -2, 0, 0.6],
+      ['land-2', 'fenrath_jump_landing.wav', 2.98, 3.8, -2, 0, 1.0],
+      ['land-3', 'fenrath_jump_landing.wav', 7.98, 4.8, -2, 0, 1.2],
+    ],
+  },
+  knight: {
+    from: 'Marren',
+    clips: [
+      // the Red Storm's bolts: six strikes out of its thunder, one picked for each bolt
+      ...[8.78, 9.38, 10.53, 11.13, 12.53, 14.33].map((t, i) => [`bolt-${i + 1}`, 'maren_ult_small_lightning.mp3', t - 0.02, 0.6, -3, 0, 0.3]),
+      // and the great bolt that ends it, its thunder rolling on
+      ['great', 'maren_ult_big_lightning.wav', 4.36, 6.0, -2, 0, 2.0],
+    ],
+  },
+  paladin: {
+    from: 'Aurelion',
+    clips: [
+      // his Radiant Verdict loosed: the recording's third (from 4.82 s), as named
+      ['ult', 'aurelion_ult_start1_at4.5s.wav', 4.82, 1.6, -3, 0, 0.5],
+      // the giant of his light rising behind him
+      ['stand', 'aurelion_stand_appear.wav', 0, 3.0, -3, 0, 0.8],
+    ],
+  },
+  champion: {
+    from: 'Ruadan',
+    clips: [
+      // Hammerfall: the maul's head driven into the floor, and the golden explosion
+      ['land', 'radahn_ult_landing_explosion.wav', 0, 5.5, -2, 0, 1.5],
+    ],
+  },
+  frost: {
+    from: 'Fortuna',
+    clips: [
+      // a spell of hers landing (the two together, from each one's first sound)
+      ['lands-1', 'Fortuna_spell_atk_lands.wav', 0.73, 1.1, -3, 0, 0.4, { group: 'lands' }],
+      ['lands-2', 'Fortuna_spell_atk_lands_2.wav', 0.02, 1.1, -3, 0, 0.4, { group: 'lands' }],
+      // Frostfall's mass of ice bursting (from its first sound, 1.78 s in)
+      ['ult-end', 'Fortuna_ult_debris_explosion_end.wav', 1.76, 1.5, -2, 0, 0.5],
+    ],
+  },
+  sorceress: {
+    from: 'Sellen',
+    clips: [
+      // a spell of hers loosed (the two together)
+      ['projectile-1', 'Sellen_projectile.wav', 0.08, 1.4, -4, 0, 0.5, { group: 'projectile' }],
+      ['projectile-2', 'Sellen_projectile_2.wav', 0, 1.6, -4, 0, 0.5, { group: 'projectile' }],
+      // her Glintstone Arrow striking home
+      ['ult-hit', 'ult_hit.wav', 0.08, 2.4, -2, 0, 0.6],
+    ],
+  },
+  bloodbender: {
+    from: 'Vael',
+    clips: [
+      // her gout of blood, loosed (from where it swells, 0.22 s in)
+      ['blob', 'Vael_blood_blob_projectile.m4a', 0.22, 1.4, -3, 0, 0.3],
+    ],
+  },
+  holy: {
+    from: 'Holy magic',
+    clips: [
+      // a lance or a halo of holy light loosed (from where it swells)
+      ['spell', 'magic-spell.wav', 0.15, 2.2, -3, 0, 0.6],
+      // light falling on him
+      ['light', '853303__tommasomotteran__magic-healing-spell-sfx-fantasy-rpg-restore-effect.wav', 0.1, 2.2, -3, 0, 0.5],
+    ],
+  },
+  bandit: {
+    from: 'Ulric',
+    clips: [
+      // a spear leaving his hand (the three together)
+      ['woosh-1', 'spear_woosh_1.wav', 0, 0.09, -4, 0, 0.02, { group: 'woosh' }],
+      ['woosh-2', 'spear_woosh_2.wav', 0, 0.08, -4, 0, 0.02, { group: 'woosh' }],
+      ['woosh-3', 'spear_woosh_3.wav', 0, 0.1, -4, 0, 0.02, { group: 'woosh' }],
+    ],
+  },
+  spectre: {
+    from: 'Noble sorcerers',
+    clips: [
+      // a spectre called up (the two together: whispering spells, and a swell)
+      ['appear-1', 'noble_sorcerer.wav', 0, 9, -6, 1.0, 3.0, { group: 'appear' }],
+      ['appear-2', 'noble_sorcerer_2.wav', 0.4, 9, -6, 0, 3.0, { group: 'appear' }],
+    ],
+  },
+  work: {
+    from: 'Working',
+    clips: [
+      // a hammer blow on the anvil (the two together, from each one's ring)
+      ['anvil-1', 'anvil-hit-1.wav', 0.22, 1.0, -4, 0, 0.4, { group: 'anvil' }],
+      ['anvil-2', 'anvil-hit-2.wav', 0.36, 1.0, -4, 0, 0.4, { group: 'anvil' }],
+      // a spirit ash summoned (a subagent set to work)
+      ['summon', 'summoning-magic-spell.flac', 0, 3.6, -3, 0, 0.8],
+    ],
+  },
+  yard: {
+    from: 'dummy',
+    clips: [
+      // a straw dummy bursting (the three together: the wood smashed, struck, and its cloth torn)
+      ['break-1', 'dummy_breaking.wav', 0, 1.7, -3, 0, 0.5, { group: 'break' }],
+      ['break-2', 'dummy_breaking_2.wav', 0.02, 0.6, -3, 0, 0.2, { group: 'break' }],
+      ['break-3', 'dummy_breaking_3.wav', 0, 0.85, -3, 0, 0.2, { group: 'break' }],
     ],
   },
 };
@@ -77,21 +208,28 @@ for (const [set, { from, clips }] of Object.entries(SETS)) {
   const OUT = path.join(SFX, set);
   fs.mkdirSync(OUT, { recursive: true });
   let total = 0;
-  for (const [name, file, start, len, peak, fin, fout, { reverse = false } = {}] of clips) {
-    const src = path.join(SRC, file);
-    // the peak of that stretch, as it is
+  // the peak of each stretch, as it is (and of each group, its loudest)
+  const peakOf = (src, start, len) => {
     const probe = ff(['-ss', String(start), '-t', String(len), '-i', src, '-ac', '1', '-af', 'volumedetect', '-f', 'null', '-']);
     const m = /max_volume: (-?[\d.]+) dB/.exec(probe.stderr);
-    const max = m ? Number(m[1]) : 0;
+    return m ? Number(m[1]) : 0;
+  };
+  const peaks = clips.map(([, file, start, len]) => peakOf(path.join(SRC, file), start, len));
+  const loudest = {};
+  clips.forEach(([, , , , , , , { group } = {}], i) => { if (group) loudest[group] = Math.max(loudest[group] ?? -Infinity, peaks[i]); });
+  for (const [i, [name, file, start, len, peak, fin, fout, { reverse = false, group = null } = {}]] of clips.entries()) {
+    const src = path.join(SRC, file);
+    const max = group ? loudest[group] : peaks[i];
     const gain = peak - max;
     const fades = [fin ? `afade=t=in:st=0:d=${fin}` : null, `afade=t=out:st=${(len - fout).toFixed(3)}:d=${fout}`].filter(Boolean);
     const out = path.join(OUT, `${name}.mp3`);
-    const r = ff(['-ss', String(start), '-t', String(len), '-i', src, '-ac', '1', '-ar', '44100', '-af', [reverse ? 'areverse' : null, `volume=${gain.toFixed(2)}dB`, ...fades].filter(Boolean).join(','),
+    // (its sound only: a picture a recording carries is left behind)
+    const r = ff(['-ss', String(start), '-t', String(len), '-i', src, '-map', '0:a:0', '-ac', '1', '-ar', '44100', '-af', [reverse ? 'areverse' : null, `volume=${gain.toFixed(2)}dB`, ...fades].filter(Boolean).join(','),
       '-codec:a', 'libmp3lame', '-b:a', '112k', out]);
     if (r.status !== 0) { console.error(name, r.stderr.slice(-400)); process.exit(1); }
     const size = fs.statSync(out).size;
     total += size;
-    console.log(`${set}/${name}.mp3  ${file} ${start.toFixed(2)}+${len}s${reverse ? ' reversed' : ''}  peak ${max.toFixed(1)} -> ${peak} dB  ${(size / 1024).toFixed(0)} KB`);
+    console.log(`${set}/${name}.mp3  ${file} ${start.toFixed(2)}+${len}s${reverse ? ' reversed' : ''}  peak ${peaks[i].toFixed(1)}${group ? ` (${group}: ${max.toFixed(1)})` : ''} -> ${(peaks[i] + gain).toFixed(1)} dB  ${(size / 1024).toFixed(0)} KB`);
   }
   console.log(`${set}: ${clips.length} clips, ${(total / 1024).toFixed(0)} KB`);
 }

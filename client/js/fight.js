@@ -295,6 +295,7 @@ class Boss {
   endMove() {
     for (const m of this.marks) m.dispose();
     this.marks = [];
+    this.attack?.during?.stop(1.5); // (his great attack's sound, dying away with it)
     this.attack = null;
     this.mind?.endMove();
   }
@@ -1363,6 +1364,7 @@ export class Fight {
         b.lift = 0;
         if (Math.random() < 0.4) this.say(pickOf(SAYS.leap), 0.15); // (and now and then as he lands)
         b.pos.set(a.x, a.z);
+        this.ctx.sound?.play('boss-land', { at: [a.x, a.z] });
         for (const m of b.marks) m.dispose();
         b.marks = [];
         const crack = new Decal(scene, 'crack', a.x, a.z, LEAP.r * 2.6, { glow: false });
@@ -1402,6 +1404,8 @@ export class Fight {
     switch (a.step) {
       case 0: {
         // he roars at the sky, and the world goes dark round everyone (stepDark)
+        this.ctx.sound?.play('boss-roar', { at: [b.pos.x, b.pos.y] });
+        this.ctx.sound?.play('boss-wrath', { at: [b.pos.x, b.pos.y] });
         const R = WRATH.roar;
         // (seen on the screen: his head, and the arena's middle, as high as they stand)
         const head = new THREE.Vector3(b.pos.x + b.body.facing * R.head[0], R.head[1] + ARENA.y, b.pos.y);
@@ -1413,8 +1417,9 @@ export class Fight {
         break;
       }
       case 2:
-        // up he springs
+        // up he springs (and what's heard of his great attack, on till it ends: Boss.endMove)
         a.air = true;
+        a.during = this.ctx.sound?.play('boss-wrath-during', { at: [cx, cz] }) || null;
         if (Math.random() < 0.4) this.say(pickOf(SAYS.leap));
         particles.emit({
           pos: [b.pos.x, 0.2, b.pos.y], spread: [1.6, 0.1, 0.6], vel: [0, 2, 0], velSpread: [2, 1, 1],
@@ -1467,6 +1472,7 @@ export class Fight {
         b.lift = 0;
         a.air = false;
         b.pos.set(cx, cz);
+        this.ctx.sound?.play('boss-land', { at: [cx, cz] });
         const crack = new Decal(scene, 'crack', cx, cz, LEAP.r * 2.6, { glow: false });
         let life = 0;
         this.fx.push({
@@ -1584,6 +1590,7 @@ export class Fight {
     if (a.mark) this.unmark(b, a.mark);
     a.mark = null;
     this.strike((px, pz) => covers('half', cx, cz, { side }, px, pz, 0), HURT.cut, null, true);
+    this.ctx.sound?.play('boss-sword', { at: [cx + side * FLOOR_R * 0.45, cz] });
     const lit = new Decal(scene, 'half', cx, cz, FLOOR_R * 2 * 96 / 92);
     lit.mesh.scale.x = side < 0 ? 1 : -1;
     flash(scene, [cx + side * FLOOR_R * 0.45, 3, cz + 0.5], { color: RED_LIGHT, power: 140, reach: FLOOR_R * 1.4, life: 0.6, rise: 0.03 });
@@ -1998,6 +2005,7 @@ export class Fight {
           this.boss = new Boss(this.ctx, bx, bz, this.kind);
           const Mind = this.boss.kind.Mind;
           if (Mind) this.boss.mind = new Mind(this, this.boss);
+          else this.ctx.sound?.play('boss-appear', { at: [bx, bz] }); // (Fenrath coming: audio.js)
           this.lagHp = this.boss.hp;
           this.focus = false;
           this.introUntil = this.clock + BOSS_CAM.intro; // (the camera shows him a moment, then thee)

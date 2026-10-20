@@ -1,8 +1,9 @@
 // Sound (Web Audio): what's heard in the Lands Between. Its clips are cut from Sacha's recordings
-// and levelled (client/assets/sfx/<set>: the Golem's and Wynn's so far, README), and played where
-// things happen in the world, at the moment they happen there (the Golem's foot set down on the frame
-// it lands on, golem.js; Wynn's blade on the drawing where it cuts, npc.js): quieter the farther from
-// where the camera looks, to the left or the right as they show
+// and levelled (client/assets/sfx/<set>, README), and played where things happen in the world, at
+// the moment they happen there (the Golem's foot set down on the frame it lands on, golem.js; Wynn's
+// blade on the drawing where it cuts, npc.js; each bolt of Maren's storm as it strikes, ults.js;
+// Fenrath landing, fight.js; a hammer on an anvil, npc.js): quieter the farther from where the
+// camera looks, to the left or the right as they show
 // on the screen, a little different each time (`vary`), and never too many of one at once (`most`).
 // And the music (Music, below): the ambient pieces while nothing's fought, the arena's while a great
 // enemy stands in it. Nothing sounds before thou settest out (a browser lets a page make a sound only
@@ -14,9 +15,10 @@ const STORE = 'elden-code:sound';
 
 // The sounds, by name: the clips one is played from (one chosen each time), how loud, how much it
 // varies (loudness and pitch, a share either way), how many may sound at once, how far off it's
-// heard at half its loudness (world units), and, looped, the stretch of its clip that repeats. (A
-// clip is played from its first sound: whatever silence its decoding left before it is skipped,
-// so that it sounds on the very frame: leadOf.)
+// heard at half its loudness (world units), and, looped, the stretch of its clip that repeats; with
+// `layer`, its clips are all heard together (a recording's 1 and 2, as Sacha names them), rather
+// than one of them. (A clip is played from its first sound: whatever silence its decoding left
+// before it is skipped, so that it sounds on the very frame: leadOf.)
 const SET = '/assets/sfx/';
 export const SOUNDS = {
   // the Guardian Golem's (golem.js)
@@ -37,8 +39,40 @@ export const SOUNDS = {
   'ronin-cut': { set: 'ronin', clips: ['cut'], volume: 0.8, vary: 0.06, most: 4, half: 22 },
   'ronin-shine-back': { set: 'ronin', clips: ['shine-back'], volume: 0.7, most: 1, half: 18 },
   'ronin-damage': { set: 'ronin', clips: ['damage'], volume: 0.95, most: 1, half: 24 },
+  // Fenrath's (fight.js): coming, his great attack (roar, rumble, the two heard on through it, each
+  // cut of the ghost sword), and landing (one of three)
+  'boss-appear': { set: 'boss', clips: ['appear'], volume: 0.9, most: 1, half: 30 },
+  'boss-roar': { set: 'boss', clips: ['roar'], volume: 1, most: 1, half: 34 },
+  'boss-wrath': { set: 'boss', clips: ['wrath'], volume: 0.9, most: 1, half: 34 },
+  'boss-wrath-during': { set: 'boss', clips: ['wrath-during-1', 'wrath-during-2'], layer: true, volume: 0.7, most: 1, half: 40 },
+  'boss-sword': { set: 'boss', clips: ['sword'], volume: 1, most: 2, half: 40 },
+  'boss-land': { set: 'boss', clips: ['land-1', 'land-2', 'land-3'], volume: 1, most: 2, half: 30 },
+  // the ultimates' (ults.js): Maren's bolts (one of six each) and her great bolt, Aurelion's verdict
+  // and his giant, Ruadan's landing, Fortuna's mass of ice bursting, Corisande's arrow, Ulric's spears
+  'knight-bolt': { set: 'knight', clips: ['bolt-1', 'bolt-2', 'bolt-3', 'bolt-4', 'bolt-5', 'bolt-6'], volume: 0.75, vary: 0.08, most: 5, half: 26 },
+  'knight-great': { set: 'knight', clips: ['great'], volume: 1, most: 1, half: 34 },
+  'paladin-ult': { set: 'paladin', clips: ['ult'], volume: 0.85, most: 1, half: 22 },
+  'paladin-stand': { set: 'paladin', clips: ['stand'], volume: 0.8, most: 1, half: 22 },
+  'champion-land': { set: 'champion', clips: ['land'], volume: 1, most: 1, half: 28 },
+  'frost-ult-end': { set: 'frost', clips: ['ult-end'], volume: 1, most: 1, half: 26 },
+  'sorceress-ult-hit': { set: 'sorceress', clips: ['ult-hit'], volume: 1, most: 1, half: 26 },
+  'bandit-woosh': { set: 'bandit', clips: ['woosh-1', 'woosh-2', 'woosh-3'], layer: true, volume: 0.8, vary: 0.08, most: 10, half: 18 },
+  // the spells (combat.js): loosed, or landing
+  'sorceress-projectile': { set: 'sorceress', clips: ['projectile-1', 'projectile-2'], layer: true, volume: 0.7, vary: 0.05, most: 3, half: 20 },
+  'bloodbender-blob': { set: 'bloodbender', clips: ['blob'], volume: 0.75, vary: 0.06, most: 3, half: 20 },
+  'holy-spell': { set: 'holy', clips: ['spell'], volume: 0.7, vary: 0.05, most: 2, half: 20 },
+  'holy-light': { set: 'holy', clips: ['light'], volume: 0.8, most: 2, half: 20 },
+  'frost-lands': { set: 'frost', clips: ['lands-1', 'lands-2'], layer: true, volume: 0.75, vary: 0.05, most: 3, half: 20 },
+  // the world's: a spectre called up, a hammer on an anvil, a spirit ash summoned (npc.js), a straw
+  // dummy bursting (training.js)
+  'spectre-appear': { set: 'spectre', clips: ['appear-1', 'appear-2'], layer: true, volume: 0.7, most: 2, half: 16 },
+  'work-anvil': { set: 'work', clips: ['anvil-1', 'anvil-2'], layer: true, volume: 0.5, vary: 0.06, most: 4, half: 12 },
+  'work-summon': { set: 'work', clips: ['summon'], volume: 0.6, most: 2, half: 16 },
+  'yard-break': { set: 'yard', clips: ['break-1', 'break-2', 'break-3'], layer: true, volume: 0.85, vary: 0.05, most: 3, half: 20 },
   // a banner revealed (ui.js), heard alike wherever one is
   'ui-banner': { set: 'ui', clips: ['banner'], volume: 0.65, most: 2 },
+  // setting out (main.js, as the title's button is clicked)
+  'ui-start': { set: 'ui', clips: ['start'], volume: 0.8, most: 1 },
 };
 // The silence a decoded clip begins with (seconds), skipped as it's played: some browsers leave
 // the encoder's at the start of an MP3, others take it out (and then there's nothing to skip: a
@@ -131,10 +165,9 @@ export class Sound {
     this.log.push([performance.now() / 1000, name]);
     if (this.log.length > 200) this.log.splice(0, 100);
     if (!s || !this.ctx || this.ctx.state !== 'running') return null;
-    const clip = s.clips[Math.floor(Math.random() * s.clips.length)];
-    const path = `${SET}${s.set}/${clip}.mp3`;
-    const buf = this.clips.get(path);
-    if (!(buf instanceof AudioBuffer)) return null; // (not loaded yet)
+    const clips = s.layer ? s.clips : [s.clips[Math.floor(Math.random() * s.clips.length)]];
+    const paths = clips.map((clip) => `${SET}${s.set}/${clip}.mp3`);
+    if (!paths.every((p) => this.clips.get(p) instanceof AudioBuffer)) return null; // (not loaded yet)
     const vary = s.vary || 0;
     const [gain, pan] = this.place(at, s.half ?? 24);
     const loud = (s.volume ?? 1) * volume * gain * (1 + (Math.random() * 2 - 1) * vary);
@@ -142,16 +175,9 @@ export class Sound {
     // (no more than `most` of it at once: the oldest gives way)
     const playing = (this.voices.get(name) || []).filter((v) => !v.done);
     while (playing.length >= (s.most ?? 4)) playing.shift().stop(0.05);
-    const src = this.ctx.createBufferSource();
-    src.buffer = buf;
-    src.playbackRate.value = 1 + (Math.random() * 2 - 1) * vary * 0.5;
-    if (s.loop) {
-      src.loop = true;
-      [src.loopStart, src.loopEnd] = s.loop;
-    }
     const g = this.ctx.createGain();
     g.gain.value = loud;
-    let node = src.connect(g);
+    let node = g;
     if (this.ctx.createStereoPanner) {
       const p = this.ctx.createStereoPanner();
       p.pan.value = pan;
@@ -159,24 +185,50 @@ export class Sound {
     }
     node.connect(this.out);
     const begins = this.ctx.currentTime + delay;
-    src.start(begins, Math.min(this.leads.get(path) || 0, buf.duration / 2));
+    const rate = 1 + (Math.random() * 2 - 1) * vary * 0.5;
+    const srcs = paths.map((path) => {
+      const buf = this.clips.get(path);
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = rate;
+      if (s.loop) {
+        src.loop = true;
+        [src.loopStart, src.loopEnd] = s.loop;
+      }
+      src.connect(g);
+      src.start(begins, Math.min(this.leads.get(path) || 0, buf.duration / 2));
+      return src;
+    });
     const voice = {
       done: false,
       stop: (fade = 0.2) => {
         if (voice.done) return;
         voice.done = true;
         const t = this.ctx.currentTime;
-        if (t < begins) { src.stop(t); return; } // (not begun: it never will)
+        if (t < begins) { for (const src of srcs) src.stop(t); return; } // (not begun: it never will)
         g.gain.cancelScheduledValues(t);
         g.gain.setValueAtTime(g.gain.value, t);
         g.gain.linearRampToValueAtTime(0, t + fade);
-        src.stop(t + fade + 0.02);
+        for (const src of srcs) src.stop(t + fade + 0.02);
       },
     };
-    src.onended = () => { voice.done = true; };
+    let left = srcs.length;
+    for (const src of srcs) src.onended = () => { if (--left <= 0) voice.done = true; };
     playing.push(voice);
     this.voices.set(name, playing);
     return voice;
+  }
+
+  // Plays a sound (as play) as soon as its clips are ready, if that's within `within` seconds: the
+  // first ones after sound may begin are only being decoded then (thy click on the title's button,
+  // main.js).
+  soon(name, opts = {}, within = 1) {
+    const s = SOUNDS[name];
+    if (!s || !this.ctx) return;
+    const asked = performance.now();
+    Promise.all(s.clips.map((clip) => this.clips.get(`${SET}${s.set}/${clip}.mp3`))).then(() => {
+      if ((performance.now() - asked) / 1000 <= within) this.play(name, opts);
+    });
   }
 
   // How loud something at `at` is heard, and which way: by its distance from where the camera looks

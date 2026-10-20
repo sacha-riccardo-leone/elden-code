@@ -31,7 +31,7 @@ import { Ults } from './ults.js';
 import { Training } from './training.js';
 import { setView } from './spellfx.js';
 import { setLights } from './lights.js';
-import { Sound } from './audio.js';
+import { Sound, SOUNDS } from './audio.js';
 import { groundAt } from './ground.js';
 import { Companions } from './companions.js';
 import { PUBLIC_DEMO } from './mode.js';
@@ -55,8 +55,9 @@ const rig = new CameraRig(camera);
 // what's heard, from where the camera looks (audio.js); it may begin once thou settest out
 const sound = new Sound();
 sound.view = { camera, focus: rig.target };
-sound.load('ronin'); // (Wynn's: he may strike at any time, thou or another)
-sound.load('ui'); // (the banners')
+// (every set fetched now, under the title, to be ready the moment sound may begin; but the Golem's,
+// fetched as his fight begins: fight.js)
+for (const set of new Set(Object.values(SOUNDS).map((s) => s.set))) if (set !== 'golem') sound.load(set);
 const particles = new Particles(scene);
 const world = new World(scene, particles);
 setLights(world); // (what glows lights the world round it: lights.js)
@@ -421,6 +422,7 @@ function begin() {
   entered = true;
   // (thou'st clicked to set out: sound may begin, and any click or key after wakes it if it's held)
   sound.unlock();
+  sound.soon('ui-start'); // (setting out: heard as the title's button is clicked)
   window.addEventListener('pointerdown', () => sound.unlock());
   window.addEventListener('keydown', () => sound.unlock());
   spawnPlayer();
