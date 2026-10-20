@@ -683,26 +683,35 @@ export class Missile {
   }
 }
 
-// Something thrown out along a line and back to the hand that threw it (Ruadan's maul: combat.js,
-// throwMaul), spinning all the way: from `from` along `dir` (a way on the floor) out to `reach`,
-// slowing to a stop there halfway through its `trip` (seconds), then back, faster and faster, to the
-// hand (`home()`: [x, y, z] as the thrower moves; null once it can't take it back, and then it's
-// gone at once). Each way, it strikes what it comes up to (`strike(x, z, way)`: the way it's going
-// then), each thing once (`onHit(at, struck)`); back in the hand, `onHome()`. Drawn flying right
-// (mirrored flying left), turning `spin` radians a second the way it rolls along, about `pivot`
-// ([across, down] its drawing: its weight, a maul's head).
+// Something thrown that strikes, plants itself in the floor past what it struck, shakes there, and
+// flies back to the hand that threw it (Ruadan's maul: combat.js, throwMaul), spinning as it flies:
+//   - out from `from` along `dir` (a way on the floor) at `speed`, turned `turn` as it leaves (its
+//     haft back toward the hand); struck by something (`strike(x, z, way)` → { target, at() }, the way
+//     it's going then), on to `past` beyond its far side (its `kind.radius`), else out to `reach`;
+//   - coming down over the last `dive` of the way to plant its head `sink` deep in the floor, turned
+//     `angle` (its haft leaning back the way it came: `onPlant(x, z)`);
+//   - there `stay` seconds, shaking side to side the last `shake` of them (`jolt` either way, twenty
+//     times a second, as the Golem shakes gathering his fire);
+//   - pulled out and back to the hand (`home()`: [x, y, z] as the thrower moves; null once it can't
+//     take it back, and then it's gone at once) over `back` seconds, faster and faster.
+// Each way it strikes what it comes up to, each thing once (`onHit(at, struck)`); back in the hand,
+// `onHome()`. Drawn flying right (mirrored flying left), it turns `spin` radians a second the way it
+// rolls, about `pivot` ([across, down] its drawing: a maul's head). Angles as seen flying right.
+const TURN = Math.PI * 2;
 export class Boomerang {
-  constructor(fx, { map, w, h, from, dir, reach, trip, spin, home, pivot = [0.5, 0.5], strike = null, onHit = null, onHome = null, light = null, trail = null }) {
+  constructor(fx, { map, w, h, from, dir, speed, reach, past, dive, sink, angle, turn = 0, stay, shake, jolt, back, spin, pivot = [0.5, 0.5],
+    home, strike = null, onHit = null, onPlant = null, onHome = null, light = null, trail = null, dust = null }) {
     this.fx = fx;
     this.mesh = plane(fx.scene, map, w, h);
     this.mesh.geometry.translate((0.5 - pivot[0]) * w, (pivot[1] - 0.5) * h, 0);
-    const side = Math.sign(dir[0]) || 1;
-    this.mesh.scale.x = side;
+    this.side = Math.sign(dir[0]) || 1;
+    this.mesh.scale.x = this.side;
+    this.mesh.rotation.z = turn * this.side;
     this.from = new THREE.Vector3(...from);
-    this.turn = new THREE.Vector3(from[0] + dir[0] * reach, from[1], from[2] + dir[1] * reach);
     this.pos = this.from.clone();
     this.light = light ? carry(fx.scene, from, light) : null;
-    Object.assign(this, { dir, reach, trip, spin: spin * side, home, strike, onHit, onHome, trail, t: 0, done: false, back: false, struck: new Set() });
+    Object.assign(this, { dir, speed, past, dive, sink, angle, stay, shake, jolt, back, spin, home, strike, onHit, onPlant, onHome, trail, dust });
+    Object.assign(this, { phase: 'out', s: 0, end: reach, diving: null, at: 0, t: 0, done: false, struck: new Set() });
     this.mesh.position.copy(this.pos);
   }
 
@@ -711,40 +720,100 @@ export class Boomerang {
     const hand = this.home();
     if (!hand) { this.finish(false); return false; } // (he can't take it back: gone at once)
     this.t += dt;
-    const half = this.trip / 2;
-    let way = this.dir;
-    if (this.t < half) {
-      // out: fast from the hand, slowing to a stop at the end of its reach
-      const s = this.reach * Math.sin((Math.PI / 2) * (this.t / half));
-      this.pos.set(this.from.x + this.dir[0] * s, this.from.y, this.from.z + this.dir[1] * s);
-    } else {
-      // back: from a stop, faster and faster, onto the hand wherever it is now
-      if (!this.back) { this.back = true; this.struck.clear(); }
-      const u = Math.min(1, (this.t - half) / half);
-      const k = 1 - Math.cos((Math.PI / 2) * u);
-      const [hx, hy, hz] = hand;
-      this.pos.set(this.turn.x + (hx - this.turn.x) * k, this.turn.y + (hy - this.turn.y) * k, this.turn.z + (hz - this.turn.z) * k);
-      const dx = hx - this.turn.x;
-      const dz = hz - this.turn.z;
-      const d = Math.hypot(dx, dz) || 1;
-      way = [dx / d, dz / d];
-      if (u >= 1) { this.finish(true); return false; }
-    }
-    this.mesh.position.copy(this.pos);
-    this.mesh.rotation.z -= this.spin * dt;
+    if (this.phase === 'out') this.fly(dt);
+    else if (this.phase === 'planted') this.hold(dt);
+    else if (this.fetch(dt, hand)) { this.finish(true); return false; }
     this.light?.at(this.pos.x, this.pos.y, this.pos.z + 0.3);
-    if (this.trail && Math.random() < dt * 30) {
+    if (this.trail && this.phase !== 'planted' && Math.random() < dt * 30) {
       this.fx.particles.emit({
         pos: [this.pos.x, this.pos.y, this.pos.z], spread: [0.15, 0.15, 0.1], vel: [0, 0.3, 0], velSpread: [0.4, 0.3, 0.3],
         color: this.trail, size: 0.06, life: 0.5, count: 2, drag: 1.5, gravity: 2, intensity: 2.2,
       });
     }
-    const met = this.strike?.(this.pos.x, this.pos.z, way);
+    return true;
+  }
+
+  // Out along its line, spinning; coming down at the end of it, its turn eased onto the planted one.
+  fly(dt) {
+    const { dir } = this;
+    this.s = Math.min(this.end, this.s + this.speed * dt);
+    let y = this.from.y;
+    const begins = this.end - this.dive;
+    if (this.s > begins) {
+      if (!this.diving) this.diving = { from: Math.max(this.s - this.speed * dt, begins), rot: this.mesh.rotation.z, by: this.turnTo(this.mesh.rotation.z) };
+      const d = this.diving;
+      const u = Math.min(1, (this.s - d.from) / Math.max(0.01, this.end - d.from));
+      y = this.sink + (this.from.y - this.sink) * (1 - u * u);
+      this.mesh.rotation.z = d.rot + d.by * (1 - (1 - u) * (1 - u));
+    } else {
+      this.mesh.rotation.z -= this.spin * this.side * dt;
+    }
+    this.pos.set(this.from.x + dir[0] * this.s, y, this.from.z + dir[1] * this.s);
+    this.mesh.position.copy(this.pos);
+    const met = this.strike?.(this.pos.x, this.pos.z, dir);
+    if (met && !this.struck.has(met.target)) {
+      // (the first thing it strikes: on a little past it, then down)
+      if (!this.struck.size && !this.diving) {
+        const [tx, , tz] = met.at();
+        const along = (tx - this.from.x) * dir[0] + (tz - this.from.z) * dir[1];
+        this.end = Math.max(this.s + 0.2, along + (met.target.kind?.radius ?? 0.5) + this.past);
+      }
+      this.struck.add(met.target);
+      this.onHit?.(this.pos.clone(), met);
+    }
+    if (this.s >= this.end) {
+      this.phase = 'planted';
+      this.at = this.t;
+      this.planted = this.pos.clone();
+      this.onPlant?.(this.pos.x, this.pos.z);
+    }
+  }
+
+  // The turn from `rot`, the way it spins, onto its planted one (as seen: mirrored flying left).
+  turnTo(rot) {
+    const way = -this.side;
+    const far = ((((this.angle * this.side - rot) * way) % TURN) + TURN) % TURN; // (how far, that way)
+    return way * far;
+  }
+
+  // Planted: still, then shaking side to side, dust and embers shaken out of the crack.
+  hold() {
+    const held = this.t - this.at;
+    const p = this.planted;
+    const shaking = held > this.stay - this.shake;
+    const x = p.x + (shaking ? (Math.floor(held * 20) % 2 ? 1 : -1) * this.jolt : 0);
+    this.pos.set(x, p.y, p.z);
+    this.mesh.position.copy(this.pos);
+    if (shaking && this.dust && Math.random() < 0.6) {
+      this.fx.particles.emit({
+        pos: [p.x, 0.1, p.z], spread: [0.35, 0.05, 0.2], vel: [0, 0.9, 0], velSpread: [0.8, 0.5, 0.4],
+        color: this.dust, size: 0.07, life: 0.45, count: 2, drag: 1.4, gravity: 3, intensity: 1.4,
+      });
+    }
+    if (held >= this.stay) {
+      this.phase = 'back';
+      this.at = this.t;
+      this.struck.clear();
+    }
+  }
+
+  // Pulled out and back to the hand, faster and faster, spinning back the other way as it picks up.
+  fetch(dt, [hx, hy, hz]) {
+    const u = Math.min(1, (this.t - this.at) / this.back);
+    const k = 1 - Math.cos((Math.PI / 2) * u);
+    const p = this.planted;
+    this.pos.set(p.x + (hx - p.x) * k, p.y + (hy - p.y) * k, p.z + (hz - p.z) * k);
+    this.mesh.position.copy(this.pos);
+    this.mesh.rotation.z += this.spin * this.side * dt * (0.3 + 0.7 * u);
+    const dx = hx - p.x;
+    const dz = hz - p.z;
+    const d = Math.hypot(dx, dz) || 1;
+    const met = this.strike?.(this.pos.x, this.pos.z, [dx / d, dz / d]);
     if (met && !this.struck.has(met.target)) {
       this.struck.add(met.target);
       this.onHit?.(this.pos.clone(), met);
     }
-    return true;
+    return u >= 1;
   }
 
   finish(home) {

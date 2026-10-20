@@ -18,6 +18,7 @@
 import * as THREE from 'three';
 import { Missile, Boomerang, Beam, Rise, Burst, Spark, StuckSpear, TEX, motesOf, shine, inSpace } from './spellfx.js';
 import { lookOf } from './fxart.js';
+import { Decal } from './bossfx.js';
 import { groundAt } from './ground.js';
 
 // By hero id (a hero of two looks fights as whichever it wears). `muzzle`: where a mage's spells
@@ -395,15 +396,27 @@ function throwSpear(fx, n, { aim = null, dir = null, hit }) {
 }
 
 // Ruadan's maul, thrown (his right click, a spell to him: pilot.js): his own maul, drawn as he holds
-// it crouching (fx/ruadan-maul.json), leaves his open hand spinning and flies along thy line (or,
-// unaimed, the way he faces) out to `reach`, slowing to a stop there, and comes back to his hand,
-// faster and faster, wherever he stands by then (spellfx.js, Boomerang): `trip` seconds out and
-// back. It strikes what it comes up to on the way out, and again on the way back, each once a way,
-// as hard as a spell each time, a spark of his gold where it lands. He holds his throw, his hand open,
-// till it's back in it (his blow lasts till then: `maul` on it, pilot.js; nothing else he does
-// begins meanwhile, his ultimate neither: ults.js); if anything takes him first (travel by grace, a
-// fall), it's back in his hand at once.
-const MAUL = { reach: 9, trip: 1.3, spin: 16, pivot: [0.33, 0.62], light: { color: '#ffb84a', power: 8, reach: 6 }, embers: ['#fceb6d', '#fad140', '#ec9a08', '#b26707'] };
+// it crouching (fx/ruadan-maul.json), leaves his open hand head first, spinning, and flies along thy
+// line (or, unaimed, the way he faces) at `speed` (spellfx.js, Boomerang). It strikes the first thing
+// it comes up to, goes on `past` its far side, and comes down over the last `dive` of the way to plant
+// its head in the floor (or does so at `reach`, striking nothing), the stone cracking there in his
+// gold (`crack`: a Decal, fading the last of its `life`), dust and chips of gold flying; there it
+// stays `stay` seconds, shaking side to side the last `shake` of them as the Golem shakes gathering
+// his fire, and is pulled out and back to his hand, faster and faster (`back` seconds), wherever he
+// stands by then, striking what it comes up to again on the way. Each blow as hard as a spell, a
+// spark of his gold where it lands. He holds his throw, his hand open, till it's back in it (his
+// blow lasts till then: `maul` on it, pilot.js; nothing else he does begins meanwhile, his ultimate
+// neither: ults.js); if anything takes him first (travel by grace, a fall), it's back in his hand at
+// once. (Turns as seen thrown right: `turn` as it leaves his hand, its haft back toward the hand;
+// `angle` planted, its haft leaning back the way it came; its drawing's haft rises 26° from the head.)
+const MAUL = {
+  speed: 16, reach: 9, past: 0.8, dive: 1.8, sink: 0.12, turn: 2.52, angle: 1.55,
+  stay: 0.75, shake: 0.45, jolt: 0.05, back: 0.55, spin: 16, pivot: [0.25, 0.55],
+  crack: { size: 2.4, life: 4, fade: 1.5 },
+  light: { color: '#ffb84a', power: 8, reach: 6 },
+  embers: ['#fceb6d', '#fad140', '#ec9a08', '#b26707'],
+  dust: ['#6a5a4e', '#3a2e28', '#8a7a6a', '#ec9a08'],
+};
 function throwMaul(fx, n, { aim = null, dir = null, hit }) {
   const facing = n.body.facing;
   const line = aim || { dir: dir || [facing, 0], from: muzzleOf(n), meets: () => null };
@@ -413,14 +426,31 @@ function throwMaul(fx, n, { aim = null, dir = null, hit }) {
   const off = [from[0] - n.pos.x, from[2] - n.pos.y];
   const look = lookOf('ruadan-maul', n.body.sheet.px, { map: TEX.orb('holy', 5), w: 0.5, h: 0.5 });
   const maul = new Boomerang(fx, {
-    ...look, from, dir: way, reach: MAUL.reach, trip: MAUL.trip, spin: MAUL.spin, pivot: MAUL.pivot,
-    light: MAUL.light, trail: MAUL.embers,
+    ...look, from, dir: way, ...MAUL, light: MAUL.light, trail: MAUL.embers, dust: MAUL.dust,
     home: () => (n.action === act ? [n.pos.x + off[0], from[1], n.pos.y + off[1]] : null),
     // (what it has come up to: its own body, not a spell's reach short of it)
     strike: (x, z, going) => line.meets(x, z, going, 0),
     onHit: (at, struck) => {
       fx.add(new Spark(fx, { color: styleOf(n).color, at: [at.x, at.y, at.z + 0.2], dir: Math.sign(at.x - n.pos.x) || facing, size: 1.6 }));
       hit(at, 1, struck);
+    },
+    // (its head driven into the floor: the stone cracks in his gold, dust and chips of gold fly)
+    onPlant: (x, z) => {
+      const crack = new Decal(fx.scene, 'goldCrack', x, z, MAUL.crack.size, { glow: false });
+      let t = 0;
+      fx.add({
+        step: (dt) => { t += dt; crack.opacity = Math.min(1, (MAUL.crack.life - t) / MAUL.crack.fade); return t < MAUL.crack.life; },
+        dispose: () => crack.dispose(),
+      });
+      fx.particles.emit({
+        pos: [x, 0.2, z], spread: [0.4, 0.1, 0.25], vel: [0, 2, 0], velSpread: [2.2, 1.2, 1.2],
+        color: MAUL.dust, size: 0.1, life: 0.8, count: 26, drag: 1.3, gravity: 6, intensity: 1.2,
+      });
+      fx.particles.emit({
+        pos: [x, 0.2, z], spread: [0.2, 0.05, 0.15], vel: [0, 2.6, 0], velSpread: [1.6, 1.2, 1],
+        color: MAUL.embers, size: 0.06, life: 0.6, count: 14, drag: 1.2, gravity: 4, intensity: 2.4,
+      });
+      n.ctx?.rig?.shake?.(0.12);
     },
     // (back in his hand: his throw is over)
     onHome: () => { if (n.action === act && act) act.dur = act.t; },

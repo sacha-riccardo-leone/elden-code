@@ -274,8 +274,8 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
     stone glow. His blow (`champion-attack.json`: the maul swung up over his head, brought down
     onto the ground in front, resting on his shoulder) and his Hammerfall (`champion-ult.json`:
     the crouch, airborne with the maul raised, the slam) are drawn whole, in his `bigFrame`; so is
-    his maul throw (Hammerfall's crouch, then `champion-throw.json`: stretched out after the maul,
-    his hand open), the frame widened for that hand. The thrown maul is drawn too
+    his maul throw (Hammerfall's crouch, then `champion-throw.json`: his near arm across his chest
+    and stretched out after the maul, the hand open), the frame widened for that hand. The thrown maul is drawn too
     (`fx/ruadan-maul.json`): lifted cell for cell out of the crouch by the stencil of its cut-out
     (`ruadan-maul-throw.png`), the cells where his fingers held the haft taking the bare haft from
     the cut-out, so it's the very maul he held.
@@ -522,13 +522,17 @@ ground under you instead, so it flies at your hand's height there too.
     hard as a spell, with a spark of his green, and stays stuck in him a moment the way it flew (no
     poison: that's his ultimate's); otherwise it flies on into nothing. Ruadan's style matters
     when you play him too: right click throws his maul. Crouched as for Hammerfall, he flings it
-    and stays stretched out after it, his hand open, while it spins out along the line you point
-    (9 units past his hand, slowing to a stop there, 0.65 s) and back to his hand wherever he
-    stands by then, faster and faster (`Boomerang`, `client/js/spellfx.js`; `throwMaul`,
-    `client/js/combat.js`), embers falling off its cracks and its gold lighting the floor. It
-    strikes what it comes up to on the way out, as it reaches him, and again on the way back,
-    each as hard as a spell, with a spark of his gold. Till it's back in his hand he does nothing
-    else (being struck doesn't cut his throw short, as it doesn't a blow, and R waits); if anything
+    and stays stretched out after it, his hand open. It leaves his hand head first, spinning, and
+    flies along the line you point (16 units a second), embers falling off its cracks and its gold
+    lighting the floor. It strikes the first thing it comes up to, flies on a little past it (0.8
+    beyond its far side) and comes down head first into the floor, the stone cracking round it in
+    his gold, dust and chips of gold flying (striking nothing, it plants itself 9 units past his
+    hand). It stays there three quarters of a second, shaking side to side the last half second
+    as the Golem shakes gathering his fire, then tears itself out and flies back to his hand,
+    faster and faster, wherever he stands by then, striking what it comes up to again on the way
+    (`Boomerang`, `client/js/spellfx.js`; `throwMaul`, `client/js/combat.js`). Each blow is as
+    hard as a spell, with a spark of his gold. Till it's back in his hand he does nothing else
+    (being struck doesn't cut his throw short, as it doesn't a blow, and R waits); if anything
     takes him first (travel by grace, a fall), the maul is back in his hand at once.
   - **Fortuna** does both, switching between her frost blade and frost cast from afar (a shard, or
     ice out of the floor), both drawn (`fortuna-shard.json`, `fortuna-spikes.json`) at her own

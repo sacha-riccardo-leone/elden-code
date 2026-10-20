@@ -50,15 +50,15 @@ const DRAWN = {
     { mid: 48, ground: 79 },
   ],
   // (the maul thrown: his middle halfway between his feet, as in the crouch before it)
-  throw: [{ mid: 40, ground: 79, hand: [102, 24] }],
+  throw: [{ mid: 37, ground: 71, hand: [101, 14] }],
 };
 // the big frame: room for the maul raised high over him, lying far behind him in the crouch, and
 // his hand stretched out far ahead after it as he throws it
 const BIG = { w: 144, h: 124, anchor: 72 };
 const PX = 2.8 / 96; // world units per art pixel: a head taller than the knight
 // where his thrown maul leaves his open hand, [ahead, up] of his feet in world units (combat.js,
-// throwMaul): its weight a little past his palm
-const muzzleAt = (d) => [(d.hand[0] - d.mid) * PX + 0.3, (d.ground - d.hand[1]) * PX];
+// throwMaul): its head a haft's length past his palm, the haft back to it
+const muzzleAt = (d) => [(d.hand[0] - d.mid) * PX + 1, (d.ground - d.hand[1]) * PX];
 
 function prepare(art, more = {}) {
   const { src, ids, code, addColor } = art;
