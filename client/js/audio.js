@@ -37,8 +37,8 @@ export const SOUNDS = {
   // Wynn's, and nobody else's (heroes/ronin.js: on the drawings where they happen; ults.js)
   'ronin-slash': { set: 'ronin', clips: ['slash'], volume: 0.75, vary: 0.06, most: 3, half: 18 },
   'ronin-ult': { set: 'ronin', clips: ['ult'], volume: 0.9, most: 1, half: 22 },
-  'ronin-breathe': { set: 'ronin', clips: ['breathe'], volume: 0.7, most: 1, half: 20 },
-  'ronin-shine': { set: 'ronin', clips: ['shine'], volume: 0.7, most: 1, half: 18 },
+  'ronin-breathe': { set: 'ronin', clips: ['breathe'], volume: 0.5, most: 1, half: 20 },
+  'ronin-shine': { set: 'ronin', clips: ['shine'], volume: 1.2, most: 1, half: 18 }, // (over his breath, which still holds as it comes)
   'ronin-cut': { set: 'ronin', clips: ['cut'], volume: 0.8, vary: 0.06, most: 4, half: 22 },
   'ronin-shine-back': { set: 'ronin', clips: ['shine-back'], volume: 0.7, most: 1, half: 18 },
   'ronin-damage': { set: 'ronin', clips: ['damage'], volume: 0.95, most: 1, half: 24 },
