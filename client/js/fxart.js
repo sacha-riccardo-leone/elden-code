@@ -9,6 +9,7 @@ import { texture } from './bossfx.js';
 const ART = {
   'maren-bolt': '/assets/fx/maren-bolt.json',
   'maren-great-bolt': '/assets/fx/maren-great-bolt.json',
+  'maren-thunderbolt': '/assets/fx/maren-thunderbolt.json',
   'fortuna-shard': '/assets/fx/fortuna-shard.json',
   'fortuna-spikes': '/assets/fx/fortuna-spikes.json',
   'fortuna-icicle': '/assets/fx/fortuna-icicle.json',

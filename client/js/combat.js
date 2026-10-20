@@ -30,7 +30,7 @@ export const STYLES = {
   queen: { range: 'far', school: 'holy', color: '#ffd75a', muzzle: [0.54, 1.01] },
   fortuna: { range: 'both', school: 'frost', color: '#8fe0ff', muzzle: [0.92, 1.78] },
   champion: { range: 'near', color: '#ffb84a' },
-  knight: { range: 'near', color: '#ff4038' },
+  knight: { range: 'near', school: 'storm', color: '#ff4038', muzzle: [2.9, 1.44] }, // (her blows up close; played, a thunderbolt from her spear's tip too, right click)
   paladin: { range: 'near', color: '#ffe9a0' },
   ronin: { range: 'near', color: '#d8ecff' },
   bandit: { range: 'near', color: '#9fdc5a', throws: true },
@@ -246,6 +246,12 @@ const SPELLS = {
       cast: (c) => c.rise({ art: 'solenne-light', px: c.px * 1.4, map: TEX.pillar('holy'), w: 1.5, h: 6, mark: TEX.circle('holy', 0), markSize: 2.6, share: 1.4 }),
     },
   ],
+  // Maren, played (her right click: she fights up close, else): a thunderbolt thrown from her
+  // spear's tip, straight along her line to what it strikes (drawn: Sacha's bolt repeated along its
+  // length, flickering between its three drawings)
+  storm: [
+    { weight: 1, cast: (c) => c.beam({ width: 1.0, share: 1, art: 'maren-thunderbolt', tile: true }) },
+  ],
   // Fortuna, from afar: a frost shard, or ice out of the floor (both drawn at her own pixel size)
   frost: [
     { weight: 3, cast: (c) => c.missile({ ...lookOf('fortuna-shard', c.px, { map: TEX.shard('frost', 20, 3), w: 0.85, h: 0.38 }), speed: 13 }) },
@@ -263,6 +269,7 @@ const HEARD = {
   glintstone: [{ cast: 'sorceress-projectile' }, { cast: 'sorceress-projectile' }, { cast: 'sorceress-projectile' }],
   blood: [{ cast: 'bloodbender-blob' }],
   holy: [{ cast: 'holy-spell' }, { cast: 'holy-spell' }, { cast: 'holy-light' }],
+  storm: [{ cast: 'knight-bolt' }], // (a strike of her Red Storm's)
   frost: [{ land: 'frost-lands' }, { land: 'frost-lands' }],
 };
 // A sound of n's (audio.js), heard where n stands (or at x, z).
