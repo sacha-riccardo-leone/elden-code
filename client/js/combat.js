@@ -402,16 +402,18 @@ function throwSpear(fx, n, { aim = null, dir = null, hit }) {
 // its head in the floor (or does so at `reach`, striking nothing), the stone cracking there in his
 // gold (`crack`: a Decal, fading the last of its `life`), dust and chips of gold flying; there it
 // stays `stay` seconds, shaking side to side the last `shake` of them as the Golem shakes gathering
-// his fire, and is pulled out and back to his hand, faster and faster (`back` seconds), wherever he
-// stands by then, striking what it comes up to again on the way. Each blow as hard as a spell, a
-// spark of his gold where it lands. He holds his throw, his hand open, till it's back in it (his
-// blow lasts till then: `maul` on it, pilot.js; nothing else he does begins meanwhile, his ultimate
-// neither: ults.js); if anything takes him first (travel by grace, a fall), it's back in his hand at
-// once. (Turns as seen thrown right: `turn` as it leaves his hand, its haft back toward the hand;
-// `angle` planted, its haft leaning back the way it came; its drawing's haft rises 26° from the head.)
+// his fire, then is pulled out and back to his hand, faster and faster (`back` seconds), striking
+// what it comes up to again on the way. Each blow as hard as a spell, a spark of his gold where it
+// lands. Once it has left his hand he goes where he will (`n.maulOut`: about without it, pilot.js),
+// but strikes nothing, throws nothing and looses nothing (ults.js) till it's back; as it's pulled
+// out he stops where he stands, turns to it and holds out his hand for it (his `catch`, the drawing
+// he threw it in), and so till it's in his hand. If anything takes him first (travel by grace, a
+// fall), it's back in his hand at once. (Turns as seen thrown right: `turn` as it leaves his hand,
+// its haft back toward the hand; `angle` planted, its haft leaning back the way it came; its
+// drawing's haft rises 26° from the head.)
 const MAUL = {
-  speed: 16, reach: 9, past: 0.8, dive: 1.8, sink: 0.12, turn: 2.52, angle: 1.55,
-  stay: 0.75, shake: 0.45, jolt: 0.05, back: 0.55, spin: 16, pivot: [0.25, 0.55],
+  speed: 16, reach: 10, past: 1.6, dive: 1.8, sink: 0.12, turn: 2.52, angle: 1.55,
+  stay: 0.75, shake: 0.45, jolt: 0.05, back: 0.4, spin: 19, pivot: [0.25, 0.55],
   crack: { size: 2.4, life: 4, fade: 1.5 },
   light: { color: '#ffb84a', power: 8, reach: 6 },
   embers: ['#fceb6d', '#fad140', '#ec9a08', '#b26707'],
@@ -421,13 +423,12 @@ function throwMaul(fx, n, { aim = null, dir = null, hit }) {
   const facing = n.body.facing;
   const line = aim || { dir: dir || [facing, 0], from: muzzleOf(n), meets: () => null };
   const { from, dir: way } = line;
-  const act = n.action;
-  // (the hand it comes back to: where it left from, kept beside him as he moves)
-  const off = [from[0] - n.pos.x, from[2] - n.pos.y];
+  const pilot = n.ctx?.pilot;
   const look = lookOf('ruadan-maul', n.body.sheet.px, { map: TEX.orb('holy', 5), w: 0.5, h: 0.5 });
   const maul = new Boomerang(fx, {
     ...look, from, dir: way, ...MAUL, light: MAUL.light, trail: MAUL.embers, dust: MAUL.dust,
-    home: () => (n.action === act ? [n.pos.x + off[0], from[1], n.pos.y + off[1]] : null),
+    // (his hand, held out for it the way he faces: gone if he's been taken from it)
+    home: () => (n.maulOut === maul && !n.travel && !n.shift && !pilot?.dead && (!pilot || pilot.npc === n) ? muzzleOf(n) : null),
     // (what it has come up to: its own body, not a spell's reach short of it)
     strike: (x, z, going) => line.meets(x, z, going, 0),
     onHit: (at, struck) => {
@@ -452,10 +453,20 @@ function throwMaul(fx, n, { aim = null, dir = null, hit }) {
       });
       n.ctx?.rig?.shake?.(0.12);
     },
-    // (back in his hand: his throw is over)
-    onHome: () => { if (n.action === act && act) act.dur = act.t; },
+    // (pulled out: he stops where he stands, turns to it and holds out his hand till it's in it)
+    onBack: (x) => {
+      if (n.maulOut !== maul) return;
+      if (Math.abs(x - n.pos.x) > 0.3) n.body.facing = x > n.pos.x ? 1 : -1;
+      n.action = { kind: 'catch', anim: 'catch', t: 0, dur: Infinity };
+      n.body.play(n.body.sheet.anims.catch ? 'catch' : 'idle', true);
+    },
+    // (back in his hand, or gone: his hand is his own again)
+    onDone: () => {
+      if (n.maulOut === maul) n.maulOut = null;
+      if (n.action?.kind === 'catch') n.action.dur = n.action.t;
+    },
   });
-  if (act) Object.assign(act, { dur: Infinity, maul });
+  n.maulOut = maul;
   fx.add(maul);
 }
 

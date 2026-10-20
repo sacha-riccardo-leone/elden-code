@@ -790,7 +790,7 @@ export class Fight {
         this.fallen += 1;
         this.carry = { since: this.clock };
       }
-    } else if (n.action?.kind !== 'attack' && !n.action?.maul) { // (a blow, or Ruadan's maul out of his hand, isn't cut short)
+    } else if (!['attack', 'catch'].includes(n.action?.kind) && !n.maulOut) { // (a blow isn't cut short, nor Ruadan without his maul, nor catching it)
       n.action = { kind: 'hurt', anim: 'stagger', t: 0, dur: 0.45 };
       n.body.play('stagger', true);
     }

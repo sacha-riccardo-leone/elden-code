@@ -524,16 +524,19 @@ ground under you instead, so it flies at your hand's height there too.
     when you play him too: right click throws his maul. Crouched as for Hammerfall, he flings it
     and stays stretched out after it, his hand open. It leaves his hand head first, spinning, and
     flies along the line you point (16 units a second), embers falling off its cracks and its gold
-    lighting the floor. It strikes the first thing it comes up to, flies on a little past it (0.8
+    lighting the floor. It strikes the first thing it comes up to, flies on a little past it (1.6
     beyond its far side) and comes down head first into the floor, the stone cracking round it in
-    his gold, dust and chips of gold flying (striking nothing, it plants itself 9 units past his
+    his gold, dust and chips of gold flying (striking nothing, it plants itself 10 units past his
     hand). It stays there three quarters of a second, shaking side to side the last half second
-    as the Golem shakes gathering his fire, then tears itself out and flies back to his hand,
-    faster and faster, wherever he stands by then, striking what it comes up to again on the way
-    (`Boomerang`, `client/js/spellfx.js`; `throwMaul`, `client/js/combat.js`). Each blow is as
-    hard as a spell, with a spark of his gold. Till it's back in his hand he does nothing else
-    (being struck doesn't cut his throw short, as it doesn't a blow, and R waits); if anything
-    takes him first (travel by grace, a fall), the maul is back in his hand at once.
+    as the Golem shakes gathering his fire, then tears itself out and flies back to his hand in
+    0.4 s, faster and faster, striking what it comes up to again on the way (`Boomerang`,
+    `client/js/spellfx.js`; `throwMaul`, `client/js/combat.js`). Each blow is as hard as a spell,
+    with a spark of his gold. Once it has left his hand he can walk about, drawn without it (his
+    fist empty), but strikes, throws and looses nothing (R waits) till it's back; as it tears
+    itself out of the floor he stops where he stands, turns to it and holds his hand out for it
+    (the drawing he threw it in) till it's in his hand. Being struck meanwhile doesn't throw him
+    off it; if anything takes him first (travel by grace, a fall), the maul is back in his hand
+    at once.
   - **Fortuna** does both, switching between her frost blade and frost cast from afar (a shard, or
     ice out of the floor), both drawn (`fortuna-shard.json`, `fortuna-spikes.json`) at her own
     pixel size.

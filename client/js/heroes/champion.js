@@ -144,10 +144,11 @@ function compose(ctx, p) {
   blit(f, parts.body, ux, uy);
 
   // the forearm bends up (and forward), and the hammer turns about the fist, the fist over its haft
+  // (none in it, `bare`, while he has thrown it: combat.js)
   const rx = p.reach || 0;
   const ly = p.lift || 0;
   const deg = p.hammer || 0;
-  drawRotated(f, parts.hammer, deg, GRIP, ux + rx, uy - ly);
+  if (!p.bare) drawRotated(f, parts.hammer, deg, GRIP, ux + rx, uy - ly);
   blit(f, parts.forearm, ux + rx, uy - ly);
   const gx = GRIP.x + ux + rx;
   const gy = GRIP.y + uy - ly;
@@ -201,8 +202,8 @@ function anim(name, list) {
 }
 const seq = (n, fn) => Array.from({ length: n }, (_, i) => fn(i));
 
-anim('idle', seq(6, (i) => ({ bob: [0, 0, 1, 1, 1, 0][i], sway: [0, 1, 1, 0, -1, -1][i], hammer: [0, 1, 2, 2, 1, 0][i], light: 1 })));
-anim('walk', seq(6, (i) => ({
+const idlePose = (i) => ({ bob: [0, 0, 1, 1, 1, 0][i], sway: [0, 1, 1, 0, -1, -1][i], hammer: [0, 1, 2, 2, 1, 0][i], light: 1 });
+const walkPose = (i) => ({
   bob: [1, 0, 0, 1, 0, 0][i],
   sway: [-1, -2, -2, -1, -2, -2][i],
   hammer: [-3, -1, 1, 3, 1, -1][i],
@@ -211,7 +212,12 @@ anim('walk', seq(6, (i) => ({
     back: leg([-3, -1, 1, 3, 1, -1][i], [0, 2, 2, 0, 0, 0][i]),
   },
   light: 1,
-})));
+});
+anim('idle', seq(6, idlePose));
+anim('walk', seq(6, walkPose));
+// (and so, his maul thrown and not yet back in his hand: pilot.js)
+anim('idleBare', seq(6, (i) => ({ ...idlePose(i), bare: true })));
+anim('walkBare', seq(6, (i) => ({ ...walkPose(i), bare: true })));
 // up over the shoulder and down in front, in a sweep of gold; it lands in a burst
 anim('strike', seq(6, (i) => ({
   hammer: [0, -12, 80, 160, 250, 270][i],
@@ -286,6 +292,10 @@ export default {
     // (his maul thrown, right click, in eighteenths of a second: crouched 4, then stretched out after
     // it, held till it comes back: combat.js)
     spell: { frames: held([...G.crouch, ...G.release], [4, 6]), fps: 18, once: true },
+    // (his maul thrown: about without it, and his hand held out for it as it comes back)
+    idleBare: { frames: G.idleBare, fps: 4 },
+    walkBare: { frames: G.walkBare, fps: 8 },
+    catch: { frames: G.release, fps: 1 },
     read: { frames: G.study, fps: 1.4 },
     cast: { frames: G.cast, fps: 5 },
     send: { frames: G.raise, fps: 4 },
@@ -303,5 +313,5 @@ export default {
     stagger: { frames: [...G.stagger, G.idle[0]], fps: 4, once: true },
     kneelBow: { frames: [G.kneel[0], ...G.rest, G.rest[1], G.kneel[0]], fps: 2, once: true },
   },
-  groupFps: { idle: 4, walk: 8, strike: 8, cast: 5, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 1.5, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, swing: 5, crouch: 1, airborne: 1, slam: 1, release: 1 },
+  groupFps: { idle: 4, walk: 8, idleBare: 4, walkBare: 8, strike: 8, cast: 5, raise: 4, point: 2, kneel: 1.5, rest: 1, pray: 1.5, bow: 3, study: 1.4, stagger: 4, collapse: 1, lifted: 4, talk: 2.5, swing: 5, crouch: 1, airborne: 1, slam: 1, release: 1 },
 };

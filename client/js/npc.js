@@ -857,7 +857,7 @@ export class Npc {
   // actions (temporary overrides)
 
   gesture(anim, icon = null) {
-    if (this.dragged || this.dead) return;
+    if (this.dragged || this.dead || this.maulOut) return; // (Ruadan, his maul thrown: combat.js)
     const def = this.body.sheet.anims[anim] || ANIMS[anim];
     const dur = def.once ? def.frames.length / def.fps + 0.2 : 2.4;
     this.action = { kind: 'gesture', anim, t: 0, dur };

@@ -137,6 +137,10 @@ export class Pilot {
     return false;
   }
 
+  // How n walks and stands: Ruadan, his maul thrown and not yet back, without it (combat.js).
+  walkOf(n) { return n.maulOut && n.body.sheet.anims.walkBare ? 'walkBare' : 'walk'; }
+  idleOf(n) { return n.maulOut && n.body.sheet.anims.idleBare ? 'idleBare' : 'idle'; }
+
   // Busy: travelling, changing form, or in the middle of something that isn't a crouch.
   busy(n) {
     return !n || this.dead || n.travel || n.shift || n.dragged || (n.action && n.action.kind !== 'crouch');
@@ -152,9 +156,10 @@ export class Pilot {
     const len = Math.hypot(h.x, h.z);
     const [dx, dz] = len ? [h.x / len, h.z / len] : [n.body.facing, 0];
     if (dx) n.body.facing = dx > 0 ? 1 : -1;
-    n.action = { kind: 'dodge', anim: 'walk', t: 0, dur: DODGE.time, dx, dz };
+    const walk = this.walkOf(n);
+    n.action = { kind: 'dodge', anim: walk, t: 0, dur: DODGE.time, dx, dz };
     n.using = null;
-    n.body.play('walk', true);
+    n.body.play(walk, true);
     this.dodgeReady = now + DODGE.cooldown;
     this.ctx.particles.emit({
       pos: [n.pos.x, groundAt(n.pos.x, n.pos.y) + 0.25, n.pos.y], spread: [0.3, 0.1, 0.2], vel: [-dx * 1.5, 0.6, -dz * 1.5], velSpread: [0.6, 0.4, 0.4],
@@ -168,7 +173,7 @@ export class Pilot {
   attack(at = null) {
     const n = this.npc;
     if (styleOf(n).range === 'far') { this.cast(at); return; }
-    if (this.busy(n) || !this.paced(n)) return;
+    if (this.busy(n) || n.maulOut || !this.paced(n)) return; // (Ruadan's maul thrown: nothing to strike with)
     const aim = aimOf(n, at, middleOf(n));
     if (Math.abs(aim[0]) > 0.05) n.body.facing = aim[0] > 0 ? 1 : -1;
     blow(n, 'attack', { aim });
@@ -190,7 +195,7 @@ export class Pilot {
   // of the character's blow (drive).
   cast(at = null) {
     const n = this.npc;
-    if (this.busy(n) || !canCast(n) || !this.paced(n)) return;
+    if (this.busy(n) || n.maulOut || !canCast(n) || !this.paced(n)) return;
     // (turned the way it goes: along the line to the pointer, at the height it flies at)
     const aim = aimOf(n, at, muzzleSpot(n)[1] + (n.lift || 0));
     if (Math.abs(aim[0]) > 0.05) n.body.facing = aim[0] > 0 ? 1 : -1;
@@ -204,7 +209,7 @@ export class Pilot {
       n.action = null;
       return;
     }
-    if (this.busy(n) || n.action) return;
+    if (this.busy(n) || n.action || n.maulOut) return;
     n.action = { kind: 'crouch', anim: 'kneel', t: 0, dur: Infinity };
     n.body.play('kneel', true);
   }
@@ -237,8 +242,9 @@ export class Pilot {
   drive(n, dt) {
     const h = this.heading();
     const going = !!(h.x || h.z);
-    // setting off cuts a gesture or a crouch short (not a blow, nor rising from grace, nor a change of form)
-    if (going && n.action && !['spawn', 'attack', 'cast', 'ult', 'transform', 'dodge', 'hurt'].includes(n.action.kind) && !n.shift && !this.dead) n.action = null;
+    // setting off cuts a gesture or a crouch short (not a blow, nor rising from grace, nor a change of
+    // form, nor Ruadan holding his hand out for his maul as it comes back: combat.js)
+    if (going && n.action && !['spawn', 'attack', 'cast', 'ult', 'transform', 'dodge', 'hurt', 'catch'].includes(n.action.kind) && !n.shift && !this.dead) n.action = null;
     let moving = false;
     if (n.action) {
       const a = n.action;
@@ -276,7 +282,7 @@ export class Pilot {
       moving = this.walk(n, dt, h);
     }
     if (n.action?.kind !== 'use') n.using = null; // walked off the station
-    if (!n.action && !n.shift) n.body.play(moving ? 'walk' : 'idle');
+    if (!n.action && !n.shift) n.body.play(moving ? this.walkOf(n) : this.idleOf(n));
     this.moving = moving;
     return moving;
   }

@@ -692,15 +692,17 @@ export class Missile {
 //     `angle` (its haft leaning back the way it came: `onPlant(x, z)`);
 //   - there `stay` seconds, shaking side to side the last `shake` of them (`jolt` either way, twenty
 //     times a second, as the Golem shakes gathering his fire);
-//   - pulled out and back to the hand (`home()`: [x, y, z] as the thrower moves; null once it can't
-//     take it back, and then it's gone at once) over `back` seconds, faster and faster.
+//   - pulled out (`onBack(x, z)`: the thrower stops and holds out a hand for it) and back to the hand
+//     (`home()`: [x, y, z] as the thrower moves; null once it can't take it back, and then it's gone
+//     at once) over `back` seconds, faster and faster.
 // Each way it strikes what it comes up to, each thing once (`onHit(at, struck)`); back in the hand,
-// `onHome()`. Drawn flying right (mirrored flying left), it turns `spin` radians a second the way it
-// rolls, about `pivot` ([across, down] its drawing: a maul's head). Angles as seen flying right.
+// or gone, `onDone(caught)`. Drawn flying right (mirrored flying left), it turns `spin` radians a
+// second the way it rolls, about `pivot` ([across, down] its drawing: a maul's head). Angles as seen
+// flying right.
 const TURN = Math.PI * 2;
 export class Boomerang {
   constructor(fx, { map, w, h, from, dir, speed, reach, past, dive, sink, angle, turn = 0, stay, shake, jolt, back, spin, pivot = [0.5, 0.5],
-    home, strike = null, onHit = null, onPlant = null, onHome = null, light = null, trail = null, dust = null }) {
+    home, strike = null, onHit = null, onPlant = null, onBack = null, onDone = null, light = null, trail = null, dust = null }) {
     this.fx = fx;
     this.mesh = plane(fx.scene, map, w, h);
     this.mesh.geometry.translate((0.5 - pivot[0]) * w, (pivot[1] - 0.5) * h, 0);
@@ -710,7 +712,7 @@ export class Boomerang {
     this.from = new THREE.Vector3(...from);
     this.pos = this.from.clone();
     this.light = light ? carry(fx.scene, from, light) : null;
-    Object.assign(this, { dir, speed, past, dive, sink, angle, stay, shake, jolt, back, spin, home, strike, onHit, onPlant, onHome, trail, dust });
+    Object.assign(this, { dir, speed, past, dive, sink, angle, stay, shake, jolt, back, spin, home, strike, onHit, onPlant, onBack, onDone, trail, dust });
     Object.assign(this, { phase: 'out', s: 0, end: reach, diving: null, at: 0, t: 0, done: false, struck: new Set() });
     this.mesh.position.copy(this.pos);
   }
@@ -794,6 +796,7 @@ export class Boomerang {
       this.phase = 'back';
       this.at = this.t;
       this.struck.clear();
+      this.onBack?.(p.x, p.z);
     }
   }
 
@@ -816,13 +819,14 @@ export class Boomerang {
     return u >= 1;
   }
 
-  finish(home) {
+  finish(caught) {
     this.done = true;
     this.light?.end(0.12);
-    if (home) this.onHome?.();
+    this.onDone?.(caught);
   }
 
   dispose() {
+    if (!this.done) this.finish(false); // (swept away with the rest, a fight over: gone all the same)
     this.light?.end(0.08);
     drop(this.fx.scene, this.mesh);
   }
