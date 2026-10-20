@@ -30,7 +30,7 @@ export const STYLES = {
   queen: { range: 'far', school: 'holy', color: '#ffd75a', muzzle: [0.54, 1.01] },
   fortuna: { range: 'both', school: 'frost', color: '#8fe0ff', muzzle: [0.92, 1.78] },
   champion: { range: 'near', color: '#ffb84a' },
-  knight: { range: 'near', school: 'storm', color: '#ff4038', muzzle: [2.9, 1.44] }, // (her blows up close; played, a thunderbolt from her spear's tip too, right click)
+  knight: { range: 'near', school: 'storm', color: '#ff4038', muzzle: [3.0, 1.52] }, // (her blows up close; played, a thunderbolt from her spear's tip too, right click: a little inside it, the bolt's line a little below its middle)
   paladin: { range: 'near', color: '#ffe9a0' },
   ronin: { range: 'near', color: '#d8ecff' },
   bandit: { range: 'near', color: '#9fdc5a', throws: true },
@@ -337,11 +337,14 @@ export function castSpell(fx, n, { target = null, dir = null, aim = null, hit })
     },
     beam: ({ share = 1, width, art = null, tile = false, ...look }) => {
       if (aim) {
-        // along thy line, to what stands first on it; else on into nothing
+        // along thy line, to what stands first on it; else on into nothing. It leaves from where
+        // the pose holds it as drawn (Maren's spear's tip, out to her side, in her own plane), not
+        // from where the line begins: run into the view or out of it, that point stands deeper or
+        // nearer than the drawing, and the beam would float off the hand that looses it
         const on = aim.first(aim.reach);
         const len = on ? Math.max(1, on.along) : 9;
         const end = [from[0] + aim.dir[0] * len, from[1], from[2] + aim.dir[1] * len];
-        fx.add(new Beam(fx, { school, from, to: end, width, art, tile, ...look, onHit: on ? (at) => land(at, share, 1, on.struck) : null }));
+        fx.add(new Beam(fx, { school, from: muzzleOf(n), to: end, width, art, tile, ...look, onHit: on ? (at) => land(at, share, 1, on.struck) : null }));
         return;
       }
       const to = target ? target() : [from[0] + dir[0] * 9, from[1], from[2] + dir[1] * 9];
