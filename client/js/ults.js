@@ -251,7 +251,7 @@ export const ULTS = {
   },
   knight: {
     name: 'Red Storm', pose: ['ult'],
-    heard: { start: 'knight-ult-click', zoom: 'knight-ult-zoom' }, // (as R is pressed, and the camera closing on her)
+    heard: { zoom: 'knight-ult-zoom' }, // (the camera closing on her)
     run({ fight, fx, b, hit }) {
       let t = 0;
       let k = 0;

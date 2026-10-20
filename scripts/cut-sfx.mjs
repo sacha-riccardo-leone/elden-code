@@ -116,9 +116,8 @@ const SETS = {
       // with it atk2's rush (in its 2-3 s: from where it's heard, so that it peaks as the bolt is there)
       ...[[0.90, 0.17], [1.91, 0.18], [2.70, 0.26], [3.32, 0.20], [4.41, 0.65], [5.91, 0.15], [6.31, 0.15], [6.99, 0.15], [7.74, 0.16], [8.38, 0.72], [9.49, 0.21], [10.12, 0.43], [11.74, 0.15], [12.92, 0.21], [14.15, 0.17], [15.44, 0.61]].map(([t, len], i) => [`thunder-${i + 1}`, 'maren_atk1.wav', t, len, -4, 0, 0.05]),
       ['thunder-rise', 'maren_atk2_audiobetween2and3.wav', 2.6, 0.42, -3, 0, 0.05],
-      // her Red Storm: as R is pressed, and the camera closing on her (its 10-13 s, from where its
-      // swell is heard, peaking as the camera gets there)
-      ['ult-click', 'maren_ult_start_on_click.wav', 0, 3.5, -3, 0, 0.6],
+      // her Red Storm: the camera closing on her (its 10-13 s, from where its swell is heard,
+      // peaking as the camera gets there)
       ['ult-zoom', 'maren_ult_start_audiobetween10and13.wav', 10.9, 1.75, -3, 0, 0.3],
     ],
   },

@@ -53,7 +53,6 @@ export const SOUNDS = {
   // and his giant, Ruadan's landing, Fortuna's mass of ice bursting, Corisande's arrow, Ulric's spears
   'knight-bolt': { set: 'knight', clips: ['bolt-1', 'bolt-2', 'bolt-3', 'bolt-4', 'bolt-5', 'bolt-6'], volume: 0.75, vary: 0.08, most: 5, half: 26 },
   'knight-great': { set: 'knight', clips: ['great'], volume: 1, most: 1, half: 34 },
-  'knight-ult-click': { set: 'knight', clips: ['ult-click'], volume: 0.9, most: 1, half: 24 },
   'knight-ult-zoom': { set: 'knight', clips: ['ult-zoom'], volume: 0.8, most: 1, half: 24 },
   'paladin-ult': { set: 'paladin', clips: ['ult'], volume: 0.85, most: 1, half: 22 },
   'paladin-stand': { set: 'paladin', clips: ['stand'], volume: 0.8, most: 1, half: 22 },

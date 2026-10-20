@@ -925,9 +925,9 @@ the recordings, whenever they change; its table says what each clip is cut from.
   one each time, and with it the rush in `maren_atk2` (between 2 and 3 s, as its name says: from
   where it's heard, so that it peaks as the bolt is there).
 - **The ultimates**:
-  - Maren's Red Storm: `maren_ult_start_on_click` as R is pressed, and with it the swell of
-    `maren_ult_start` (between 10 and 13 s, as named: peaking as the camera has closed on her); then
-    each of its twelve bolts as it strikes, one of six strikes cut from
+  - Maren's Red Storm: the swell of `maren_ult_start` as it's loosed (between 10 and 13 s, as named:
+    peaking as the camera has closed on her); then each of its twelve bolts as it strikes, one of
+    six strikes cut from
     `maren_ult_small_lightning`, and the great bolt that ends it, `maren_ult_big_lightning` (from its
     strike, 4.36 s in, its thunder rolling on);
   - Aurelion's Radiant Verdict: `aurelion_ult_start1_at4.5s` as it's loosed (its third, from 4.82 s,
