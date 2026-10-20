@@ -847,7 +847,8 @@ ground under you instead, so it flies at your hand's height there too.
     incantation) don't show while a great enemy is abroad, and aren't kept for after it. Only the
     fight's own banners do, and one of those never waits behind a session's: it cuts it short. The
     message log still lists everything.
-  - A session that drew the enemy wounds it badly by fulfilling its next quest.
+  - A session that drew the enemy (its failing rites, its fall, its endless quest) wounds it each
+    time it fulfils a quest: a quarter of its health, as the log says ("the great enemy reels").
 - **Falling:**
   - A Tarnished who falls is out for good. It lies where it fell for a moment, then goes by grace
     to Roundtable Hold and rests at the grace until the fight is over.

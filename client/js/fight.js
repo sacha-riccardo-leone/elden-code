@@ -11,8 +11,8 @@
 // Fortuna with the right button). Every blow that lands fills the striker's ultimate, loosed (R,
 // for thee) in a moment when the world stands still (ults.js). Thy blows and everyone's wear it
 // down, but whoever keeps wounding Fenrath from afar draws him: he goes for them, and comes down
-// on them with his leap (HUNT). A session that summoned it fells it at once by fulfilling its next
-// quest. A Tarnished who falls is out of the fight for good: it goes by
+// on them with his leap (HUNT). A session that drew it wounds it each time it fulfils a quest (a
+// quarter of its health: DAMAGE.quest). A Tarnished who falls is out of the fight for good: it goes by
 // grace to the Hold and rests there until the fight is over. Fall thyself, and thou choosest one of
 // the fighters still standing to carry on as; when nobody is left standing on the arena, the fight
 // is lost. (The Bandit Knight, Elden Ring's Patches in all but name, never fights: he keeps as far
@@ -50,7 +50,7 @@ import { styleOf, blow, castSpell, muzzleOf, SPELL, RANGED, ultFill, heldAt, pac
 // reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
 // lane: how far out of his line (in depth) a swing or a lunge still catches someone
 const BOSS = { hp: 8000, speed: 2.2, reach: 3.0, radius: 2.0, lane: 1.3 };
-const DAMAGE = { player: 55, fighter: 16, quest: 0.5 }; // quest: the share of its health a fulfilled quest takes
+const DAMAGE = { player: 55, fighter: 16, quest: 0.25 }; // quest: the share of its health a fulfilled quest takes
 // Whoever keeps wounding Fenrath from afar (`from` metres off, or more) draws him: what they've
 // dealt him so lately (halving every `half` seconds), `per` metre for each point, brings them up
 // to `most` metres nearer in his eyes (target); past `leap` of it, and `far` off, he comes down on
@@ -296,8 +296,8 @@ class Boss {
     for (const m of this.marks) m.dispose();
     this.marks = [];
     this.attack?.during?.stop(1.5); // (his great attack's sound, dying away with it)
+    this.mind?.endMove(); // (while the move is still known: the Golem's fire, its roar and light, end with it)
     this.attack = null;
-    this.mind?.endMove();
   }
 
   dispose() {
