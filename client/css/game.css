@@ -797,6 +797,8 @@ body.in-battle #trainees { display: none; }
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   font-size: 16px;
   line-height: 1.4;
+  max-height: calc(100vh - 88px); /* (and scrolled, should it be taller than the window) */
+  overflow-y: auto;
 }
 #help h3 {
   margin: 0 0 8px;
@@ -806,6 +808,9 @@ body.in-battle #trainees { display: none; }
   color: var(--gold-hi);
 }
 #help ul { margin: 8px 0; padding-left: 18px; }
+#help a { color: var(--gold); }
+#help a:hover { color: var(--gold-hi); }
+#help .credits { overflow-wrap: anywhere; } /* (a sound's long name breaks where it must) */
 
 /* "E · Work the forge": what's in reach (interact.js) */
 #prompt {

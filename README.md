@@ -1044,6 +1044,26 @@ chatter is written in advance (client/js/voices.js) and filled in from each sess
 
 To let someone else watch, put it behind something private like Tailscale. Don't port-forward it.
 
+## Credits
+
+Shown in the game too, at the foot of the **?** panel.
+
+- **Sounds from [Freesound](https://freesound.org)**, under
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), cut, levelled and converted to MP3
+  for the game (`scripts/cut-sfx.mjs`):
+  - "[Explosion](https://freesound.org/s/728763/)" by TechspiredMinds: the Golem's strike
+    (`golem_atk.wav`);
+  - "[yasomasa_or_akazawa_inspired_bass_kick_explosion_drum_09082025](https://freesound.org/s/825797/)"
+    by Artninja: four of his footsteps (`golem_footsteps_type2.wav`);
+  - "[Rocks - Crumbling / Falling - Designed Rocks](https://freesound.org/s/555048/)" by Gregor
+    Quendel: his stone crumbling as he falls (`golem_passing_out_start_2.wav`).
+- **The banners' sound**: "Campana" by Hugo Barbero (Banco de sonidos), `announcement_banner_reveal.wav`.
+- **Music**: "Defending the Village" by Benjamin Botkin (`ambient_1`), "Deliverance" by Aaron Paul
+  Low (`ambient_2`), "Halls of Ancients" by Ian Aisling (`arena`).
+
+The other recordings carry no source of their own; any that needs a credit goes here, and in the
+**?** panel (`client/index.html`).
+
 ## Layout
 
 ```
