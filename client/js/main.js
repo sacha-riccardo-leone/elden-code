@@ -283,7 +283,6 @@ const demo = new Demo(director);
 // ---------------------------------------------------------------------------------------------
 // bridge
 
-let connected = false;
 // (the public demo's great enemies: the first a couple of minutes after thou settest out)
 const paceDemo = () => fight.pace({ first: 100 + Math.random() * 60, invasion: [5 * 60, 9 * 60], cooldown: 5 * 60 });
 // The bridge's stream (net.js): a snapshot of the sessions, then each event as it comes. In the
@@ -295,10 +294,7 @@ function linkBridge() {
   stream = connect({
     onSnapshot: (sessions) => { if (!tutorial.holding) director.snapshot(sessions); },
     onEvent: (ev, session) => { if (!tutorial.holding) director.event(ev, session); },
-    onStatus: (ok) => {
-      connected = ok;
-      ui.setStatus(ok, demo.active);
-    },
+    onStatus: (ok) => ui.setStatus(ok),
   });
 }
 if (PUBLIC_DEMO) {
@@ -310,7 +306,7 @@ if (PUBLIC_DEMO) {
   ui.noticeGap = 40; // and no more than one session banner in 40 seconds (the log has them all)
   director.notBefore = Infinity; // no island rises before thou art up (setOutWorld)
   paceDemo();
-  ui.setStatus('demo', true);
+  ui.setStatus('demo');
 } else {
   // (the sessions take up their heroes behind the title already: they're at the Round Table when
   // thou comest in)
@@ -327,12 +323,6 @@ tutorial.onDone = () => {
   setOutWorld();
 };
 
-const toggleDemo = () => {
-  if (PUBLIC_DEMO) return;
-  demo.toggle();
-  ui.setStatus(connected, demo.active);
-};
-document.getElementById('demo-btn').addEventListener('click', toggleDemo);
 // The two panels at the top right: the settings (behind the wheel) and "how it works"; one at a
 // time, Esc closes.
 const settings = document.getElementById('settings');
@@ -551,7 +541,7 @@ function setOutWorld() {
   if (PUBLIC_DEMO) {
     director.holdRisesUntil(director.clock + 5);
     demo.startWorld();
-  } else if (new URLSearchParams(window.location.search).has('demo')) setTimeout(toggleDemo, 600);
+  } else if (new URLSearchParams(window.location.search).has('demo')) setTimeout(() => demo.start(), 600);
 }
 try {
   nav.sync();

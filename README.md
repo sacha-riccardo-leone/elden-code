@@ -31,7 +31,6 @@ The page opens on a pixel-art title screen in the manner of Elden Ring's (`clien
     size yet, and none ever announced) is drawn once it's shown, never left black.
 - **Nothing of the game shows until then:** no buttons, log or map strip, and no keys reach the
   world.
-- **Online:** the public demo never shows **Summon phantoms**: its sessions are made up already.
 
 ## The tutorial
 
@@ -1243,9 +1242,9 @@ npm run hooks:install     # once: tell Claude Code to report to the world
 ```
 
 Then open <http://127.0.0.1:7777> and set out from the title screen. New Claude Code sessions
-(CLI or the desktop app's Code tab) appear while the bridge is running. **Summon phantoms** (top
-right, once you're in) fills the world with fake sessions if you just want to watch (`?demo` in the
-address does it as you set out); `npm run simulate` pushes fake sessions through the real hook.
+(CLI or the desktop app's Code tab) appear while the bridge is running. To fill the world with
+fake sessions if you just want to watch, add `?demo` to the address (they come as you set out);
+`npm run simulate` pushes fake sessions through the real hook.
 The raw event stream is at <http://127.0.0.1:7777/debug>.
 
 **Performance.** The 3D view is drawn into at most ~1.6 megapixels and stretched over the
@@ -1283,9 +1282,9 @@ A version anyone can open, with no bridge and no real data: an endless world of 
     full strength. A run of failing tool calls or a session ending in failure can bring one too. As
     locally, the window choosing companions opens first (left unanswered, the enemy turns away), and
     it enters only once you reach the arena.
-  - Everything else works as locally: become anyone, fight, the Round Table. There is no
-    **Summon phantoms** or event log: the page is marked as the demo's from its first moment
-    (`scripts/build-public.mjs`), before any script runs.
+  - Everything else works as locally: become anyone, fight, the Round Table. There is no event
+    log: the page is marked as the demo's from its first moment (`scripts/build-public.mjs`),
+    before any script runs.
   - The world (its sessions, the first great enemy's countdown) starts as you set out from the
     title screen, not while it stands.
 - **How it's built:** `client/js/mode.js` says which world the page shows. `npm run build:public`

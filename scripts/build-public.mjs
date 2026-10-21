@@ -70,7 +70,7 @@ const csp = [
 const charset = '<meta charset="utf-8">';
 if (!html.includes(charset)) throw new Error(`index.html: no ${charset} to put the policy after`);
 // (and its body marked as the public demo's from the first moment, before any script has run, so
-// that nothing needing the bridge ever shows, "Summon phantoms" above all: game.css)
+// that nothing needing the bridge ever shows, the event log above all: game.css)
 const body = '<body class="on-title">';
 if (!html.includes(body)) throw new Error(`index.html: no ${body} to mark as the public demo's`);
 write(path.join(OUT, 'index.html'), html

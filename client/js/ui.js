@@ -310,7 +310,7 @@ export class UI {
     this.areaEl.classList.add('show');
   }
 
-  setStatus(connected, demo) {
+  setStatus(connected) {
     if (connected === 'demo') {
       // the public demo: nothing to connect to
       this.statusEl.dataset.ok = '1';
@@ -319,7 +319,6 @@ export class UI {
     }
     this.statusEl.dataset.ok = connected ? '1' : '';
     this.statusEl.querySelector('span').textContent = connected ? 'Bridge connected' : 'Seeking the bridge…';
-    $('#demo-btn').textContent = demo ? 'Dismiss phantoms' : 'Summon phantoms';
   }
 
   // ------------------------------------------------------------------------------------------

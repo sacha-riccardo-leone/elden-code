@@ -1132,8 +1132,7 @@ body.in-battle #dummy-bars { display: none; }
   transition: opacity 0.55s ease;
 }
 #tut-fade.on { opacity: 1; pointer-events: auto; }
-/* (and in the tutorial, neither the phantoms nor the map strip: nothing to go to yet) */
-body.tutorial #demo-btn,
+/* (and in the tutorial, no map strip: nothing to go to yet) */
 body.tutorial #regions { display: none; }
 
 /* faces by the bars of a fight (faces.js, fight.js showFace): thine big by thy health, each of the
@@ -1546,8 +1545,10 @@ body.tutorial #regions { display: none; }
 /* the public demo (mode.js): no bridge, so nothing that needs one */
 .public-only { display: none; }
 body.public-demo .public-only { display: block; }
-body.public-demo #demo-btn,
-body.public-dem#carry {
+body.public-demo a[href="/debug"] { display: none !important; }
+
+/* fallen mid-fight: whom to carry on as (fight.js) */
+#carry {
   position: fixed;
   left: 50%;
   bottom: 140px;
@@ -1558,9 +1559,6 @@ body.public-dem#carry {
   display: grid;
   gap: 8px;
   background: var(--panel);
-  border: 1px solid rgba(220, 120, 80, 0.55);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-ar(--panel);
   border: 1px solid rgba(220, 120, 80, 0.55);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
 }

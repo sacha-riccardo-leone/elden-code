@@ -1,7 +1,7 @@
 // Phantoms: fake Claude Code sessions that live only in this tab. They feed the director the same
 // event and session shapes the bridge sends, so the world can be seen working without (or before)
 // real sessions.
-//   - "Summon phantoms" (local): five sessions on five islands, until dismissed.
+//   - ?demo in the address (local): five sessions on five islands, as thou settest out.
 //   - The public demo (mode.js): an endless world of them. Sessions start and end, projects come
 //     and go (an island nobody calls home any more sinks back into the mist, director.js), and they
 //     work in realistic runs: exploring, implementing, debugging, researching, planning, shipping,
@@ -85,26 +85,11 @@ export class Demo {
     this.phantoms = [];
   }
 
-  toggle() {
-    if (this.active) this.stop();
-    else this.start();
-    return this.active;
-  }
-
-  // "Summon phantoms": five sessions, one per island, until dismissed.
+  // ?demo (local): five sessions, one per island, for as long as the page is open.
   start(count = 5) {
     if (this.active) return;
     this.active = true;
     for (let i = 0; i < count; i++) this.spawn(PROJECTS[i % PROJECTS.length], { delay: i * 1400 });
-  }
-
-  stop() {
-    this.active = false;
-    for (const ph of this.phantoms) {
-      ph.alive = false;
-      this.emit(ph, { event: 'SessionEnd', reason: 'other' });
-    }
-    this.phantoms = [];
   }
 
   // The public demo: sessions come and go forever, a few at a time, over a handful of projects
@@ -163,7 +148,7 @@ export class Demo {
       state: 'idle', tool: null, tools: {}, toolTotal: 0, prompts: 0, spirits: 0,
       startedAt: Date.now() - (fresh ? 0 : rand(5, 180) * 60000), lastAt: Date.now(),
     };
-    // the public demo's sessions end after a while; "Summon phantoms" ones last till dismissed
+    // the public demo's sessions end after a while; ?demo's last as long as the page
     const ph = { s, alive: true, fresh, until: this.endless ? Date.now() + rand(4, 14) * 60000 : Infinity };
     this.phantoms.push(ph);
     setTimeout(() => this.run(ph), delay);
