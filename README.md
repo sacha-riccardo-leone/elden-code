@@ -229,7 +229,15 @@ can **become any character**: click one and choose **Become …** in the fan ove
     red, under a skull whose horns curve down. Every island but the Hold is greyed out: the Hold is
     the only place you can travel to by grace, and the way on to the arena is on foot. Once you're
     sealed in the arena with it, the strip gives way to its health bar until the fight is over.
-  - The **Controls** button (top right) lists all of this.
+  - The **settings** wheel (top right, beside the **?**) lists all of this under **Controls**.
+- **Settings** (the wheel at the top right; `#settings` in `client/index.html`, wired in
+  `client/js/main.js`; all of it remembered in the browser). Its pages are listed down its left:
+  - **Controls:** every control above, its keys drawn as keys.
+  - **Interface:** show or hide the message log, the speech bubbles, the map strip and the area
+    titles; turn the screen shake off (heavy blows and landings jolt the view); and how big the
+    interface is, 80–130%: its panels and bars, each from where it's set (not what follows the
+    world on the screen, the bubbles, prompts and fans, nor the settings themselves).
+  - **Sound:** how loud the sound effects are, and how loud the music, a slider each.
 - **Others:** only the character you are can gesture. Clicking anyone else opens their info panel
   and a fan with just **Become [name]**. You can drag them to carry them elsewhere. Scroll to zoom.
   The names on the map strip and the lines of the message log take you places.
@@ -238,7 +246,9 @@ can **become any character**: click one and choose **Become …** in the fan ove
 - **Sessions:** a character you take over stops following its Claude Code session, which keeps
   running. When you let go, it walks back to whatever the session is doing. If a generic
   Tarnished's session ends while you're them, you return to Maren.
-- **The Twofold:** if you're them at dusk or dawn, you can't move while they change form.
+- **The Twofold:** if you're them at dusk or dawn, you can't move while they change form. You can
+  change them yourself too: **B**, and **Change into Solenne** (or **Ruadan**) in the middle of the
+  fan. They keep the form you chose until dusk or dawn comes round to it.
 - **Nobody walks through anybody** (`client/js/crowd.js`, tuned in `CROWD` in
   `client/js/config.js`). Every character, you included, stands on a solid circle: in the open,
   at the Hold and in a fight. A great enemy's circle is larger. Only the Noble Sorcerers'
@@ -362,7 +372,9 @@ other heroes live at Roundtable Hold and each takes up one session at a time (se
   - **The change:** halfway through dusk and dawn, golden light gathers and the drawing of the
     change itself (`champion-to-queen.json` at dawn, `queen-to-champion.json` at dusk;
     `client/js/heroes/twofold.js`) holds for a moment. Then the other form bursts out under its
-    own name, and the log tells it.
+    own name, and the log tells it. Every visit begins two minutes before the next of them (see
+    **Day and night**), so even a short one sees both forms; and whoever is the Twofold can change
+    them at will (`changeForm` in `client/js/director.js`).
 - **Corisande, the Glintstone Witch** (Sorceress): one hero with two looks, rigged in
   `client/js/heroes/sorceress.js`. Her sorcery is glintstone: the staff's crystal kindles
   blue-white, motes wheel round it, stars rise from it, and a thrust of the staff looses a
@@ -992,8 +1004,11 @@ slow dusk or dawn into the other (all in `client/js/daylight.js`).
 - **Dusk and dawn:** the light turns orange and the horizon glows halfway through the change.
   The message log announces each as it begins. Halfway through, the Twofold changes form.
 
-The hour comes from the real clock, so every tab and every reload agree on it. Add `?time=day` or
-`?time=night` to the address to hold one, or `?time=fast` to watch a whole day pass in two minutes.
+Each visit has its own hour (`VISIT` in `client/js/daylight.js`): the one the real clock gives,
+moved on or back to two minutes before the middle of the next dusk or dawn, so that even a short
+visit sees the light turn and the Twofold change form. It holds there under the title and through
+the tutorial, and goes on from the moment you set out. Add `?time=day` or `?time=night` to the
+address to hold one, or `?time=fast` to watch a whole day pass in two minutes.
 
 ### Light
 
@@ -1184,7 +1199,9 @@ table says what each clip is cut from.
   The pieces stream as they play (each from its own player, never decoded whole), quieter than
   the sounds of the fight (`MUSIC` in `client/js/audio.js`: how loud, how fast each comes and goes).
 - Nothing sounds before you set out: a browser lets a page play sound only once it's been clicked.
-  **V** turns the sound and the music off and on, and it's remembered.
+  **V** turns the sound and the music off and on, and it's remembered; so are the settings' two
+  sliders, how loud the sound effects are and how loud the music (`setVolume` in
+  `client/js/audio.js`: each has its own way out, the music's after its ducking).
 
 ## How they talk
 

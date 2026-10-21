@@ -54,12 +54,14 @@ export class CameraRig {
 
   // A jolt (a great enemy's blow landing), dying away.
   shake(amount) {
+    if (this.shakes === false) return; // (turned off in the settings: main.js)
     this.shakeAmt = Math.max(this.shakeAmt || 0, amount);
   }
 
   // A push the way a blow goes (`dx` world units along x), springing straight back: the view
   // itself moves, not where it looks from.
   punch(dx) {
+    if (this.shakes === false) return;
     this.punchX = Math.abs(dx) > Math.abs(this.punchX || 0) ? dx : this.punchX;
   }
 

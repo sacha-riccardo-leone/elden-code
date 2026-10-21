@@ -176,6 +176,8 @@ ctx.onWorldGrew = () => {
 // Only the one thou art can be made to gesture; anyone else's fan offers to become them (in the
 // tutorial, its hero alone).
 ui.onGesture = (npc, key) => { if (npc === pilot.npc) director.gesture(npc, key); };
+// (thou, as the Twofold, into thine other form: director.js)
+ui.onChangeForm = (npc) => { if (npc === pilot.npc) director.changeForm(npc); };
 ui.onBecome = (npc) => {
   if (!npc || npc.dead || npc === pilot.npc || !tutorial.pickable(npc)) return;
   director.select(null);
@@ -331,19 +333,62 @@ const toggleDemo = () => {
   ui.setStatus(connected, demo.active);
 };
 document.getElementById('demo-btn').addEventListener('click', toggleDemo);
-// The two panels at the top right: the controls menu and "how it works"; one at a time, Esc closes.
-const keysPanel = document.getElementById('keys');
-const keysBtn = document.getElementById('keys-btn');
+// The two panels at the top right: the settings (behind the wheel) and "how it works"; one at a
+// time, Esc closes.
+const settings = document.getElementById('settings');
+const settingsBtn = document.getElementById('settings-btn');
 const help = document.getElementById('help');
 const helpBtn = document.getElementById('help-btn');
 const showPanel = (panel, open) => {
-  for (const [p, b] of [[keysPanel, keysBtn], [help, helpBtn]]) {
+  for (const [p, b] of [[settings, settingsBtn], [help, helpBtn]]) {
     p.hidden = p === panel ? !open : true;
     b.setAttribute('aria-expanded', String(!p.hidden));
   }
 };
-keysBtn.addEventListener('click', () => showPanel(keysPanel, keysPanel.hidden));
-document.getElementById('keys-close').addEventListener('click', () => showPanel(keysPanel, false));
+settingsBtn.addEventListener('click', () => showPanel(settings, settings.hidden));
+document.getElementById('settings-close').addEventListener('click', () => showPanel(settings, false));
+// its pages, listed down its left: the controls, the interface, the sound
+const tabs = [...settings.querySelectorAll('[role="tab"]')];
+for (const tab of tabs) {
+  tab.addEventListener('click', () => {
+    for (const t of tabs) {
+      t.setAttribute('aria-selected', String(t === tab));
+      document.getElementById(t.getAttribute('aria-controls')).hidden = t !== tab;
+    }
+  });
+}
+// (a slider: gold up to where it stands, and what it stands at)
+const slider = (input, value, set) => {
+  const out = input.parentElement.querySelector('output');
+  const show = () => {
+    const { min, max } = input;
+    input.style.setProperty('--v', `${(100 * (input.value - min)) / (max - min)}%`);
+    out.textContent = `${input.value}%`;
+  };
+  input.value = String(value);
+  show();
+  input.addEventListener('input', () => { set(Number(input.value)); show(); });
+};
+// the sound: the sounds and the music, each as loud as its slider (audio.js, remembered)
+slider(document.getElementById('vol-sfx'), Math.round(sound.volumes.sfx * 100), (v) => sound.setVolume('sfx', v / 100));
+slider(document.getElementById('vol-music'), Math.round(sound.volumes.music * 100), (v) => sound.setVolume('music', v / 100));
+// the interface: what of it shows, whether heavy blows shake the view, and how big it is (game.css;
+// remembered)
+const PREFS = 'elden-code:interface';
+const prefs = { log: true, bubbles: true, map: true, titles: true, shake: true, size: 100 };
+try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREFS) || '{}')); } catch {}
+const applyPrefs = () => {
+  for (const k of ['log', 'bubbles', 'map', 'titles']) document.body.classList.toggle(`hide-${k}`, !prefs[k]);
+  rig.shakes = !!prefs.shake;
+  document.documentElement.style.setProperty('--ui', String(prefs.size / 100));
+  try { localStorage.setItem(PREFS, JSON.stringify(prefs)); } catch {}
+};
+applyPrefs();
+for (const box of settings.querySelectorAll('[data-opt]')) {
+  box.checked = !!prefs[box.dataset.opt];
+  box.addEventListener('change', () => { prefs[box.dataset.opt] = box.checked; applyPrefs(); });
+}
+slider(document.getElementById('ui-size'), prefs.size, (v) => { prefs.size = v; applyPrefs(); });
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') showPanel(null, false); });
 helpBtn.addEventListener('click', () => {
   showPanel(help, help.hidden);
@@ -502,6 +547,7 @@ function begin() {
 // The Lands Between set out: the public demo's sessions start (its first island rising 5 s after
 // thee), or, asked for (?demo), the phantoms are summoned.
 function setOutWorld() {
+  daylight.begin(); // (the visit's day: a little before its first dusk or dawn, daylight.js)
   if (PUBLIC_DEMO) {
     director.holdRisesUntil(director.clock + 5);
     demo.startWorld();

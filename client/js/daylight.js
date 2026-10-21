@@ -57,17 +57,37 @@ export function dayAt(seconds) {
   return ease((s - (len - turn)) / turn);
 }
 
+// A visit's own day (begin): as the real hour has it, but begun VISIT.before seconds before the middle
+// of the next dusk or dawn (where the Twofold changes form, director.js), so that even a short visit
+// sees both its forms; till the visit begins (under the title, through the tutorial) the light holds
+// there.
+const VISIT = { before: 120 };
+function visitStart(seconds) {
+  const { day, night, turn } = CYCLE;
+  const len = day + night;
+  const s = ((seconds % len) + len) % len;
+  const next = [day - turn / 2, len - turn / 2, len + day - turn / 2].find((m) => m > s);
+  return seconds - s + next - VISIT.before;
+}
+
 export class Daylight {
   constructor({ renderer, scene, world, post, ui }) {
     Object.assign(this, { renderer, scene, world, post, ui });
     this.mode = new URLSearchParams(location.search).get('time'); // day | night | fast | null
     this.held = null;
+    this.start = visitStart(Date.now() / 1000); // (the visit's day, in the cycle's seconds: begin)
+    this.begun = null;
     this.amount = null;
     this.fogDensity = 1; // how thick the fog is, relative to night (main.js applies it)
     const colors = (pair) => pair.map((c) => new THREE.Color(c));
     this.c = Object.fromEntries(['fog', 'background', 'spires', 'hemiSky', 'hemiGround', 'sun', 'fill'].map((k) => [k, colors(LOOK[k])]));
     this.sunFrom = LOOK.sunFrom.map((v) => new THREE.Vector3(...v));
     this.dusk = Object.fromEntries(Object.entries(DUSK).map(([k, c]) => [k, new THREE.Color(c)]));
+  }
+
+  // The visit begins (main.js: thou settest out, or the tutorial's over): its day goes on from here.
+  begin() {
+    if (this.begun == null) this.begun = Date.now() / 1000;
   }
 
   // Hold the light at an amount of day (0..1), or give it back to the clock with null.
@@ -80,7 +100,8 @@ export class Daylight {
     if (this.mode === 'day') return 1;
     if (this.mode === 'night') return 0;
     const s = Date.now() / 1000;
-    return dayAt(this.mode === 'fast' ? (s * (CYCLE.day + CYCLE.night)) / 120 : s);
+    if (this.mode === 'fast') return dayAt((s * (CYCLE.day + CYCLE.night)) / 120);
+    return dayAt(this.start + (this.begun == null ? 0 : s - this.begun));
   }
 
   update() {

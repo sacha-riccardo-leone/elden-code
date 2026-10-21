@@ -97,7 +97,7 @@
     <div id="status"><i></i><span>Seeking the bridge…</span></div>
     <button id="demo-btn" type="button">Summon phantoms</button>
     <a href="/debug" target="_blank" rel="noopener">Event log</a>
-    <button id="keys-btn" type="button" aria-expanded="false" aria-controls="keys">Controls</button>
+    <button id="settings-btn" type="button" aria-expanded="false" aria-controls="settings" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6a7.6 7.6 0 0 1 1.9.8l2.2-1.5 2.4 2.4-1.5 2.2c.35.6.62 1.24.8 1.9l2.6.5v3.4l-2.6.5a7.6 7.6 0 0 1-.8 1.9l1.5 2.2-2.4 2.4-2.2-1.5c-.6.35-1.24.62-1.9.8l-.5 2.6h-3.4l-.5-2.6a7.6 7.6 0 0 1-1.9-.8l-2.2 1.5-2.4-2.4 1.5-2.2a7.6 7.6 0 0 1-.8-1.9L2 13.7v-3.4l2.6-.5c.18-.66.45-1.3.8-1.9L3.9 5.7l2.4-2.4 2.2 1.5c.6-.35 1.24-.62 1.9-.8L10.3 2zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z"/></svg></button>
     <button id="help-btn" type="button" aria-expanded="false" aria-controls="help" title="How it works">?</button>
   </nav>
 
@@ -118,30 +118,52 @@
     <p class="hint">Its fan above it: become them · drag to carry · Esc to close</p>
   </aside>
 
-  <section id="keys" hidden>
-    <button id="keys-close" type="button" aria-label="Close">×</button>
-    <h3>Controls</h3>
-    <dl>
-      <dt>W A S D · arrows</dt><dd>Walk</dd>
-      <dt>Shift</dt><dd>Run</dd>
-      <dt>Left click</dt><dd>Strike the way you point (a mage casts)</dd>
-      <dt>Right click</dt><dd>Cast a spell (Fortuna, the mages), throw a spear (Ulric), or a thunderbolt (Maren)</dd>
-      <dt>V</dt><dd>Sound and music off / on</dd>
-      <dt>R</dt><dd>Ultimate, once its bar is full</dd>
-      <dt>Space</dt><dd>Dodge</dd>
-      <dt>C</dt><dd>Crouch</dd>
-      <dt>Q</dt><dd>Focus the camera on a great enemy (or the yard's great dummy), or back on you</dd>
-      <dt>B · 1–8</dt><dd>Gestures</dd>
-      <dt>E</dt><dd>Use what's in reach</dd>
-      <dt>M</dt><dd>Map</dd>
-      <dt>Z / X</dt><dd>Previous / next area</dd>
-      <dt>H</dt><dd>Roundtable Hold</dd>
-      <dt>Click someone</dt><dd>Inspect, become them</dd>
-      <dt>Drag someone</dt><dd>Carry them</dd>
-      <dt>Scroll · + / −</dt><dd>Zoom</dd>
-      <dt>P</dt><dd>Frame rate</dd>
-      <dt>Esc</dt><dd>Close</dd>
-    </dl>
+  <section id="settings" hidden aria-label="Settings">
+    <button id="settings-close" type="button" aria-label="Close">×</button>
+    <h3>Settings</h3>
+    <div class="settings-body">
+      <nav class="settings-tabs" role="tablist" aria-label="Settings">
+        <button type="button" role="tab" id="tab-controls" aria-controls="page-controls" aria-selected="true">Controls</button>
+        <button type="button" role="tab" id="tab-interface" aria-controls="page-interface" aria-selected="false">Interface</button>
+        <button type="button" role="tab" id="tab-sound" aria-controls="page-sound" aria-selected="false">Sound</button>
+      </nav>
+      <div id="page-controls" class="settings-page" role="tabpanel" aria-labelledby="tab-controls">
+        <dl class="ctls">
+        <dt><span class="keys"><kbd class="key">W</kbd><kbd class="key">A</kbd><kbd class="key">S</kbd><kbd class="key">D</kbd></span><span class="or">or</span><span class="keys"><kbd class="key">↑</kbd><kbd class="key">←</kbd><kbd class="key">↓</kbd><kbd class="key">→</kbd></span></dt><dd>Walk</dd>
+        <dt><kbd class="key wide">Shift</kbd></dt><dd>Run</dd>
+        <dt><span class="mouse left"><i class="left"></i><i class="right"></i></span></dt><dd>Strike the way you point (a mage casts)</dd>
+        <dt><span class="mouse right"><i class="left"></i><i class="right"></i></span></dt><dd>Cast a spell (Fortuna, the mages), throw a spear (Ulric) or the maul (Ruadan), or a thunderbolt (Maren)</dd>
+        <dt><kbd class="key">R</kbd></dt><dd>Ultimate, once its bar is full</dd>
+        <dt><kbd class="key wide">Space</kbd></dt><dd>Dodge</dd>
+        <dt><kbd class="key">C</kbd></dt><dd>Crouch</dd>
+        <dt><kbd class="key">Q</kbd></dt><dd>Focus the camera on a great enemy (or the yard's great dummy), or back on you</dd>
+        <dt><kbd class="key">B</kbd><span class="or">or</span><kbd class="key">1</kbd><span class="or">–</span><kbd class="key">8</kbd></dt><dd>Gestures</dd>
+        <dt><kbd class="key">E</kbd></dt><dd>Use what's in reach</dd>
+        <dt><kbd class="key">M</kbd></dt><dd>Map</dd>
+        <dt><kbd class="key">Z</kbd><span class="or">/</span><kbd class="key">X</kbd></dt><dd>Previous / next area</dd>
+        <dt><kbd class="key">H</kbd></dt><dd>Roundtable Hold</dd>
+        <dt><span class="mouse left"><i class="left"></i><i class="right"></i></span><span class="or">on someone</span></dt><dd>Inspect them, become them</dd>
+        <dt><span class="mouse left"><i class="left"></i><i class="right"></i></span><span class="or">drag</span></dt><dd>Carry someone</dd>
+        <dt><span class="mouse wheel"><i class="left"></i><i class="right"></i></span><span class="or">or</span><kbd class="key">+</kbd><span class="or">/</span><kbd class="key">−</kbd></dt><dd>Zoom</dd>
+        <dt><kbd class="key">V</kbd></dt><dd>All sound off / on</dd>
+        <dt><kbd class="key">P</kbd></dt><dd>Frame rate</dd>
+        <dt><kbd class="key wide">Esc</kbd></dt><dd>Close</dd>
+        </dl>
+      </div>
+      <div id="page-interface" class="settings-page" role="tabpanel" aria-labelledby="tab-interface" hidden>
+        <label class="opt"><input type="checkbox" data-opt="log"><span>Message log</span><small>The lines down the left: what everyone is doing</small></label>
+        <label class="opt"><input type="checkbox" data-opt="bubbles"><span>Speech bubbles</span><small>What the Tarnished say, over their heads</small></label>
+        <label class="opt"><input type="checkbox" data-opt="map"><span>Map strip</span><small>The places along the bottom of the screen</small></label>
+        <label class="opt"><input type="checkbox" data-opt="titles"><span>Area titles</span><small>A place's name as you come to it</small></label>
+        <label class="opt"><input type="checkbox" data-opt="shake"><span>Screen shake</span><small>The view jolted by heavy blows and landings</small></label>
+        <label class="vol"><span>Interface size</span><input id="ui-size" type="range" min="80" max="130" step="5"><output for="ui-size">100%</output></label>
+      </div>
+      <div id="page-sound" class="settings-page" role="tabpanel" aria-labelledby="tab-sound" hidden>
+        <label class="vol"><span>Sound effects</span><input id="vol-sfx" type="range" min="0" max="100" step="1"><output for="vol-sfx">100%</output></label>
+        <label class="vol"><span>Music</span><input id="vol-music" type="range" min="0" max="100" step="1"><output for="vol-music">100%</output></label>
+        <p class="small"><kbd class="key">V</kbd> turns all of it off and on.</p>
+      </div>
+    </div>
   </section>
 
   <section id="help" hidden>
@@ -160,9 +182,9 @@
       <li><b>Site of Grace</b> — rest after a quest; idle Tarnished wander and talk</li>
       <li><b>Roundtable Hold</b> — idle Tarnished from every project come to sit at the round table and talk</li>
     </ul>
-    <p>Thou art <b>Maren the Stormbound</b>, or anyone thou choosest to become: <b>W A S D</b> or the arrow keys to walk (hold <b>Shift</b> to run), and cross the bridges to other islands. <b>Left click</b> to strike (every blow, spell and spear goes straight the way thou pointest), <b>Space</b> to dodge, <b>C</b> to crouch, <b>B</b> to open thy fan of gestures (or <b>1–8</b>; none while a great enemy is abroad); nearby Tarnished may answer. <b>E</b> uses what thou standest by: the forge, the scrolls, the war table, the ritual circle, the raven tower, the fog gate, a site of grace, and the Round Table (which can summon a great enemy to the Arena of Trials, north of the Hold; great enemies also come by themselves, and when a session struggles; as one comes thou choosest up to four companions to fight beside thee, the mages from afar, the rest up close, and <b>Start fight</b> raises the arena; <b>right click</b> casts a spell as Fortuna or a mage, throws a spear as Ulric, or a thunderbolt as Maren, and once thy bar is full <b>R</b> looses thine ultimate). <b>M</b> shows the map. <b>Z / X</b> travel by grace to the previous or next area, <b>H</b> to Roundtable Hold. Click another Tarnished to inspect it; the fan over its head lets thee <b>become</b> them. Maren lives her own life meanwhile; click her and become her again to return. Drag a Tarnished to carry it, scroll to zoom. Click a line in the log to travel to whoever it's about. <b>P</b> shows frame rate and resolution.</p>
+    <p>Thou art <b>Maren the Stormbound</b>, or anyone thou choosest to become: <b>W A S D</b> or the arrow keys to walk (hold <b>Shift</b> to run), and cross the bridges to other islands. <b>Left click</b> to strike (every blow, spell and spear goes straight the way thou pointest), <b>Space</b> to dodge, <b>C</b> to crouch, <b>B</b> to open thy fan of gestures (or <b>1–8</b>; none while a great enemy is abroad); nearby Tarnished may answer. <b>E</b> uses what thou standest by: the forge, the scrolls, the war table, the ritual circle, the raven tower, the fog gate, a site of grace, and the Round Table (which can summon a great enemy to the Arena of Trials, north of the Hold; great enemies also come by themselves, and when a session struggles; as one comes thou choosest up to four companions to fight beside thee, the mages from afar, the rest up close, and <b>Start fight</b> raises the arena; <b>right click</b> casts a spell as Fortuna or a mage, throws a spear as Ulric, or a thunderbolt as Maren, and once thy bar is full <b>R</b> looses thine ultimate). <b>M</b> shows the map. <b>Z / X</b> travel by grace to the previous or next area, <b>H</b> to Roundtable Hold. Click another Tarnished to inspect it; the fan over its head lets thee <b>become</b> them. Maren lives her own life meanwhile; click her and become her again to return. Drag a Tarnished to carry it, scroll to zoom. Click a line in the log to travel to whoever it's about. <b>P</b> shows frame rate and resolution. The wheel beside this panel's <b>?</b> holds the settings: every control, what of the interface shows and how big it is, and how loud the sound and the music are.</p>
     <p>On your first journey a tutorial shows the way (<b>Skip tutorial</b> at the bottom right ends it). Walk it again at any time from the grace of the training yard, south of the Hold down its stair: <b>E</b> there, then <b>Tutorial</b>.</p>
-    <p>Day and night take turns, 18 minutes each, the last 2 a slow dusk or dawn. Add <b>?time=day</b> or <b>?time=night</b> to the address to hold one, or <b>?time=fast</b> to watch a whole day pass in two minutes.</p>
+    <p>Day and night take turns, 18 minutes each, the last 2 a slow dusk or dawn; each visit begins two minutes before the next dusk or dawn, when the Twofold changes form (as the Twofold, <b>B</b> and <b>Change into…</b> changes it at will). Add <b>?time=day</b> or <b>?time=night</b> to the address to hold one, or <b>?time=fast</b> to watch a whole day pass in two minutes.</p>
     <p class="small credits"><b>Credits.</b> Sounds from <a href="https://freesound.org" target="_blank" rel="noopener noreferrer">Freesound</a>, under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a> (cut and levelled): “<a href="https://freesound.org/s/728763/" target="_blank" rel="noopener noreferrer">Explosion</a>” by TechspiredMinds (the Golem’s strike), “<a href="https://freesound.org/s/825797/" target="_blank" rel="noopener noreferrer">yasomasa_or_akazawa_inspired_bass_kick_explosion_drum_09082025</a>” by Artninja (his footsteps), “<a href="https://freesound.org/s/555048/" target="_blank" rel="noopener noreferrer">Rocks - Crumbling / Falling - Designed Rocks</a>” by Gregor Quendel (his stone crumbling as he falls), “<a href="https://freesound.org/s/853303/" target="_blank" rel="noopener noreferrer">Magic Healing Spell SFX - Fantasy RPG Restore Effect</a>” by TommasoMotteran (Coghezzi; Solenne’s light), “<a href="https://freesound.org/s/819311/" target="_blank" rel="noopener noreferrer">Custom_yasmoasa_koyama_heaven_feel_heavy_sword_hit</a>” by Artninja, with sounds by magnuswaker and Logicogonist (Aurelion’s giant striking); under <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC 4.0</a>: “<a href="https://freesound.org/s/763000/" target="_blank" rel="noopener noreferrer">DSGNVocl_Weird Whispering Spells.Dry_EM</a>” by newlocknew (the spectres). Fenrath’s landings by Nox_Sound; his great attack’s drone by In Motion Audio; Aurelion’s verdict from <i>Melee Weapons</i> by Just Sound Effects (Robert Millotat); setting out by Jake Fielding. The banners’ sound: “Campana” by Hugo Barbero (Banco de sonidos). Music: “Defending the Village” by Benjamin Botkin, “Deliverance” by Aaron Paul Low, “Halls of Ancients” by Ian Aisling.</p>
     <p class="small">Read-only: nothing here can send anything back to Claude Code.</p>
   </section>

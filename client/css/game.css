@@ -149,6 +149,9 @@ body.day #area h2 {
   outline-offset: 2px;
 }
 #help-btn { width: 32px; padding: 7px 0; }
+#controls #settings-btn { display: grid; place-items: center; width: 32px; align-self: stretch; padding: 0; }
+#settings-btn svg { width: 15px; height: 15px; transition: transform 0.4s; }
+#settings-btn[aria-expanded='true'] svg { transform: rotate(60deg); }
 
 #status {
   display: flex;
@@ -180,7 +183,7 @@ body.day #area h2 {
   left: 50%;
   bottom: 16px;
   transform: translateX(-50%);
-  width: calc(100vw - 48px); /* the whole world, from edge to edge of the view */
+  width: calc(100vw / var(--ui, 1) - 48px); /* the whole world, from edge to edge of the view */
   height: 92px;
   pointer-events: none;
   transition: opacity 0.6s, visibility 0.6s;
@@ -408,7 +411,7 @@ body.in-battle .region-label { pointer-events: none; cursor: default; } /* mid-f
   display: flex;
   flex-direction: column-reverse;
   gap: 3px;
-  max-width: min(560px, calc(100vw - 44px));
+  max-width: min(560px, calc(100vw / var(--ui, 1) - 44px));
   pointer-events: none;
 }
 #log li {
@@ -706,6 +709,10 @@ body.in-battle #dummy-bars { display: none; }
 /* over thyself: gestures; over anyone else: only "Become" */
 #fan[data-mode='other'] .fan-btn.gesture,
 #fan[data-mode='self'] .fan-btn.become { display: none; }
+/* (thou, as the Twofold: changing into thine other form, in the middle of thy gestures) */
+#fan .fan-btn.change { display: none; }
+#fan[data-mode='self'][data-change='1'] .fan-btn.change { display: grid; }
+.fan-btn.change span { opacity: 1; }
 .fan-btn.become span { opacity: 1; }
 
 /* ---------------------------------------------------------------- inspect panel */
@@ -715,7 +722,7 @@ body.in-battle #dummy-bars { display: none; }
   top: 64px;
   right: 18px;
   width: 300px;
-  max-height: calc(100vh - 90px);
+  max-height: calc(100vh / var(--ui, 1) - 90px);
   overflow-x: hidden;
   overflow-y: auto;
   padding: 18px 20px 16px;
@@ -829,15 +836,16 @@ body.in-battle #dummy-bars { display: none; }
   position: fixed;
   top: 64px;
   right: 18px;
-  width: min(420px, calc(100vw - 32px));
+  width: min(420px, calc(100vw / var(--ui, 1) - 32px));
   padding: 20px 22px;
   background: var(--panel);
   border: 1px solid rgba(201, 164, 90, 0.35);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   font-size: 16px;
   line-height: 1.4;
-  max-height: calc(100vh - 88px); /* (and scrolled, should it be taller than the window) */
+  max-height: calc(100vh / var(--ui, 1) - 88px); /* (and scrolled, should it be taller than the window) */
   overflow-y: auto;
+  z-index: 20;
 }
 #help h3 {
   margin: 0 0 8px;
@@ -889,7 +897,7 @@ body.in-battle #dummy-bars { display: none; }
   left: 50%;
   bottom: 86px;
   transform: translateX(-50%);
-  width: min(640px, calc(100vw - 40px));
+  width: min(640px, calc(100vw / var(--ui, 1) - 40px));
   z-index: 9;
   pointer-events: none;
 }
@@ -1296,7 +1304,7 @@ body.tutorial #regions { display: none; }
   bottom: 120px;
   transform: translateX(-50%);
   z-index: 13;
-  width: min(320px, calc(100vw - 32px));
+  width: min(320px, calc(100vw / var(--ui, 1) - 32px));
   padding: 16px 18px;
   display: grid;
   gap: 8px;
@@ -1539,20 +1547,20 @@ body.tutorial #regions { display: none; }
 .public-only { display: none; }
 body.public-demo .public-only { display: block; }
 body.public-demo #demo-btn,
-body.public-demo a[href="/debug"] { display: none !important; }
-
-/* fallen mid-fight: whom to carry on as (fight.js) */
-#carry {
+body.public-dem#carry {
   position: fixed;
   left: 50%;
   bottom: 140px;
   transform: translateX(-50%);
   z-index: 13;
-  width: min(560px, calc(100vw - 32px));
+  width: min(560px, calc(100vw / var(--ui, 1) - 32px));
   padding: 16px 18px;
   display: grid;
   gap: 8px;
   background: var(--panel);
+  border: 1px solid rgba(220, 120, 80, 0.55);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+ar(--panel);
   border: 1px solid rgba(220, 120, 80, 0.55);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
 }
@@ -1583,43 +1591,129 @@ body.public-demo a[href="/debug"] { display: none !important; }
 #carry button small { font-family: var(--serif); font-size: 14px; font-style: italic; letter-spacing: 0; text-transform: none; color: var(--muted); }
 #carry button i { display: block; height: 3px; background: linear-gradient(90deg, #8a1a12, #e05a3a); }
 
-/* the controls menu */
-#keys {
+/* settings (main.js, the wheel at the top right): its pages listed down the left (the controls, every
+   key drawn as a key; the sound, its two sliders), the one chosen beside them */
+#settings {
   position: fixed;
   top: 64px;
   right: 18px;
-  width: min(300px, calc(100vw - 32px));
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100vh - 88px);
+  display: flex;
+  flex-direction: column;
   padding: 16px 18px 14px;
   background: var(--panel);
   border: 1px solid rgba(201, 164, 90, 0.35);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   font-size: 15px;
   line-height: 1.3;
+  z-index: 20; /* (over the prompts and fans of the world) */
 }
-#keys h3 {
-  margin: 0 0 10px;
+#settings[hidden] { display: none; }
+#settings h3 {
+  margin: 0 0 12px;
   font-family: var(--serif-title);
   font-weight: 500;
   letter-spacing: 0.08em;
   color: var(--gold-hi);
 }
-#keys dl {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 5px 14px;
-  margin: 0;
-}
-#keys dt {
+#settings .settings-body { display: grid; grid-template-columns: 116px 1fr; gap: 18px; min-height: 0; }
+.settings-tabs { display: flex; flex-direction: column; gap: 6px; }
+.settings-tabs button {
+  padding: 8px 10px;
+  background: rgba(10, 9, 12, 0.7);
+  border: 1px solid var(--gold-line);
+  color: var(--gold);
   font-family: var(--serif-title);
   font-size: 11px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--gold);
-  white-space: nowrap;
-  padding-top: 2px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
-#keys dd { margin: 0; color: #ece5d4; }
-#keys-close {
+.settings-tabs button:hover { background: rgba(40, 32, 20, 0.85); color: var(--gold-hi); border-color: var(--gold); }
+.settings-tabs button[aria-selected='true'] { background: rgba(60, 46, 26, 0.75); color: var(--gold-hi); border-color: var(--gold); }
+.settings-page { min-height: 0; overflow-y: auto; padding-right: 4px; }
+.settings-page[hidden] { display: none; }
+/* the controls: each one's keys, drawn as keys (smaller than the tutorial's), and what they do */
+.ctls { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px 16px; margin: 0; }
+.ctls dt { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.ctls dd { margin: 0; color: #ece5d4; }
+#settings .key { min-width: 22px; padding: 1px 6px; border-bottom-width: 2px; font-size: 12px; box-shadow: 0 0 6px rgba(210, 178, 122, 0.3); }
+#settings .key.wide { min-width: 52px; }
+#settings .keys { gap: 2px; }
+#settings .keys .key { min-width: 20px; padding: 0; font-size: 11px; }
+#settings .mouse { width: 16px; height: 24px; border-radius: 8px 8px 7px 7px; box-shadow: 0 0 6px rgba(210, 178, 122, 0.3); }
+#settings .mouse i { height: 9px; animation: none; }
+#settings .mouse.left i.left,
+#settings .mouse.right i.right { background: var(--gold-hi); }
+#settings .mouse.wheel::after { content: ''; position: absolute; left: 50%; top: 3px; width: 2px; height: 5px; margin-left: -1px; background: var(--gold-hi); }
+.ctls .or { font-size: 13px; font-style: italic; color: var(--muted); }
+/* the sound: its two sliders, gold up to where each stands */
+.vol { display: grid; grid-template-columns: 120px 1fr 44px; align-items: center; gap: 12px; margin: 4px 0 16px; }
+.vol span { font-family: var(--serif-title); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+.vol output { font-family: var(--serif-title); font-size: 12px; text-align: right; color: var(--gold-hi); }
+.vol input { --v: 100%; -webkit-appearance: none; appearance: none; width: 100%; height: 20px; margin: 0; background: transparent; cursor: pointer; }
+.vol input:focus-visible { outline: 1px solid var(--gold-hi); outline-offset: 2px; }
+.vol input::-webkit-slider-runnable-track {
+  height: 5px;
+  background: linear-gradient(90deg, var(--gold) var(--v), rgba(8, 6, 8, 0.85) var(--v));
+  border: 1px solid var(--gold-line);
+}
+.vol input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  background: var(--gold-hi);
+  border: 1px solid #1a1410;
+  transform: rotate(45deg);
+  box-shadow: 0 0 8px rgba(255, 220, 140, 0.7);
+}
+.vol input::-moz-range-track { height: 5px; background: rgba(8, 6, 8, 0.85); border: 1px solid var(--gold-line); }
+.vol input::-moz-range-progress { height: 5px; background: var(--gold); }
+.vol input::-moz-range-thumb { width: 11px; height: 11px; background: var(--gold-hi); border: 1px solid #1a1410; border-radius: 0; transform: rotate(45deg); }
+#settings .small { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+/* the interface: each part shown or not (a switch), and its size */
+.opt { display: grid; grid-template-columns: 40px 1fr; column-gap: 12px; align-items: center; margin: 2px 0 12px; cursor: pointer; }
+.opt input {
+  grid-row: 1 / span 2;
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  width: 34px;
+  height: 18px;
+  margin: 0;
+  background: rgba(8, 6, 8, 0.85);
+  border: 1px solid var(--gold-line);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.opt input::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--muted);
+  transition: left 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.opt input:checked { background: rgba(60, 46, 26, 0.85); border-color: var(--gold); }
+.opt input:checked::after { left: 18px; background: var(--gold-hi); box-shadow: 0 0 8px rgba(255, 220, 140, 0.7); }
+.opt input:focus-visible { outline: 1px solid var(--gold-hi); outline-offset: 2px; }
+.opt span { font-family: var(--serif-title); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+.opt small { font-size: 13px; font-style: italic; color: var(--muted); }
+body.hide-log #log,
+body.hide-bubbles #bubbles,
+body.hide-map #regions,
+body.hide-titles #area { display: none !important; }
+/* (how big the interface is: its panels and bars, each from where it's set, scaled; not what
+   follows the world on the screen, the bubbles, prompts and fans, nor the settings themselves) */
+#hud, #controls, #log, #me-face, #hp, #ult, #party, #regions, #boss, #area, #banner, #inspect, #help,
+#table-menu, #grace-menu, #carry, #ult-title, #focus-hint { zoom: var(--ui, 1); }
+#settings-close {
   position: absolute;
   top: 8px;
   right: 10px;
@@ -1630,22 +1724,26 @@ body.public-demo a[href="/debug"] { display: none !important; }
   line-height: 1;
   cursor: pointer;
 }
-#keys-close:hover { color: var(--gold-hi); }
+#settings-close:hover { color: var(--gold-hi); }
 #help li { margin: 2px 0; }
 #help b { color: var(--gold); font-weight: 700; }
 #help .small { font-size: 14px; color: var(--muted); }
 
 @media (max-width: 720px) {
+  #settings .settings-body { grid-template-columns: 1fr; }
+  .settings-tabs { flex-direction: row; }
+  .vol { grid-template-columns: 1fr 44px; }
+  .vol span { grid-column: 1 / -1; }
   #regions { top: 56px; bottom: auto; left: 16px; right: 16px; width: auto; transform: none; }
   #area { top: 22%; }
   #hud { top: 12px; left: 16px; }
   #hud h1 { font-size: 17px; }
   #controls { top: auto; bottom: 12px; right: 16px; flex-wrap: wrap; justify-content: flex-end; }
   #status span { display: none; }
-  #log { bottom: 64px; left: 16px; max-width: calc(100vw - 32px); }
+  #log { bottom: 64px; left: 16px; max-width: calc(100vw / var(--ui, 1) - 32px); }
   #log li { font-size: 15px; }
   #inspect { left: 16px; right: 16px; width: auto; top: auto; bottom: 64px; max-height: 50vh; }
-  #help, #keys { right: 16px; top: 56px; }
+  #help, #settings { right: 16px; top: 56px; }
   .tut-skip { bottom: 64px; right: 16px; }
   .tut-prompt { font-size: 15px; white-space: normal; width: calc(100vw - 32px); }
   .tut-prompt .line { flex-wrap: wrap; justify-content: center; }

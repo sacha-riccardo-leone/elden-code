@@ -133,11 +133,26 @@ export class Director {
   // takes it off once she has been idle a while. Held by thee, she wears it on the training yard
   // and in a fight on the arena, and takes it off as she walks out of them.
   wantForm(n) {
-    if (n.heroActor === 'twofold') return this.formNow();
+    if (n.heroActor === 'twofold') {
+      // (changed into its other form by thee: it keeps it till dusk or dawn comes round to it)
+      const natural = this.formNow();
+      if (n.forced?.while === natural) return n.forced.form;
+      n.forced = null;
+      return natural;
+    }
     if (n.piloted) return this.ctx.training?.has(n) || this.ctx.fight?.inBattle() ? 'masked' : 'bare';
     const busy = !!n.fighter || !!n.trainee || (n.working && n.arrived);
     if (busy) n.busyAt = this.clock;
     return busy || this.clock - (n.busyAt ?? -Infinity) < MASK.keep ? 'masked' : 'bare';
+  }
+
+  // Thou, as the Twofold, changing into thine other form (thy fan of gestures, ui.js), as at dusk or
+  // dawn; kept till the hour comes round to it (wantForm).
+  changeForm(n) {
+    if (n?.heroActor !== 'twofold' || n.shift || !n.forms) return;
+    const natural = this.formNow();
+    const other = n.form === 'day' ? 'night' : 'day';
+    n.forced = other === natural ? null : { form: other, while: natural };
   }
 
   // Halfway through dusk or dawn the Twofold becomes its other form: golden light gathers, the

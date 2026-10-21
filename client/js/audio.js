@@ -8,11 +8,14 @@
 // many of one at once (`most`).
 // And the music (Music, below): the ambient pieces while nothing's fought, the arena's while a great
 // enemy stands in it. Nothing sounds before thou settest out (a browser lets a page make a sound only
-// once it's been clicked: unlock), and V turns it all off and on again (remembered).
+// once it's been clicked: unlock), and V turns it all off and on again (remembered); the settings
+// set how loud the sounds are and how loud the music (setVolume, remembered too).
 
 import * as THREE from 'three';
 
 const STORE = 'elden-code:sound';
+const VOLUMES = 'elden-code:volumes'; // ({ sfx, music }: each 0 to 1, the settings' sliders, main.js)
+const unit = (v) => (Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1);
 
 // The sounds, by name: the clips one is played from (one chosen each time), how loud, how much it
 // varies (loudness and pitch, a share either way), how many may sound at once, how far off it's
@@ -194,6 +197,10 @@ export class Sound {
     let stored = null;
     try { stored = localStorage.getItem(STORE); } catch {}
     this.on = stored !== 'off';
+    let volumes = null;
+    try { volumes = JSON.parse(localStorage.getItem(VOLUMES) || 'null'); } catch {}
+    this.volumes = { sfx: unit(volumes?.sfx), music: unit(volumes?.music) };
+    this.sfx = null; // (every sound's way out, as loud as the settings say: unlock)
     this.clips = new Map(); // clip path → AudioBuffer (or the promise of it)
     this.bytes = new Map(); // clip path → the promise of its file, fetched (load)
     this.leads = new Map(); // clip path → the silence it begins with (leadOf)
@@ -213,6 +220,9 @@ export class Sound {
       this.out = this.ctx.createGain();
       this.out.gain.value = this.on ? 1 : 0;
       this.out.connect(this.ctx.destination);
+      this.sfx = this.ctx.createGain();
+      this.sfx.gain.value = this.volumes.sfx;
+      this.sfx.connect(this.out);
       for (const set of this.wanted || []) this.load(set);
     }
     if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
@@ -236,6 +246,15 @@ export class Sound {
           .catch((err) => { console.warn(`Sound ${path} unavailable`, err); this.clips.delete(path); }));
       }
     }
+  }
+
+  // The settings: how loud the sounds are (`sfx`), or the music (`music`), 0 to 1.
+  setVolume(kind, v) {
+    if (!(kind in this.volumes)) return;
+    this.volumes[kind] = unit(v);
+    try { localStorage.setItem(VOLUMES, JSON.stringify(this.volumes)); } catch {}
+    if (kind === 'sfx' && this.sfx) this.sfx.gain.setTargetAtTime(this.volumes.sfx, this.ctx.currentTime, 0.03);
+    if (kind === 'music') this.music.setLevel(this.volumes.music);
   }
 
   // V: all of it off, or on again.
@@ -275,7 +294,7 @@ export class Sound {
       p.pan.value = pan;
       node = node.connect(p);
     }
-    node.connect(this.out);
+    node.connect(this.sfx || this.out);
     const begins = this.ctx.currentTime + delay;
     const base = pitch ?? (s.pitch ? s.pitch[0] + Math.random() * (s.pitch[1] - s.pitch[0]) : 1);
     const rate = base * (1 + (Math.random() * 2 - 1) * vary * 0.5);
@@ -371,10 +390,16 @@ function fadeTo(tr, to, secs, ctx) {
 class Music {
   constructor(sound) {
     this.sound = sound;
-    this.bus = null;
+    this.bus = null; // (its pieces' way out, held down under an ultimate's own music: duck)
+    this.level = null; // (and then as loud as the settings say: setLevel)
     this.tracks = new Map(); // piece -> { el, gain, fade, on, primed }
     this.moods = new Map(); // mood -> { at (its piece), playing, pending, wait, fade, stopAt }
     this.mood = null;
+  }
+
+  // As loud as the settings say (0 to 1).
+  setLevel(v) {
+    if (this.level) this.level.gain.setTargetAtTime(v, this.sound.ctx.currentTime, 0.03);
   }
 
   // Held down to `low` of its loudness from `at` (the sound's clock) under something that wants the
@@ -393,7 +418,9 @@ class Music {
     if (!ctx) return;
     if (!this.bus) {
       this.bus = ctx.createGain();
-      this.bus.connect(this.sound.out);
+      this.level = ctx.createGain();
+      this.level.gain.value = this.sound.volumes.music;
+      this.bus.connect(this.level).connect(this.sound.out);
     }
     for (const def of Object.values(MUSIC)) {
       for (const piece of def.pieces) {

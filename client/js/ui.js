@@ -401,6 +401,11 @@ export class UI {
       return { btn, label };
     };
     this.becomeBtn = special('become', 'sparkle', 0, -50, (owner) => owner && this.onBecome && this.onBecome(owner));
+    // (thou, as the Twofold: into thine other form, where "Become" stands over anyone else: main.js)
+    this.changeBtn = special('change', 'rune', 0, -50, (owner) => {
+      if (owner && this.onChangeForm) this.onChangeForm(owner);
+      this.closeFan();
+    });
   }
 
   openFan(owner) {
@@ -409,6 +414,13 @@ export class UI {
     this.fanEl.dataset.mode = owner.piloted ? 'self' : 'other';
     this.becomeBtn.label.textContent = `Become ${owner.name.first}`;
     this.becomeBtn.btn.title = `Become ${owner.displayName}`;
+    const other = owner.piloted && owner.heroActor === 'twofold' && owner.forms && !owner.shift
+      ? owner.forms[owner.form === 'day' ? 'night' : 'day'] : null;
+    this.fanEl.dataset.change = other ? '1' : '';
+    if (other) {
+      this.changeBtn.label.textContent = `Change into ${other.rig.firstName}`;
+      this.changeBtn.btn.title = `Change into ${[other.rig.firstName, other.rig.epithet].filter(Boolean).join(', ')}`;
+    }
     this.fanEl.hidden = false;
     this.fanEl.classList.remove('open');
     void this.fanEl.offsetWidth;
