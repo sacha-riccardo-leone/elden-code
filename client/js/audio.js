@@ -54,8 +54,24 @@ export const SOUNDS = {
   'ronin-cut': { set: 'ronin', clips: ['cut'], volume: 0.8, vary: 0.06, most: 4, half: 22 },
   'ronin-shine-back': { set: 'ronin', clips: ['shine-back'], volume: 0.7, most: 1, half: 18 },
   'ronin-damage': { set: 'ronin', clips: ['damage'], volume: 0.95, most: 1, half: 24 },
-  // Fenrath's (fight.js): his great attack (roar, rumble, the two heard on through it, each cut of
-  // the ghost sword), and landing (one of three)
+  // Fenrath's (fight.js): coming; each blow drawn back; the swing's cut (its whoosh, the greatsword
+  // landing) and the arc of light it throws (the two together: arch, crescent); the lunge; the slam;
+  // his leap (trembling as he crouches, springing); struck; felled; his growls (as he speaks, as his
+  // stance breaks, now and then); his great attack (roar, rumble, the two heard on through it, each
+  // cut of the ghost sword), and landing (one of three)
+  'boss-appear': { set: 'boss', clips: ['appear'], volume: 0.9, most: 1, half: 30 },
+  'boss-anticipation': { set: 'boss', clips: ['anticipation'], volume: 0.7, vary: 0.06, most: 2, half: 26 },
+  'boss-woosh': { set: 'boss', clips: ['woosh'], volume: 0.75, vary: 0.06, most: 2, half: 26 },
+  'boss-cut': { set: 'boss', clips: ['cut'], volume: 0.8, vary: 0.05, most: 2, half: 28 },
+  'boss-arch': { set: 'boss', clips: ['arch'], volume: 0.7, vary: 0.05, most: 2, half: 26 },
+  'boss-crescent': { set: 'boss', clips: ['crescent'], volume: 0.6, vary: 0.05, most: 2, half: 24 },
+  'boss-lunge': { set: 'boss', clips: ['lunge'], volume: 0.85, vary: 0.05, most: 2, half: 28 },
+  'boss-slam': { set: 'boss', clips: ['slam'], volume: 0.9, most: 1, half: 30 },
+  'boss-tremble': { set: 'boss', clips: ['tremble'], volume: 0.6, most: 1, half: 26 },
+  'boss-jump': { set: 'boss', clips: ['jump'], volume: 0.85, most: 1, half: 30 },
+  'boss-hit': { set: 'boss', clips: ['hit'], volume: 0.55, vary: 0.1, pitch: [0.92, 1.08], most: 3, half: 22 },
+  'boss-death': { set: 'boss', clips: ['death'], volume: 1, most: 1, half: 34 },
+  'boss-growl': { set: 'boss', clips: takes('growl', 4), volume: 0.8, vary: 0.08, pitch: [0.94, 1.04], most: 1, half: 30 },
   'boss-roar': { set: 'boss', clips: ['roar'], volume: 1, most: 1, half: 34 },
   'boss-wrath': { set: 'boss', clips: ['wrath'], volume: 0.9, most: 1, half: 34 },
   'boss-wrath-during': { set: 'boss', clips: ['wrath-during-1', 'wrath-during-2'], layer: true, volume: 0.7, most: 1, half: 40 },
@@ -68,6 +84,8 @@ export const SOUNDS = {
   'knight-great': { set: 'knight', clips: ['great'], volume: 1, most: 1, half: 34 },
   'knight-ult-zoom': { set: 'knight', clips: ['ult-zoom'], volume: 0.8, most: 1, half: 24 },
   'paladin-ult': { set: 'paladin', clips: ['ult'], volume: 0.85, most: 1, half: 22 },
+  // (Jorvik's tomes, each as it springs up)
+  'runelord-book': { set: 'runelord', clips: takes('book', 3), volume: 0.5, vary: 0.1, pitch: [0.94, 1.08], most: 4, half: 22 },
   'paladin-stand': { set: 'paladin', clips: ['stand'], volume: 0.8, most: 1, half: 22 },
   'paladin-stand-hit': { set: 'paladin', clips: takes('stand-hit', 15), volume: 0.9, vary: 0.05, most: 1, half: 24 },
   // (and his own music, from the moment it's loosed till a moment after it strikes: ults.js)
@@ -104,6 +122,8 @@ export const SOUNDS = {
   // a blow's swing, as it lands (combat.js): anyone's with a blade, a spear or a fist, but Wynn's
   // (his own, above) and Ruadan's (his maul's, above)
   'blade-swing': { set: 'blade', clips: takes('swing', 3), volume: 0.55, vary: 0.08, pitch: [0.95, 1.05], most: 4, half: 16 },
+  // (and a spear's thrust: Maren's, Ulric's)
+  'spear-thrust': { set: 'blade', clips: ['thrust-1', 'thrust-2'], volume: 0.6, vary: 0.08, pitch: [0.95, 1.05], most: 4, half: 16 },
   // footsteps (npc.js): each foot as it's set down, one of its kind's at random, by what's on one's
   // feet (a hero's rig says: its `feet`), walking or running (thee with Shift, the others in a
   // hurry): armour, its chain clinking (Maren, Aurelion, Ulric, Jorvik); heels (Solenne, Fortuna);

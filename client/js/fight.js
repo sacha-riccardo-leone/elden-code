@@ -66,6 +66,8 @@ const FACES = { me: 62, ally: 40, fly: 0.55 };
 // frame); one more than `dead` behind him he turns round to once it has stayed there `after`
 // seconds, and never twice within `every` (quicker about it than the Golem: golem.js)
 const TURN = { keep: [2, 4], dead: 0.8, after: 0.35, every: 0.9 };
+// Fenrath's growls (growl): never two within `gap` seconds, and now and then one, every `every`.
+const GROWL = { gap: 2.5, every: [8, 14] };
 const HURT = { swing: 22, lunge: 28, slam: 34, leap: 30, cut: 26, ring: 34 }; // to thee (of 100); fighters take as much
 // How a blow shows (impact): how far his drawing is knocked back (world units: by thy blow, by
 // another's, by a spell or an ultimate's, by a heavy one), how long the world holds still (seconds:
@@ -284,6 +286,7 @@ class Boss {
     if (this.hp <= 0) {
       const lying = this.mind?.lying;
       this.mind?.dies?.(lying);
+      if (!this.mind) this.ctx.sound?.play('boss-death', { at: [this.pos.x, this.pos.y] }); // (Fenrath felled: audio.js)
       this.state = 'dying';
       this.t = 0;
       this.endMove();
@@ -312,6 +315,7 @@ class Boss {
     for (const m of this.marks) m.dispose();
     this.marks = [];
     this.attack?.during?.stop(1.5); // (his great attack's sound, dying away with it)
+    this.attack?.tremble?.stop(0.2); // (and his leap's trembling, cut short)
     this.mind?.endMove(); // (while the move is still known: the Golem's fire, its roar and light, end with it)
     this.attack = null;
   }
@@ -613,6 +617,14 @@ export class Fight {
     this.dmgUntil = this.clock + 1.6;
     this.lastHurt = this.clock;
     if (how) this.impact(b, src, at, how, dealt, steady && b.state === 'staggered');
+    // (heard on Fenrath: a blow, a spell, an ultimate's, not a bleeding or a poison as it ticks, and
+    // never more than one a moment; the Golem's stone has its own, golem.js; and as his stance
+    // breaks, a growl)
+    if (how && !b.mind && this.clock - (this.hitHeardAt ?? -9) > 0.09) {
+      this.hitHeardAt = this.clock;
+      this.ctx.sound?.play('boss-hit', { at: [b.pos.x, b.pos.y] });
+    }
+    if (steady && b.state === 'staggered') this.growl(b);
     this.floor.particles.emit({
       pos: at || [b.pos.x, 2.2, b.pos.y], spread: [0.5, 0.8, 0.3], vel: [0, 1.4, 0], velSpread: [1.4, 1, 0.8],
       color: ['#ff6a4a', '#ffd2a8', '#a01818'], size: 0.07, life: 0.6, count: 10, drag: 1.2, intensity: 2.2,
@@ -914,6 +926,14 @@ export class Fight {
     this.says.push({ at: this.clock + delay, text, important });
   }
 
+  // Fenrath growls (audio.js): as he speaks, as his stance breaks, and now and then as he fights;
+  // never two within GROWL.gap.
+  growl(b) {
+    if (!b || b.mind || this.clock - (this.growledAt ?? -9) < GROWL.gap) return;
+    this.growledAt = this.clock;
+    this.ctx.sound?.play('boss-growl', { at: [b.pos.x, b.pos.y] });
+  }
+
   stepSays() {
     const b = this.boss;
     if (!b || b.state === 'gone') { this.says = []; return; }
@@ -922,6 +942,7 @@ export class Fight {
       if (b.state === 'dying' || b.fade < 0.5) return false;
       if (!s.important && (this.clock < (this.hushUntil ?? 0) || this.clock - (this.saidAt ?? -9) < 3)) return false;
       this.ctx.ui.say(b, s.text, Math.min(5, 1.8 + s.text.length * 0.045), 'boss');
+      this.growl(b); // (and heard: Fenrath's growl)
       b.lastSaid = s.text;
       this.saidAt = this.clock;
       return false;
@@ -1034,6 +1055,12 @@ export class Fight {
         if (stalk && b.talkIn <= 0) {
           b.talkIn = rand(14, 24);
           this.say(pickOf(stalk.filter((x) => x !== b.lastSaid)));
+        }
+        // (and now and then, a growl: Fenrath's)
+        b.growlIn = (b.growlIn ?? rand(...GROWL.every)) - dt;
+        if (b.growlIn <= 0) {
+          b.growlIn = rand(...GROWL.every);
+          this.growl(b);
         }
         break;
       }
@@ -1334,8 +1361,14 @@ export class Fight {
     const [x, z] = [b.pos.x, b.pos.y];
     const dir = a.dir;
     switch (`${a.kind}:${a.step}`) {
+      case 'swing:0':
+      case 'lunge:0':
+        this.ctx.sound?.play('boss-anticipation', { at: [x, z] }); // (drawn back: audio.js)
+        break;
       case 'swing:1': {
-        // the cut, and the crescent it throws: on down his lane, striking each it passes once
+        // the cut, and the crescent it throws: on down his lane, striking each it passes once (heard:
+        // the whoosh, the greatsword landing, and the arc of light, audio.js)
+        for (const name of ['boss-woosh', 'boss-cut', 'boss-arch', 'boss-crescent']) this.ctx.sound?.play(name, { at: [x + dir * 2, z] });
         const c = new Crescent(scene, x + dir * CRESCENT.from, CRESCENT.y, z + 0.12, dir, CRESCENT);
         this.strike((px, pz) => covers('line', x, z, { dir, from: -0.5, len: CRESCENT.from, half: CRESCENT.lane }, px, pz, 0), HURT.swing, c.hit);
         this.fx.push({
@@ -1354,6 +1387,7 @@ export class Fight {
       }
       case 'lunge:1': {
         // the thrust: he drives forward, and a lance of light runs along the blade and past it
+        this.ctx.sound?.play('boss-lunge', { at: [x + dir * 2, z] });
         a.slide = SPIKE.slide;
         const s = new Spike(scene, x + dir * SPIKE.from, SPIKE.y, z, dir, SPIKE.len);
         a.spike = s;
@@ -1363,9 +1397,11 @@ export class Fight {
       }
       case 'slam:0':
         b.marks.push(new Decal(scene, 'ring', x, z, decalSize('ring', SLAM.r), { opacity: 0.35 }));
+        this.ctx.sound?.play('boss-anticipation', { at: [x, z] });
         break;
       case 'slam:1': {
         // the blade into the ground: the ring fills with light, and all inside it suffer
+        this.ctx.sound?.play('boss-slam', { at: [x, z] });
         for (const m of b.marks) m.dispose();
         b.marks = [];
         const fill = new Decal(scene, 'fill', x, z, decalSize('fill', SLAM.r));
@@ -1385,8 +1421,12 @@ export class Fight {
       }
       case 'leap:0':
         b.marks.push(new Decal(scene, 'zone', a.x, a.z, decalSize('zone', LEAP.r)));
+        a.tremble = this.ctx.sound?.play('boss-tremble', { at: [x, z] }) || null; // (crouched, trembling: hushed as he springs)
         break;
       case 'leap:1':
+        a.tremble?.stop(0.12);
+        a.tremble = null;
+        this.ctx.sound?.play('boss-jump', { at: [x, z] });
         if (Math.random() < 0.4) this.say(pickOf(SAYS.leap)); // (a grunt as he springs, now and then)
         particles.emit({
           pos: [x, 0.2, z], spread: [1.6, 0.1, 0.6], vel: [0, 2, 0], velSpread: [2, 1, 1],
@@ -1453,6 +1493,7 @@ export class Fight {
       case 2:
         // up he springs (and what's heard of his great attack, on till it ends: Boss.endMove)
         a.air = true;
+        this.ctx.sound?.play('boss-jump', { at: [b.pos.x, b.pos.y] });
         a.during = this.ctx.sound?.play('boss-wrath-during', { at: [cx, cz] }) || null;
         if (Math.random() < 0.4) this.say(pickOf(SAYS.leap));
         particles.emit({
@@ -2044,6 +2085,7 @@ export class Fight {
           this.boss = new Boss(this.ctx, bx, bz, this.kind);
           const Mind = this.boss.kind.Mind;
           if (Mind) this.boss.mind = new Mind(this, this.boss);
+          else this.ctx.sound?.play('boss-appear', { at: [bx, bz] }); // (Fenrath coming: audio.js)
           this.lagHp = this.boss.hp;
           this.focus = false;
           this.introUntil = this.clock + BOSS_CAM.intro; // (the camera shows him a moment, then thee)

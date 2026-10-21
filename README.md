@@ -1030,10 +1030,10 @@ one per hero or kind, and a few loose in `client/assets/sfx`, kept as they are a
 each (`client/assets/sfx/<set>`): small MP3 clips, about 3.5 MB in all. A recording that holds many
 of one sound (footsteps, landings, lightning) is cut into each of them, every other sound from where
 it starts, each levelled to one peak; a recording's 1 and 2 (and 3) are heard together, levelled as
-one (left out: `dontuse.wav`, as named; `golem_explosion_on_spitfire` and `maren_ult_start`, and
-the older `maren_ult_start_on_click.wav`, replaced as Sacha asked; `Stone Chain Jump` and
+one (left out: `dontuse.wav`, as named; `golem_explosion_on_spitfire`, `maren_ult_start` and both
+`maren_ult_start_on_click`s, replaced as Sacha asked; `Stone Chain Jump` and
 `Stone Chain Land`, as everyone comes down on `Stone Land`; Ruadan's `hammer_hit`, its sound not
-good enough; Wynn's `unsheathe` and Fenrath's `fenrath_appearing`, as asked).
+good enough; Wynn's `unsheathe`, as asked).
 `node scripts/cut-sfx.mjs [set]` cuts them again, from the recordings, whenever they change; its
 table says what each clip is cut from.
 
@@ -1070,9 +1070,10 @@ table says what each clip is cut from.
 - **Coming down**: `Stone Land`, whoever it is (a pitch of its own each time), as you push off into
   a dodge (quieter) and as you come out of it, as a fighter hops a shockwave or a cut and as they
   come down, and as a Tarnished you carried is set down.
-- **Blows**: one of `Sword Attack 1`–`3` with every blow but Wynn's (his own `slash`, below) and
-  Ruadan's, each cut to be at its loudest 0.12 s in and begun that long before the blow lands, so
-  that it's at its loudest as it does; yours louder than the others'. Ruadan's maul: one of the
+- **Blows**: one of `Sword Attack 1`–`3` with every blow but Maren's and Ulric's (one of
+  `spear_thrust` and `spear_thrust2`, their spears), Wynn's (his own `slash`, below) and Ruadan's,
+  each cut to be at its loudest 0.12 s in and begun that long before the blow lands, so that it's at
+  its loudest as it does; yours louder than the others'. Ruadan's maul: one of the
   three Sacha chose of `hammer_hit_2_variations` (between 1 and 2 s, 10 and 12, 12 and 13: each
   from just before its crack, so that it cracks as the maul lands), or `hammer_hit_2`, or
   `hammer_hit_3` (levelled a little lower, as loud as the rest), as it lands: each blow of his, and
@@ -1092,6 +1093,19 @@ table says what each clip is cut from.
     swelling into the shine and gone as the blade goes home;
   - `ult_damage_dealt` as the blade goes home and all of it lands on him at once.
 - **Fenrath** (`client/assets/sfx/Fenrath`):
+  - `fenrath_appearing` (the newer recording) as he comes into the arena;
+  - `fenrath_anticipation_atk` as he draws back each blow (the swing, the lunge, the slam); the
+    swing's cut: `fenrath_sword_woosh` (from just before its loudest) and `fenrath_greatsword_hit`
+    as the greatsword lands, with `fenrath_arch` and the first second of `fenrath_red_crescent` as
+    the arc of red light leaves his sword; `fenrath_lunge` on the thrust (from just before its
+    loudest, 4 s in); `slam` as the blade goes into the ground;
+  - his leap: `fenrath_trembling_before_jump` as he crouches and trembles (a stretch of its 42 s,
+    hushed as he springs), `fenrath_jump` as he springs (from just before its loudest; and as he
+    springs up in his great attack too);
+  - `fenrath_hit` as a blow, a spell or an ultimate's blow lands on him (not a bleeding or poison as
+    it ticks), no more than one a moment; `fenrath_death` as he's felled;
+  - one of the four growls in `fenrath_growls` as he speaks, as his stance breaks, and every 8 to 14
+    seconds as he fights, never two within 2.5 seconds;
   - his great attack: `roar` and `fenrath_big_atk_start` as he roars at the sky; as he springs up,
     `fenrath_big_atk_during` and `fenrath_big_atk_during2` together, on till it ends, then dying
     away; `fenrath_big_atk_sword_hit` on each cut of the ghost of his sword;
@@ -1106,11 +1120,13 @@ table says what each clip is cut from.
     where it rises, 1.9 s, to its end), quiet enough under what's heard of them meanwhile (Wynn's
     breath, the glare on his blade), and stopped as it strikes (Wynn's after a second, the others'
     after 1.85 s);
-  - Maren's Red Storm: `maren_ult_start_on_click` (the newer recording, the `.mp3`) as R is pressed
-    and the camera closes on her, from its first sound and over as the storm breaks; then each of
-    its twelve bolts as it strikes, one of six strikes cut from
+  - Maren's Red Storm: `maren_ult_start_on_click2` as R is pressed and the camera closes on her,
+    from its first sound (2.9 s in) and over as the storm breaks; then each of its twelve bolts as
+    it strikes, one of six strikes cut from
     `maren_ult_small_lightning`, and the great bolt that ends it, `maren_ult_big_lightning` (from its
     strike, 4.36 s in, its thunder rolling on);
+  - Jorvik's Flight of Tomes: one of `jorvik_ult_book1`, `2` and `3` as each of its seven tomes
+    springs up;
   - Aurelion's Radiant Verdict: `aurelion_ult_start1_at4.5s` as it's loosed (its third, from 4.82 s,
     as its name says), `aurelion_stand_appear` as the giant of his light rises behind him, and one
     of the fifteen blows of `aurelion_stand_hit` as the giant strikes; and all through it his own

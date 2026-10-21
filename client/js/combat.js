@@ -85,16 +85,17 @@ export function blow(n, kind, { spell = false, ...more } = {}) {
   if (!spell) swing(n, n.action.hitAt);
 }
 
-// A blow's sound (audio.js), heard as it lands, `at` seconds from now: a blade's swing, at its
-// loudest then (each of its clips is cut to be at its loudest SWING seconds in: scripts/cut-sfx.mjs),
-// anyone's but Wynn's (his blade has its own: heroes/ronin.js) and Ruadan's, whose maul comes down
-// with a blow of its own (HAMMER); thine louder than the rest.
+// A blow's sound (audio.js), heard as it lands, `at` seconds from now: a blade's swing, or a spear's
+// thrust (THRUSTS), at its loudest then (each of their clips is cut to be at its loudest SWING
+// seconds in: scripts/cut-sfx.mjs), anyone's but Wynn's (his blade has its own: heroes/ronin.js) and
+// Ruadan's, whose maul comes down with a blow of its own (HAMMER); thine louder than the rest.
 const SWING = 0.12;
 const HAMMER = 'champion-hit';
+const THRUSTS = new Set(['knight', 'bandit']); // (Maren's spear, Ulric's)
 function swing(n, at) {
   const key = heroKey(n);
   if (key === 'ronin') return;
-  const [name, delay] = key === 'champion' ? [HAMMER, at] : ['blade-swing', Math.max(0, at - SWING)];
+  const [name, delay] = key === 'champion' ? [HAMMER, at] : [THRUSTS.has(key) ? 'spear-thrust' : 'blade-swing', Math.max(0, at - SWING)];
   n.ctx?.sound?.play(name, { at: [n.pos.x, n.pos.y], volume: n.piloted ? 1 : 0.6, delay });
 }
 

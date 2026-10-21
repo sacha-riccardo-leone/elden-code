@@ -5,6 +5,7 @@
 // ffmpeg. The cut points were found from the recordings' loudness (each sound's sudden rise).
 //   golem        the Guardian Golem's (golem.js), from "Golem Guardian"
 //   boss         Fenrath's (fight.js), from "Fenrath"
+//   runelord     Jorvik's Flight of Tomes (ults.js), from "Jorvik"
 //   ronin        Wynn's (heroes/ronin.js, ults.js), from "Wynn"
 //   knight       Maren's thunderbolt and Red Storm (combat.js, ults.js), from "Marren"
 //   paladin      Aurelion's Radiant Verdict and its giant (ults.js), from "Aurelion"
@@ -106,6 +107,32 @@ const SETS = {
   boss: {
     from: 'IMPORT/Fenrath',
     clips: [
+      // as he comes into the arena (the newer recording: its 1.6 s, all there is of it)
+      ['appear', 'fenrath_appearing.mp3', 0.02, 1.6, -3, 0, 0.4],
+      // each blow of his: drawn back (the swing, the lunge, the slam); the swing's cut (its whoosh
+      // from 0.1 s before its loudest, and the greatsword landing), and the arc of light it throws
+      // (fenrath_arch and the first second of fenrath_red_crescent, together); the lunge (from just
+      // before its loudest, 4 s in: its swell left out); the slam
+      ['anticipation', 'fenrath_anticipation_atk.mp3', 0.02, 0.9, -3, 0, 0.3],
+      ['woosh', 'fenrath_sword_woosh.mp3', 0.3, 0.6, -3, 0, 0.25],
+      // (these four's loudest is over full scale in their recordings, more than the measuring counts:
+      // levelled lower, so that they never clip)
+      ['cut', 'fenrath_greatsword_hit.mp3', 0, 1.6, -5, 0, 0.6],
+      ['arch', 'fenrath_arch.mp3', 0.02, 1.25, -3, 0, 0.5],
+      ['crescent', 'fenrath_red_crescent sound.mp3', 0.03, 0.9, -3, 0, 0.4],
+      ['lunge', 'fenrath_lunge.mp3', 3.85, 1.45, -7.4, 0, 0.5],
+      ['slam', 'slam.mp3', 0.25, 2.75, -4.2, 0, 1.0],
+      // his leap: trembling as he crouches (a stretch of the recording's steady 42 s, stopped as he
+      // springs), and springing (from just before its loudest, 0.99 s in)
+      ['tremble', 'fenrath_trembling_before_jump.mp3', 1.0, 1.4, -4, 0.1, 0.3],
+      ['jump', 'fenrath_jump.mp3', 0.9, 1.3, -3, 0, 0.4],
+      // struck (from just before its loudest), felled (whole), and his four growls
+      ['hit', 'fenrath_hit.mp3', 0.2, 0.7, -3, 0, 0.3],
+      ['death', 'fenrath_death.mp3', 0.03, 5.85, -2.7, 0, 1.0],
+      ['growl-1', 'fenrath_growls.mp3', 0.3, 0.6, -3, 0, 0.2],
+      ['growl-2', 'fenrath_growls.mp3', 1.1, 1.5, -3, 0, 0.3],
+      ['growl-3', 'fenrath_growls.mp3', 3.6, 1.45, -3, 0, 0.3],
+      ['growl-4', 'fenrath_growls.mp3', 5.38, 0.47, -3, 0, 0.15],
       // his great attack: his roar, and the rumble beginning with it
       ['roar', 'roar.wav', 0, 3.6, -2, 0, 0.6],
       ['wrath', 'fenrath_big_atk_start.mp3', 0, 3.9, -3, 0, 0.6],
@@ -131,10 +158,10 @@ const SETS = {
       // with it atk2's rush (in its 2-3 s: from where it's heard, so that it peaks as the bolt is there)
       ...[[0.90, 0.17], [1.91, 0.18], [2.70, 0.26], [3.32, 0.20], [4.41, 0.65], [5.91, 0.15], [6.31, 0.15], [6.99, 0.15], [7.74, 0.16], [8.38, 0.72], [9.49, 0.21], [10.12, 0.43], [11.74, 0.15], [12.92, 0.21], [14.15, 0.17], [15.44, 0.61]].map(([t, len], i) => [`thunder-${i + 1}`, 'maren_atk1.wav', t, len, -4, 0, 0.05]),
       ['thunder-rise', 'maren_atk2_audiobetween2and3.wav', 2.6, 0.42, -3, 0, 0.05],
-      // her Red Storm: the camera closing on her as R is pressed (maren_ult_start_on_click.mp3, from
-      // its first sound, 0.14 s in: it swells for a second and holds; over as the storm breaks, 1.85 s
-      // on, as the camera lets her go)
-      ['ult-zoom', 'maren_ult_start_on_click.mp3', 0.12, 1.95, -3, 0, 0.4],
+      // her Red Storm: the camera closing on her as R is pressed (maren_ult_start_on_click2, from its
+      // first sound, 2.9 s in: silent before; over as the storm breaks, 1.85 s on, as the camera lets
+      // her go)
+      ['ult-zoom', 'maren_ult_start_on_click2.mp3', 2.88, 1.95, -3, 0, 0.4],
     ],
   },
   paladin: {
@@ -289,9 +316,22 @@ const SETS = {
       ['focus', 'effect_on_click.mp3', 1.89, 1.5, -3, 0, 0.04],
     ],
   },
+  runelord: {
+    from: 'IMPORT/Jorvik',
+    clips: [
+      // his Flight of Tomes: each tome as it springs up (one of the three, from its first sound)
+      ['book-1', 'jorvik_ult_book1.mp3', 0.03, 2.0, -3, 0, 0.8],
+      ['book-2', 'jorvik_ult_book2.mp3', 0, 2.0, -3, 0, 0.8],
+      ['book-3', 'jorvik_ult_book3.mp3', 0.15, 2.0, -3, 0, 0.8],
+    ],
+  },
   blade: {
     from: 'IMPORT/Base sword sounds',
     clips: [
+      // a spear's thrust (Maren's, Ulric's): one of two, each from 0.12 s before its loudest as the
+      // swings are
+      ['thrust-1', 'spear_thrust.mp3', 0.205, 0.6, -4, 0.02, 0.25],
+      ['thrust-2', 'spear_thrust2.mp3', 0.126, 0.75, -4, 0.02, 0.3],
       // a blow's swing: each from 0.12 s before its loudest (combat.js, SWING, has it begin that
       // long before the blow lands)
       ['swing-1', 'Sword Attack 1.ogg', 0.045, 0.455, -4, 0.02, 0.15],

@@ -119,6 +119,7 @@ export const ULTS = {
         const a = (i / 6 - 0.5) * 2.6;
         const from = [n.pos.x + Math.sin(a) * 1.5, 2.3 + Math.cos(a) * 0.9, n.pos.y + 0.1];
         const up = 1.4 + (i % 3) * 0.6;
+        fight.ctx.sound?.play('runelord-book', { at: [from[0], from[2]], delay: i * 0.11 }); // (as it springs up: audio.js)
         fx.add(new Missile(fx, {
           ...look, upright: true, from,
           to: () => fight.bossPoint(up), speed: 8.5, turn: 4, rise: 2.5, delay: i * 0.11, life: 5, trail: motesOf('rune'), light: shine('rune', 8, 7),
