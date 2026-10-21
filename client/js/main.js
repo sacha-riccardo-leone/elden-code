@@ -207,7 +207,6 @@ document.getElementById('table-sit').addEventListener('click', () => {
   me.action = { kind: 'use', anim: 'sit', t: 0, dur: Infinity };
   me.body.play('sit', true);
 });
-document.getElementById('table-leave').addEventListener('click', () => ui.closeTable());
 // the training yard's grace (interact.js): call the Tarnished to train, or (once asked) walk the
 // tutorial again: the page loads afresh for it (tutorial.js, replay)
 document.getElementById('grace-train').addEventListener('click', () => {

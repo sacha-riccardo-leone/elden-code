@@ -72,7 +72,7 @@ export const SOUNDS = {
   'paladin-stand': { set: 'paladin', clips: ['stand'], volume: 0.8, most: 1, half: 22 },
   'paladin-stand-hit': { set: 'paladin', clips: takes('stand-hit', 15), volume: 0.9, vary: 0.05, most: 1, half: 24 },
   // (and his own music, from the moment it's loosed till a moment after it strikes: ults.js)
-  'paladin-theme': { set: 'paladin', clips: ['theme'], volume: 0.45, most: 1, half: 24, duck: 0.25 },
+  'paladin-theme': { set: 'paladin', clips: ['theme'], volume: 1, most: 1, half: 24, duck: 0.25 },
   'champion-jump': { set: 'champion', clips: ['jump'], volume: 0.85, most: 1, half: 26 },
   'champion-land': { set: 'champion', clips: ['land'], volume: 1, most: 1, half: 28 },
   // Ruadan's maul (combat.js): landing, a blow of his or thrown (one of five), flying back to his
