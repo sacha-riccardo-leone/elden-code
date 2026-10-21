@@ -225,8 +225,9 @@ export default {
     idle: { frames: G.idle, fps: 5 },
     walk: { frames: G.walk, fps: 9 },
     hammer: { frames: G.strike, fps: 8 },
-    // (in eighteenths of a second: the wind-up 4, the lunge 6, the recovery 4)
-    attack: { frames: held(G.thrust, [2, 2, 3, 3, 2, 2]), fps: 18 },
+    // (in eighteenths of a second: the wind-up 4, the lunge 6, the recovery 2: quick, so that thou
+    // art soon free to move again)
+    attack: { frames: held(G.thrust, [2, 2, 3, 3, 1, 1]), fps: 18 },
     ult: { frames: G.storm, fps: 8 },
     read: { frames: G.study, fps: 1.4 },
     cast: { frames: G.cast, fps: 6 },
