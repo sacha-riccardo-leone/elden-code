@@ -40,6 +40,9 @@ import { groundAt } from './ground.js';
 // `at`), colour back within `back` of it; the camera this close meanwhile (or as far back as a tall
 // pose needs to be seen whole: `fit` world units away for each unit of its height).
 const CINE = { grey: 0.3, aura: 0.45, release: 1.85, back: 0.55, close: 7.5, fit: 2.6, side: 0.35 };
+// An ultimate's own music (its `theme`: Aurelion's): how long it goes on once its blow has struck,
+// and how long it takes to die away then (s).
+const THEME = { after: 0.25, fade: 0.6 };
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -284,7 +287,8 @@ export const ULTS = {
     // `stand`; else he raises his sword to the sky, the giant raising its own as he does)
     name: 'Radiant Verdict', pose: ['pose'], fallback: ['send'], release: 'pose', stand: { scale: 1.8, gather: 'ult', release: 'sweep' },
     heard: { start: 'paladin-ult', stand: 'paladin-stand', strike: 'paladin-stand-hit' }, // (as it's loosed, as the giant rises, and as it strikes: audio.js)
-    run({ fight, fx, n, b, hit }) {
+    theme: 'paladin-theme', // (his own music, from the moment it's loosed: Ults.theme)
+    run({ fight, fx, n, b, hit, theme }) {
       // drawn, the wave leaves the giant's blade swept low ahead of him (never from past the enemy)
       const drawn = !!n.body.sheet.anims.sweep;
       const [ahead] = (drawn && n.body.sheet.rig.muzzles?.ult) || [1.2];
@@ -294,6 +298,7 @@ export const ULTS = {
         from: [n.pos.x + n.body.facing * lead, 2.2, n.pos.y + 0.1], to: () => fight.bossPoint(2.2), speed: 15,
         onHit: (at) => {
           hit(20, at);
+          theme?.stop(THEME.fade, THEME.after); // (struck: his music goes on a moment, and dies away)
           fx.add(new Burst(fx, { school: 'holy', at: [at.x, at.y, at.z], size: 3.2, sparks: 40 }));
           if (!b.mind?.lying) {
             interrupt(fight, b);
@@ -534,6 +539,7 @@ export class Ults {
     const span = poseSpan(n.body, own || pose[0]);
     this.active = { n, u, pose, key, t: 0, at: u.at ?? CINE.release, dir, player, aura, stand, fight, released: false, saved: rig.distGoal, tall, span };
     this.active.still = this.ctx.sound?.play('cine-focus') || null; // (the world standing still, anyone's: audio.js)
+    this.active.theme = this.theme(n, u);
     this.heard(n, u.heard?.zoom); // (the camera closing on them: shot)
     // (everyone else, and him, hide it where they stand in front of it: they stay grey)
     const others = [...this.ctx.director.npcs.values()].filter((o) => o !== n && !o.dead && o.body?.mesh).map((o) => o.body.mesh);
@@ -596,7 +602,7 @@ export class Ults {
     const quiet = Object.create(place);
     quiet.ctx = { ...place.ctx, rig: null };
     quiet.bossPoint = (up = 2) => [b.pos.x, (b.lift || 0) + up, b.pos.y + 0.2];
-    this.quiet.push({ n, u, pose, t: 0, at, dir, aura, stand, place, quiet, b, released: false });
+    this.quiet.push({ n, u, pose, t: 0, at, dir, aura, stand, place, quiet, b, released: false, theme: this.theme(n, u) });
     return true;
   }
 
@@ -607,6 +613,7 @@ export class Ults {
     if (n.dead || !n.body?.mesh?.parent) {
       q.aura.dispose();
       q.stand?.dispose();
+      q.theme?.stop(0.3);
       return false;
     }
     q.t += dt;
@@ -624,7 +631,7 @@ export class Ults {
         if (q.stand?.anim && u.stand.release) q.stand.play(u.stand.release);
         if (q.stand) this.heard(n, u.heard?.strike); // (and the giant strikes)
         const power = ultPower(q.b);
-        u.run({ fight: q.quiet, fx: q.place.fxCtx, n, b: q.b, dir: q.dir, hit: (share, at, last = true) => q.place.ultHit(n, share * power, at, { b: q.b, last }) });
+        u.run({ fight: q.quiet, fx: q.place.fxCtx, n, b: q.b, dir: q.dir, theme: q.theme, hit: (share, at, last = true) => q.place.ultHit(n, share * power, at, { b: q.b, last }) });
       }
     }
     q.aura.step(dt, q.t > CINE.aura && q.t < q.at + 0.25 ? 1 : 0);
@@ -678,6 +685,13 @@ export class Ults {
     if (name) this.ctx.sound?.play(name, { at: [n.pos.x, n.pos.y] });
   }
 
+  // Its own music, if it has one (`theme`: Aurelion's), from the moment it's loosed, the world's
+  // held down meanwhile (audio.js); its run lets it go once it has struck (THEME), or it's stopped
+  // if it never does.
+  theme(n, u) {
+    return (u.theme && this.ctx.sound?.play(u.theme, { at: [n.pos.x, n.pos.y] })) || null;
+  }
+
   // It strikes: the world moves again.
   release(a) {
     a.released = true;
@@ -695,9 +709,9 @@ export class Ults {
     if (loose) n.body.play(loose, true);
     if (a.stand?.anim && a.u.stand.release) a.stand.play(a.u.stand.release); // (and the giant strikes)
     if (a.stand) this.heard(n, a.u.heard?.strike);
-    if (!b || !b.alive) return;
+    if (!b || !b.alive) { a.theme?.stop(0.4); return; }
     const power = ultPower(b, a.player);
-    a.u.run({ fight, fx: fight.fxCtx, n, b, dir: a.dir, hit: (share, at, last = true) => fight.ultHit(n, share * power, at, { last }) });
+    a.u.run({ fight, fx: fight.fxCtx, n, b, dir: a.dir, theme: a.theme, hit: (share, at, last = true) => fight.ultHit(n, share * power, at, { last }) });
     rig.shake?.(0.15);
   }
 
@@ -705,6 +719,7 @@ export class Ults {
     const a = this.active;
     if (!a) return;
     a.still?.stop(0.1);
+    if (!a.released) a.theme?.stop(0.3); // (over before it struck)
     a.aura.dispose();
     a.stand?.dispose();
     this.ctx.post.spot = null;

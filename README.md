@@ -1104,7 +1104,10 @@ table says what each clip is cut from.
     strike, 4.36 s in, its thunder rolling on);
   - Aurelion's Radiant Verdict: `aurelion_ult_start1_at4.5s` as it's loosed (its third, from 4.82 s,
     as its name says), `aurelion_stand_appear` as the giant of his light rises behind him, and one
-    of the fifteen blows of `aurelion_stand_hit` as the giant strikes;
+    of the fifteen blows of `aurelion_stand_hit` as the giant strikes; and all through it his own
+    music, `ult_theme`, from 2.5 s in as Sacha wants (where it comes in in full), from the moment
+    it's loosed till a quarter of a second after its wave strikes, dying away then, the game's own
+    music held down meanwhile;
   - Ruadan's Hammerfall: `ruadan_ult_jump` as he leaps (from 1.2 s, just before its loudest: as
     he's rising; over as he lands), and `radahn_ult_landing_explosion` as the maul strikes and the
     gold explodes;

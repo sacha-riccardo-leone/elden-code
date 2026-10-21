@@ -146,6 +146,10 @@ const SETS = {
       ['ult', 'aurelion_ult_start1_at4.5s.wav', 4.82, 1.6, -3, 0, 0.5],
       // the giant of his light rising behind him
       ['stand', 'aurelion_stand_appear.wav', 0, 3.0, -3, 0, 0.8],
+      // his Radiant Verdict's own music: ult_theme from 2.5 s, as Sacha wants (where it comes in in
+      // full, out of its swell), long enough for all of it, its wave striking included (stopped a
+      // moment after: ults.js)
+      ['theme', 'ult_theme.mp3', 2.5, 4.5, -5, 0.03, 1.0],
       // and striking: one of the fifteen heavy blows in aurelion_stand_hit (each from just before it)
       ...[1.48, 8.09, 14.21, 20.44, 27.405, 36.515, 47.295, 53.765, 59.885, 67.07, 73.11, 79.225, 85.455, 92.42, 102.965]
         .map((t, i) => [`stand-hit-${i + 1}`, 'aurelion_stand_hit.wav', t - 0.02, 1.5, -2, 0, 0.7]),

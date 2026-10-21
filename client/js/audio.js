@@ -20,7 +20,8 @@ const STORE = 'elden-code:sound';
 // toward it; else it never quite is), and, looped, the stretch of its clip that repeats; with
 // `layer`, its clips are all heard together (a recording's 1 and 2, as Sacha names them), rather
 // than one of them; with `pitch`, the range its pitch is picked from each time (a playback rate:
-// lower is deeper, and longer), unless the one who plays it says (play). (A clip is played from its
+// lower is deeper, and longer), unless the one who plays it says (play); with `duck`, the music
+// held down to that much of its loudness while it sounds (an ultimate's own). (A clip is played from its
 // first sound: whatever silence its decoding left before it is skipped, so that it sounds on the
 // very frame: leadOf.)
 const SET = '/assets/sfx/';
@@ -70,6 +71,8 @@ export const SOUNDS = {
   'paladin-ult': { set: 'paladin', clips: ['ult'], volume: 0.85, most: 1, half: 22 },
   'paladin-stand': { set: 'paladin', clips: ['stand'], volume: 0.8, most: 1, half: 22 },
   'paladin-stand-hit': { set: 'paladin', clips: takes('stand-hit', 15), volume: 0.9, vary: 0.05, most: 1, half: 24 },
+  // (and his own music, from the moment it's loosed till a moment after it strikes: ults.js)
+  'paladin-theme': { set: 'paladin', clips: ['theme'], volume: 0.45, most: 1, half: 24, duck: 0.25 },
   'champion-jump': { set: 'champion', clips: ['jump'], volume: 0.85, most: 1, half: 26 },
   'champion-land': { set: 'champion', clips: ['land'], volume: 1, most: 1, half: 28 },
   // Ruadan's maul (combat.js): landing, a blow of his or thrown (one of five), flying back to his
@@ -212,8 +215,9 @@ export class Sound {
 
   // Plays a sound (SOUNDS) where something happens (`at`: [x, z] in the world; none, wherever one
   // is), `volume` times its own, `delay` seconds from now, at `pitch` (a playback rate; else one
-  // from its own range, if it has one). Returns what's sounding (stop(fade) ends it, or keeps it
-  // from ever beginning: a looped one sounds till then), or null if nothing can be heard.
+  // from its own range, if it has one). Returns what's sounding (stop(fade, after) ends it, dying
+  // away over `fade` seconds from `after` seconds on, or keeps it from ever beginning: a looped one
+  // sounds till then), or null if nothing can be heard.
   play(name, { at = null, volume = 1, delay = 0, pitch = null } = {}) {
     const s = SOUNDS[name];
     this.log.push([performance.now() / 1000, name]);
@@ -254,12 +258,16 @@ export class Sound {
       src.start(begins, Math.min(this.leads.get(path) || 0, buf.duration / 2));
       return src;
     });
+    // (the music held down while it sounds, if it says; back up as it ends)
+    const ducks = s.duck != null;
+    if (ducks) this.music.duck(s.duck, begins);
     const voice = {
       done: false,
-      stop: (fade = 0.2) => {
+      stop: (fade = 0.2, after = 0) => {
         if (voice.done) return;
         voice.done = true;
-        const t = this.ctx.currentTime;
+        const t = this.ctx.currentTime + after;
+        if (ducks) this.music.duck(1, t);
         if (t < begins) { for (const src of srcs) src.stop(t); return; } // (not begun: it never will)
         g.gain.cancelScheduledValues(t);
         g.gain.setValueAtTime(g.gain.value, t);
@@ -268,7 +276,13 @@ export class Sound {
       },
     };
     let left = srcs.length;
-    for (const src of srcs) src.onended = () => { if (--left <= 0) voice.done = true; };
+    for (const src of srcs) {
+      src.onended = () => {
+        if (--left > 0) return;
+        if (ducks && !voice.done) this.music.duck(1);
+        voice.done = true;
+      };
+    }
     playing.push(voice);
     this.voices.set(name, playing);
     return voice;
@@ -327,6 +341,15 @@ class Music {
     this.tracks = new Map(); // piece -> { el, gain, fade, on, primed }
     this.moods = new Map(); // mood -> { at (its piece), playing, pending, wait, fade, stopAt }
     this.mood = null;
+  }
+
+  // Held down to `low` of its loudness from `at` (the sound's clock) under something that wants the
+  // floor (an ultimate's own music: Sound.play, `duck`), or (1) let back up, more slowly.
+  duck(low, at = this.sound.ctx.currentTime) {
+    if (!this.bus) return;
+    const g = this.bus.gain;
+    g.cancelScheduledValues(at);
+    g.setTargetAtTime(low, at, low < 1 ? 0.1 : 0.4);
   }
 
   // The page clicked (Sound.unlock): the players made, and each begun and stopped again at once (a
