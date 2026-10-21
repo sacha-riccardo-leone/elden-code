@@ -31,7 +31,8 @@
 // The tutorial (tutorial.js) empties it of all but what it sets out (lessonStart): three straw
 // dummies of its own, which stay in pieces once broken; and on the last of the yards it climbs to
 // (climb.js, each floor higher than the last: setFloor), a great one of its own, whose cracked
-// ankle fills thine ultimate instead of hurting it, and whom thine ultimate then breaks at a stroke.
+// ankle fills thine ultimate instead of hurting it, and whom thine ultimate then breaks at a stroke
+// (with its last blow).
 // By the great one, Q turns the camera on it (toggleFocus), as on a great enemy.
 
 import * as THREE from 'three';
@@ -222,14 +223,15 @@ class Dummy {
   // what the blow on its ankle counts (`ankle`: ANKLE), as the Golem's does, or, from an ultimate
   // (`ult`: its blows, its bleeding, its poison), its share of what that deals (GREAT.ult). In the
   // tutorial (Training.lesson) the great one takes nothing from a blow, its ankle filling thine
-  // ultimate instead, and an ultimate breaks it at a stroke.
-  struck(amount, dir, flash = true, ankle = 0, ult = false) {
+  // ultimate instead, and an ultimate breaks it at a stroke, with its last blow (`final`: Maren's
+  // great bolt, after her storm; ults.js).
+  struck(amount, dir, flash = true, ankle = 0, ult = false, final = false) {
     if (this.broken || this.away) return;
     if (flash) this.body.flash();
     let lost = !this.great ? amount : ult ? amount * GREAT.ult * this.hpMax : ankle;
     if (this.great && this.training.lesson) {
       if (!ult && ankle > 0) this.training.charge(ankle);
-      lost = ult ? this.hp : 0;
+      lost = ult && final ? this.hp : 0;
     }
     if (lost > 0) {
       this.hp -= lost;
@@ -518,10 +520,10 @@ export class Training {
   }
 
   // An ultimate's blow lands on the dummy it was loosed at (thine: the one last aimed at; one of
-  // those training: its own, `b`).
-  ultHit(n, amount, at = null, b = this.boss) {
+  // those training: its own, `b`); `last`: its last blow (ults.js).
+  ultHit(n, amount, at = null, { b = this.boss, last = true } = {}) {
     if (!b) return;
-    b.struck(amount, Math.sign(b.pos.x - n.pos.x) || 1, true, 0, true);
+    b.struck(amount, Math.sign(b.pos.x - n.pos.x) || 1, true, 0, true, last);
   }
 
   // The world holds still `secs` seconds as thy blow lands (main.js asks held).

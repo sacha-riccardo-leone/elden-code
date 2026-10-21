@@ -101,7 +101,8 @@ function straightAt(n, b) {
 // play it), the pose it's loosed in (`release`: an animation, drawn; else the held one is let go),
 // when it's loosed (`at`, seconds in, if not at CINE.release), a giant of their own light behind
 // them (`stand`: { scale }, spellfx.js), whether it's aimed, and what it does (u: { fight, fx, n,
-// b, dir, hit(share, at) })
+// b, dir, hit(share, at, last) }: `last` false for each of its blows but its last, which the
+// tutorial's great dummy breaks on, training.js)
 
 export const ULTS = {
   runelord: {
@@ -117,7 +118,7 @@ export const ULTS = {
           ...look, upright: true, from,
           to: () => fight.bossPoint(up), speed: 8.5, turn: 4, rise: 2.5, delay: i * 0.11, life: 5, trail: motesOf('rune'), light: shine('rune', 8, 7),
           onHit: (at) => {
-            hit(3.2, at);
+            hit(3.2, at, i === 6);
             fx.add(new Burst(fx, { school: 'rune', at: [at.x, at.y, at.z], size: 1.7, ring: false, sparks: 16 }));
             fx.particles.emit({
               pos: [at.x, at.y, at.z], spread: [0.2, 0.2, 0.2], vel: [0, 1, 0], velSpread: [1.6, 1.4, 1],
@@ -262,7 +263,7 @@ export const ULTS = {
           const a = Math.random() * Math.PI * 2;
           const r = Math.sqrt(Math.random()) * 2.6;
           // (her bolts, drawn at twice her own pixel size: tall enough to fall from out of sight)
-          fx.add(new Bolt(fx, { x: b.pos.x + Math.cos(a) * r, z: b.pos.y + Math.sin(a) * r * 0.7, k, life: 0.3, art: 'maren-bolt', px: 0.06, light: RED_STORM.bolt, onHit: (at) => hit(1, at) }));
+          fx.add(new Bolt(fx, { x: b.pos.x + Math.cos(a) * r, z: b.pos.y + Math.sin(a) * r * 0.7, k, life: 0.3, art: 'maren-bolt', px: 0.06, light: RED_STORM.bolt, onHit: (at) => hit(1, at, false) }));
           fight.ctx.sound?.play('knight-bolt', { at: [b.pos.x, b.pos.y] });
           fight.ctx.rig?.shake?.(0.12);
           k += 1;
@@ -404,7 +405,7 @@ export const ULTS = {
           strike: (x, z) => (b.alive && meets(x, z, dir, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, AIM.spell, AIM.early) ? struckOf(b) : null),
           land: 0.9, // (onto his drawing, its point in him: spellfx.js, pinOn)
           onHit: (at, struck, pin) => {
-            hit(0.8, new THREE.Vector3(at.x, at.y, at.z));
+            hit(0.8, new THREE.Vector3(at.x, at.y, at.z), i === 9);
             addDot(b, { kind: 'poison', dps: 3, until: fight.clock + 4, src: n });
             // (stuck in his drawing, moving and turning with it; else where it bit, moving with him)
             if (pin) fx.add(new StuckSpear(fx, { pin, dir: facing, until: 4, look }));
@@ -433,7 +434,7 @@ export const ULTS = {
           map: icicle, w: 3.4 * s, h: 0.68 * s, span: 3.4 * s, height: huge ? 9.5 : 6.5, dur: huge ? 0.85 : 0.5, delay,
           stick: huge ? 0.4 : 0, sink: 0.9,
           onHit: (at) => {
-            hit(huge ? 11.5 : 5.5, at); // (the mass wounds him again as it bursts: onShatter)
+            hit(huge ? 11.5 : 5.5, at, false); // (the mass wounds him again as it bursts, the last: onShatter)
             if (!huge) return;
             // (the floor struck: a flash and chips of stone and ice at its foot)
             fx.add(new Burst(fx, { school: 'frost', at: [x, 0.3, z], size: 2.6, sparks: 30 }));
@@ -445,7 +446,7 @@ export const ULTS = {
           },
           // (and, as it bursts, its ice flung out every way)
           onShatter: huge ? () => {
-            hit(11.5, new THREE.Vector3(x, 1.6, z)); // (and again, on the very moment it bursts)
+            hit(11.5, new THREE.Vector3(x, 1.6, z), true); // (and again, on the very moment it bursts)
             fight.ctx.sound?.play('frost-ult-end', { at: [x, z] });
             fx.add(new Burst(fx, { school: 'frost', at: [x, 1.6, z], size: 4.5, sparks: 70 }));
             fx.particles.emit({
@@ -514,7 +515,7 @@ export class Ults {
     // loosed, the world going on as it was
     if (!player && !fight.facing(this.ctx.pilot.npc)) {
       if (n.fighter) n.fighter.ult = 0;
-      u.run({ fight, fx: fight.fxCtx, n, b, dir, hit: (share, at) => fight.ultHit(n, share * ultPower(b), at) });
+      u.run({ fight, fx: fight.fxCtx, n, b, dir, hit: (share, at, last = true) => fight.ultHit(n, share * ultPower(b), at, { last }) });
       this.lastEnd = this.clock;
       return true;
     }
@@ -620,7 +621,7 @@ export class Ults {
         if (loose) n.body.play(loose, true);
         if (q.stand?.anim && u.stand.release) q.stand.play(u.stand.release);
         const power = ultPower(q.b);
-        u.run({ fight: q.quiet, fx: q.place.fxCtx, n, b: q.b, dir: q.dir, hit: (share, at) => q.place.ultHit(n, share * power, at, q.b) });
+        u.run({ fight: q.quiet, fx: q.place.fxCtx, n, b: q.b, dir: q.dir, hit: (share, at, last = true) => q.place.ultHit(n, share * power, at, { b: q.b, last }) });
       }
     }
     q.aura.step(dt, q.t > CINE.aura && q.t < q.at + 0.25 ? 1 : 0);
@@ -691,7 +692,7 @@ export class Ults {
     if (a.stand?.anim && a.u.stand.release) a.stand.play(a.u.stand.release); // (and the giant strikes)
     if (!b || !b.alive) return;
     const power = ultPower(b, a.player);
-    a.u.run({ fight, fx: fight.fxCtx, n, b, dir: a.dir, hit: (share, at) => fight.ultHit(n, share * power, at) });
+    a.u.run({ fight, fx: fight.fxCtx, n, b, dir: a.dir, hit: (share, at, last = true) => fight.ultHit(n, share * power, at, { last }) });
     rig.shake?.(0.15);
   }
 

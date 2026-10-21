@@ -247,8 +247,8 @@ new Input({
     dodge: may('dodge', () => pilot.dodge()),
     // Q: the camera on a great enemy, or back on thee (by the training yard's great dummy, on it)
     focus: may('focus', () => training.toggleFocus(pilot.npc) || fight.toggleFocus()),
-    // B (or a click on thyself): thine own fan of gestures, over thy head (not while a great enemy
-    // is abroad: no gestures then, director.gesture)
+    // B: thine own fan of gestures, over thy head (not while a great enemy is abroad: no gestures
+    // then, director.gesture)
     fan: may('fan', () => {
       const me = pilot.npc;
       if (!me || fight.hunting()) return;

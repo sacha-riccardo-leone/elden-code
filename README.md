@@ -76,11 +76,15 @@ again by itself (`?tutorial` in the address shows it anyway).
   4. *The ultimate*, up the last stair: the great dummy comes in a puff of dust. "Strike its
      cracked ankle", a gold arrow over it, and the hint for Q, the camera's focus on it (it no
      longer shows in a fight). Blows on the ankle hurt it no more but fill your ultimate's bar, a
-     fifth each; full, "Use your ultimate attack with R", and the ultimate breaks it at a stroke.
-  5. *Becoming someone*, back at the Hold: a hero of the Round Table (one of those with a single
-     form, at random) rises from grace beside you and waits. "Click on them to become them", then
+     fifth each; full, "Use your ultimate attack with R", and the ultimate breaks it at a stroke,
+     with its last blow (Maren's great bolt, after the twelve of her storm; each ultimate marks its
+     last, `client/js/ults.js`).
+  5. *Gestures*, back at the Hold: "Open your gestures with B", then "Choose a gesture with" a
+     click on one, or its number, 1 to 8.
+  6. *Becoming someone*, straight on: a hero of the Round Table (one of those with a single form,
+     at random) rises from grace beside you and waits. "Click on them to become them", then
      "Become" in their fan.
-  6. *Islands*: straight on, Maren, let go, waits as an island rises for her (*your-project*),
+  7. *Islands*: straight on, Maren, let go, waits as an island rises for her (*your-project*),
      then sets out and works at its forge, the camera on it. A card says why they go there, and
      where they go with nothing to do; then **Tutorial completed**: **Do it again**, or **Move
      on** into the Lands Between (the island sinks away, Maren comes home to the Hold, and you stay
@@ -204,7 +208,8 @@ can **become any character**: click one and choose **Become …** in the fan ove
     **Space** dodges. **C** crouches. **Q**, in a fight against a great enemy, turns the camera's
     focus on it and back on you. **R** looses your ultimate once its bar is full. **V** turns the
     sound off and on.
-  - **B** (or clicking yourself) opens your fan of gestures over your head (or **1–8**). Nearby
+  - **B** opens your fan of gestures over your head (or **1–8**); clicking yourself doesn't, it's a
+    blow like any other click. Nearby
     Tarnished may answer. There are no gestures while a great enemy is abroad: the fan folds away
     and comes back once the fight is over.
   - **E** uses what you stand by (a prompt shows it): the forge, the scrolls, the war table, the

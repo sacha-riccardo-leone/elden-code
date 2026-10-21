@@ -1,10 +1,10 @@
 // Pointer and keyboard, for whoever thou art (Maren, or whoever thou hast become; pilot.js): WASD /
 // arrows walk (Shift runs), left click strikes (a mage casts), right click casts (whoever casts:
-// Fortuna, the mages; Ulric throws his spear), R looses thine ultimate once it's full, C crouches, B (or a click on thyself) opens thy fan
-// of gestures, number keys gesture, E uses what's in reach (interact.js), M shows the map, V turns
-// the sound off and on (audio.js). Click
-// another Tarnished to inspect it and open its fan, which offers to become them; drag it to carry
-// it elsewhere; scroll to zoom. Z/X travel by grace between areas, H to Roundtable Hold. In the
+// Fortuna, the mages; Ulric throws his spear), R looses thine ultimate once it's full, C crouches, B
+// opens thy fan of gestures (B alone: a click on thyself is a blow, as on the ground), number keys
+// gesture, E uses what's in reach (interact.js), M shows the map, V turns the sound off and on
+// (audio.js). Click another Tarnished to inspect it and open its fan, which offers to become them;
+// drag it to carry it elsewhere; scroll to zoom. Z/X travel by grace between areas, H to Roundtable Hold. In the
 // thick of a fight on the arena (fight.js) nobody can be clicked: every click is a blow. In the
 // tutorial (tutorial.js) only what its step teaches gets through (`allows`): walking, then blows,
 // the dodge, the ultimate, a click on the one hero there (`pickable`).
@@ -114,7 +114,7 @@ export class Input {
       this.hovered = h;
       if (h) h.hovered = true;
       this.ui.hovered = h;
-      this.canvas.style.cursor = h ? 'pointer' : 'default';
+      this.canvas.style.cursor = h && !h.piloted ? 'pointer' : 'default'; // (thyself: nothing to click)
     }
   }
 
@@ -142,11 +142,10 @@ export class Input {
       this.actions.attack(this.aimAt(e));
       return;
     }
-    // (someone may not be clicked just now, in the tutorial: the click is a blow instead)
-    const npc = p.npc && (p.npc.piloted ? this.allows('fan') : this.allows('pick') && this.pickable(p.npc)) ? p.npc : null;
-    if (npc?.piloted) {
-      this.actions.fan();
-    } else if (npc) {
+    // (thyself, or someone who may not be clicked just now, in the tutorial: the click is a blow, as
+    // on the ground; thy fan of gestures opens with B alone)
+    const npc = p.npc && !p.npc.piloted && this.allows('pick') && this.pickable(p.npc) ? p.npc : null;
+    if (npc) {
       this.director.select(npc === this.director.selected ? null : npc);
     } else if (this.director.selected || this.ui.fanOwner) {
       // a click away from an open fan just folds it

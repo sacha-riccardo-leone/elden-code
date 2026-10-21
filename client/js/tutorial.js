@@ -15,8 +15,9 @@
 //   boss     up another to the last yard, the great dummy: blows on its cracked ankle fill thine
 //            ultimate and hurt it no more, and once it's full, R breaks it at a stroke (training.js,
 //            lesson); here too the hint for Q, the camera's focus on it (no longer in a fight);
-//   become   through black, back at the Hold, a hero rises from grace and waits: a click on them,
-//            then on "Become";
+//   gesture  through black, back at the Hold: thy fan of gestures (B), and one of them, a click on
+//            it or its number (1 to 8);
+//   become   a hero rises from grace beside thee and waits: a click on them, then on "Become";
 //   island   Maren, let go, sets out for an island that rises for her and works there (why they
 //            go, and where they go with nothing to do); and it's done: again, or on into the world.
 // The yards are climbed on foot (climb.js): a yard's step done, the fog at the foot of the stair up
@@ -79,6 +80,7 @@ const ALLOWS = {
   dummies: ['move', 'attack', 'spell'],
   rocks: ['move', 'attack', 'spell', 'dodge'],
   boss: ['move', 'attack', 'spell', 'dodge', 'ult', 'focus'],
+  gesture: ['move', 'fan', 'emote'],
   become: ['move', 'pick'],
   island: [],
 };
@@ -291,6 +293,7 @@ export class Tutorial {
       case 'dummies': this.stepDummies(); break;
       case 'rocks': this.stepRocks(dt); break;
       case 'boss': this.stepBoss(); break;
+      case 'gesture': this.stepGesture(); break;
       case 'become': this.stepBecome(); break;
       case 'island': this.stepIsland(); break;
       default: break;
@@ -568,7 +571,7 @@ export class Tutorial {
   stepBoss() {
     const { training, pilot, ults, rig } = this.ctx;
     const g = this.great;
-    if (!g) { this.next('become', () => this.setBecome()); return; }
+    if (!g) { this.next('gesture', () => this.setHold()); return; }
     if (!this.phase) {
       if (this.t < 0.7) return;
       g.putAway(false);
@@ -606,11 +609,11 @@ export class Tutorial {
       }
     }
     this.el.hint.hidden = this.phase !== 'ankle' || !!training.focusUsed || !!ults.active;
-    if (this.phase === 'broken' && this.t - this.doneAt > 2.4) this.next('become', () => this.setBecome());
+    if (this.phase === 'broken' && this.t - this.doneAt > 2.4) this.next('gesture', () => this.setHold());
   }
 
-  // become: in the black, the yards taken away; back at the Hold, by its grace, as at first.
-  setBecome() {
+  // In the black, the yards taken away; back at the Hold, by its grace, as at first.
+  setHold() {
     const { training } = this.ctx;
     if (training.lesson) training.lesson.ult = false;
     this.el.hint.hidden = true;
@@ -620,10 +623,40 @@ export class Tutorial {
     this.place(x, z);
   }
 
+  // gesture: thy fan of gestures over thy head, opened with B (ui.js), and one of them made (a click
+  // on it, or its number); a moment to see it, and on to the hero rising (no black: the same place).
+  stepGesture() {
+    const { pilot, ui } = this.ctx;
+    const me = pilot.npc;
+    if (!this.phase) {
+      if (this.t < 0.6) return;
+      this.phase = 'open';
+    }
+    if (this.phase === 'open' || this.phase === 'pick') {
+      if (me?.action?.kind === 'gesture') {
+        this.phase = 'done';
+        this.doneAt = this.t;
+        this.hush();
+        return;
+      }
+      const phase = ui.fanOwner && ui.fanOwner === me ? 'pick' : 'open';
+      if (phase !== this.said) {
+        this.said = phase;
+        this.say(phase === 'pick' ? ['Choose a gesture with', mouse('left'), 'or', key('1'), '–', key('8')] : ['Open your gestures with', key('B')]);
+      }
+      this.phase = phase;
+    }
+    if (this.phase === 'done' && this.t - this.doneAt > 1.6) {
+      ui.closeFan();
+      this.go('become');
+    }
+  }
+
+  // become: a hero rises from grace beside thee, and waits to be clicked, and become.
   stepBecome() {
     const { pilot, ui } = this.ctx;
     if (!this.phase) {
-      if (this.t < 0.8) return;
+      if (this.t < 0.5) return;
       this.hero = this.raiseHero();
       if (!this.hero) { this.finish(); return; } // (no hero's art: nothing to become)
       this.phase = 'rise';
