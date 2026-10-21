@@ -90,12 +90,12 @@ export function blow(n, kind, { spell = false, ...more } = {}) {
 // anyone's but Wynn's (his blade has its own: heroes/ronin.js) and Ruadan's, whose maul comes down
 // with a blow of its own (HAMMER); thine louder than the rest.
 const SWING = 0.12;
-const HAMMER = ['champion-hit', 'champion-hit-2']; // (the two together)
+const HAMMER = 'champion-hit';
 function swing(n, at) {
   const key = heroKey(n);
   if (key === 'ronin') return;
-  const [names, delay] = key === 'champion' ? [HAMMER, at] : [['blade-swing'], Math.max(0, at - SWING)];
-  for (const name of names) n.ctx?.sound?.play(name, { at: [n.pos.x, n.pos.y], volume: n.piloted ? 1 : 0.6, delay });
+  const [name, delay] = key === 'champion' ? [HAMMER, at] : ['blade-swing', Math.max(0, at - SWING)];
+  n.ctx?.sound?.play(name, { at: [n.pos.x, n.pos.y], volume: n.piloted ? 1 : 0.6, delay });
 }
 
 // Where a spell of n's leaves from, in the world: where its rig's drawn pose holds it, if it says

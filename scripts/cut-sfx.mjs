@@ -156,12 +156,11 @@ const SETS = {
     clips: [
       // Hammerfall: the maul's head driven into the floor, and the golden explosion
       ['land', 'radahn_ult_landing_explosion.wav', 0, 5.5, -2, 0, 1.5],
-      // his maul landing (a blow of his, or thrown: striking, planted): hammer_hit (played deeper:
-      // audio.js) and with it one of the three Sacha chose of hammer_hit_2's (between 1 and 2 s, 10
-      // and 12, 12 and 13), each from just before its crack (1.02, 11.02 and 13.04 s in: the swell
-      // into it left out), so that the two crack together
-      ['hit', 'hammer_hit.mp3', 0.03, 1.0, -3, 0, 0.4],
-      ...[0.98, 10.98, 12.965].map((t, i) => [`hit-2-${i + 1}`, 'hammer_hit_2_variations.mp3', t, 1.15, -3, 0.015, 0.5]),
+      // his maul landing (a blow of his, or thrown: striking, planted): one of the three Sacha chose
+      // of hammer_hit_2_variations (between 1 and 2 s, 10 and 12, 12 and 13), each from just before
+      // its crack (1.02, 11.02 and 13.04 s in: the swell into it left out), so that it cracks as the
+      // maul lands (hammer_hit, its sound not good enough, is left out, as Sacha wants)
+      ...[0.98, 10.98, 12.965].map((t, i) => [`hit-${i + 1}`, 'hammer_hit_2_variations.mp3', t, 1.15, -3, 0.015, 0.5]),
       // pulled out and flying back to his hand (between 1 and 3 s, as Sacha wants: its swell at its
       // loudest at 1.45 s, about as it's in his hand)
       ['back', 'hammer_coming_back.mp3', 1.0, 2.0, -3, 0.04, 0.8],

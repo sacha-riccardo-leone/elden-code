@@ -71,11 +71,9 @@ export const SOUNDS = {
   'paladin-stand': { set: 'paladin', clips: ['stand'], volume: 0.8, most: 1, half: 22 },
   'paladin-stand-hit': { set: 'paladin', clips: takes('stand-hit', 15), volume: 0.9, vary: 0.05, most: 1, half: 24 },
   'champion-land': { set: 'champion', clips: ['land'], volume: 1, most: 1, half: 28 },
-  // Ruadan's maul (combat.js): landing, a blow of his or thrown (the two together: hammer_hit,
-  // deeper, as Sacha wants, and one of hammer_hit_2's three), flying back to his hand, and its
-  // whoosh, again and again as it spins out
-  'champion-hit': { set: 'champion', clips: ['hit'], volume: 0.8, vary: 0.06, pitch: [0.7, 0.78], most: 3, half: 20 },
-  'champion-hit-2': { set: 'champion', clips: takes('hit-2', 3), volume: 0.7, vary: 0.06, most: 3, half: 20 },
+  // Ruadan's maul (combat.js): landing, a blow of his or thrown (one of three), flying back to his
+  // hand, and its whoosh, again and again as it spins out
+  'champion-hit': { set: 'champion', clips: takes('hit', 3), volume: 0.85, vary: 0.06, most: 3, half: 20 },
   'champion-back': { set: 'champion', clips: ['back'], volume: 0.75, most: 1, half: 20 },
   'champion-woosh': { set: 'champion', clips: ['woosh'], volume: 0.55, vary: 0.12, pitch: [0.95, 1.1], most: 3, half: 18 },
   'frost-ult-end': { set: 'frost', clips: ['ult-end'], volume: 1, most: 1, half: 26 },

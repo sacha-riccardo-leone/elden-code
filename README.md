@@ -1022,7 +1022,8 @@ of one sound (footsteps, landings, lightning) is cut into each of them, every ot
 it starts, each levelled to one peak; a recording's 1 and 2 (and 3) are heard together, levelled as
 one (left out: `dontuse.wav`, as named; `golem_explosion_on_spitfire` and `maren_ult_start`, and
 the older `maren_ult_start_on_click.wav`, replaced as Sacha asked; `Stone Chain Jump` and
-`Stone Chain Land`, as everyone comes down on `Stone Land`; Wynn's `unsheathe`, as asked).
+`Stone Chain Land`, as everyone comes down on `Stone Land`; Ruadan's `hammer_hit`, its sound not
+good enough; Wynn's `unsheathe`, as asked).
 `node scripts/cut-sfx.mjs [set]` cuts them again, from the recordings, whenever they change; its
 table says what each clip is cut from.
 
@@ -1061,11 +1062,10 @@ table says what each clip is cut from.
   come down, and as a Tarnished you carried is set down.
 - **Blows**: one of `Sword Attack 1`–`3` with every blow but Wynn's (his own `slash`, below) and
   Ruadan's, each cut to be at its loudest 0.12 s in and begun that long before the blow lands, so
-  that it's at its loudest as it does; yours louder than the others'. Ruadan's maul: `hammer_hit`,
-  deeper (at three quarters of its pitch, about), and with it one of the three Sacha chose of
-  `hammer_hit_2_variations` (between 1 and 2 s, 10 and 12, 12 and 13: each from just before its
-  crack, so that the two crack together), as it lands: each blow of his, and thrown, as it strikes
-  something and as its head is driven into the floor. Thrown: `hammer_woosh` at each half turn as it
+  that it's at its loudest as it does; yours louder than the others'. Ruadan's maul: one of the
+  three Sacha chose of `hammer_hit_2_variations` (between 1 and 2 s, 10 and 12, 12 and 13: each
+  from just before its crack, so that it cracks as the maul lands), as it lands: each blow of his,
+  and thrown, as it strikes something and as its head is driven into the floor. Thrown: `hammer_woosh` at each half turn as it
   spins out (about six a second), and `hammer_coming_back` (between 1 and 3 s, as named: at its
   loudest about as the maul is in his hand) as it's pulled out of the floor and flies back.
 - **Wynn** (only him; whoever plays him, thee or another), each on the drawing where it happens:
