@@ -3,6 +3,8 @@
 // path there: along thine island and over the bridge first, then north across the Hold. It points
 // where the path goes on from just ahead (GUIDE.lookAhead), so it turns into each corner as it
 // comes, and it fades once thou art on the arena (and comes back if thou leavest it mid-fight).
+// In the tutorial it shows the way up the stair to its next yard, once a yard's step is done
+// (tutorial.js, route).
 
 import * as THREE from 'three';
 import { GUIDE } from './config.js';
@@ -96,9 +98,10 @@ export class Guide {
   }
 
   update(dt) {
-    const { fight, pilot, nav } = this.ctx;
+    const { fight, pilot, nav, tutorial } = this.ctx;
     const me = pilot.npc;
-    const want = fight.hunting() && me && !pilot.dead && !me.travel && !fight.inArena(me);
+    const route = tutorial?.route(); // (the tutorial's way on, if it's showing one)
+    const want = !!me && !pilot.dead && !me.travel && (route ? true : fight.hunting() && !fight.inArena(me));
     this.show += ((want ? 1 : 0) - this.show) * Math.min(1, dt * 5);
     if (this.show < 0.01) {
       this.group.visible = false;
@@ -115,7 +118,7 @@ export class Guide {
       const strayed = this.from && Math.hypot(x - this.from[0], z - this.from[1]) > 1.5;
       if (!this.path || this.replanIn <= 0 || strayed) {
         this.from = [x, z];
-        this.path = [this.from, ...nav.path(this.from, fight.destination())];
+        this.path = [this.from, ...(route || nav.path(this.from, fight.destination()))];
         this.replanIn = GUIDE.replan;
       }
       const [ax, az] = this.ahead(x, z);

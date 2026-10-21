@@ -288,8 +288,10 @@ export class UI {
     for (const b of this.regionButtons.values()) b.btn.disabled = boss && !!b.area.biome;
   }
 
-  // Elden Ring-style area title when the camera settles over a new area.
+  // Elden Ring-style area title when the camera settles over a new area (not over one without a
+  // name: the tutorial's yards and stairs, climb.js).
   setFocusArea(area, now) {
+    if (area && !area.name) area = null;
     if (area !== this.focusArea) {
       this.focusArea = area;
       for (const [a, b] of this.regionButtons) b.btn.dataset.active = a === area ? '1' : '';

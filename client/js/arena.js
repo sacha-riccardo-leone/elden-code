@@ -29,23 +29,39 @@ const STAIR = { foot: -(HUB.radius + 0.5), head: ARENA.z + ARENA.radius, steps: 
 const GATE = { w: ARENA.bridgeHalf * 2 + 0.9, h: 4.2 }; // the fog wall across its entrance
 
 // The fog wall that seals the arena once thou'st stepped in to face a great enemy: a curtain of
-// pale, gold-shot mist welling up and swirling, thick enough to be seen as a wall.
-const SEAL_FRAG = /* glsl */ `
+// pale, gold-shot mist welling up and swirling, thick enough to be seen as a wall (`w` wide, `h`
+// tall).
+const sealFrag = (w, h) => /* glsl */ `
   uniform float uTime;
   uniform float uIntensity;
   varying vec2 vUv;
   ${NOISE_GLSL}
   void main() {
-    vec2 p = vec2((vUv.x - 0.5) * ${GATE.w.toFixed(2)}, vUv.y * ${GATE.h.toFixed(2)});
+    vec2 p = vec2((vUv.x - 0.5) * ${w.toFixed(2)}, vUv.y * ${h.toFixed(2)});
     float swirl = fbm(vec2(p.x * 0.9 + sin(p.y * 0.7 + uTime * 0.4), p.y * 0.5 - uTime * 0.45));
     float streak = fbm(vec2(p.x * 3.5, p.y * 0.3 + uTime * 0.7));
     float n = swirl * 0.7 + streak * 0.4;
-    float edge = smoothstep(0.0, 0.5, ${(GATE.w / 2).toFixed(2)} - abs(p.x)) * smoothstep(0.0, 0.25, p.y) * smoothstep(0.0, 1.4, ${GATE.h.toFixed(2)} - p.y);
+    float edge = smoothstep(0.0, 0.5, ${(w / 2).toFixed(2)} - abs(p.x)) * smoothstep(0.0, 0.25, p.y) * smoothstep(0.0, 1.4, ${h.toFixed(2)} - p.y);
     vec3 col = mix(vec3(0.72, 0.72, 0.78), vec3(1.0, 0.9, 0.68), smoothstep(0.5, 0.95, n));
     float a = edge * (0.2 + 0.55 * smoothstep(0.35, 0.95, n)) * uIntensity;
     gl_FragColor = vec4(col, a);
   }
 `;
+
+// A wall of that fog, `w` wide and `h` tall, facing +z (set its middle h / 2 over the ground), out
+// of sight till its `uIntensity` (0..1) brings it up, its `uTime` swirling it: the arena's, across
+// its way in, and the tutorial's, at the feet and heads of its stairs (climb.js).
+export function fogWall(w, h) {
+  const uniforms = { uTime: { value: 0 }, uIntensity: { value: 0 } };
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.ShaderMaterial({
+    vertexShader: UV_VERT, fragmentShader: sealFrag(w, h), uniforms,
+    transparent: true, depthWrite: false, side: THREE.DoubleSide,
+  }));
+  mesh.renderOrder = 4;
+  mesh.visible = false;
+  mesh.userData.dynamic = true;
+  return { mesh, uniforms };
+}
 
 // A disc of radius R in the xy plane (as CircleGeometry, uv likewise), divided into a grid of
 // `step`-sized squares: those past its edge are drawn in onto it, so the rim stays round.
@@ -213,15 +229,10 @@ export class Arena extends Builder {
       this.add(post);
       this.box(0.9, 0.3, 0.9, this.mat.stone, x, 3.75, this.gateZ, { tile: 1 });
     }
-    this.sealUniforms = { uTime: { value: 0 }, uIntensity: { value: 0 } };
-    this.fogWall = new THREE.Mesh(new THREE.PlaneGeometry(GATE.w, GATE.h), new THREE.ShaderMaterial({
-      vertexShader: UV_VERT, fragmentShader: SEAL_FRAG, uniforms: this.sealUniforms,
-      transparent: true, depthWrite: false, side: THREE.DoubleSide,
-    }));
+    const fog = fogWall(GATE.w, GATE.h);
+    this.sealUniforms = fog.uniforms;
+    this.fogWall = fog.mesh;
     this.fogWall.position.set(0, GATE.h / 2, this.gateZ);
-    this.fogWall.renderOrder = 4;
-    this.fogWall.visible = false;
-    this.fogWall.userData.dynamic = true;
     this.add(this.fogWall);
     this.fogLight = this.light(0, 2.2, this.gateZ - 0.8, '#dfe2ea', 8, 1.6);
 

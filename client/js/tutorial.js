@@ -1,27 +1,32 @@
 // The tutorial, on the first journey (main.js, begin): Maren at Roundtable Hold with nothing else
 // about (no island risen, the training yard out of sight), and the Lands Between held back
 // meanwhile (`holding`: no Tarnished at the Round Table, no session taken up, no phantoms, no great
-// enemy coming: main.js). Step by step, each from the last through black (fade):
-//   move     at the Hold: walking, W A S D or the arrows, till every way has been tried;
-//   dummies  on the training yard, emptied of all but three straw dummies (training.js,
-//            lessonStart): break them, with a left click (or a right one too, for whoever casts:
-//            combat.js, canCast);
-//   rocks    in the middle of the yard, three rune rocks round thee: in turn each one's rune lights,
-//            it's lifted in blue magic, held up a second and dropped, and its shockwave ripples out
-//            over the whole floor (ripple.js); a dodge (Space) through it, three in a row (one that
-//            lands strikes as a great enemy's blow would, red and all, but takes no health);
-//   boss     the great dummy: blows on its cracked ankle fill thine ultimate and hurt it no more,
-//            and once it's full, R breaks it at a stroke (training.js, lesson); here too the hint
-//            for Q, the camera's focus on it (no longer shown in a fight, fight.js);
-//   become   back at the Hold, a hero rises from grace and waits: a click on them, then on
-//            "Become";
+// enemy coming: main.js). Step by step:
+//   move     at the Hold: walking, W A S D or the arrows, till every way has been tried, and with
+//            Shift held, sprinting;
+//   dummies  through black, on the training yard, emptied of all but three straw dummies
+//            (training.js, lessonStart): break them, with a left click (or a right one too, for
+//            whoever casts: combat.js, canCast);
+//   rocks    up a stair to the next yard (climb.js), three rune rocks round its middle: in turn each
+//            one's rune lights, it's lifted in blue magic, held up a second and dropped, and its
+//            shockwave ripples out over the whole floor (ripple.js); a dodge (Space) through it,
+//            three in a row (one that lands strikes as a great enemy's blow would, red and all, but
+//            takes no health);
+//   boss     up another to the last yard, the great dummy: blows on its cracked ankle fill thine
+//            ultimate and hurt it no more, and once it's full, R breaks it at a stroke (training.js,
+//            lesson); here too the hint for Q, the camera's focus on it (no longer in a fight);
+//   become   through black, back at the Hold, a hero rises from grace and waits: a click on them,
+//            then on "Become";
 //   island   Maren, let go, sets out for an island that rises for her and works there (why they
 //            go, and where they go with nothing to do); and it's done: again, or on into the world.
-// Each step lets through what it teaches and what came before (allows: main.js, input.js), and
-// keeps thee to the place it's in (fence: pilot.js). "Skip tutorial", at the bottom right, ends it
-// at any step. Done or skipped, it's remembered and comes no more of itself; it's walked again from
-// the training yard's grace (main.js) or with "Do it again", the page loaded afresh for it (gate.js).
-// The words to read are the user's own; the keys to press are drawn as keys (game.css, .key).
+// The yards are climbed on foot (climb.js): a yard's step done, the fog at the foot of the stair up
+// from it thins away and the golden arrow shows the way (guide.js, route); come up onto the next, the
+// fog closes behind thee, and its step begins. Each step lets through what it teaches and what came
+// before (allows: main.js, input.js), and keeps thee to the place it's in (fence: pilot.js). "Skip
+// tutorial", at the bottom right, ends it at any step. Done or skipped, it's remembered and comes no
+// more of itself; it's walked again from the training yard's grace (main.js) or with "Do it again",
+// the page loaded afresh for it (gate.js). The words to read are the user's own; the keys to press
+// are drawn as keys (game.css, .key).
 
 import * as THREE from 'three';
 import { YARD } from './yard.js';
@@ -33,32 +38,36 @@ import { canCast } from './combat.js';
 import { groundAt } from './ground.js';
 import { HUB_LAYOUT, ARENA, REGION } from './config.js';
 import { AGAIN } from './gate.js';
+import { Climb, CLIMB } from './climb.js';
 
 const DONE = 'elden-code:tutorial'; // (localStorage: 'done', once walked or skipped)
 // The black between steps: how long it takes to fall, and how long it holds before lifting.
 const FADE = { out: 0.6, hold: 0.35 };
-// Where thou standest for each step: by the Hold's grace (as thou risest there), or from the yard's
+// The yards climbed (climb.js): the training yard, the rocks', the great dummy's.
+const [, ROCK_YARD, GREAT_YARD] = CLIMB.yards;
+// Where thou standest: by the Hold's grace (as thou risest there), or from the training yard's
 // middle; and the straw dummies' spots before thee.
-const SPOT = { hold: [1.6, 1.8], dummies: [0, 5.5], rocks: [0, 0], boss: [0, 7.5] };
+const SPOT = { hold: [1.6, 1.8], dummies: [0, 5.5] };
 const DUMMIES = [[-3.6, 1], [0, 0], [3.6, 1]];
 // The rune rocks (fx/rune-rock-*.json: dark, and the rune alight): each one's drawing and where it
-// stands round the middle of the yard, how big they're drawn (world units to their drawing's
-// pixel), how much of the floor each takes up (of its width), how high it's lifted, and how long
-// each part of its turn lasts (the rune lighting, lifted, held up, falling, its light dying away),
-// and the pause before the next one's; its blue light and motes; and where the camera looks from
-// meanwhile (how far back, how high, and how far north of thee: aim).
+// stands round the middle of its yard (degrees from the east, round by the south, `spread` out from
+// the middle), how big they're drawn (world units to their drawing's pixel), how much of the floor
+// each takes up (of its width), how high it's lifted, and how long each part of its turn lasts (the
+// rune lighting, lifted, held up, falling, its light dying away), the pause before the next one's,
+// and before the first, once thou'rt shut in; its blue light and motes; and where the camera looks
+// from meanwhile (how far back, how high, and how far north of the yard's middle: aim).
 const ROCKS = {
-  spots: [['rune-rock-2', 0, -4.6], ['rune-rock-1', -4.1, 2.4], ['rune-rock-3', 4.1, 2.4]],
+  spots: [['rune-rock-2', -90], ['rune-rock-1', 150], ['rune-rock-3', 30]], spread: 7.6,
   px: 0.038, block: 0.34, lift: 2.4,
   cam: { dist: 27, y: 1.6, z: -1.2 },
-  light: 0.45, rise: 0.9, hold: 1, fall: 0.3, dim: 0.6, gap: 0.9,
+  light: 0.45, rise: 0.9, hold: 1, fall: 0.3, dim: 0.6, gap: 0.9, first: 1,
   glow: '#53e8ff', motes: ['#7ff6ff', '#2fd8ff', '#c8fbff'],
 };
 // A rock's shockwave (ripple.js, as the Golem's, golem.js): how fast it runs (slower than his, to be
 // learnt), how wide its crest strikes, between crests and how many, how high the first, and how far
 // it rolls (over the whole floor, wherever it starts); how near its crest a dodge counts (one away
 // from it outruns it a moment, and it would catch thee after); and the dodges in a row it takes.
-const WAVE = { speed: 8, band: 1.2, length: 2.2, crests: 3, amp: 0.45, reach: YARD.halfW + 7, near: 1.8 };
+const WAVE = { speed: 8, band: 1.2, length: 2.2, crests: 3, amp: 0.45, reach: ROCK_YARD.R + 8, near: 1.8 };
 const DODGES = 3;
 // The island Maren sets out for (its project's name), and how much more than it the camera takes in.
 const ISLAND = { project: 'your-project', margin: 4 };
@@ -109,7 +118,11 @@ export class Tutorial {
     this.fading = null; // 'out' (falling), 'dark' (held)
     this.fence = null; // where thou mayst stand (pilot.js)
     this.markAt = null; // where the mark over what's to be struck or clicked goes (placeMark)
+    this.climb = null; // its yards above the training yard (climb.js), while thou'rt on them
+    this.at = 0; // the yard thou'rt on (0: the training yard, 1: the rocks', 2: the great dummy's)
+    this.open = false; // its way up open (its step done)
     this.rocks = null;
+    this.great = null; // (the great dummy, on the last yard: training.js)
     this.waves = [];
     this.marks = []; // the cracks the rocks leave
     this.v = new THREE.Vector3();
@@ -155,12 +168,21 @@ export class Tutorial {
     if (this.again) setTimeout(() => this.el.fade.classList.remove('on'), 300);
   }
 
-  // Only the place a step is in shows: the Hold, or the training yard; and thou keepest to it.
+  // Only the place a step is in shows: the Hold, or the yards (the training yard and those climbed
+  // from it); and thou keepest to it (on the yards, to the one thou'rt on, and once its step is
+  // done, the stair up from it and the yard it comes up onto: onClimb).
   show(place) {
     const { world } = this.ctx;
     world.hub.group.visible = place === 'hold';
-    world.yard.group.visible = place === 'yard';
-    this.fence = place === 'yard' ? (x, z) => world.yard.inside(x, z) : (x, z) => world.hub.contains(x, z);
+    world.yard.group.visible = place === 'yards';
+    this.fence = place === 'yards' ? (x, z) => this.onClimb(x, z) : (x, z) => world.hub.contains(x, z);
+  }
+
+  onClimb(x, z) {
+    const c = this.climb;
+    if (!c) return this.ctx.world.yard.inside(x, z);
+    if (c.inYard(this.at, x, z)) return true;
+    return this.open && (c.onStair(this.at, x, z) || c.inYard(this.at + 1, x, z));
   }
 
   go(step) {
@@ -229,13 +251,20 @@ export class Tutorial {
     return this.ctx.nav.clampToWalkable(gx + SPOT.hold[0], gz + SPOT.hold[1]);
   }
 
-  // What to do, at the foot of the screen: words, and the keys to press drawn as keys (`above`: a
-  // smaller line over it).
+  // What to do, at the foot of the screen: words, and the keys to press drawn as keys, on a line of
+  // their own after each '\n' (`above`: a smaller line over them).
   say(parts, above = '') {
     const p = this.el.prompt;
     p.replaceChildren();
     if (above) p.append(h('small', '', above));
-    p.append(h('div', 'line', ...parts.map((x) => (typeof x === 'string' ? h('span', '', x) : x))));
+    let line = h('div', 'line');
+    p.append(line);
+    for (const x of parts) {
+      if (x === '\n') {
+        line = h('div', 'line');
+        p.append(line);
+      } else line.append(typeof x === 'string' ? h('span', '', x) : x);
+    }
     p.hidden = false;
     p.classList.remove('in');
     void p.offsetWidth;
@@ -266,15 +295,20 @@ export class Tutorial {
     }
   }
 
-  // move: the keys shown once Maren has risen at grace, each way lit as it's tried; on once all four
-  // have been.
+  // move: the keys shown once Maren has risen at grace, each way lit as it's tried, and Shift once
+  // thou'st sprinted with it; on once all have been.
   stepMove() {
+    const { pilot } = this.ctx;
     if (!this.phase && this.t > 1.6) {
       this.phase = 'keys';
       this.ways = new Set();
-      this.say(['Move around with', cluster([['W', 'up'], ['A', 'left'], ['S', 'down'], ['D', 'right']]), 'or', cluster([['↑', 'up'], ['←', 'left'], ['↓', 'down'], ['→', 'right']])]);
+      this.say([
+        'Move around with', cluster([['W', 'up'], ['A', 'left'], ['S', 'down'], ['D', 'right']]), 'or', cluster([['↑', 'up'], ['←', 'left'], ['↓', 'down'], ['→', 'right']]),
+        '\n', 'Hold', key('Shift', 'sprint', true), 'to sprint',
+      ]);
     }
-    if (this.phase === 'keys' && this.ways.size === 4) {
+    if (this.phase === 'keys' && pilot.moving && pilot.heading().run) this.lit('sprint');
+    if (this.phase === 'keys' && this.ways.size === 5) {
       this.phase = 'done';
       this.doneAt = this.t;
     }
@@ -283,20 +317,38 @@ export class Tutorial {
 
   key(e) {
     if (this.step !== 'move' || this.phase !== 'keys' || this.busy || e.ctrlKey || e.metaKey || e.altKey) return;
-    const way = WAYS[e.code];
-    if (!way || this.ways.has(way)) return;
+    if (WAYS[e.code]) this.lit(WAYS[e.code]);
+  }
+
+  // A way tried (or the sprint): its keys lit.
+  lit(way) {
+    if (this.ways.has(way)) return;
     this.ways.add(way);
     for (const k of this.el.prompt.querySelectorAll(`[data-way="${way}"]`)) k.classList.add('on');
   }
 
-  // dummies: on the yard, three straw dummies before thee, broken ones staying in pieces.
+  // dummies: in the black, the yards to climb set out (climb.js): on the training yard three straw
+  // dummies before thee, broken ones staying in pieces; on the next the rune rocks; on the last the
+  // great dummy, put away till thou comest up to it. Every way off the training yard is shut in fog.
   setDummies() {
-    this.show('yard');
-    this.place(SPOT.dummies[0], YARD.cz + SPOT.dummies[1]);
-    this.dummies = DUMMIES.map(([x, z]) => this.ctx.training.addDummy(x, YARD.cz + z));
+    const { training, world } = this.ctx;
+    this.climb = new Climb(world);
+    this.at = 0;
+    this.open = false;
+    this.seal(true);
+    this.show('yards');
+    this.place(SPOT.dummies[0], CLIMB.z + SPOT.dummies[1]);
+    this.dummies = DUMMIES.map(([x, z]) => training.addDummy(x, CLIMB.z + z));
+    this.rocks = ROCKS.spots.map(([k, deg]) => {
+      const a = (deg * Math.PI) / 180;
+      return new RuneRock(this, k, ROCK_YARD.cx + Math.cos(a) * ROCKS.spread, CLIMB.z + Math.sin(a) * ROCKS.spread, ROCK_YARD);
+    });
+    this.great = training.addDummy(GREAT_YARD.cx, CLIMB.z, { great: true, on: this.climb, y: GREAT_YARD.y });
+    this.great.putAway(true);
   }
 
   stepDummies() {
+    if (this.phase === 'climb') { this.climbOn(); return; }
     if (!this.phase) {
       this.phase = 'strike';
       const parts = canCast(this.ctx.pilot.npc) ? ['Attack with', mouse('left'), 'or', mouse('right')] : ['Attack with', mouse('left')];
@@ -306,27 +358,94 @@ export class Tutorial {
       this.phase = 'done';
       this.doneAt = this.t;
     }
-    if (this.phase === 'done' && this.t - this.doneAt > 1.4) this.next('rocks', () => this.setRocks());
+    if (this.phase === 'done' && this.t - this.doneAt > 1.4) this.openUp();
   }
 
-  // rocks: thou in the middle of the yard, the dummies taken away, three rune rocks round thee, and
-  // the floor ready to ripple.
-  setRocks() {
+  // ------------------------------------------------------------------------------------------
+  // the climb (climb.js)
+
+  // The walls of fog as things stand: at the foot of the training yard's stair up to the Hold, all
+  // the while; at the foot of each stair up still ahead (gone from the one up from thy yard once its
+  // step is done); and at the head of each come up, behind thee (`now`: at once).
+  seal(now = false) {
+    const c = this.climb;
+    if (!c) return;
+    c.seal(c.holdFog, true, now);
+    c.stairs.forEach((s, k) => {
+      c.seal(s.foot, k > this.at || (k === this.at && !this.open), now);
+      c.seal(s.head, k < this.at, now);
+    });
+  }
+
+  // A yard's step done: the fog at the foot of the stair up from it thins away, and the golden arrow
+  // shows the way (route).
+  openUp() {
+    this.open = true;
+    this.phase = 'climb';
+    this.hush();
+    this.markAt = null;
+    this.seal();
+  }
+
+  // On the way up: come up onto the next yard, and its step begins (reach).
+  climbOn() {
+    const me = this.ctx.pilot.npc;
+    if (me && this.climb?.arrivedOn(this.at + 1, me.pos.x, me.pos.y)) this.reach(this.at + 1);
+  }
+
+  // Up onto yard k: the fog closes behind thee, what's done on the yard is set on its floor
+  // (training.js), and its step begins: the rocks (the floor rippling under their shockwaves:
+  // ripple.js), then the great dummy.
+  reach(k) {
     const { training, world } = this.ctx;
-    for (const d of this.dummies || []) training.removeDummy(d);
-    this.dummies = null;
-    this.place(SPOT.rocks[0], YARD.cz + SPOT.rocks[1]);
-    this.rocks = ROCKS.spots.map(([k, x, z]) => new RuneRock(this, k, x, YARD.cz + z));
-    this.waves = [];
-    this.dodged = 0;
-    this.turn = 0;
-    this.wait = 1.2; // (a moment before the first)
-    rippleBounds(world.yard.cx, world.yard.cz, YARD.halfW);
+    const Y = CLIMB.yards[k];
+    this.at = k;
+    this.open = false;
+    this.seal();
+    training.setFloor(Y.y);
+    clearRipples();
+    if (k === 1) {
+      rippleBounds(Y.cx, CLIMB.z, Y.R);
+      this.go('rocks');
+    } else {
+      rippleBounds(world.arena.cx, world.arena.cz, ARENA.radius);
+      this.go('boss');
+    }
   }
 
+  // The way on, for the golden arrow (guide.js): up the stair from thy yard onto the next, once its
+  // step is done.
+  route() {
+    if (!this.holding || !this.climb || !this.open || this.busy || this.ending) return null;
+    const s = CLIMB.stairs[this.at];
+    return [[s.x0 - 0.6, CLIMB.z], [s.x1 + 0.6, CLIMB.z], [s.x1 + 3, CLIMB.z]];
+  }
+
+  // The climb taken away (back at the Hold, or the tutorial over): its rocks, its dummies, its
+  // yards; what's done on the yard set on the training yard's floor again, which ripples no more.
+  leaveClimb() {
+    const { training, world } = this.ctx;
+    this.clearRocks();
+    for (const d of [...(this.dummies || []), ...(this.great ? [this.great] : [])]) training.removeDummy(d);
+    this.dummies = null;
+    this.great = null;
+    training.setFloor(YARD.y);
+    rippleBounds(world.arena.cx, world.arena.cz, ARENA.radius);
+    this.climb?.remove();
+    this.climb = null;
+    this.at = 0;
+    this.open = false;
+  }
+
+  // rocks: shut in on their yard, its ways out in fog, three rune rocks round its middle take their
+  // turns, one after another.
   stepRocks(dt) {
     if (!this.phase) {
       this.phase = 'dodge';
+      this.waves = [];
+      this.dodged = 0;
+      this.turn = 0;
+      this.wait = ROCKS.first;
       this.say(['Dodge with', key('Space', null, true), 'to not get hit']);
       this.tally(0);
     }
@@ -339,6 +458,7 @@ export class Tutorial {
       m.crack.dispose();
       return false;
     });
+    if (this.phase === 'climb') { this.climbOn(); return; }
     const going = this.rocks.some((r) => r.state !== 'rest');
     if (this.phase === 'dodge') {
       if (this.dodged >= DODGES) { this.phase = 'done'; return; }
@@ -353,7 +473,7 @@ export class Tutorial {
       this.phase = 'over';
       this.doneAt = this.t;
     } else if (this.phase === 'over' && this.t - this.doneAt > 1.2) {
-      this.next('boss', () => this.setBoss());
+      this.openUp();
     }
   }
 
@@ -370,7 +490,7 @@ export class Tutorial {
       pos: [x, 0.5, z], spread: [0.8, 0.3, 0.5], vel: [0, 2.6, 0], velSpread: [3.2, 1.6, 2.4],
       color: ROCKS.motes, size: 0.09, life: 0.8, count: 40, drag: 1.2, intensity: 2.6,
     });
-    flash(null, [x, YARD.y + 0.8, z + 0.3], { color: ROCKS.glow, power: 26, reach: 10, life: 0.45 });
+    flash(null, [x, rock.Y.y + 0.8, z + 0.3], { color: ROCKS.glow, power: 26, reach: 10, life: 0.45 });
     rig.shake?.(0.35);
     this.marks.push({ crack: new Decal(scene, 'crack', x, z, 3.6, { glow: false }), t: 0 });
     this.waves.push({ ripple: addRipple(x, z, WAVE), x, z, met: false });
@@ -395,7 +515,7 @@ export class Tutorial {
       const a = Math.random() * Math.PI * 2;
       const px = w.x + Math.cos(a) * r;
       const pz = w.z + Math.sin(a) * r;
-      if (r > 0 && Math.random() < 0.9 && Math.hypot(px, pz - YARD.cz) < YARD.halfW - 0.6) {
+      if (r > 0 && Math.random() < 0.9 && Math.hypot(px - ROCK_YARD.cx, pz - CLIMB.z) < ROCK_YARD.R - 0.6) {
         particles.emit({
           pos: [px, rippleAt(px, pz) + 0.15, pz], spread: [0.3, 0.1, 0.3], vel: [Math.cos(a) * 2, 1.4, Math.sin(a) * 2],
           velSpread: [0.6, 0.6, 0.6], color: ['#8a7a6a', '#5a4a3e', '#c8b8a0'], size: 0.14, life: 0.7, count: 3, drag: 1.4, intensity: 0.9,
@@ -440,26 +560,18 @@ export class Tutorial {
     clearRipples();
   }
 
-  // boss: the rocks taken away, the floor still again; thou before the great dummy's place, thine
-  // ultimate empty. It comes a moment after.
-  setBoss() {
-    const { world, pilot } = this.ctx;
-    this.clearRocks();
-    rippleBounds(world.arena.cx, world.arena.cz, ARENA.radius);
-    this.place(SPOT.boss[0], YARD.cz + SPOT.boss[1]);
-    pilot.ult = 0;
-  }
-
+  // boss: shut in on the last yard, the great dummy comes a moment after, in a puff of dust, and
+  // thine ultimate's bar with it, empty.
   stepBoss() {
     const { training, pilot, ults, rig } = this.ctx;
-    const g = training.greatOne();
+    const g = this.great;
     if (!g) { this.next('become', () => this.setBecome()); return; }
     if (!this.phase) {
       if (this.t < 0.7) return;
-      // it comes, in a puff of dust, and thine ultimate's bar with it
       g.putAway(false);
       training.dust(g);
       rig.shake?.(0.25);
+      pilot.ult = 0;
       training.lesson.ult = true;
       training.focusUsed = false;
       this.phase = 'ankle';
@@ -483,7 +595,7 @@ export class Tutorial {
         this.say(['Strike its cracked ankle'], 'The great dummy');
         this.markAt = () => {
           const [ax, ay] = g.ankle();
-          return [ax, YARD.y + ay + 0.35, g.pos.y + 0.3];
+          return [ax, g.y + ay + 0.35, g.pos.y + 0.3];
         };
       } else {
         this.say(['Use your ultimate attack with', key('R')]);
@@ -494,11 +606,12 @@ export class Tutorial {
     if (this.phase === 'broken' && this.t - this.doneAt > 2.4) this.next('become', () => this.setBecome());
   }
 
-  // become: back at the Hold, by its grace, as at first, the yard out of sight again.
+  // become: in the black, the yards taken away; back at the Hold, by its grace, as at first.
   setBecome() {
     const { training } = this.ctx;
     if (training.lesson) training.lesson.ult = false;
     this.el.hint.hidden = true;
+    this.leaveClimb();
     this.show('hold');
     const [x, z] = this.holdSpot();
     this.place(x, z);
@@ -628,14 +741,15 @@ export class Tutorial {
     return b;
   }
 
-  // Where the camera looks (main.js): with the rocks, between thee and the middle of the yard,
+  // Where the camera looks (main.js): with the rocks, between thee and the middle of their yard,
   // from far enough back that one lifted stays in the clear middle of the view; in the last step,
   // the island and Maren on it, all of it in view; else as ever.
   aim(me) {
     if (!this.holding || this.ending) return null;
-    if (this.step === 'rocks' && me) {
+    if (this.step === 'rocks' && this.phase !== 'climb' && me) {
+      const Y = ROCK_YARD;
       const k = 0.5;
-      return { at: [me.pos.x * k, YARD.y + ROCKS.cam.y, YARD.cz + ROCKS.cam.z + (me.pos.y - YARD.cz) * k], dist: ROCKS.cam.dist, mode: 'rocks' };
+      return { at: [me.pos.x + (Y.cx - me.pos.x) * k, Y.y + ROCKS.cam.y, me.pos.y + (CLIMB.z + ROCKS.cam.z - me.pos.y) * k], dist: ROCKS.cam.dist, mode: 'rocks' };
     }
     const r = this.island;
     if (this.step !== 'island' || !r) return null;
@@ -690,9 +804,9 @@ export class Tutorial {
     });
   }
 
-  // Everything of the tutorial's taken away: the rocks and its dummies, the yard as it was and both
-  // places showing; the island gone again, Maren home at the Hold; its hero to the Round Table (or,
-  // held by thee, there once thou lettest go); and thou at the Hold.
+  // Everything of the tutorial's taken away: its yards, rocks and dummies, the training yard as it
+  // was and both places showing; the island gone again, Maren home at the Hold; its hero to the
+  // Round Table (or, held by thee, there once thou lettest go); and thou at the Hold.
   clear() {
     const { world, training, director, pilot, ults, ui, nav } = this.ctx;
     const safe = (fn) => {
@@ -700,9 +814,8 @@ export class Tutorial {
     };
     safe(() => ults.finish());
     safe(() => { director.select(null); ui.closeFan(); });
-    safe(() => this.clearRocks());
-    safe(() => rippleBounds(world.arena.cx, world.arena.cz, ARENA.radius));
-    safe(() => { training.lessonEnd(); this.dummies = null; });
+    safe(() => this.leaveClimb());
+    safe(() => training.lessonEnd());
     world.hub.group.visible = true;
     world.yard.group.visible = true;
     this.fence = null;
@@ -766,15 +879,17 @@ function glowCanvas(sheet, k) {
   return c;
 }
 
-// A rune rock of the tutorial's, standing on the yard's floor at (x, z), drawn as its dummies are
-// (lit by the world's light, a shadow at its foot), solid; its turn (go): its rune lit, its own
-// blue light coming up round it, lifted, held up, dropped (Tutorial.crash), and its light dying.
+// A rune rock of the tutorial's, standing at (x, z) on the floor of its yard `Y` (climb.js), drawn
+// as the dummies are (lit by the world's light, a shadow at its foot), solid; its turn (go): its
+// rune lit, its own blue light coming up round it, lifted, held up, dropped (Tutorial.crash), and
+// its light dying.
 class RuneRock {
-  constructor(tutorial, key, x, z) {
+  constructor(tutorial, key, x, z, Y) {
     const { ctx } = tutorial;
     this.tutorial = tutorial;
     this.x = x;
     this.z = z;
+    this.Y = Y;
     const sheet = fxArt(key);
     this.sheet = sheet;
     this.w = (sheet?.w || 80) * ROCKS.px;
@@ -786,11 +901,12 @@ class RuneRock {
     this.foot = sheet ? (sheet.w / 2 - sheet.foot[0]) * ROCKS.px : 0; // (its foot on its spot)
     this.blob = new THREE.Mesh(new THREE.CircleGeometry(this.w * 0.46, 20), new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.34, depthWrite: false }));
     this.blob.rotation.x = -Math.PI / 2;
-    this.blob.position.set(x, YARD.y + 0.015, z + 0.05);
+    this.blob.position.set(x, Y.y + 0.015, z + 0.05);
     this.blob.renderOrder = 1;
     ctx.scene.add(this.mesh, this.blob);
-    const yard = ctx.world.yard;
-    this.block = yard.blockCircle(x - yard.cx, z - yard.cz, this.w * ROCKS.block);
+    const on = tutorial.climb;
+    this.on = on;
+    this.block = on.blockCircle(x - on.cx, z - on.cz, this.w * ROCKS.block);
     this.state = 'rest';
     this.s = 0;
     this.lift = 0;
@@ -814,7 +930,7 @@ class RuneRock {
   // (its light a little way in front of it and low, so that it lights the floor and thee round it
   // more than its own face)
   lightAt() {
-    return [this.x, YARD.y + this.lift + this.h * 0.3, this.z + 1.6];
+    return [this.x, this.Y.y + this.lift + this.h * 0.3, this.z + 1.6];
   }
 
   step(dt) {
@@ -868,7 +984,7 @@ class RuneRock {
   }
 
   place() {
-    this.mesh.position.set(this.x + this.foot, YARD.y + this.h / 2 - 0.02 + this.lift, this.z);
+    this.mesh.position.set(this.x + this.foot, this.Y.y + this.h / 2 - 0.02 + this.lift, this.z);
     this.mesh.material.emissiveIntensity = this.glow ? this.lit * 1.2 : 0;
     // (its shadow smaller and fainter the higher it's lifted)
     const up = Math.min(1, this.lift / ROCKS.lift);
@@ -881,14 +997,13 @@ class RuneRock {
   }
 
   dispose() {
-    const { scene, world } = this.tutorial.ctx;
     this.light?.end(0.1);
-    scene.remove(this.mesh, this.blob);
+    this.tutorial.ctx.scene.remove(this.mesh, this.blob);
     this.mesh.geometry.dispose();
     this.mesh.material.dispose();
     this.glow?.dispose();
     this.blob.geometry.dispose();
     this.blob.material.dispose();
-    world.yard.unblock(this.block);
+    this.on.unblock(this.block);
   }
 }

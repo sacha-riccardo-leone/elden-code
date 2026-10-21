@@ -43,29 +43,38 @@ again by itself (`?tutorial` in the address shows it anyway).
   island, no heroes at the Round Table, the training yard out of sight. No session is taken up
   meanwhile (locally the bridge's stream is opened afresh once it's over, so its snapshot is the
   world as it stands then), the public demo's sessions wait, and no great enemy comes.
-- **How it's shown:** each step leads to the next through black. What to do is written at the
-  foot of the screen, the keys to press drawn as keys, in the gold of the hint a fight used to
-  show: W A S D and the arrows laid out as on a keyboard, Space, R, Q, and the mouse with the
-  button to click lit. Each step lets through only what it teaches and what came before, and keeps
-  you to the place it's in.
+- **How it's shown:** black falls between the Hold and the yards, there and back; the three yard
+  steps are climbed on foot (below). What to do is written at the foot of the screen, the keys to
+  press drawn as keys, in the gold of the hint a fight used to show: W A S D and the arrows laid out
+  as on a keyboard, Shift, Space, R, Q, and the mouse with the button to click lit. Each step lets
+  through only what it teaches and what came before, and keeps you to the place it's in.
+- **The climb** (`client/js/climb.js`): the training yard and two more yards east of it, there only
+  for the tutorial, each 3.2 higher than the last and bare (a floor of grey brick, a mossy lip, its
+  rock down into the mist, lanterns), joined by stone stairs like the Hold's. A wall of fog (the
+  arena's) stands at the foot of each stair till its yard's step is done; then it thins away and
+  the golden arrow that shows the way to the arena in a fight points you up. Come up onto the next
+  yard, the fog closes behind you, and its step begins. The training yard's own stair up to the
+  Hold is fogged all the while.
 - **The steps:**
-  1. *Walking*, at the Hold: "Move around with W A S D or the arrows". Each way lights up once
-     it's been tried; once all four have, on.
+  1. *Walking*, at the Hold: "Move around with W A S D or the arrows · Hold Shift to sprint".
+     Each way lights up once it's been tried, and Shift once you've sprinted with it; once all
+     have, on.
   2. *Blows*, on the training yard, emptied of its dummies (and anyone training) but for three
      straw ones before you, the Hold out of sight: "Destroy the three dummies · Attack with" a
      left click (or a left or right click, for whoever casts). Broken, they stay in pieces.
-  3. *Dodging*, in the middle of the yard, three rune rocks round you (the user's drawings,
-     `client/assets/fx/rune-rock-1..3.json`, dark and with the rune alight, recoloured to the
-     yard's slabs). In turn each one's rune lights, it's lifted in blue magic (its own light, and
-     motes), held up a second and dropped, and its shockwave ripples out over the whole floor as
-     the Golem's do, though slower (the yard's floor bends with `client/js/ripple.js` too). "Dodge
-     with Space to not get hit": a dodge as its crest comes counts, on a counter over the words (0
-     / 3); a crest that reaches you strikes as a great enemy's blow does (red, thrown back) but
-     takes no health, and the count starts again. Three in a row, and on.
-  4. *The ultimate*: the great dummy comes in a puff of dust. "Strike its cracked ankle", a gold
-     arrow over it, and the hint for Q, the camera's focus on it (it no longer shows in a fight).
-     Blows on the ankle hurt it no more but fill your ultimate's bar, a fifth each; full, "Use
-     your ultimate attack with R", and the ultimate breaks it at a stroke.
+  3. *Dodging*, up the stair on the next yard, three rune rocks in a wide triangle round its
+     middle (the user's drawings, `client/assets/fx/rune-rock-1..3.json`, dark and with the rune
+     alight, recoloured to the yard's slabs). As soon as the fog has shut you in, each one's rune
+     lights in turn, it's lifted in blue magic (its own light, and motes), held up a second and
+     dropped, and its shockwave ripples out over the whole floor as the Golem's do, though slower
+     (`client/js/ripple.js`). "Dodge with Space to not get hit": a dodge as its crest comes counts,
+     on a counter over the words (0 / 3); a crest that reaches you strikes as a great enemy's blow
+     does (red, thrown back) but takes no health, and the count starts again. Three in a row, and
+     on.
+  4. *The ultimate*, up the last stair: the great dummy comes in a puff of dust. "Strike its
+     cracked ankle", a gold arrow over it, and the hint for Q, the camera's focus on it (it no
+     longer shows in a fight). Blows on the ankle hurt it no more but fill your ultimate's bar, a
+     fifth each; full, "Use your ultimate attack with R", and the ultimate breaks it at a stroke.
   5. *Becoming someone*, back at the Hold: a hero of the Round Table (one of those with a single
      form, at random) rises from grace beside you and waits. "Click on them to become them", then
      "Become" in their fan.
@@ -1246,6 +1255,7 @@ scripts/                install/uninstall hooks, simulator, the art and sound to
 client/js/title.js      the title screen: the pixel-art wordmark, sigil and embers, the way in, loading
 client/js/gate.js       where the title and the world meet: set out, and ready (and the tutorial asked for again)
 client/js/tutorial.js   the tutorial on the first journey: its steps, the keys drawn as keys, the rune rocks and their shockwaves, the world held back meanwhile
+client/js/climb.js      the tutorial's climb: two yards above the training yard, the stone stairs up to them, the walls of fog
 client/js/sprites.js    procedural pixel-art characters (base body + equipment layers)
 client/js/world.js      sky, far skyline, mist, islands, bridges, pooled lights
 client/js/lights.js     what lights the world besides its lamps: effects, and what glows on characters
@@ -1269,7 +1279,7 @@ client/js/ground.js     the ground's height where it isn't level with the Hold (
 client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the fighters, thy health
 client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes
 client/js/golem.js      the Guardian Golem's fight: his weak points, his fall, shockwaves, fire
-client/js/ripple.js     the arena floor rippling like water under the Golem's shockwaves (and the yard's, under the tutorial's rocks)
+client/js/ripple.js     the arena floor rippling like water under the Golem's shockwaves (and the tutorial rocks' yard's, under theirs)
 client/js/bossfx.js     the enemies' effects: crescent, lance, floor marks, the ghost sword, the eruption, the air shock, meteors
 client/js/director.js   event → behaviour, regions, slash-command effects, chatter, visits
 client/js/voices.js     how each character talks: base lines and every voice's version of them

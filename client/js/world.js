@@ -633,10 +633,12 @@ export class World {
     return g;
   }
 
+  // (and while the tutorial climbs from the training yard, its yards and stairs: climb.js, `climb`)
   areaAt(x, z) {
     if (this.hub.contains(x, z)) return this.hub;
     if (this.arena.contains(x, z)) return this.arena;
     if (this.yard.contains(x, z)) return this.yard;
+    if (this.climb?.contains(x, z)) return this.climb;
     for (const r of this.regions.values()) if (r.contains(x, z)) return r;
     return null;
   }
@@ -645,6 +647,7 @@ export class World {
     if (x * x + z * z <= HUB.walkRadius * HUB.walkRadius) return true;
     if (this.arena.isWalk(x, z)) return true;
     if (this.yard.isWalk(x, z)) return true;
+    if (this.climb?.isWalk(x, z)) return true;
     // an island (and its bridge) still below the mist can't be walked on
     for (const r of this.regions.values()) {
       if (!r.risen) continue;
@@ -687,6 +690,7 @@ export class World {
     this.hub.update(dt, t, Math.min(1, hubResting / 3));
     this.arena.update(dt, t);
     this.yard.update(dt, t);
+    this.climb?.update(dt, t);
     this.followShadow(this.focus, camDist);
   }
 
