@@ -1075,7 +1075,9 @@ the recordings, whenever they change; its table says what each clip is cut from.
 - **The world**: `anvil-hit-1` and `-2` together with every hammer blow at a forge;
   `summoning-magic-spell` as a spirit ash (a subagent) is summoned; `noble_sorcerer` and `_2`
   together as a spectre of the Noble Sorcerers is called up at its grace; `dummy_breaking`, `_2` and
-  `_3` together as a dummy of the training yard bursts (the great one louder); and
+  `_3` together as a dummy of the training yard bursts (a straw one's each at a pitch of its own,
+  anywhere from a little lower to a good deal higher; the great one's louder, and lower than any);
+  and
   `after_click_start_your_tarnished_journey` as you set out from the title.
 - **Every banner** (a great enemy approaching, felled, prevailing or turning away, *You Died*, a
   region rising, a quest fulfilled or failed): `announcement_banner_reveal` as it's revealed, from

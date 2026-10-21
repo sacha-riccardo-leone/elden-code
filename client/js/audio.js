@@ -17,8 +17,10 @@ const STORE = 'elden-code:sound';
 // varies (loudness and pitch, a share either way), how many may sound at once, how far off it's
 // heard at half its loudness (world units), and, looped, the stretch of its clip that repeats; with
 // `layer`, its clips are all heard together (a recording's 1 and 2, as Sacha names them), rather
-// than one of them. (A clip is played from its first sound: whatever silence its decoding left
-// before it is skipped, so that it sounds on the very frame: leadOf.)
+// than one of them; with `pitch`, the range its pitch is picked from each time (a playback rate:
+// lower is deeper, and longer), unless the one who plays it says (play). (A clip is played from its
+// first sound: whatever silence its decoding left before it is skipped, so that it sounds on the
+// very frame: leadOf.)
 const SET = '/assets/sfx/';
 export const SOUNDS = {
   // the Guardian Golem's (golem.js)
@@ -74,7 +76,8 @@ export const SOUNDS = {
   'spectre-appear': { set: 'spectre', clips: ['appear-1', 'appear-2'], layer: true, volume: 0.7, most: 2, half: 16 },
   'work-anvil': { set: 'work', clips: ['anvil-1', 'anvil-2'], layer: true, volume: 0.5, vary: 0.06, most: 4, half: 12 },
   'work-summon': { set: 'work', clips: ['summon'], volume: 0.6, most: 2, half: 16 },
-  'yard-break': { set: 'yard', clips: ['break-1', 'break-2', 'break-3'], layer: true, volume: 0.85, vary: 0.05, most: 3, half: 20 },
+  // (a straw dummy's each at a pitch of its own; the great one's lower than any: training.js)
+  'yard-break': { set: 'yard', clips: ['break-1', 'break-2', 'break-3'], layer: true, volume: 0.85, vary: 0.05, pitch: [0.9, 1.18], most: 3, half: 20 },
   // a banner revealed (ui.js), heard alike wherever one is
   'ui-banner': { set: 'ui', clips: ['banner'], volume: 0.65, most: 2 },
   // setting out (main.js, as the title's button is clicked)
@@ -163,10 +166,10 @@ export class Sound {
   }
 
   // Plays a sound (SOUNDS) where something happens (`at`: [x, z] in the world; none, wherever one
-  // is), `volume` times its own, `delay` seconds from now. Returns what's sounding (stop(fade) ends
-  // it, or keeps it from ever beginning: a looped one sounds till then), or null if nothing can be
-  // heard.
-  play(name, { at = null, volume = 1, delay = 0 } = {}) {
+  // is), `volume` times its own, `delay` seconds from now, at `pitch` (a playback rate; else one
+  // from its own range, if it has one). Returns what's sounding (stop(fade) ends it, or keeps it
+  // from ever beginning: a looped one sounds till then), or null if nothing can be heard.
+  play(name, { at = null, volume = 1, delay = 0, pitch = null } = {}) {
     const s = SOUNDS[name];
     this.log.push([performance.now() / 1000, name]);
     if (this.log.length > 200) this.log.splice(0, 100);
@@ -191,7 +194,8 @@ export class Sound {
     }
     node.connect(this.out);
     const begins = this.ctx.currentTime + delay;
-    const rate = 1 + (Math.random() * 2 - 1) * vary * 0.5;
+    const base = pitch ?? (s.pitch ? s.pitch[0] + Math.random() * (s.pitch[1] - s.pitch[0]) : 1);
+    const rate = base * (1 + (Math.random() * 2 - 1) * vary * 0.5);
     const srcs = paths.map((path) => {
       const buf = this.clips.get(path);
       const src = this.ctx.createBufferSource();

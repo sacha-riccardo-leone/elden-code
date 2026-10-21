@@ -57,9 +57,10 @@ const F = { whole: 0, back: 1, forward: 2, burst: 3, broken: 4 };
 // ankle counts toward his fall (a blow of thine 1, a spell of thine 0.7, those training's half that:
 // golem.js), half of what fells him; what an ultimate takes of it besides (though his ankle never
 // feels one), its share of that health per point the ultimate deals (a whole one of thine deals
-// some 800, combat.js: ultPower, and takes about half of it; one of theirs, about a third); and how
-// long it's falling apart, and lies in pieces.
-const GREAT = { px: 7.1 / 260, depth: 2, shadow: 2.2, ankle: { at: [-29.2, 40.5], r: 0.9 }, hp: GOLEM.ankle.need / 2, ult: 1 / 1600, burst: 0.45, rest: 6 };
+// some 800, combat.js: ultPower, and takes about half of it; one of theirs, about a third); how
+// long it's falling apart, and lies in pieces; and the pitch it breaks at (a playback rate: below
+// any a straw one's breaking is heard at, audio.js).
+const GREAT = { px: 7.1 / 260, depth: 2, shadow: 2.2, ankle: { at: [-29.2, 40.5], r: 0.9 }, hp: GOLEM.ankle.need / 2, ult: 1 / 1600, burst: 0.45, rest: 6, pitch: 0.7 };
 // What a hit on the great one's ankle counts (as on the Golem's): thy blow, thy spell, theirs.
 const ANKLE = { blow: 1, spell: 0.7, theirs: GOLEM.ankle.weight };
 // In the tutorial (tutorial.js): how much of thine ultimate each of those counts fills (five blows
@@ -237,7 +238,8 @@ class Dummy {
     if (this.hp <= 0) {
       this.hp = 0;
       this.broken = { t: 0 };
-      this.training.ctx.sound?.play('yard-break', { at: [this.pos.x, this.pos.y], volume: this.great ? 1.3 : 1 }); // (audio.js)
+      // (a straw one's each at a pitch of its own; the great one's lowest of all: audio.js)
+      this.training.ctx.sound?.play('yard-break', { at: [this.pos.x, this.pos.y], volume: this.great ? 1.3 : 1, pitch: this.great ? GREAT.pitch : null });
       this.wobble = null;
       this.show(F.burst);
       this.training.chips(this, this.great ? 110 : 46, this.great ? 5 : 3.4);
