@@ -56,6 +56,11 @@ const DAMAGE = { player: 55, fighter: 16, quest: 0.25 }; // quest: the share of 
 // to `most` metres nearer in his eyes (target); past `leap` of it, and `far` off, he comes down on
 // them with his leap (think).
 const HUNT = { from: 5.5, half: 5, per: 0.04, most: 8, leap: 60, far: 7 };
+// How Fenrath turns (think): he keeps to one foe `keep` seconds (not whoever stands nearest this
+// very moment: two about as near either side of him would have him turn back and forth every
+// frame); one more than `dead` behind him he turns round to once it has stayed there `after`
+// seconds, and never twice within `every` (quicker about it than the Golem: golem.js)
+const TURN = { keep: [2, 4], dead: 0.8, after: 0.35, every: 0.9 };
 const HURT = { swing: 22, lunge: 28, slam: 34, leap: 30, cut: 26, ring: 34 }; // to thee (of 100); fighters take as much
 // How a blow shows (impact): how far his drawing is knocked back (world units: by thy blow, by
 // another's, by a spell or an ultimate's, by a heavy one), how long the world holds still (seconds:
@@ -244,6 +249,10 @@ class Boss {
     this.hurtLog = []; // [time, amount]: what he's taken lately
     this.anchor = new THREE.Vector2(x, z); // where he's been standing, and for how long
     this.anchorT = 0;
+    this.tgt = null; // the foe he's after (think: Fenrath), kept a while
+    this.retarget = 0;
+    this.turnT = 0; // how long it has been behind him
+    this.sinceTurn = 9; // since he last turned round
   }
 
   get alive() { return this.state !== 'dying' && this.state !== 'withdraw' && this.state !== 'gone'; }
@@ -1050,11 +1059,25 @@ export class Fight {
     b.slamIn -= dt * fast;
     b.leapCd -= dt;
     b.idleT += dt;
-    const tgt = this.target(b);
+    // his foe, kept a while (unless it's left the fight), and turned round to only once it has
+    // stayed behind him a moment (TURN)
+    b.retarget -= dt;
+    if (!b.tgt || b.retarget <= 0 || !this.foes().includes(b.tgt)) {
+      b.tgt = this.target(b);
+      b.retarget = rand(...TURN.keep);
+    }
+    const tgt = b.tgt;
     if (!tgt) { b.pose('idle'); return false; }
     const dx = tgt.pos.x - b.pos.x;
     const dz = tgt.pos.y - b.pos.y;
-    if (Math.abs(dx) > 0.4) b.body.facing = dx > 0 ? 1 : -1;
+    b.sinceTurn += dt;
+    const behind = dx * b.body.facing < -TURN.dead;
+    b.turnT = behind ? b.turnT + dt : 0;
+    if (behind && b.turnT >= TURN.after && b.sinceTurn >= TURN.every) {
+      b.body.facing = -b.body.facing;
+      b.turnT = 0;
+      b.sinceTurn = 0;
+    }
     const close = this.foesWithin(b, 4.2);
     // beset (crowded, or battered) or rooted: he leaps elsewhere (not out of a pool of blood,
     // combat.js); wounded again and again from afar: he comes down on whoever's doing it
@@ -1076,10 +1099,11 @@ export class Fight {
     if (b.cd <= 0) {
       const ax = Math.abs(dx);
       const inLane = Math.abs(dz) < BOSS.lane;
+      const ahead = dx * b.body.facing > 0; // (his swing and lunge go where he faces; the slam, all round him)
       let move = null;
       if ((b.slamIn <= 0 || close >= 3) && this.foesWithin(b, SLAM.r) >= 1) move = 'slam';
-      else if (inLane && ax < 5.5) move = Math.random() < (ax < 3.5 ? 0.7 : 0.35) ? 'swing' : 'lunge';
-      else if (inLane && ax < 12) move = 'lunge';
+      else if (inLane && ahead && ax < 5.5) move = Math.random() < (ax < 3.5 ? 0.7 : 0.35) ? 'swing' : 'lunge';
+      else if (inLane && ahead && ax < 12) move = 'lunge';
       else if (b.idleT > 5 && this.foesWithin(b, SLAM.r) >= 1) move = 'slam';
       else if (b.idleT > 7 && b.leapCd <= 0) { this.begin(b, 'leap', false); return false; }
       if (move) {
@@ -2025,6 +2049,7 @@ export class Fight {
             color: ['#2a1a1a', '#6a2a2a', '#ff5a3a'], size: 0.14, life: 2, count: 80, drag: 0.6, intensity: 1.4,
           });
           ui.log(`${this.boss.name[0].toUpperCase()}${this.boss.name.slice(1)} enters the Arena of Trials`, 'red', { region: world.arena });
+          this.ctx.pilot.ult = 0; // (thine ultimate empty as it begins, whatever it was: it fills as thy blows land)
           this.state = 'fighting';
           this.t = 0;
         }

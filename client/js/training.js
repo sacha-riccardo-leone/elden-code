@@ -904,8 +904,12 @@ export class Training {
     this.clock += dt;
     if (!this.dummies) return;
     const { pilot } = this.ctx;
-    // on the yard, thine ultimate is always full (but in the tutorial: charge)
-    if (this.has(pilot.npc) && !this.lesson) pilot.ult = 1;
+    // on the yard, thine ultimate is always full (but in the tutorial: charge); off it, empty again
+    // (it fills in a fight as thy blows land: fight.js)
+    const on = this.has(pilot.npc);
+    if (on && !this.lesson) pilot.ult = 1;
+    else if (!on && this.wasOn) pilot.ult = 0;
+    this.wasOn = on;
     for (const d of this.dummies) {
       d.step(dt);
       // (a poison or a bleeding wobbles it as it ticks)

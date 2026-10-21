@@ -145,7 +145,8 @@ again five seconds later. Each dummy has its health in a bar over its head, its 
 screen's (`placeBars`): shown only while it's hurt and for four seconds after a blow hurts it,
 what it just lost lingering in white a moment before draining away; never while it lies in pieces
 or from afar. Dummies never strike back. On the yard your ultimate is always full: each
-one still freezes the world for its moment, but you needn't wait between them.
+one still freezes the world for its moment, but you needn't wait between them. Leave the yard and
+it's empty again; a fight in the arena always begins with it empty, and it fills as your blows land.
 
 In front of the right-hand weapon rack burns a little **Site of Grace**. Press E there ("The
 yard's grace") for its menu: **Tutorial** walks the tutorial again (after asking "Use grace to do
@@ -838,7 +839,9 @@ ground under you instead, so it flies at your hand's height there too.
   it with **Space**.
   - **His target:** whoever is nearest (you a little more than the others), but whoever keeps
     wounding him from afar draws him: the more they've dealt lately, the nearer they seem to him.
-    A mage pelting him won't stay out of reach for long.
+    A mage pelting him won't stay out of reach for long. He keeps to one target two to four seconds,
+    turns round only once it has stayed behind him a moment (never twice within a second), and
+    swings and lunges only the way he faces.
   - **Swing:** he raises the greatsword and cuts. A crescent of red light flies on down his lane
     for half a second, striking each person it passes once.
   - **Lunge:** he thrusts and slides forward. A lance of red light runs along the blade and well past
