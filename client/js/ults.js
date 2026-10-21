@@ -103,8 +103,10 @@ function straightAt(n, b) {
 // each one: its name, the pose held as it gathers (an animation, and a frame to hold, or none to
 // play it), the pose it's loosed in (`release`: an animation, drawn; else the held one is let go),
 // when it's loosed (`at`, seconds in, if not at CINE.release), a giant of their own light behind
-// them (`stand`: { scale }, spellfx.js), whether it's aimed, and what it does (u: { fight, fx, n,
-// b, dir, hit(share, at, last) }: `last` false for each of its blows but its last, which the
+// them (`stand`: { scale }, spellfx.js), whether it's aimed, what's heard of it (`heard`, audio.js:
+// as it begins, as the camera closes, as the giant rises and strikes, and as it's loosed, `loose`,
+// begun `lead` seconds before so that it's at its loudest then), and what it does (u: { fight, fx,
+// n, b, dir, hit(share, at, last) }: `last` false for each of its blows but its last, which the
 // tutorial's great dummy breaks on, training.js)
 
 export const ULTS = {
@@ -202,6 +204,9 @@ export const ULTS = {
     // (gathering himself in a crouch, leaping with the maul raised, the slam, and the golden
     // explosion it raises: drawn; else frames of his own blow, and bursts of light)
     name: 'Hammerfall', pose: ['crouch'], fallback: ['hammer', 1],
+    // (his leap: its sound begun a moment before he springs, so that it's at its loudest, 0.22 s
+    // into its clip, as he does: cut-sfx.mjs)
+    heard: { loose: 'champion-jump' }, lead: 0.22,
     run({ fight, fx, n, b, hit }) {
       // up, and down onto his feet: a leap the fight's own effects carry him through
       const from = n.pos.clone();
@@ -214,7 +219,6 @@ export const ULTS = {
       const drawn = !!(anims.airborne && anims.slam);
       n.action = { kind: 'ult', anim: drawn ? 'airborne' : 'hammer', t: 0, dur: dur + (drawn ? 0.75 : 0.5) };
       n.body.facing = -side;
-      fight.ctx.sound?.play('champion-jump', { at: [from.x, from.y] }); // (the leap: audio.js)
       fx.add(effect((dt) => {
         t += dt;
         const k = Math.min(1, t / dur);
@@ -521,6 +525,7 @@ export class Ults {
     // loosed, the world going on as it was
     if (!player && !fight.facing(this.ctx.pilot.npc)) {
       if (n.fighter) n.fighter.ult = 0;
+      this.heard(n, u.heard?.loose);
       u.run({ fight, fx: fight.fxCtx, n, b, dir, hit: (share, at, last = true) => fight.ultHit(n, share * ultPower(b), at, { last }) });
       this.lastEnd = this.clock;
       return true;
@@ -623,6 +628,7 @@ export class Ults {
         const frames = n.body.sheet.anims[anim]?.frames || [];
         n.body.setFrame(frames[Math.min(hold, frames.length - 1)] ?? 0, n.body.facing);
       }
+      if (!q.looseHeard && q.t >= q.at - (u.lead || 0)) { q.looseHeard = true; this.heard(n, u.heard?.loose); }
       if (q.t >= q.at) {
         q.released = true;
         const loose = u.release && n.body.sheet.anims[u.release] ? u.release : null;
@@ -669,6 +675,7 @@ export class Ults {
         body.play(anim);
         body.tick(dt);
       }
+      if (!a.looseHeard && a.t >= a.at - (a.u.lead || 0)) { a.looseHeard = true; this.heard(a.n, a.u.heard?.loose); }
       if (a.t >= a.at) this.release(a);
     }
     post.spot.desat = a.released ? Math.max(0, 1 - (a.t - a.at) / CINE.back) : Math.min(1, a.t / CINE.grey);
