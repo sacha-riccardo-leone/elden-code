@@ -65,7 +65,7 @@ export const SOUNDS = {
   'boss-cut': { set: 'boss', clips: ['cut'], volume: 0.8, vary: 0.05, most: 2, half: 28 },
   'boss-arch': { set: 'boss', clips: ['arch'], volume: 0.7, vary: 0.05, most: 2, half: 26 },
   'boss-crescent': { set: 'boss', clips: ['crescent'], volume: 0.6, vary: 0.05, most: 2, half: 24 },
-  'boss-lunge': { set: 'boss', clips: ['lunge'], volume: 0.85, vary: 0.05, most: 2, half: 28 },
+  'boss-lunge': { set: 'boss', clips: ['lunge'], volume: 0.85, most: 2, half: 28 },
   'boss-slam': { set: 'boss', clips: ['slam'], volume: 0.9, most: 1, half: 30 },
   'boss-tremble': { set: 'boss', clips: ['tremble'], volume: 0.6, most: 1, half: 26 },
   'boss-jump': { set: 'boss', clips: ['jump'], volume: 0.85, most: 1, half: 30 },
@@ -233,11 +233,12 @@ export class Sound {
   }
 
   // Plays a sound (SOUNDS) where something happens (`at`: [x, z] in the world; none, wherever one
-  // is), `volume` times its own, `delay` seconds from now, at `pitch` (a playback rate; else one
-  // from its own range, if it has one). Returns what's sounding (stop(fade, after) ends it, dying
+  // is), `volume` times its own, `delay` seconds from now, `offset` seconds into its clip (what's
+  // before left out: so that a moment in it falls where it should, Fenrath's lunge), at `pitch` (a
+  // playback rate; else one from its own range, if it has one). Returns what's sounding (stop(fade, after) ends it, dying
   // away over `fade` seconds from `after` seconds on, or keeps it from ever beginning: a looped one
   // sounds till then), or null if nothing can be heard.
-  play(name, { at = null, volume = 1, delay = 0, pitch = null } = {}) {
+  play(name, { at = null, volume = 1, delay = 0, pitch = null, offset = 0 } = {}) {
     const s = SOUNDS[name];
     this.log.push([performance.now() / 1000, name]);
     if (this.log.length > 200) this.log.splice(0, 100);
@@ -274,7 +275,7 @@ export class Sound {
         [src.loopStart, src.loopEnd] = s.loop;
       }
       src.connect(g);
-      src.start(begins, Math.min(this.leads.get(path) || 0, buf.duration / 2));
+      src.start(begins, Math.min(this.leads.get(path) || 0, buf.duration / 2) + Math.min(offset, buf.duration * 0.9));
       return src;
     });
     // (the music held down while it sounds, if it says; back up as it ends)

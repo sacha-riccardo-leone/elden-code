@@ -111,16 +111,17 @@ const SETS = {
       ['appear', 'fenrath_appearing.mp3', 0.02, 1.6, -3, 0, 0.4],
       // each blow of his: drawn back (the swing, the lunge, the slam); the swing's cut (its whoosh
       // from 0.1 s before its loudest, and the greatsword landing), and the arc of light it throws
-      // (fenrath_arch and the first second of fenrath_red_crescent, together); the lunge (from just
-      // before its loudest, 4 s in: its swell left out); the slam
+      // (fenrath_arch and the first second of fenrath_red_crescent, together); the lunge (Sacha's
+      // newer recording, from where it swells, 0.2 s in: its thrust, at 1 s as Sacha says, 0.8 s
+      // into the clip, fight.js LUNGE_THRUST); the slam
       ['anticipation', 'fenrath_anticipation_atk.mp3', 0.02, 0.9, -3, 0, 0.3],
       ['woosh', 'fenrath_sword_woosh.mp3', 0.3, 0.6, -3, 0, 0.25],
-      // (these four's loudest is over full scale in their recordings, more than the measuring counts:
-      // levelled lower, so that they never clip)
+      // (the cut's, the slam's and the death's loudest is over full scale in their recordings, more
+      // than the measuring counts: levelled lower, so that they never clip)
       ['cut', 'fenrath_greatsword_hit.mp3', 0, 1.6, -5, 0, 0.6],
       ['arch', 'fenrath_arch.mp3', 0.02, 1.25, -3, 0, 0.5],
       ['crescent', 'fenrath_red_crescent sound.mp3', 0.03, 0.9, -3, 0, 0.4],
-      ['lunge', 'fenrath_lunge.mp3', 3.85, 1.45, -7.4, 0, 0.5],
+      ['lunge', 'fenrath_lunge.mp3', 0.2, 2.5, -3, 0, 0.6],
       ['slam', 'slam.mp3', 0.25, 2.75, -4.2, 0, 1.0],
       // his leap: trembling as he crouches (a stretch of the recording's steady 42 s, stopped as he
       // springs), and springing (from just before its loudest, 0.99 s in)

@@ -1097,8 +1097,9 @@ table says what each clip is cut from.
   - `fenrath_anticipation_atk` as he draws back each blow (the swing, the lunge, the slam); the
     swing's cut: `fenrath_sword_woosh` (from just before its loudest) and `fenrath_greatsword_hit`
     as the greatsword lands, with `fenrath_arch` and the first second of `fenrath_red_crescent` as
-    the arc of red light leaves his sword; `fenrath_lunge` on the thrust (from just before its
-    loudest, 4 s in); `slam` as the blade goes into the ground;
+    the arc of red light leaves his sword; `fenrath_lunge` (Sacha's newer recording) begun as he
+    draws back so that its thrust, 1 s in, falls on his (partway into it, when he draws back quicker
+    than that); `slam` as the blade goes into the ground;
   - his leap: `fenrath_trembling_before_jump` as he crouches and trembles (a stretch of its 42 s,
     hushed as he springs), `fenrath_jump` as he springs (from just before its loudest; and as he
     springs up in his great attack too);

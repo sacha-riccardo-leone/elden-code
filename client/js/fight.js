@@ -68,6 +68,9 @@ const FACES = { me: 62, ally: 40, fly: 0.55 };
 const TURN = { keep: [2, 4], dead: 0.8, after: 0.35, every: 0.9 };
 // Fenrath's growls (growl): never two within `gap` seconds, and now and then one, every `every`.
 const GROWL = { gap: 2.5, every: [8, 14] };
+// How far into the lunge's clip its thrust comes (audio.js, cut-sfx.mjs: 1 s into Sacha's recording):
+// begun as he draws back, that much before he thrusts (or, drawn back quicker than that, partway in).
+const LUNGE_THRUST = 0.8;
 const HURT = { swing: 22, lunge: 28, slam: 34, leap: 30, cut: 26, ring: 34 }; // to thee (of 100); fighters take as much
 // How a blow shows (impact): how far his drawing is knocked back (world units: by thy blow, by
 // another's, by a spell or an ultimate's, by a heavy one), how long the world holds still (seconds:
@@ -1008,6 +1011,7 @@ export class Fight {
     b.t += bdt;
     b.posture = Math.max(0, b.posture - dt * 40);
     const fast = b.hp < b.max / 2 ? 1.25 : 1; // wounded, he grows wild
+    b.pace = pace * fast; // (how quick his moves' steps are just now: the lunge's sound, advance)
     let moving = false;
     let jitter = 0;
     switch (b.state) {
@@ -1362,9 +1366,15 @@ export class Fight {
     const dir = a.dir;
     switch (`${a.kind}:${a.step}`) {
       case 'swing:0':
-      case 'lunge:0':
+      case 'lunge:0': {
         this.ctx.sound?.play('boss-anticipation', { at: [x, z] }); // (drawn back: audio.js)
+        if (a.kind !== 'lunge') break;
+        // (and the lunge's, begun so that its thrust is heard as he thrusts, `until` from now: this
+        // step's length at his pace just now, LUNGE_THRUST)
+        const until = MOVES.lunge.steps[0][1] / Math.max(0.05, b.pace || 1);
+        this.ctx.sound?.play('boss-lunge', { at: [x + dir * 2, z], delay: Math.max(0, until - LUNGE_THRUST), offset: Math.max(0, LUNGE_THRUST - until) });
         break;
+      }
       case 'swing:1': {
         // the cut, and the crescent it throws: on down his lane, striking each it passes once (heard:
         // the whoosh, the greatsword landing, and the arc of light, audio.js)
@@ -1386,8 +1396,8 @@ export class Fight {
         break;
       }
       case 'lunge:1': {
-        // the thrust: he drives forward, and a lance of light runs along the blade and past it
-        this.ctx.sound?.play('boss-lunge', { at: [x + dir * 2, z] });
+        // the thrust: he drives forward, and a lance of light runs along the blade and past it (heard:
+        // begun as he drew back, lunge:0)
         a.slide = SPIKE.slide;
         const s = new Spike(scene, x + dir * SPIKE.from, SPIKE.y, z, dir, SPIKE.len);
         a.spike = s;
