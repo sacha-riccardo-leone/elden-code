@@ -306,6 +306,7 @@ export default {
   px: 1.95 / 104, // world units per art pixel: her eyes sit a little below the knight's visor
   head: 140, // art pixels from the ground to the top of the hat
   hits: { hammer: 4, cast: 1, send: 1, attack: 4, spell: 1 },
+  feet: 'heels', // (each foot heard as it's set down: in heels, npc.js)
   lunge: { attack: 0.35 }, // (her drawing thrown forward as the slash lands, springing back: npc.js)
   glowIntensity: 0.95,
   glowColors: [[24, 96, 210], [140, 196, 250]],

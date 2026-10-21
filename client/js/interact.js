@@ -6,8 +6,8 @@
 // or walkest the tutorial again (tutorial.js).
 // A prompt shows over the nearest one in reach.
 // Using a station works it as the characters do: the forge glows and throws sparks at each blow,
-// the ritual circle spins up, a raven takes wing, the bell rings at the fog gate. Walking off (or E
-// again) stops.
+// the ritual circle spins up (heard as it's invoked, each time), a raven takes wing, the bell rings
+// at the fog gate. Walking off (or E again) stops.
 
 import * as THREE from 'three';
 import { HUB_LAYOUT } from './config.js';
@@ -61,6 +61,7 @@ export class Interact {
     n.body.play(u.anim, true);
     if (region && station === 'tower') { region.sendRaven(); n.lastRaven = performance.now() / 1000; }
     if (region && station === 'gate') region.ringBell();
+    if (station === 'ritual') this.ctx.sound?.play('work-summon', { at: [n.pos.x, n.pos.y] }); // (invoked: audio.js)
   }
 
   // E: use what's in reach, or stop using it.

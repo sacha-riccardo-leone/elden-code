@@ -282,7 +282,7 @@ export const ULTS = {
     // Verdict: the giant blade of light raised back over its shoulder, then the sweep it ends in,
     // `stand`; else he raises his sword to the sky, the giant raising its own as he does)
     name: 'Radiant Verdict', pose: ['pose'], fallback: ['send'], release: 'pose', stand: { scale: 1.8, gather: 'ult', release: 'sweep' },
-    heard: { start: 'paladin-ult', stand: 'paladin-stand' }, // (as it's loosed, and as the giant rises: audio.js)
+    heard: { start: 'paladin-ult', stand: 'paladin-stand', strike: 'paladin-stand-hit' }, // (as it's loosed, as the giant rises, and as it strikes: audio.js)
     run({ fight, fx, n, b, hit }) {
       // drawn, the wave leaves the giant's blade swept low ahead of him (never from past the enemy)
       const drawn = !!n.body.sheet.anims.sweep;
@@ -435,7 +435,7 @@ export const ULTS = {
           stick: huge ? 0.4 : 0, sink: 0.9,
           onHit: (at) => {
             hit(huge ? 11.5 : 5.5, at, false); // (the mass wounds him again as it bursts, the last: onShatter)
-            if (!huge) return;
+            if (!huge) { fight.ctx.sound?.play('frost-icicle', { at: [x, z] }); return; } // (shattering: audio.js)
             // (the floor struck: a flash and chips of stone and ice at its foot)
             fx.add(new Burst(fx, { school: 'frost', at: [x, 0.3, z], size: 2.6, sparks: 30 }));
             fx.particles.emit({
@@ -532,6 +532,7 @@ export class Ults {
     const tall = Math.max(2.5, poseHeight(n.body, own || pose[0]));
     const span = poseSpan(n.body, own || pose[0]);
     this.active = { n, u, pose, key, t: 0, at: u.at ?? CINE.release, dir, player, aura, stand, fight, released: false, saved: rig.distGoal, tall, span };
+    this.active.still = this.ctx.sound?.play('cine-focus') || null; // (the world standing still, anyone's: audio.js)
     this.heard(n, u.heard?.zoom); // (the camera closing on them: shot)
     // (everyone else, and him, hide it where they stand in front of it: they stay grey)
     const others = [...this.ctx.director.npcs.values()].filter((o) => o !== n && !o.dead && o.body?.mesh).map((o) => o.body.mesh);
@@ -620,6 +621,7 @@ export class Ults {
         n.action = { kind: 'ult', anim: loose || q.pose[0], t: 0, dur: loose ? 0.6 : 0.35 };
         if (loose) n.body.play(loose, true);
         if (q.stand?.anim && u.stand.release) q.stand.play(u.stand.release);
+        if (q.stand) this.heard(n, u.heard?.strike); // (and the giant strikes)
         const power = ultPower(q.b);
         u.run({ fight: q.quiet, fx: q.place.fxCtx, n, b: q.b, dir: q.dir, hit: (share, at, last = true) => q.place.ultHit(n, share * power, at, { b: q.b, last }) });
       }
@@ -678,6 +680,7 @@ export class Ults {
   // It strikes: the world moves again.
   release(a) {
     a.released = true;
+    a.still?.stop(0.1); // (the world moves again: audio.js)
     const { rig } = this.ctx;
     const { fight } = a;
     rig.distGoal = a.saved;
@@ -690,6 +693,7 @@ export class Ults {
     n.action = { kind: 'ult', anim: loose || a.pose[0], t: 0, dur: loose ? 0.6 : 0.35 };
     if (loose) n.body.play(loose, true);
     if (a.stand?.anim && a.u.stand.release) a.stand.play(a.u.stand.release); // (and the giant strikes)
+    if (a.stand) this.heard(n, a.u.heard?.strike);
     if (!b || !b.alive) return;
     const power = ultPower(b, a.player);
     a.u.run({ fight, fx: fight.fxCtx, n, b, dir: a.dir, hit: (share, at, last = true) => fight.ultHit(n, share * power, at, { last }) });
@@ -699,6 +703,7 @@ export class Ults {
   finish() {
     const a = this.active;
     if (!a) return;
+    a.still?.stop(0.1);
     a.aura.dispose();
     a.stand?.dispose();
     this.ctx.post.spot = null;

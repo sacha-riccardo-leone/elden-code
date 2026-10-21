@@ -211,6 +211,7 @@ export default {
   px: 2.4 / 81, // world units per art pixel: he stands ~2.4 units, a head taller than the rest
   head: 82, // art pixels from the ground to the top of the helm
   hits: { hammer: 3, cast: 1, send: 1, attack: 4 },
+  feet: 'chain', // (each foot heard as it's set down: in armour, its chain clinking, npc.js)
   lunge: { attack: 0.35 }, // (her drawing thrown forward as the thrust lands, springing back: npc.js)
   glowIntensity: 1.1,
   glowColors: [[170, 18, 12], [210, 120, 110]],

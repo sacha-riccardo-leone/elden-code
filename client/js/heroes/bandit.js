@@ -226,6 +226,7 @@ export default {
   px: PX,
   head: 61, // art pixels from the ground to the top of his head
   hits: { hammer: 4, cast: 1, send: 1, attack: 4, spell: 4 },
+  feet: 'chain', // (each foot heard as it's set down: in armour, its chain clinking, npc.js)
   lunge: { attack: 0.35 }, // (his drawing thrown forward as the spear drives out: npc.js)
   // (where his spears leave his open hand: the Tenfold Spears, and the one he throws, right click)
   muzzles: { ult: muzzleAt(DRAWN.ult[1]), attack: muzzleAt(DRAWN.ult[1]) },

@@ -220,6 +220,8 @@ class Boss {
     this.offset = (sheet.rig.offset || 0) * sheet.px;
     this.body = new SpriteBody(ctx.scene, sheet);
     this.body.mat.transparent = true;
+    // (Fenrath's feet heard as they're set down, heavily, audio.js; the Golem's are his own, golem.js)
+    if (kind !== 'golem') this.body.footfall = () => ctx.sound?.play('step-heavy', { at: [this.pos.x, this.pos.y] });
     this.body.blob.material.map = shadowTex();
     this.body.blob.material.opacity = 1;
     this.pose('idle');
@@ -1955,10 +1957,15 @@ export class Fight {
       const f = n.fighter;
       if (f && f.down > 0) f.down -= dt;
       if (f?.hop) {
+        // (pushing off, and coming down: audio.js)
+        if (f.hop.t === 0) this.ctx.sound?.play('step-land', { at: [n.pos.x, n.pos.y], volume: 0.45 });
         f.hop.t += dt;
         const k = f.hop.t / f.hop.dur;
         n.hopLift = k < 1 ? 4 * 0.95 * k * (1 - k) : 0;
-        if (k >= 1) f.hop = null;
+        if (k >= 1) {
+          f.hop = null;
+          this.ctx.sound?.play('step-land', { at: [n.pos.x, n.pos.y], volume: 0.7 });
+        }
       } else if (n.hopLift) n.hopLift = 0;
     }
 

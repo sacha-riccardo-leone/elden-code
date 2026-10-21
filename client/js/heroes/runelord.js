@@ -321,6 +321,7 @@ export default {
   px: 2.1 / 82, // world units per art pixel: his eyes sit level with the knight's visor
   head: 99, // art pixels from the ground to the tips of the crown
   hits: { hammer: 3, cast: 1, send: 2, attack: 4 },
+  feet: 'chain', // (each foot heard as it's set down: in armour, its chain clinking, npc.js)
   lunge: { attack: 0.35 }, // (his drawing thrown forward as the staff thrusts out: npc.js)
   glowIntensity: 1.15,
   glowColors: [[210, 140, 30], [255, 236, 170]],

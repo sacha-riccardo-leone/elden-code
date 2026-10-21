@@ -365,6 +365,7 @@ export default {
   px: PX,
   head: 160, // art pixels from the ground to the top of the helm
   hits: { hammer: 4, cast: 1, send: 2, attack: 4 },
+  feet: 'chain', // (each foot heard as it's set down: in armour, its chain clinking, npc.js)
   lunge: { attack: 0.35 }, // (his drawing thrown forward as the sword comes down: npc.js)
   muzzles: { ult: muzzleAt(DRAWN.ult[1]) },
   glowIntensity: 1.1,

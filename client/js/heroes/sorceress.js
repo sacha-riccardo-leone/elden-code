@@ -482,6 +482,7 @@ function lookRig(S) {
     px: PX,
     head: S.head, // art pixels from the ground to the top of her head (of the mask's crown, masked)
     hits: { hammer: 3, cast: 1, send: 2, ...(S.drawn && { attack: 4 }) },
+    feet: 'soft', // (each foot heard as it's set down: in soft shoes, npc.js)
     ...(S.drawn && {
       lunge: { attack: 0.35 }, // (her drawing thrown forward as the staff thrusts out: npc.js)
       muzzles: { attack: muzzleAt(S.drawn.attack.frames[1]), ult: muzzleAt(S.drawn.ult.frames[0]) },

@@ -28,10 +28,11 @@
 // on the very moment of what makes it: each foot as it's set down (the walk's frames where it lands),
 // the axe or the pole raised (its whoosh) and striking (the boom), a blow his stone turns (a clang),
 // his stone crumbling as he falls, passing out (two sounds, the second coming in on top of the first
-// halfway through his fall), hushed as his body hits the floor on the frame it does (that heard
-// then, the ground shaking and the dust flying then too), the fire roaring up as he spits it (begun
-// a moment before, so that it's at its loudest as the fire comes) and burning on while he does, and
-// each meteor landing.
+// halfway through his fall, and his stone giving way as he tips over), hushed as his body hits the
+// floor on the frame it does (that heard then, and his stone crumbling, the ground shaking and the
+// dust flying then too), the fire roaring up as he spits it (begun a moment before, so that it's at
+// its loudest as the fire comes) and burning on while he does, the swarm of meteors as it begins,
+// and each meteor flung up out of him and landing.
 
 import { ARENA } from './config.js';
 import { SpriteBody } from './npc.js';
@@ -141,6 +142,7 @@ export class GolemMind {
   passOut() {
     this.hushFall(0.1);
     this.passing = [this.sound('fall-start-1'), this.sound('fall-start-2', this.b.pos.x, this.b.pos.y, 1, PASSING)];
+    this.sound('tip');
   }
 
   hushFall(fade) {
@@ -156,8 +158,9 @@ export class GolemMind {
     if (name === 'walk' && (i === 0 || i === 4)) {
       this.sound('step', b.pos.x + b.body.facing * (i === 0 ? 0.35 : -0.35));
     } else if ((name === 'fall' || name === 'collapse') && i === 4) {
-      this.hushFall(0.12); // (down: no more crumbling)
+      this.hushFall(0.12); // (down: no more crumbling as he falls, and his stone crumbling as he lands)
       this.sound('fall-hit', this.spot(SPOTS.heart)[0]);
+      this.sound('crumble', this.spot(SPOTS.heart)[0]);
       this.ctx.rig.shake?.(0.35);
       this.dust(this.spot(SPOTS.heart)[0], b.pos.y, 3.5, 60);
     }
@@ -170,6 +173,7 @@ export class GolemMind {
     else if (this.passing) {
       this.hushFall(0.12);
       this.sound('fall-hit', this.spot(SPOTS.heart)[0]);
+      this.sound('crumble', this.spot(SPOTS.heart)[0]);
     }
   }
 
@@ -819,6 +823,9 @@ export class GolemMind {
     }
     const spot = [x, z];
     a.opt.spots.push(spot);
+    // (flung up out of him; and the first of them, the swarm of them all as it begins: audio.js)
+    this.sound('throw', this.spot(SPOTS.chest)[0]);
+    if (!a.swarm) { a.swarm = true; this.sound('swarm', this.spot(SPOTS.chest)[0]); }
     const mark = new Decal(scene, 'zone', x, z, M.r * 2 * 32 / 31, { opacity: 0.6 });
     const rock = new Meteor(scene, x, z, { dur: M.fall, drift: (Math.random() < 0.5 ? -1 : 1) * 4 });
     let landed = false;

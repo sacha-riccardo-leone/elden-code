@@ -2,9 +2,10 @@
 // and levelled (client/assets/sfx/<set>, README), and played where things happen in the world, at
 // the moment they happen there (the Golem's foot set down on the frame it lands on, golem.js; Wynn's
 // blade on the drawing where it cuts, npc.js; each bolt of Maren's storm as it strikes, ults.js;
-// Fenrath landing, fight.js; a hammer on an anvil, npc.js): quieter the farther from where the
-// camera looks, to the left or the right as they show
-// on the screen, a little different each time (`vary`), and never too many of one at once (`most`).
+// Fenrath landing, fight.js; a hammer on an anvil, npc.js; every foot set down, npc.js): quieter the
+// farther from where the camera looks (and some, the footsteps, not at all past a point), to the left
+// or the right as they show on the screen, a little different each time (`vary`), and never too
+// many of one at once (`most`).
 // And the music (Music, below): the ambient pieces while nothing's fought, the arena's while a great
 // enemy stands in it. Nothing sounds before thou settest out (a browser lets a page make a sound only
 // once it's been clicked: unlock), and V turns it all off and on again (remembered).
@@ -15,13 +16,15 @@ const STORE = 'elden-code:sound';
 
 // The sounds, by name: the clips one is played from (one chosen each time), how loud, how much it
 // varies (loudness and pitch, a share either way), how many may sound at once, how far off it's
-// heard at half its loudness (world units), and, looped, the stretch of its clip that repeats; with
+// heard at half its loudness (world units), how far off it isn't heard at all (`far`: fading out
+// toward it; else it never quite is), and, looped, the stretch of its clip that repeats; with
 // `layer`, its clips are all heard together (a recording's 1 and 2, as Sacha names them), rather
 // than one of them; with `pitch`, the range its pitch is picked from each time (a playback rate:
 // lower is deeper, and longer), unless the one who plays it says (play). (A clip is played from its
 // first sound: whatever silence its decoding left before it is skipped, so that it sounds on the
 // very frame: leadOf.)
 const SET = '/assets/sfx/';
+const takes = (clip, n) => Array.from({ length: n }, (_, i) => `${clip}-${i + 1}`); // (clip-1 … clip-n)
 export const SOUNDS = {
   // the Guardian Golem's (golem.js)
   'golem-step': { set: 'golem', clips: Array.from({ length: 11 }, (_, i) => `step-${i + 1}`), volume: 0.75, vary: 0.08, most: 3, half: 24 },
@@ -36,6 +39,12 @@ export const SOUNDS = {
   'golem-meteor': { set: 'golem', clips: ['meteor'], volume: 0.5, vary: 0.1, most: 8, half: 22 },
   'golem-ankle': { set: 'golem', clips: ['ankle-1', 'ankle-2'], layer: true, volume: 0.85, vary: 0.05, most: 3, half: 24 },
   'golem-explosion': { set: 'golem', clips: ['explosion'], volume: 0.9, most: 1, half: 30 },
+  // (each meteor flung up out of him, one of two, and the swarm of them as they begin; his stone
+  // giving way as he tips over, passing out, and crumbling as his body hits the floor)
+  'golem-throw': { set: 'golem', clips: ['throw-1', 'throw-2'], volume: 0.45, vary: 0.12, most: 4, half: 24 },
+  'golem-swarm': { set: 'golem', clips: ['swarm-1', 'swarm-2'], volume: 0.8, most: 1, half: 30 },
+  'golem-tip': { set: 'golem', clips: ['throw-2'], volume: 0.85, most: 1, half: 26 },
+  'golem-crumble': { set: 'golem', clips: ['crumble'], volume: 0.9, most: 1, half: 30 },
   // Wynn's, and nobody else's (heroes/ronin.js: on the drawings where they happen; ults.js)
   'ronin-slash': { set: 'ronin', clips: ['slash'], volume: 0.75, vary: 0.06, most: 3, half: 18 },
   'ronin-ult': { set: 'ronin', clips: ['ult'], volume: 0.9, most: 1, half: 22 },
@@ -52,32 +61,68 @@ export const SOUNDS = {
   'boss-wrath-during': { set: 'boss', clips: ['wrath-during-1', 'wrath-during-2'], layer: true, volume: 0.7, most: 1, half: 40 },
   'boss-sword': { set: 'boss', clips: ['sword'], volume: 1, most: 2, half: 40 },
   'boss-land': { set: 'boss', clips: ['land-1', 'land-2', 'land-3'], volume: 1, most: 2, half: 30 },
-  // the ultimates' (ults.js): Maren's bolts (one of six each) and her great bolt, Aurelion's verdict
-  // and his giant, Ruadan's landing, Fortuna's mass of ice bursting, Corisande's arrow, Ulric's spears
+  // the ultimates' (ults.js): Maren's bolts (one of six each) and her great bolt, the camera closing
+  // on her, Aurelion's verdict and his giant (rising, and striking: one of fifteen blows), Ruadan's
+  // landing, Fortuna's mass of ice bursting, Corisande's arrow, Ulric's spears
   'knight-bolt': { set: 'knight', clips: ['bolt-1', 'bolt-2', 'bolt-3', 'bolt-4', 'bolt-5', 'bolt-6'], volume: 0.75, vary: 0.08, most: 5, half: 26 },
   'knight-great': { set: 'knight', clips: ['great'], volume: 1, most: 1, half: 34 },
   'knight-ult-zoom': { set: 'knight', clips: ['ult-zoom'], volume: 0.8, most: 1, half: 24 },
   'paladin-ult': { set: 'paladin', clips: ['ult'], volume: 0.85, most: 1, half: 22 },
   'paladin-stand': { set: 'paladin', clips: ['stand'], volume: 0.8, most: 1, half: 22 },
+  'paladin-stand-hit': { set: 'paladin', clips: takes('stand-hit', 15), volume: 0.9, vary: 0.05, most: 1, half: 24 },
   'champion-land': { set: 'champion', clips: ['land'], volume: 1, most: 1, half: 28 },
+  // Ruadan's maul (combat.js): landing, a blow of his or thrown (the two together: hammer_hit,
+  // deeper, as Sacha wants, and one of hammer_hit_2's three), flying back to his hand, and its
+  // whoosh, again and again as it spins out
+  'champion-hit': { set: 'champion', clips: ['hit'], volume: 0.8, vary: 0.06, pitch: [0.7, 0.78], most: 3, half: 20 },
+  'champion-hit-2': { set: 'champion', clips: takes('hit-2', 3), volume: 0.7, vary: 0.06, most: 3, half: 20 },
+  'champion-back': { set: 'champion', clips: ['back'], volume: 0.75, most: 1, half: 20 },
+  'champion-woosh': { set: 'champion', clips: ['woosh'], volume: 0.55, vary: 0.12, pitch: [0.95, 1.1], most: 3, half: 18 },
   'frost-ult-end': { set: 'frost', clips: ['ult-end'], volume: 1, most: 1, half: 26 },
+  'frost-icicle': { set: 'frost', clips: ['icicle'], volume: 0.9, vary: 0.05, pitch: [0.92, 1.08], most: 3, half: 26 },
   'sorceress-ult-hit': { set: 'sorceress', clips: ['ult-hit'], volume: 1, most: 1, half: 26 },
   'bandit-woosh': { set: 'bandit', clips: ['woosh-1', 'woosh-2', 'woosh-3'], layer: true, volume: 0.8, vary: 0.08, most: 10, half: 18 },
   // the spells (combat.js): loosed, or landing
   'sorceress-projectile': { set: 'sorceress', clips: ['projectile-1', 'projectile-2'], layer: true, volume: 0.7, vary: 0.05, most: 3, half: 20 },
   'bloodbender-blob': { set: 'bloodbender', clips: ['blob'], volume: 0.75, vary: 0.06, most: 3, half: 20 },
+  'bloodbender-impact': { set: 'bloodbender', clips: ['impact'], volume: 0.75, vary: 0.06, most: 3, half: 20 },
   'holy-spell': { set: 'holy', clips: ['spell'], volume: 0.7, vary: 0.05, most: 2, half: 20 },
   'holy-light': { set: 'holy', clips: ['light'], volume: 0.8, most: 2, half: 20 },
+  'frost-throw': { set: 'frost', clips: ['throw-1', 'throw-2'], volume: 0.7, vary: 0.06, most: 3, half: 20 },
   'frost-lands': { set: 'frost', clips: ['lands-1', 'lands-2'], layer: true, volume: 0.75, vary: 0.05, most: 3, half: 20 },
   'knight-thunder': { set: 'knight', clips: Array.from({ length: 16 }, (_, i) => `thunder-${i + 1}`), volume: 0.75, vary: 0.05, most: 3, half: 20 },
   'knight-thunder-rise': { set: 'knight', clips: ['thunder-rise'], volume: 0.8, most: 2, half: 20 },
-  // the world's: a spectre called up, a hammer on an anvil, a spirit ash summoned (npc.js), a straw
-  // dummy bursting (training.js)
+  // the world's: a spectre called up, a hammer on an anvil, the ritual circle invoked (interact.js)
+  // and a spirit ash summoned (npc.js), a straw dummy bursting (training.js)
   'spectre-appear': { set: 'spectre', clips: ['appear-1', 'appear-2'], layer: true, volume: 0.7, most: 2, half: 16 },
   'work-anvil': { set: 'work', clips: ['anvil-1', 'anvil-2'], layer: true, volume: 0.5, vary: 0.06, most: 4, half: 12 },
   'work-summon': { set: 'work', clips: ['summon'], volume: 0.6, most: 2, half: 16 },
   // (a straw dummy's each at a pitch of its own; the great one's lower than any: training.js)
   'yard-break': { set: 'yard', clips: ['break-1', 'break-2', 'break-3'], layer: true, volume: 0.85, vary: 0.05, pitch: [0.9, 1.18], most: 3, half: 20 },
+  // a blow's swing, as it lands (combat.js): anyone's with a blade, a spear or a fist, but Wynn's
+  // (his own, above) and Ruadan's (his maul's, above)
+  'blade-swing': { set: 'blade', clips: takes('swing', 3), volume: 0.55, vary: 0.08, pitch: [0.95, 1.05], most: 4, half: 16 },
+  // footsteps (npc.js): each foot as it's set down, one of its kind's at random, by what's on one's
+  // feet (a hero's rig says: its `feet`), walking or running (thee with Shift, the others in a
+  // hurry): armour, its chain clinking (Maren, Aurelion, Ulric, Jorvik); heels (Solenne, Fortuna);
+  // soft shoes (Vael, Corisande); bare feet (Ruadan: the one step, its pitch and loudness picked anew
+  // each time, so that it never sounds the same twice); plain on stone (everyone else); and Fenrath's
+  // (fight.js), deeper and heavier. Heard only near where the camera looks, and not at all `far` off.
+  'step-walk': { set: 'steps', clips: takes('walk', 5), volume: 0.18, vary: 0.12, pitch: [0.94, 1.06], most: 6, half: 8, far: 22 },
+  'step-run': { set: 'steps', clips: takes('run', 5), volume: 0.22, vary: 0.12, pitch: [0.94, 1.06], most: 6, half: 8, far: 22 },
+  'step-chain-walk': { set: 'steps', clips: takes('chain-walk', 5), volume: 0.19, vary: 0.12, pitch: [0.94, 1.06], most: 6, half: 8, far: 22 },
+  'step-chain-run': { set: 'steps', clips: takes('chain-run', 5), volume: 0.23, vary: 0.12, pitch: [0.94, 1.06], most: 6, half: 8, far: 22 },
+  'step-heels': { set: 'steps', clips: takes('heels', 15), volume: 0.17, vary: 0.12, pitch: [0.95, 1.05], most: 6, half: 8, far: 22 },
+  'step-soft': { set: 'steps', clips: ['soft'], volume: 0.18, vary: 0.18, pitch: [0.86, 1.14], most: 6, half: 8, far: 22 },
+  'step-bare': { set: 'steps', clips: ['bare'], volume: 0.18, vary: 0.18, pitch: [0.86, 1.14], most: 6, half: 8, far: 22 },
+  'step-heavy': { set: 'steps', clips: takes('walk', 5), volume: 0.45, vary: 0.1, pitch: [0.66, 0.76], most: 3, half: 14, far: 36 },
+  // coming down from a dodge (and pushing off into it) or a hop (pilot.js, fight.js), or set down
+  // after being carried (npc.js), whoever it is
+  'step-land': { set: 'steps', clips: ['land'], volume: 0.5, vary: 0.12, pitch: [0.88, 1.12], most: 4, half: 10, far: 30 },
+  // the world standing still as anyone's ultimate is loosed, the camera closing on them (ults.js),
+  // heard alike wherever one is; quiet enough under what's heard of them meanwhile (Wynn's breath
+  // and the glare on his blade), and stopped as it strikes
+  'cine-focus': { set: 'cine', clips: ['focus'], volume: 0.45, most: 1 },
   // a banner revealed (ui.js), heard alike wherever one is
   'ui-banner': { set: 'ui', clips: ['banner'], volume: 0.65, most: 2 },
   // setting out (main.js, as the title's button is clicked)
@@ -178,7 +223,7 @@ export class Sound {
     const paths = clips.map((clip) => `${SET}${s.set}/${clip}.mp3`);
     if (!paths.every((p) => this.clips.get(p) instanceof AudioBuffer)) return null; // (not loaded yet)
     const vary = s.vary || 0;
-    const [gain, pan] = this.place(at, s.half ?? 24);
+    const [gain, pan] = this.place(at, s.half ?? 24, s.far);
     const loud = (s.volume ?? 1) * volume * gain * (1 + (Math.random() * 2 - 1) * vary);
     if (loud < 0.01) return null;
     // (no more than `most` of it at once: the oldest gives way)
@@ -242,13 +287,13 @@ export class Sound {
   }
 
   // How loud something at `at` is heard, and which way: by its distance from where the camera looks
-  // (half as loud `half` off), and where it shows on the screen.
-  place(at, half) {
+  // (half as loud `half` off, and fading out to nothing `far` off), and where it shows on the screen.
+  place(at, half, far = Infinity) {
     const v = this.view;
     if (!at || !v) return [1, 0];
     const { camera, focus } = v;
     const d = Math.hypot(at[0] - focus.x, at[1] - focus.z);
-    const gain = 1 / (1 + (d / half) ** 2);
+    const gain = d < far ? (1 - (d / far) ** 2) / (1 + (d / half) ** 2) : 0;
     this.p.set(at[0], focus.y, at[1]).project(camera);
     const pan = Math.max(-0.8, Math.min(0.8, this.p.x * 0.75));
     return [gain, Number.isFinite(pan) ? pan : 0];

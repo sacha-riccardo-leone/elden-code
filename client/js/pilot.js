@@ -162,6 +162,7 @@ export class Pilot {
     n.using = null;
     n.body.play(walk, true);
     this.dodgeReady = now + DODGE.cooldown;
+    this.ctx.sound?.play('step-land', { at: [n.pos.x, n.pos.y], volume: 0.6 }); // (pushing off: audio.js)
     this.ctx.particles.emit({
       pos: [n.pos.x, groundAt(n.pos.x, n.pos.y) + 0.25, n.pos.y], spread: [0.3, 0.1, 0.2], vel: [-dx * 1.5, 0.6, -dz * 1.5], velSpread: [0.6, 0.4, 0.4],
       color: ['#b8b0a0', '#8a8278', '#e0d8c8'], size: 0.08, life: 0.5, count: 14, drag: 1.5, intensity: 0.8,
@@ -278,7 +279,10 @@ export class Pilot {
         const place = this.ctx.training?.has(n) ? this.ctx.training : this.ctx.fight;
         place?.playerCast(n, a.at);
       }
-      if (a.t >= a.dur) n.action = null;
+      if (a.t >= a.dur) {
+        if (a.kind === 'dodge') this.ctx.sound?.play('step-land', { at: [n.pos.x, n.pos.y] }); // (coming down: audio.js)
+        n.action = null;
+      }
     } else if (going && !n.shift && !this.dead) {
       moving = this.walk(n, dt, h);
     }

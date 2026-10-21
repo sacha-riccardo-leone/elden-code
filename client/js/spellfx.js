@@ -694,15 +694,17 @@ export class Missile {
 //     times a second, as the Golem shakes gathering his fire);
 //   - pulled out (`onBack(x, z)`: the thrower stops and holds out a hand for it) and back to the hand
 //     (`home()`: [x, y, z] as the thrower moves; null once it can't take it back, and then it's gone
-//     at once) over `back` seconds, faster and faster.
+//     at once) over `back` seconds, faster and faster, not spinning: its haft turned to the hand
+//     (`haft`: the way the drawing's haft goes from its head) as it comes out, and kept so.
 // Each way it strikes what it comes up to, each thing once (`onHit(at, struck)`); back in the hand,
 // or gone, `onDone(caught)`. Drawn flying right (mirrored flying left), it turns `spin` radians a
-// second the way it rolls, about `pivot` ([across, down] its drawing: a maul's head). Angles as seen
-// flying right.
+// second the way it rolls as it flies out, about `pivot` ([across, down] its drawing: a maul's
+// head), `onWhirl(at)` each `whirl` radians of it (and as it leaves the hand). Angles as seen flying
+// right.
 const TURN = Math.PI * 2;
 export class Boomerang {
   constructor(fx, { map, w, h, from, dir, speed, reach, past, dive, sink, angle, turn = 0, stay, shake, jolt, back, spin, pivot = [0.5, 0.5],
-    home, strike = null, onHit = null, onPlant = null, onBack = null, onDone = null, light = null, trail = null, dust = null }) {
+    haft = 0, whirl = 0, home, strike = null, onHit = null, onPlant = null, onBack = null, onDone = null, onWhirl = null, light = null, trail = null, dust = null }) {
     this.fx = fx;
     this.mesh = plane(fx.scene, map, w, h);
     this.mesh.geometry.translate((0.5 - pivot[0]) * w, (pivot[1] - 0.5) * h, 0);
@@ -712,8 +714,8 @@ export class Boomerang {
     this.from = new THREE.Vector3(...from);
     this.pos = this.from.clone();
     this.light = light ? carry(fx.scene, from, light) : null;
-    Object.assign(this, { dir, speed, past, dive, sink, angle, stay, shake, jolt, back, spin, home, strike, onHit, onPlant, onBack, onDone, trail, dust });
-    Object.assign(this, { phase: 'out', s: 0, end: reach, diving: null, at: 0, t: 0, done: false, struck: new Set() });
+    Object.assign(this, { dir, speed, past, dive, sink, angle, stay, shake, jolt, back, spin, haft, whirl, home, strike, onHit, onPlant, onBack, onDone, onWhirl, trail, dust });
+    Object.assign(this, { phase: 'out', s: 0, end: reach, diving: null, at: 0, t: 0, done: false, struck: new Set(), turned: whirl });
     this.mesh.position.copy(this.pos);
   }
 
@@ -749,6 +751,10 @@ export class Boomerang {
       this.mesh.rotation.z = d.rot + d.by * (1 - (1 - u) * (1 - u));
     } else {
       this.mesh.rotation.z -= this.spin * this.side * dt;
+      // (each `whirl` of its spin, a whoosh: the first as it leaves the hand)
+      if (this.whirl > 0 && this.onWhirl) {
+        for (this.turned += this.spin * dt; this.turned >= this.whirl; this.turned -= this.whirl) this.onWhirl(this.pos);
+      }
     }
     this.pos.set(this.from.x + dir[0] * this.s, y, this.from.z + dir[1] * this.s);
     this.mesh.position.copy(this.pos);
@@ -800,14 +806,20 @@ export class Boomerang {
     }
   }
 
-  // Pulled out and back to the hand, faster and faster, spinning back the other way as it picks up.
+  // Pulled out and back to the hand, faster and faster: not spinning, its haft turned to the hand as
+  // it comes out of the floor and kept pointing there (held as it is the last stretch, where the
+  // way to the hand turns about too fast to follow).
   fetch(dt, [hx, hy, hz]) {
     const u = Math.min(1, (this.t - this.at) / this.back);
     const k = 1 - Math.cos((Math.PI / 2) * u);
     const p = this.planted;
     this.pos.set(p.x + (hx - p.x) * k, p.y + (hy - p.y) * k, p.z + (hz - p.z) * k);
     this.mesh.position.copy(this.pos);
-    this.mesh.rotation.z += this.spin * this.side * dt * (0.3 + 0.7 * u);
+    if (Math.hypot(hx - this.pos.x, hy - this.pos.y) > 0.4) {
+      const want = Math.atan2(hy - this.pos.y, hx - this.pos.x) - (this.side > 0 ? this.haft : Math.PI - this.haft);
+      const by = ((((want - this.mesh.rotation.z) % TURN) + TURN * 1.5) % TURN) - TURN / 2; // (the short way round)
+      this.mesh.rotation.z += by * Math.min(1, dt * 18);
+    }
     const dx = hx - p.x;
     const dz = hz - p.z;
     const d = Math.hypot(dx, dz) || 1;

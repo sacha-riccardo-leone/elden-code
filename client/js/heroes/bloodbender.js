@@ -233,6 +233,7 @@ export default {
   px: 2.05 / 80, // world units per art pixel: about the Ronin's build
   head: 99, // art pixels from the ground to the top of the hood
   hits: { hammer: 3, cast: 1, send: 1, attack: 4 },
+  feet: 'soft', // (each foot heard as it's set down: in soft shoes, npc.js)
   lunge: { attack: 0.35 }, // (his drawing thrown forward as the blood bursts from his palm: npc.js)
   glowIntensity: 1.1,
   glowColors: [[150, 8, 14], [240, 70, 60]],

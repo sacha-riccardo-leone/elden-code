@@ -20,6 +20,19 @@ const HOMEWARD = new Set(['work', 'wait', 'rest', 'channel', 'wander', 'journey'
 // Getting nowhere (`stalled`): no further than `dist` from where it was for `after` seconds; within
 // `near` of where it's going, it calls that arrived.
 const STALL = { dist: 0.8, after: 6, near: 2.5 };
+// Footsteps (audio.js): what's heard of a foot set down, by what's on it, walking and running (a
+// hero's rig says which: its `feet`, heroes/*.js; everyone else goes in plain boots on stone); the
+// walks they're heard in (SpriteBody.tick); how fast one goes for its steps to be a run's (world
+// units a second: thine with Shift, a fighter rushing); and how loud anyone's are against thine.
+const FEET = {
+  stone: ['step-walk', 'step-run'],
+  chain: ['step-chain-walk', 'step-chain-run'],
+  heels: ['step-heels', 'step-heels'],
+  soft: ['step-soft', 'step-soft'],
+  bare: ['step-bare', 'step-bare'],
+};
+const WALKS = new Set(['walk', 'walkBare']);
+const STEP = { run: 4.5, others: 0.7 };
 
 // One quad per sheet size, standing on its bottom edge. The normals point up toward the sky so
 // overhead and torch light reach the sprite's face.
@@ -253,11 +266,16 @@ export class SpriteBody {
     this.setFrame(frame, this.facing);
     const lunge = this.sheet.lunge?.[a.name];
     if (changed && lunge && this.sheet.hits?.[a.name] === i) this.lunge = { at: this.stretchAt === SPRING.t ? SPRING.t - LUNGE.out : SPRING.t, reach: lunge };
-    if (changed && this.heard && this.sheet.sounds?.[a.name]) {
-      // (each step come up since the last, even one a slow frame went past: Npc.heard)
+    const sounds = this.heard && this.sheet.sounds?.[a.name];
+    const walks = this.footfall && WALKS.has(a.name);
+    if (changed && (sounds || walks)) {
+      // (each step come up since the last, even one a slow frame went past: Npc.heard; and, walking,
+      // each foot set down, on the walk's first drawing and its middle one, where every rig's walk
+      // has a foot land: Npc.footfall)
       const n = a.def.frames.length;
       for (let k = prev < 0 ? 0 : (prev + 1) % n, m = 0; m < n; k = (k + 1) % n, m++) {
-        this.heard(a.name, k);
+        if (sounds) this.heard(a.name, k);
+        if (walks && (k === 0 || k * 2 === n)) this.footfall();
         if (k === i) break;
       }
     }
@@ -531,6 +549,7 @@ export class Npc {
     this.body = new SpriteBody(ctx.scene, this.sheetFor(this.look));
     this.body.mesh.userData.npc = this;
     this.body.heard = (anim, k) => this.heard(anim, k);
+    this.body.footfall = () => this.footfall();
     this.pos = new THREE.Vector2(x, z);
     this.lift = 0;
     this.intent = { kind: 'wander' };
@@ -594,6 +613,7 @@ export class Npc {
     this.body = new SpriteBody(this.ctx.scene, this.sheetFor(this.look));
     this.body.mesh.userData.npc = this;
     this.body.heard = (anim, k) => this.heard(anim, k);
+    this.body.footfall = () => this.footfall();
     this.body.facing = facing;
     this.body.play(anim);
   }
@@ -933,6 +953,7 @@ export class Npc {
 
   drop() {
     this.dragged = false;
+    this.ctx.sound?.play('step-land', { at: [this.pos.x, this.pos.y], volume: 0.8 }); // (set down: audio.js)
     this.ctx.particles.emit({
       pos: [this.pos.x, groundAt(this.pos.x, this.pos.y) + 0.05, this.pos.y], spread: [0.3, 0, 0.15], vel: [0, 0.4, 0], velSpread: [0.8, 0.2, 0.4],
       color: ['#6a625a', '#8a8278'], size: 0.07, life: 0.8, count: 14, drag: 2, intensity: 0.8,
@@ -1508,6 +1529,17 @@ export class Npc {
   // moves its drawing on (it, or ults.js as it looses its ultimate).
   heard(anim, k) {
     for (const name of this.body.sheet.sounds?.[anim]?.[k] || []) this.ctx.sound?.play(name, { at: [this.pos.x, this.pos.y] });
+  }
+
+  // One of its feet set down as it walks (SpriteBody.tick), heard where it stands (audio.js), by
+  // what it has on its feet (FEET), running or walking; a little quieter than thine. Not as it
+  // dodges (its push-off and its landing are heard instead: pilot.js), nor off the ground (a
+  // spectre floating, carried, hopping, borne up), nor in transit.
+  footfall() {
+    if (this.spectre || this.travel || this.dragged || this.lift > 0.2 || this.action?.kind === 'dodge') return;
+    const [walk, run] = FEET[this.body.sheet.rig?.feet] || FEET.stone;
+    const speed = this.piloted ? this.ctx.pilot.speed : this.speedFor();
+    this.ctx.sound?.play(speed >= STEP.run ? run : walk, { at: [this.pos.x, this.pos.y], volume: this.piloted ? 1 : STEP.others });
   }
 
   onFrame(step, t) {

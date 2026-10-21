@@ -82,6 +82,20 @@ export function blow(n, kind, { spell = false, ...more } = {}) {
   const def = sheet.anims[anim];
   n.action = { kind, anim, t: 0, dur: def.frames.length / def.fps, hitAt: (sheet.hits?.[anim] ?? 2) / def.fps, hit: false, ...more };
   n.body.play(anim, true);
+  if (!spell) swing(n, n.action.hitAt);
+}
+
+// A blow's sound (audio.js), heard as it lands, `at` seconds from now: a blade's swing, at its
+// loudest then (each of its clips is cut to be at its loudest SWING seconds in: scripts/cut-sfx.mjs),
+// anyone's but Wynn's (his blade has its own: heroes/ronin.js) and Ruadan's, whose maul comes down
+// with a blow of its own (HAMMER); thine louder than the rest.
+const SWING = 0.12;
+const HAMMER = ['champion-hit', 'champion-hit-2']; // (the two together)
+function swing(n, at) {
+  const key = heroKey(n);
+  if (key === 'ronin') return;
+  const [names, delay] = key === 'champion' ? [HAMMER, at] : [['blade-swing'], Math.max(0, at - SWING)];
+  for (const name of names) n.ctx?.sound?.play(name, { at: [n.pos.x, n.pos.y], volume: n.piloted ? 1 : 0.6, delay });
 }
 
 // Where a spell of n's leaves from, in the world: where its rig's drawn pose holds it, if it says
@@ -272,14 +286,14 @@ const SPELLS = {
 };
 
 // What a spell is heard as (audio.js), by school and by which of its spells (in the order listed
-// above): `cast` as it's loosed (Corisande's, Vael's gout of blood, Solenne's), `land` as it lands
-// on what it struck (Fortuna's).
+// above): `cast` as it's loosed (Corisande's, Vael's gout of blood, Solenne's, Fortuna's), `land` as
+// it lands on what it struck (Fortuna's, Vael's).
 const HEARD = {
   glintstone: [{ cast: 'sorceress-projectile' }, { cast: 'sorceress-projectile' }, { cast: 'sorceress-projectile' }],
-  blood: [{ cast: 'bloodbender-blob' }],
+  blood: [{ cast: 'bloodbender-blob', land: 'bloodbender-impact' }],
   holy: [{ cast: 'holy-spell' }, { cast: 'holy-spell' }, { cast: 'holy-light' }],
   storm: [{ cast: ['knight-thunder', 'knight-thunder-rise'] }], // (one of her zaps, and the rush with it)
-  frost: [{ land: 'frost-lands' }, { land: 'frost-lands' }],
+  frost: [{ cast: 'frost-throw', land: 'frost-lands' }, { cast: 'frost-throw', land: 'frost-lands' }],
 };
 // A sound of n's (audio.js: one, or several together), heard where n stands (or at x, z).
 const heard = (n, name, x = n.pos.x, z = n.pos.y) => {
@@ -410,9 +424,10 @@ function throwSpear(fx, n, { aim = null, dir = null, hit }) {
 // he threw it in), and so till it's in his hand. If anything takes him first (travel by grace, a
 // fall), it's back in his hand at once. (Turns as seen thrown right: `turn` as it leaves his hand,
 // its haft back toward the hand; `angle` planted, its haft leaning back the way it came; its
-// drawing's haft rises 26° from the head.)
+// drawing's haft rises 26° from the head: `haft`.) It's heard landing (each blow, and planted: HAMMER),
+// pulled out and flying back, and whooshing round each half turn (`whirl`, radians) it spins out.
 const MAUL = {
-  speed: 16, reach: 10, past: 1.6, dive: 1.8, sink: 0.12, turn: 2.52, angle: 1.55,
+  speed: 16, reach: 10, past: 1.6, dive: 1.8, sink: 0.12, turn: 2.52, angle: 1.55, haft: 0.454, whirl: Math.PI,
   stay: 0.75, shake: 0.45, jolt: 0.05, back: 0.4, spin: 19, pivot: [0.25, 0.55],
   crack: { size: 2.4, life: 4, fade: 1.5 },
   light: { color: '#ffb84a', power: 8, reach: 6 },
@@ -433,10 +448,14 @@ function throwMaul(fx, n, { aim = null, dir = null, hit }) {
     strike: (x, z, going) => line.meets(x, z, going, 0),
     onHit: (at, struck) => {
       fx.add(new Spark(fx, { color: styleOf(n).color, at: [at.x, at.y, at.z + 0.2], dir: Math.sign(at.x - n.pos.x) || facing, size: 1.6 }));
+      heard(n, HAMMER, at.x, at.z);
       hit(at, 1, struck);
     },
+    // (spinning out: its whoosh, again and again)
+    onWhirl: (at) => heard(n, 'champion-woosh', at.x, at.z),
     // (its head driven into the floor: the stone cracks in his gold, dust and chips of gold fly)
     onPlant: (x, z) => {
+      heard(n, HAMMER, x, z);
       const crack = new Decal(fx.scene, 'goldCrack', x, z, MAUL.crack.size, { glow: false });
       let t = 0;
       fx.add({
@@ -454,8 +473,9 @@ function throwMaul(fx, n, { aim = null, dir = null, hit }) {
       n.ctx?.rig?.shake?.(0.12);
     },
     // (pulled out: he stops where he stands, turns to it and holds out his hand till it's in it)
-    onBack: (x) => {
+    onBack: (x, z) => {
       if (n.maulOut !== maul) return;
+      heard(n, 'champion-back', x, z);
       if (Math.abs(x - n.pos.x) > 0.3) n.body.facing = x > n.pos.x ? 1 : -1;
       n.action = { kind: 'catch', anim: 'catch', t: 0, dur: Infinity };
       n.body.play(n.body.sheet.anims.catch ? 'catch' : 'idle', true);

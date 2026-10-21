@@ -623,7 +623,8 @@ ground under you instead, so it flies at your hand's height there too.
     his gold, dust and chips of gold flying (striking nothing, it plants itself 10 units past his
     hand). It stays there three quarters of a second, shaking side to side the last half second
     as the Golem shakes gathering his fire, then tears itself out and flies back to his hand in
-    0.4 s, faster and faster, striking what it comes up to again on the way (`Boomerang`,
+    0.4 s, faster and faster, no longer spinning: its haft turns to his hand as it comes out of the
+    floor and points at him all the way back. It strikes what it comes up to again on the way (`Boomerang`,
     `client/js/spellfx.js`; `throwMaul`, `client/js/combat.js`). Each blow is as hard as a spell,
     with a spark of his gold. Once it has left his hand he can walk about, drawn without it (his
     fist empty), but strikes, throws and looses nothing (R waits) till it's back; as it tears
@@ -1012,15 +1013,18 @@ comes up, so nothing blinks.
 
 ## Sound
 
-The Lands Between are heard (`client/js/audio.js`, Web Audio): both great enemies, every hero's
-ultimate and spells, the stations, the spectres, the training yard's dummies, the banners and
-setting out. The sounds are cut from Sacha's recordings (`client/assets/sfx/IMPORT/<their folder>`,
+The Lands Between are heard (`client/js/audio.js`, Web Audio): both great enemies, everyone's
+footsteps and blows, every hero's ultimate and spells, the stations, the spectres, the training
+yard's dummies, the banners and setting out. The sounds are cut from Sacha's recordings (`client/assets/sfx/IMPORT/<their folder>`,
 one per hero or kind, and a few loose in `client/assets/sfx`, kept as they are and never deployed) into a set
-each (`client/assets/sfx/<set>`): small MP3 clips, about 2.5 MB in all. A recording that holds many
+each (`client/assets/sfx/<set>`): small MP3 clips, about 3.5 MB in all. A recording that holds many
 of one sound (footsteps, landings, lightning) is cut into each of them, every other sound from where
 it starts, each levelled to one peak; a recording's 1 and 2 (and 3) are heard together, levelled as
-one (`dontuse.wav` is left out, as named). `node scripts/cut-sfx.mjs [set]` cuts them again, from
-the recordings, whenever they change; its table says what each clip is cut from.
+one (left out: `dontuse.wav`, as named; `golem_explosion_on_spitfire` and `maren_ult_start`, and
+the older `maren_ult_start_on_click.wav`, replaced as Sacha asked; `Stone Chain Jump` and
+`Stone Chain Land`, as everyone comes down on `Stone Land`; Wynn's `unsheathe`, as asked).
+`node scripts/cut-sfx.mjs [set]` cuts them again, from the recordings, whenever they change; its
+table says what each clip is cut from.
 
 - **On the moment of what makes it:**
   - a footstep as each of his feet is set down: the walk's first and fifth drawings, where a foot
@@ -1030,14 +1034,40 @@ the recordings, whenever they change; its table says what each clip is cut from.
   - a clang when his stone turns a blow; `golem_ankle_hit_1` and `_2` together when a blow or a
     spell lands on his cracked ankle;
   - as he passes out (or dies), his stone crumbling as he falls: `passing_out_start_1` at once, from
-    its first crackle (the faint stretch before it left out), and halfway through his fall
-    `passing_out_start_2` on top of it; both stop as his body hits the floor, on the drawing where it
-    does, and the ground hit is heard then (the ground shakes and the dust flies then too). Nothing
+    its first crackle (the faint stretch before it left out), with `Rock Meteor Throw 2`
+    (`freepassoutsound`) as he tips over, and halfway through his fall `passing_out_start_2` on top
+    of it; both stop as his body hits the floor, on the drawing where it does, and the ground hit
+    and `Rock Wall 1` are heard then (the ground shakes and the dust flies then too). Nothing
     crumbles while he lies felled;
   - the fire roaring up as he spits it (begun 0.3 s before, so that the roar is at its loudest as
-    the fire comes), `golem_explosion_on_spitfire` as it bursts out of him, the blaze burning on,
-    looped, while he does, and dying away as he stops;
-  - each meteor as it lands.
+    the fire comes), `Firespray 2` (`freeexplosionspitfire`) as it bursts out of him, the blaze
+    burning on, looped, while he does, and dying away as he stops;
+  - each meteor as it's flung up out of him (`Rock Meteor Throw 1` or `2`, `freemeteor`) and as it
+    lands, and the swarm of them (`Rock Meteor Swarm 1` or `2`) as the first is flung.
+- **Footsteps** (everyone's, `client/js/npc.js`): each foot as it's set down, on the walk's first
+  and fourth drawings (where every rig's walk has a foot land), one of its kind's at random and a
+  little different each time, its pitch and loudness: Maren, Aurelion, Ulric and Jorvik in armour,
+  its chain clinking (`Stone Chain Walk 1`–`5`; running, `Stone Chain Run 1`–`5`); Solenne and
+  Fortuna in heels (fifteen of `heels`' 34 steps, the clearest); Vael and Corisande in soft shoes
+  (the step in `footstep_in_the_fourth_second`'s fourth second, from 2.96 s); Ruadan barefoot (only
+  the step between 1.4 and 2 s of `footsteps-barefoot-tile`, from 1.65 s, its pitch picked anew each
+  time so that it never sounds the same twice); everyone else plain on stone (`Stone Walk 1`–`5`,
+  `Stone Run 1`–`5`); Fenrath's deeper and heavier (`Stone Walk`, slowed). Running with Shift (you)
+  or in a hurry (a fighter rushing in). Yours a little louder than anyone else's; heard only near
+  where the camera looks, fading out to nothing 22 units off; none mid-dodge, in the air, carried,
+  or from the spectres, who float.
+- **Coming down**: `Stone Land`, whoever it is (a pitch of its own each time), as you push off into
+  a dodge (quieter) and as you come out of it, as a fighter hops a shockwave or a cut and as they
+  come down, and as a Tarnished you carried is set down.
+- **Blows**: one of `Sword Attack 1`–`3` with every blow but Wynn's (his own `slash`, below) and
+  Ruadan's, each cut to be at its loudest 0.12 s in and begun that long before the blow lands, so
+  that it's at its loudest as it does; yours louder than the others'. Ruadan's maul: `hammer_hit`,
+  deeper (at three quarters of its pitch, about), and with it one of the three Sacha chose of
+  `hammer_hit_2_variations` (between 1 and 2 s, 10 and 12, 12 and 13: each from just before its
+  crack, so that the two crack together), as it lands: each blow of his, and thrown, as it strikes
+  something and as its head is driven into the floor. Thrown: `hammer_woosh` at each half turn as it
+  spins out (about six a second), and `hammer_coming_back` (between 1 and 3 s, as named: at its
+  loudest about as the maul is in his hand) as it's pulled out of the floor and flies back.
 - **Wynn** (only him; whoever plays him, thee or another), each on the drawing where it happens:
   - `slash` with every blow but his Iaijutsu's, on the drawing where his blade cuts;
   - `ult_pressed` as his Iaijutsu is loosed (thine, as R is pressed), as he takes his stance, and
@@ -1061,24 +1091,33 @@ the recordings, whenever they change; its table says what each clip is cut from.
   one each time, and with it the rush in `maren_atk2` (between 2 and 3 s, as its name says: from
   where it's heard, so that it peaks as the bolt is there).
 - **The ultimates**:
-  - Maren's Red Storm: the swell of `maren_ult_start` as it's loosed (between 10 and 13 s, as named:
-    peaking as the camera has closed on her); then each of its twelve bolts as it strikes, one of
-    six strikes cut from
+  - anyone's, the world standing still as the camera closes on them: `effect_on_click` (`During
+    everyones ult camera focus`) the moment it's loosed, from about 2 s in, as Sacha wants (from
+    where it rises, 1.9 s, to its end), quiet enough under what's heard of them meanwhile (Wynn's
+    breath, the glare on his blade), and stopped as it strikes (Wynn's after a second, the others'
+    after 1.85 s);
+  - Maren's Red Storm: `maren_ult_start_on_click` (the newer recording, the `.mp3`) as R is pressed
+    and the camera closes on her, from its first sound and over as the storm breaks; then each of
+    its twelve bolts as it strikes, one of six strikes cut from
     `maren_ult_small_lightning`, and the great bolt that ends it, `maren_ult_big_lightning` (from its
     strike, 4.36 s in, its thunder rolling on);
   - Aurelion's Radiant Verdict: `aurelion_ult_start1_at4.5s` as it's loosed (its third, from 4.82 s,
-    as its name says), and `aurelion_stand_appear` as the giant of his light rises behind him;
+    as its name says), `aurelion_stand_appear` as the giant of his light rises behind him, and one
+    of the fifteen blows of `aurelion_stand_hit` as the giant strikes;
   - Ruadan's Hammerfall: `radahn_ult_landing_explosion` as the maul strikes and the gold explodes;
-  - Fortuna's Frostfall: `Fortuna_ult_debris_explosion_end` as its mass of ice bursts;
+  - Fortuna's Frostfall: `new_ice_rock_shattering` as each of its three great icicles shatters,
+    and `Fortuna_ult_debris_explosion_end` as its mass of ice bursts;
   - Corisande's Glintstone Arrow: `ult_hit` as it strikes home;
   - Ulric's Tenfold Spears: `spear_woosh_1`, `_2` and `_3` together as each spear leaves his hand
     (and as he throws his one spear, right click).
 - **The spells**: Corisande's `Sellen_projectile` and `_2` together as she looses one; Vael's
-  `Vael_blood_blob_projectile` as she looses her gout of blood; Solenne's `magic-spell` with a lance
-  or a halo of light, and the healing light as light falls on him; Fortuna's
-  `Fortuna_spell_atk_lands` and `_2` together as hers lands on what it struck.
+  `Vael_blood_blob_projectile` as she looses her gout of blood, and `atk_impact` as it lands on what
+  it struck; Solenne's `magic-spell` with a lance or a halo of light, and the healing light as light
+  falls on him; Fortuna's `Ice Throw 1` or `2` as she looses one, and `Fortuna_spell_atk_lands` and
+  `_2` together as it lands on what it struck.
 - **The world**: `anvil-hit-1` and `-2` together with every hammer blow at a forge;
-  `summoning-magic-spell` as a spirit ash (a subagent) is summoned; `noble_sorcerer` and `_2`
+  `summoning-magic-spell` each time you invoke a ritual circle (E) and as a spirit ash (a
+  subagent) is summoned; `noble_sorcerer` and `_2`
   together as a spectre of the Noble Sorcerers is called up at its grace; `dummy_breaking`, `_2` and
   `_3` together as a dummy of the training yard bursts (a straw one's each at a pitch of its own,
   anywhere from a little lower to a good deal higher; the great one's louder, and lower than any);
@@ -1088,8 +1127,9 @@ the recordings, whenever they change; its table says what each clip is cut from.
   region rising, a quest fulfilled or failed): `announcement_banner_reveal` as it's revealed, from
   its first sound (0.65 s in: silent before), swelling as the banner comes up and dying away about
   as it goes; heard alike wherever you are.
-- **Where it happens:** quieter the farther it is from where the camera looks, to the left or the
-  right as it shows on the screen, and never too many of one at once (eight meteors).
+- **Where it happens:** quieter the farther it is from where the camera looks (the footsteps and
+  the landings not heard at all past 22 and 30 units), to the left or the right as it shows on the
+  screen, and never too many of one at once (eight meteors).
 - **Music** (Sacha's pieces, `client/assets/sfx/IMPORT/Music`, kept as they are and never deployed,
   levelled into `client/assets/music` by `scripts/cut-music.mjs`: stereo MP3s, 6.5 MB in all, the
   two ambient pieces alike and the arena's a little louder):
@@ -1237,7 +1277,10 @@ Shown in the game too, at the foot of the **?** panel.
   - "[Rocks - Crumbling / Falling - Designed Rocks](https://freesound.org/s/555048/)" by Gregor
     Quendel: his stone crumbling as he falls (`golem_passing_out_start_2.wav`);
   - "[Magic Healing Spell SFX - Fantasy RPG Restore Effect](https://freesound.org/s/853303/)" by
-    TommasoMotteran (credited as Coghezzi, as asked): Solenne's light falling.
+    TommasoMotteran (credited as Coghezzi, as asked): Solenne's light falling;
+  - "[Custom_yasmoasa_koyama_heaven_feel_heavy_sword_hit](https://freesound.org/s/819311/)" by
+    Artninja, made with "Sci-Fi Bass Blast" by magnuswaker and "vas deferens 1.wav" by Logicogonist
+    (both CC0, credited as Artninja asks): the blows of Aurelion's giant (`aurelion_stand_hit.wav`).
 - **From [Freesound](https://freesound.org)**, under
   [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) (non-commercial: fine for this
   free demo, not for a game that's sold): "[DSGNVocl_Weird Whispering Spells.Dry_EM](https://freesound.org/s/763000/)"

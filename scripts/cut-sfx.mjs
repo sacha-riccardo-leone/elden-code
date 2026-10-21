@@ -8,15 +8,20 @@
 //   ronin        Wynn's (heroes/ronin.js, ults.js), from "Wynn"
 //   knight       Maren's thunderbolt and Red Storm (combat.js, ults.js), from "Marren"
 //   paladin      Aurelion's Radiant Verdict and its giant (ults.js), from "Aurelion"
-//   champion     Ruadan's Hammerfall (ults.js), from "Ruadan"
+//   champion     Ruadan's Hammerfall (ults.js) and his maul (combat.js), from "Ruadan"
 //   frost        Fortuna's spells and Frostfall (combat.js, ults.js), from "Fortuna"
 //   sorceress    Corisande's spells and Glintstone Arrow (combat.js, ults.js), from "Sellen"
 //   bloodbender  Vael's gout of blood (combat.js), from "Vael"
 //   holy         Solenne's spells (combat.js), from "Holy magic"
 //   bandit       Ulric's spears (combat.js, ults.js), from "Ulric"
 //   spectre      the Noble Sorcerers' spectres (npc.js), from "Noble sorcerers"
-//   work         the stations' (npc.js), from "Working"
+//   work         the stations' (npc.js, interact.js), from "Working"
 //   yard         the training yard's straw dummies (training.js), from "dummy"
+//   steps        everyone's footsteps, and a dodge or a hop coming down (npc.js, pilot.js, fight.js),
+//                from "Base movements"
+//   blade        the swing of a blow (combat.js), from "Base sword sounds"
+//   cine         the world standing still as an ultimate is loosed (ults.js), from "During everyones
+//                ult camera focus"
 //   ui           the banners' and setting out's (ui.js, main.js), from those loose in client/assets/sfx
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -50,10 +55,18 @@ const SETS = {
       ['fire', 'golem_spitting_fire.wav', 1.15, 2.85, -3, 0, 0.5],
       ['meteor', 'meteorite_hit.wav', 2.02, 1.6, -4, 0, 0.6],
       // a blow or a spell on his cracked ankle (the two together), and the burst of his fire as he
-      // begins to spit it
+      // begins to spit it (Firespray 2, from its first sound, in place of golem_explosion_on_spitfire)
       ['ankle-1', 'golem_ankle_hit_1.wav', 0, 1.2, -3, 0, 0.4, { group: 'ankle' }],
       ['ankle-2', 'golem_ankle_hit_2.wav', 0, 1.5, -3, 0, 0.5, { group: 'ankle' }],
-      ['explosion', 'golem_explosion_on_spitfire.wav', 0, 3.6, -2, 0, 0.6],
+      ['explosion', 'freeexplosionspitfire/Firespray 2.ogg', 0.035, 2.03, -2, 0, 0.6],
+      // each meteor flung up out of him (one of two), and the swarm of them as they begin (one of two)
+      ['throw-1', 'freemeteor/Rock Meteor Throw 1.ogg', 0, 0.5, -4, 0, 0.1],
+      ['throw-2', 'freemeteor/Rock Meteor Throw 2.ogg', 0, 0.5, -4, 0, 0.1],
+      ['swarm-1', 'freemeteor/Rock Meteor Swarm 1.ogg', 0, 1.97, -3, 0, 0.5],
+      ['swarm-2', 'freemeteor/Rock Meteor Swarm 2.ogg', 0, 1.87, -3, 0, 0.5],
+      // passing out: his stone giving way as he tips over (freepassoutsound's Rock Meteor Throw 2 is
+      // freemeteor's, the very same recording: throw-2), and crumbling as his body hits the floor
+      ['crumble', 'freepassoutsound/Rock Wall 1.ogg', 0, 2.0, -3, 0, 0.6],
     ],
   },
   ronin: {
@@ -120,9 +133,10 @@ const SETS = {
       // with it atk2's rush (in its 2-3 s: from where it's heard, so that it peaks as the bolt is there)
       ...[[0.90, 0.17], [1.91, 0.18], [2.70, 0.26], [3.32, 0.20], [4.41, 0.65], [5.91, 0.15], [6.31, 0.15], [6.99, 0.15], [7.74, 0.16], [8.38, 0.72], [9.49, 0.21], [10.12, 0.43], [11.74, 0.15], [12.92, 0.21], [14.15, 0.17], [15.44, 0.61]].map(([t, len], i) => [`thunder-${i + 1}`, 'maren_atk1.wav', t, len, -4, 0, 0.05]),
       ['thunder-rise', 'maren_atk2_audiobetween2and3.wav', 2.6, 0.42, -3, 0, 0.05],
-      // her Red Storm: the camera closing on her (its 10-13 s, from where its swell is heard,
-      // peaking as the camera gets there)
-      ['ult-zoom', 'maren_ult_start_audiobetween10and13.wav', 10.9, 1.75, -3, 0, 0.3],
+      // her Red Storm: the camera closing on her as R is pressed (maren_ult_start_on_click.mp3, from
+      // its first sound, 0.14 s in: it swells for a second and holds; over as the storm breaks, 1.85 s
+      // on, as the camera lets her go)
+      ['ult-zoom', 'maren_ult_start_on_click.mp3', 0.12, 1.95, -3, 0, 0.4],
     ],
   },
   paladin: {
@@ -132,6 +146,9 @@ const SETS = {
       ['ult', 'aurelion_ult_start1_at4.5s.wav', 4.82, 1.6, -3, 0, 0.5],
       // the giant of his light rising behind him
       ['stand', 'aurelion_stand_appear.wav', 0, 3.0, -3, 0, 0.8],
+      // and striking: one of the fifteen heavy blows in aurelion_stand_hit (each from just before it)
+      ...[1.48, 8.09, 14.21, 20.44, 27.405, 36.515, 47.295, 53.765, 59.885, 67.07, 73.11, 79.225, 85.455, 92.42, 102.965]
+        .map((t, i) => [`stand-hit-${i + 1}`, 'aurelion_stand_hit.wav', t - 0.02, 1.5, -2, 0, 0.7]),
     ],
   },
   champion: {
@@ -139,6 +156,17 @@ const SETS = {
     clips: [
       // Hammerfall: the maul's head driven into the floor, and the golden explosion
       ['land', 'radahn_ult_landing_explosion.wav', 0, 5.5, -2, 0, 1.5],
+      // his maul landing (a blow of his, or thrown: striking, planted): hammer_hit (played deeper:
+      // audio.js) and with it one of the three Sacha chose of hammer_hit_2's (between 1 and 2 s, 10
+      // and 12, 12 and 13), each from just before its crack (1.02, 11.02 and 13.04 s in: the swell
+      // into it left out), so that the two crack together
+      ['hit', 'hammer_hit.mp3', 0.03, 1.0, -3, 0, 0.4],
+      ...[0.98, 10.98, 12.965].map((t, i) => [`hit-2-${i + 1}`, 'hammer_hit_2_variations.mp3', t, 1.15, -3, 0.015, 0.5]),
+      // pulled out and flying back to his hand (between 1 and 3 s, as Sacha wants: its swell at its
+      // loudest at 1.45 s, about as it's in his hand)
+      ['back', 'hammer_coming_back.mp3', 1.0, 2.0, -3, 0.04, 0.8],
+      // spinning out (its one whoosh, from its first sound: heard again and again as it turns)
+      ['woosh', 'hammer_woosh.mp3', 0.02, 0.18, -4, 0, 0.05],
     ],
   },
   frost: {
@@ -147,7 +175,12 @@ const SETS = {
       // a spell of hers landing (the two together, from each one's first sound)
       ['lands-1', 'Fortuna_spell_atk_lands.wav', 0.73, 1.1, -3, 0, 0.4, { group: 'lands' }],
       ['lands-2', 'Fortuna_spell_atk_lands_2.wav', 0.02, 1.1, -3, 0, 0.4, { group: 'lands' }],
-      // Frostfall's mass of ice bursting (from its first sound, 1.78 s in)
+      // a spell of hers loosed (one of two)
+      ['throw-1', 'Ice Throw 1.ogg', 0, 1.05, -3, 0, 0.3],
+      ['throw-2', 'Ice Throw 2.ogg', 0, 0.98, -3, 0, 0.3],
+      // Frostfall's three great icicles shattering as each lands (from its first sound), and its
+      // mass of ice bursting (from its first sound, 1.78 s in)
+      ['icicle', 'new_ice_rock_shattering.ogg', 0.015, 0.8, -3, 0, 0.3],
       ['ult-end', 'Fortuna_ult_debris_explosion_end.wav', 1.76, 1.5, -2, 0, 0.5],
     ],
   },
@@ -164,8 +197,10 @@ const SETS = {
   bloodbender: {
     from: 'IMPORT/Vael',
     clips: [
-      // her gout of blood, loosed (from where it swells, 0.22 s in)
+      // her gout of blood, loosed (from where it swells, 0.22 s in), and landing on what it struck
+      // (from just before its burst, 0.16 s in: the quiet rise before it left out)
       ['blob', 'Vael_blood_blob_projectile.m4a', 0.22, 1.4, -3, 0, 0.3],
+      ['impact', 'atk_impact.ogg', 0.15, 0.73, -3, 0, 0.3],
     ],
   },
   holy: {
@@ -200,7 +235,7 @@ const SETS = {
       // a hammer blow on the anvil (the two together, from each one's ring)
       ['anvil-1', 'anvil-hit-1.wav', 0.22, 1.0, -4, 0, 0.4, { group: 'anvil' }],
       ['anvil-2', 'anvil-hit-2.wav', 0.36, 1.0, -4, 0, 0.4, { group: 'anvil' }],
-      // a spirit ash summoned (a subagent set to work)
+      // the ritual circle invoked (E), and a spirit ash summoned (a subagent set to work)
       ['summon', 'summoning-magic-spell.flac', 0, 3.6, -3, 0, 0.8],
     ],
   },
@@ -211,6 +246,47 @@ const SETS = {
       ['break-1', 'dummy_breaking.wav', 0, 1.7, -3, 0, 0.5, { group: 'break' }],
       ['break-2', 'dummy_breaking_2.wav', 0.02, 0.6, -3, 0, 0.2, { group: 'break' }],
       ['break-3', 'dummy_breaking_3.wav', 0, 0.85, -3, 0, 0.2, { group: 'break' }],
+    ],
+  },
+  steps: {
+    from: 'IMPORT/Base movements',
+    clips: [
+      // a foot set down on stone, walking and running, five of each: plain, and in armour (its
+      // chain clinking)
+      ...[1, 2, 3, 4, 5].flatMap((i) => [
+        [`walk-${i}`, `Stone Walk ${i}.ogg`, 0, 0.5, -4, 0, 0.15],
+        [`run-${i}`, `Stone Run ${i}.ogg`, 0, 0.5, -4, 0, 0.15],
+        [`chain-walk-${i}`, `Stone Chain Walk ${i}.ogg`, 0, 0.5, -4, 0, 0.15],
+        [`chain-run-${i}`, `Stone Chain Run ${i}.ogg`, 0, 0.5, -4, 0, 0.15],
+      ]),
+      // in heels: fifteen of the recording's 34 steps, the clearest (the faint ones would bring the
+      // room's hiss up with them, levelled), each from just before its click, short of the next
+      ...[0.795, 1.285, 1.83, 2.365, 6.965, 7.535, 8.07, 8.635, 9.67, 10.3, 10.88, 16.42, 16.94, 17.485, 17.99]
+        .map((t, i) => [`heels-${i + 1}`, 'heels.wav', t - 0.02, 0.42, -4, 0, 0.2]),
+      // in soft shoes: the step in its fourth second (from 2.96 s, the one heard in it)
+      ['soft', 'footstep_in_the_fourth_second.wav', 2.945, 0.55, -4, 0, 0.25],
+      // barefoot: only the step between 1.4 and 2 s, as Sacha wants (from just before it, 1.65 s)
+      ['bare', 'footsteps-barefoot-tile.wav', 1.635, 0.365, -4, 0, 0.15],
+      // coming down from a dodge or a hop, whoever it is
+      ['land', 'Stone Land.ogg', 0, 0.5, -4, 0, 0.15],
+    ],
+  },
+  cine: {
+    from: 'IMPORT/During everyones ult camera focus',
+    clips: [
+      // anyone's ultimate loosed, the camera closing on them: effect_on_click from about 2 s in, as
+      // Sacha wants (from where it rises, 1.9 s, to its end, 3.39 s), its first two seconds left out
+      ['focus', 'effect_on_click.mp3', 1.89, 1.5, -3, 0, 0.04],
+    ],
+  },
+  blade: {
+    from: 'IMPORT/Base sword sounds',
+    clips: [
+      // a blow's swing: each from 0.12 s before its loudest (combat.js, SWING, has it begin that
+      // long before the blow lands)
+      ['swing-1', 'Sword Attack 1.ogg', 0.045, 0.455, -4, 0.02, 0.15],
+      ['swing-2', 'Sword Attack 2.ogg', 0.057, 0.443, -4, 0.02, 0.15],
+      ['swing-3', 'Sword Attack 3.ogg', 0.141, 0.359, -4, 0.02, 0.15],
     ],
   },
 };
