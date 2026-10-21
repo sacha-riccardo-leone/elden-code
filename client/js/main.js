@@ -470,7 +470,7 @@ function frame(now) {
 // seconds even when the tab is in the background (where requestAnimationFrame pauses).
 window.elden = {
   scene, world, director, demo, rig, renderer, travel, nav, post, perf, daylight, fight, ults,
-  pilot, training, tutorial,
+  pilot, training, tutorial, guide,
   get player() { return pilot.npc; },
   keys,
   advance(seconds) {

@@ -414,12 +414,14 @@ export class Tutorial {
     }
   }
 
-  // The way on, for the golden arrow (guide.js): up the stair from thy yard onto the next, once its
-  // step is done.
-  route() {
-    if (!this.holding || !this.climb || !this.open || this.busy || this.ending) return null;
+  // The way on from where `me` stands, for the golden arrow (guide.js): up the stair from thy yard
+  // onto the next, once its step is done; only what's still ahead of thee (the stair's foot, passed,
+  // would turn the arrow back down it: the way runs east, so a point behind is one west of thee).
+  route(me) {
+    if (!this.holding || !this.climb || !this.open || this.busy || this.ending || !me) return null;
     const s = CLIMB.stairs[this.at];
-    return [[s.x0 - 0.6, CLIMB.z], [s.x1 + 0.6, CLIMB.z], [s.x1 + 3, CLIMB.z]];
+    const way = [[s.x0 - 0.6, CLIMB.z], [s.x1 + 0.6, CLIMB.z], [s.x1 + 3, CLIMB.z]];
+    return way.filter(([x], i) => x > me.pos.x + 0.3 || i === way.length - 1);
   }
 
   // The climb taken away (back at the Hold, or the tutorial over): its rocks, its dummies, its

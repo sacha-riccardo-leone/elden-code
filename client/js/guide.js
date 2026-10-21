@@ -100,7 +100,7 @@ export class Guide {
   update(dt) {
     const { fight, pilot, nav, tutorial } = this.ctx;
     const me = pilot.npc;
-    const route = tutorial?.route(); // (the tutorial's way on, if it's showing one)
+    const route = tutorial?.route(me); // (the tutorial's way on, if it's showing one)
     const want = !!me && !pilot.dead && !me.travel && (route ? true : fight.hunting() && !fight.inArena(me));
     this.show += ((want ? 1 : 0) - this.show) * Math.min(1, dt * 5);
     if (this.show < 0.01) {
