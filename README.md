@@ -1033,7 +1033,7 @@ it starts, each levelled to one peak; a recording's 1 and 2 (and 3) are heard to
 one (left out: `dontuse.wav`, as named; `golem_explosion_on_spitfire` and `maren_ult_start`, and
 the older `maren_ult_start_on_click.wav`, replaced as Sacha asked; `Stone Chain Jump` and
 `Stone Chain Land`, as everyone comes down on `Stone Land`; Ruadan's `hammer_hit`, its sound not
-good enough; Wynn's `unsheathe`, as asked).
+good enough; Wynn's `unsheathe` and Fenrath's `fenrath_appearing`, as asked).
 `node scripts/cut-sfx.mjs [set]` cuts them again, from the recordings, whenever they change; its
 table says what each clip is cut from.
 
@@ -1092,7 +1092,6 @@ table says what each clip is cut from.
     swelling into the shine and gone as the blade goes home;
   - `ult_damage_dealt` as the blade goes home and all of it lands on him at once.
 - **Fenrath** (`client/assets/sfx/Fenrath`):
-  - `fenrath_appearing` as he comes into the arena (from its first sound, 0.9 s in);
   - his great attack: `roar` and `fenrath_big_atk_start` as he roars at the sky; as he springs up,
     `fenrath_big_atk_during` and `fenrath_big_atk_during2` together, on till it ends, then dying
     away; `fenrath_big_atk_sword_hit` on each cut of the ghost of his sword;
@@ -1302,8 +1301,8 @@ Shown in the game too, at the foot of the **?** panel.
   [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) (non-commercial: fine for this
   free demo, not for a game that's sold): "[DSGNVocl_Weird Whispering Spells.Dry_EM](https://freesound.org/s/763000/)"
   by newlocknew, the spectres' whispering.
-- **Named in the recordings themselves**: Fenrath coming, by Mattias "MATRIXXX" Lahoud (Creative
-  Commons Attribution); his landings, by Nox_Sound; his great attack's drone, by In Motion Audio;
+- **Named in the recordings themselves**: Fenrath's landings, by Nox_Sound; his great attack's
+  drone, by In Motion Audio;
   Aurelion's verdict, from *Melee Weapons* by Just Sound Effects (Robert Millotat); setting out, by
   Jake Fielding.
 - **The banners' sound**: "Campana" by Hugo Barbero (Banco de sonidos), `announcement_banner_reveal.wav`.

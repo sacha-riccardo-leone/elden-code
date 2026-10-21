@@ -2044,7 +2044,6 @@ export class Fight {
           this.boss = new Boss(this.ctx, bx, bz, this.kind);
           const Mind = this.boss.kind.Mind;
           if (Mind) this.boss.mind = new Mind(this, this.boss);
-          else this.ctx.sound?.play('boss-appear', { at: [bx, bz] }); // (Fenrath coming: audio.js)
           this.lagHp = this.boss.hp;
           this.focus = false;
           this.introUntil = this.clock + BOSS_CAM.intro; // (the camera shows him a moment, then thee)

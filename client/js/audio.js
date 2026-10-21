@@ -54,9 +54,8 @@ export const SOUNDS = {
   'ronin-cut': { set: 'ronin', clips: ['cut'], volume: 0.8, vary: 0.06, most: 4, half: 22 },
   'ronin-shine-back': { set: 'ronin', clips: ['shine-back'], volume: 0.7, most: 1, half: 18 },
   'ronin-damage': { set: 'ronin', clips: ['damage'], volume: 0.95, most: 1, half: 24 },
-  // Fenrath's (fight.js): coming, his great attack (roar, rumble, the two heard on through it, each
-  // cut of the ghost sword), and landing (one of three)
-  'boss-appear': { set: 'boss', clips: ['appear'], volume: 0.9, most: 1, half: 30 },
+  // Fenrath's (fight.js): his great attack (roar, rumble, the two heard on through it, each cut of
+  // the ghost sword), and landing (one of three)
   'boss-roar': { set: 'boss', clips: ['roar'], volume: 1, most: 1, half: 34 },
   'boss-wrath': { set: 'boss', clips: ['wrath'], volume: 0.9, most: 1, half: 34 },
   'boss-wrath-during': { set: 'boss', clips: ['wrath-during-1', 'wrath-during-2'], layer: true, volume: 0.7, most: 1, half: 40 },

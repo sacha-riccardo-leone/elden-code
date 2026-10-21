@@ -106,8 +106,6 @@ const SETS = {
   boss: {
     from: 'IMPORT/Fenrath',
     clips: [
-      // as he comes into the arena (from its first sound, 0.9 s in)
-      ['appear', 'fenrath_appearing.wav', 0.9, 4.9, -3, 0, 1.0],
       // his great attack: his roar, and the rumble beginning with it
       ['roar', 'roar.wav', 0, 3.6, -2, 0, 0.6],
       ['wrath', 'fenrath_big_atk_start.mp3', 0, 3.9, -3, 0, 0.6],
