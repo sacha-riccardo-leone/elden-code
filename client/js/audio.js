@@ -63,13 +63,14 @@ export const SOUNDS = {
   'boss-land': { set: 'boss', clips: ['land-1', 'land-2', 'land-3'], volume: 1, most: 2, half: 30 },
   // the ultimates' (ults.js): Maren's bolts (one of six each) and her great bolt, the camera closing
   // on her, Aurelion's verdict and his giant (rising, and striking: one of fifteen blows), Ruadan's
-  // landing, Fortuna's mass of ice bursting, Corisande's arrow, Ulric's spears
+  // leap and landing, Fortuna's mass of ice bursting, Corisande's arrow, Ulric's spears
   'knight-bolt': { set: 'knight', clips: ['bolt-1', 'bolt-2', 'bolt-3', 'bolt-4', 'bolt-5', 'bolt-6'], volume: 0.75, vary: 0.08, most: 5, half: 26 },
   'knight-great': { set: 'knight', clips: ['great'], volume: 1, most: 1, half: 34 },
   'knight-ult-zoom': { set: 'knight', clips: ['ult-zoom'], volume: 0.8, most: 1, half: 24 },
   'paladin-ult': { set: 'paladin', clips: ['ult'], volume: 0.85, most: 1, half: 22 },
   'paladin-stand': { set: 'paladin', clips: ['stand'], volume: 0.8, most: 1, half: 22 },
   'paladin-stand-hit': { set: 'paladin', clips: takes('stand-hit', 15), volume: 0.9, vary: 0.05, most: 1, half: 24 },
+  'champion-jump': { set: 'champion', clips: ['jump'], volume: 0.85, most: 1, half: 26 },
   'champion-land': { set: 'champion', clips: ['land'], volume: 1, most: 1, half: 28 },
   // Ruadan's maul (combat.js): landing, a blow of his or thrown (one of five), flying back to his
   // hand, and its whoosh, again and again as it spins out

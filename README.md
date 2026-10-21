@@ -1105,7 +1105,9 @@ table says what each clip is cut from.
   - Aurelion's Radiant Verdict: `aurelion_ult_start1_at4.5s` as it's loosed (its third, from 4.82 s,
     as its name says), `aurelion_stand_appear` as the giant of his light rises behind him, and one
     of the fifteen blows of `aurelion_stand_hit` as the giant strikes;
-  - Ruadan's Hammerfall: `radahn_ult_landing_explosion` as the maul strikes and the gold explodes;
+  - Ruadan's Hammerfall: `ruadan_ult_jump` as he leaps (from 1.2 s, just before its loudest: as
+    he's rising; over as he lands), and `radahn_ult_landing_explosion` as the maul strikes and the
+    gold explodes;
   - Fortuna's Frostfall: `new_ice_rock_shattering` as each of its three great icicles shatters,
     and `Fortuna_ult_debris_explosion_end` as its mass of ice bursts;
   - Corisande's Glintstone Arrow: `ult_hit` as it strikes home;

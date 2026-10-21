@@ -211,6 +211,7 @@ export const ULTS = {
       const drawn = !!(anims.airborne && anims.slam);
       n.action = { kind: 'ult', anim: drawn ? 'airborne' : 'hammer', t: 0, dur: dur + (drawn ? 0.75 : 0.5) };
       n.body.facing = -side;
+      fight.ctx.sound?.play('champion-jump', { at: [from.x, from.y] }); // (the leap: audio.js)
       fx.add(effect((dt) => {
         t += dt;
         const k = Math.min(1, t / dur);

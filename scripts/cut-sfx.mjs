@@ -154,7 +154,9 @@ const SETS = {
   champion: {
     from: 'IMPORT/Ruadan',
     clips: [
-      // Hammerfall: the maul's head driven into the floor, and the golden explosion
+      // Hammerfall: his leap (from 1.2 s, just before its loudest, 1.42 s: as he's rising; over as he
+      // lands), and the maul's head driven into the floor, and the golden explosion
+      ['jump', 'ruadan_ult_jump.mp3', 1.2, 1.25, -3, 0.02, 0.35],
       ['land', 'radahn_ult_landing_explosion.wav', 0, 5.5, -2, 0, 1.5],
       // his maul landing (a blow of his, or thrown: striking, planted): one of the three Sacha chose
       // of hammer_hit_2_variations (between 1 and 2 s, 10 and 12, 12 and 13), each from just before
