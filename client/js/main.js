@@ -219,7 +219,6 @@ document.getElementById('grace-yes').addEventListener('click', () => {
   tutorial.replay();
 });
 document.getElementById('grace-no').addEventListener('click', () => ui.openGrace());
-document.getElementById('grace-leave').addEventListener('click', () => ui.closeGrace());
 let entered = false; // (thou'st set out from the title screen: begin)
 // (what thou mayst do just now: anything, but in the tutorial what its step teaches)
 const may = (kind, act) => (...args) => (tutorial.allows(kind) ? act(...args) : undefined);
