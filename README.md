@@ -1064,8 +1064,9 @@ table says what each clip is cut from.
   Ruadan's, each cut to be at its loudest 0.12 s in and begun that long before the blow lands, so
   that it's at its loudest as it does; yours louder than the others'. Ruadan's maul: one of the
   three Sacha chose of `hammer_hit_2_variations` (between 1 and 2 s, 10 and 12, 12 and 13: each
-  from just before its crack, so that it cracks as the maul lands), as it lands: each blow of his,
-  and thrown, as it strikes something and as its head is driven into the floor. Thrown: `hammer_woosh` at each half turn as it
+  from just before its crack, so that it cracks as the maul lands), or `hammer_hit_2`, or
+  `hammer_hit_3` (levelled a little lower, as loud as the rest), as it lands: each blow of his, and
+  thrown, as it strikes something and as its head is driven into the floor. Thrown: `hammer_woosh` at each half turn as it
   spins out (about six a second), and `hammer_coming_back` (between 1 and 3 s, as named: at its
   loudest about as the maul is in his hand) as it's pulled out of the floor and flies back.
 - **Wynn** (only him; whoever plays him, thee or another), each on the drawing where it happens:
@@ -1118,10 +1119,11 @@ table says what each clip is cut from.
 - **The world**: `anvil-hit-1` and `-2` together with every hammer blow at a forge;
   `summoning-magic-spell` each time you invoke a ritual circle (E) and as a spirit ash (a
   subagent) is summoned; `noble_sorcerer` and `_2`
-  together as a spectre of the Noble Sorcerers is called up at its grace; `dummy_breaking`, `_2` and
-  `_3` together as a dummy of the training yard bursts (a straw one's each at a pitch of its own,
-  anywhere from a little lower to a good deal higher; the great one's louder, and lower than any);
-  and
+  together as a spectre of the Noble Sorcerers is called up at its grace; `dummy_hit` each time a
+  dummy of the training yard is struck (a blow, a spell, each blow of an ultimate; not a poison or
+  a bleeding as it ticks, nor the blow that breaks it), and `dummy_breaking`, `_2` and `_3`
+  together as one bursts (a straw one's each at a pitch of its own, anywhere from a little lower to
+  a good deal higher; the great one's louder, and lower than any, struck as bursting); and
   `after_click_start_your_tarnished_journey` as you set out from the title.
 - **Every banner** (a great enemy approaching, felled, prevailing or turning away, *You Died*, a
   region rising, a quest fulfilled or failed): `announcement_banner_reveal` as it's revealed, from

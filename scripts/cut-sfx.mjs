@@ -16,7 +16,7 @@
 //   bandit       Ulric's spears (combat.js, ults.js), from "Ulric"
 //   spectre      the Noble Sorcerers' spectres (npc.js), from "Noble sorcerers"
 //   work         the stations' (npc.js, interact.js), from "Working"
-//   yard         the training yard's straw dummies (training.js), from "dummy"
+//   yard         the training yard's straw dummies (training.js), from "dummy" (and IMPORT's)
 //   steps        everyone's footsteps, and a dodge or a hop coming down (npc.js, pilot.js, fight.js),
 //                from "Base movements"
 //   blade        the swing of a blow (combat.js), from "Base sword sounds"
@@ -159,8 +159,12 @@ const SETS = {
       // his maul landing (a blow of his, or thrown: striking, planted): one of the three Sacha chose
       // of hammer_hit_2_variations (between 1 and 2 s, 10 and 12, 12 and 13), each from just before
       // its crack (1.02, 11.02 and 13.04 s in: the swell into it left out), so that it cracks as the
-      // maul lands (hammer_hit, its sound not good enough, is left out, as Sacha wants)
+      // maul lands (hammer_hit, its sound not good enough, is left out, as Sacha wants); or
+      // hammer_hit_2 or hammer_hit_3, from their first sound, levelled lower: as loud a peak, they're
+      // louder than the rest
       ...[0.98, 10.98, 12.965].map((t, i) => [`hit-${i + 1}`, 'hammer_hit_2_variations.mp3', t, 1.15, -3, 0.015, 0.5]),
+      ['hit-4', 'hammer_hit_2.mp3', 0, 1.6, -5.5, 0, 0.6],
+      ['hit-5', 'hammer_hit_3.mp3', 0.02, 1.6, -5.5, 0, 0.6],
       // pulled out and flying back to his hand (between 1 and 3 s, as Sacha wants: its swell at its
       // loudest at 1.45 s, about as it's in his hand)
       ['back', 'hammer_coming_back.mp3', 1.0, 2.0, -3, 0.04, 0.8],
@@ -239,12 +243,14 @@ const SETS = {
     ],
   },
   yard: {
-    from: 'dummy',
+    from: '.',
     clips: [
       // a straw dummy bursting (the three together: the wood smashed, struck, and its cloth torn)
-      ['break-1', 'dummy_breaking.wav', 0, 1.7, -3, 0, 0.5, { group: 'break' }],
-      ['break-2', 'dummy_breaking_2.wav', 0.02, 0.6, -3, 0, 0.2, { group: 'break' }],
-      ['break-3', 'dummy_breaking_3.wav', 0, 0.85, -3, 0, 0.2, { group: 'break' }],
+      ['break-1', 'dummy/dummy_breaking.wav', 0, 1.7, -3, 0, 0.5, { group: 'break' }],
+      ['break-2', 'dummy/dummy_breaking_2.wav', 0.02, 0.6, -3, 0, 0.2, { group: 'break' }],
+      ['break-3', 'dummy/dummy_breaking_3.wav', 0, 0.85, -3, 0, 0.2, { group: 'break' }],
+      // and struck (from just before its knock, 0.03 s in)
+      ['hit', 'IMPORT/dummy/dummy_hit.mp3', 0.025, 0.55, -3, 0, 0.2],
     ],
   },
   steps: {

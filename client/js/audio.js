@@ -71,9 +71,9 @@ export const SOUNDS = {
   'paladin-stand': { set: 'paladin', clips: ['stand'], volume: 0.8, most: 1, half: 22 },
   'paladin-stand-hit': { set: 'paladin', clips: takes('stand-hit', 15), volume: 0.9, vary: 0.05, most: 1, half: 24 },
   'champion-land': { set: 'champion', clips: ['land'], volume: 1, most: 1, half: 28 },
-  // Ruadan's maul (combat.js): landing, a blow of his or thrown (one of three), flying back to his
+  // Ruadan's maul (combat.js): landing, a blow of his or thrown (one of five), flying back to his
   // hand, and its whoosh, again and again as it spins out
-  'champion-hit': { set: 'champion', clips: takes('hit', 3), volume: 0.85, vary: 0.06, most: 3, half: 20 },
+  'champion-hit': { set: 'champion', clips: takes('hit', 5), volume: 0.85, vary: 0.06, most: 3, half: 20 },
   'champion-back': { set: 'champion', clips: ['back'], volume: 0.75, most: 1, half: 20 },
   'champion-woosh': { set: 'champion', clips: ['woosh'], volume: 0.55, vary: 0.12, pitch: [0.95, 1.1], most: 3, half: 18 },
   'frost-ult-end': { set: 'frost', clips: ['ult-end'], volume: 1, most: 1, half: 26 },
@@ -91,12 +91,13 @@ export const SOUNDS = {
   'knight-thunder': { set: 'knight', clips: Array.from({ length: 16 }, (_, i) => `thunder-${i + 1}`), volume: 0.75, vary: 0.05, most: 3, half: 20 },
   'knight-thunder-rise': { set: 'knight', clips: ['thunder-rise'], volume: 0.8, most: 2, half: 20 },
   // the world's: a spectre called up, a hammer on an anvil, the ritual circle invoked (interact.js)
-  // and a spirit ash summoned (npc.js), a straw dummy bursting (training.js)
+  // and a spirit ash summoned (npc.js), a straw dummy struck and bursting (training.js)
   'spectre-appear': { set: 'spectre', clips: ['appear-1', 'appear-2'], layer: true, volume: 0.7, most: 2, half: 16 },
   'work-anvil': { set: 'work', clips: ['anvil-1', 'anvil-2'], layer: true, volume: 0.5, vary: 0.06, most: 4, half: 12 },
   'work-summon': { set: 'work', clips: ['summon'], volume: 0.6, most: 2, half: 16 },
   // (a straw dummy's each at a pitch of its own; the great one's lower than any: training.js)
   'yard-break': { set: 'yard', clips: ['break-1', 'break-2', 'break-3'], layer: true, volume: 0.85, vary: 0.05, pitch: [0.9, 1.18], most: 3, half: 20 },
+  'yard-hit': { set: 'yard', clips: ['hit'], volume: 0.7, vary: 0.08, pitch: [0.92, 1.12], most: 4, half: 18 },
   // a blow's swing, as it lands (combat.js): anyone's with a blade, a spear or a fist, but Wynn's
   // (his own, above) and Ruadan's (his maul's, above)
   'blade-swing': { set: 'blade', clips: takes('swing', 3), volume: 0.55, vary: 0.08, pitch: [0.95, 1.05], most: 4, half: 16 },

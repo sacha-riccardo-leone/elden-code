@@ -249,6 +249,9 @@ class Dummy {
     }
     this.wobble = { t: 0, dir: dir || 1 };
     this.training.chips(this, 6, 1.4);
+    // (a blow, a spell, an ultimate's every blow: heard, each at a pitch of its own, the great one's
+    // lowest; not a poison or a bleeding ticking, unflashed, nor the blow that breaks it: audio.js)
+    if (flash) this.training.ctx.sound?.play('yard-hit', { at: [this.pos.x, this.pos.y], pitch: this.great ? GREAT.pitch : null });
   }
 
   step(dt) {
