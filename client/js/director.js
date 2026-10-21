@@ -48,11 +48,13 @@ const SINK_GAP = 20; // between islands sinking one after another (the public de
 const LEAVE_AFTER = 2.5; // a newcomer sits at the Round Table at least this long
 // The Twofold's change of form (seconds): the drawing of the change replaces the old form, then
 // the new form bursts out, then it's free to move again.
-const SHIFT = { change: 0.8, reveal: 3.4, end: 4.0 };
+// (and what's heard of it, begun `lead` before the new form bursts out, so that it's at its loudest
+// then: audio.js)
+const SHIFT = { change: 0.8, reveal: 3.4, end: 4.0, sound: 'twofold-change', lead: 0.35 };
 // The Glintstone Witch's mask going on or coming off (seconds), the same way, only quicker. She
 // wears it to work her sorcery and to fight, takes it off once she has been idle `keep` seconds,
 // and changes no oftener than every `gap` seconds.
-const VEIL = { change: 0.3, reveal: 1.5, end: 1.9 };
+const VEIL = { change: 0.3, reveal: 1.5, end: 1.9, sound: 'sorceress-mask', lead: 0.6 };
 const MASK = { keep: 12, gap: 6 };
 
 // What a hand-drawn hero carries while no Claude Code session has taken them up.
@@ -169,6 +171,10 @@ export class Director {
     const middle = n.forms[n.forms[s.to]?.rig.via];
     s.t += dt;
     s.glow -= dt;
+    if (!s.heard && s.t >= timing.reveal - timing.lead) {
+      s.heard = true;
+      this.ctx.sound?.play(timing.sound, { at: [n.pos.x, n.pos.y] });
+    }
     // (the light comes up as it gathers, and dies away once the new form has burst out)
     s.light.at(n.pos.x, groundAt(n.pos.x, n.pos.y) + 1.3, n.pos.y + 0.5);
     s.light.level = s.t < timing.reveal ? Math.min(1, s.t / 0.3) : Math.max(0, 1 - (s.t - timing.reveal) / Math.max(0.1, timing.end - timing.reveal));

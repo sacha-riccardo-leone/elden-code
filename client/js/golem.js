@@ -608,6 +608,7 @@ export class GolemMind {
         this.sound('strike', tip, z, 0.75);
         this.fight.strike((px, pz) => covers(a, px, pz, Math.abs(tip - b.pos.x)), H.lunge);
         const w = new AirWave(scene, tip, ty, z, a.dir, GOLEM.lunge.air);
+        this.sound('air-shock', tip, z); // (the shock of air thrown on past the axe: audio.js)
         this.fight.fx.push({
           step: (dt) => {
             const on = w.step(dt);
@@ -670,6 +671,9 @@ export class GolemMind {
         // burst of it as it comes out of him)
         if (!a.roar) this.roar(a);
         this.sound('explosion', this.spot(SPOTS.chest)[0]);
+        break;
+      case 'roll:1':
+        this.sound('roll'); // (over he goes: audio.js)
         break;
       case 'roll:6':
         this.slamIn = Math.max(this.slamIn, 6);

@@ -61,6 +61,7 @@ sound.view = { camera, focus: rig.target };
 for (const set of new Set(Object.values(SOUNDS).map((s) => s.set))) if (set !== 'golem') sound.load(set);
 const particles = new Particles(scene);
 const world = new World(scene, particles);
+world.sound = sound; // (what the islands make heard of themselves: a raven taking wing, the bell, region.js)
 setLights(world); // (what glows lights the world round it: lights.js)
 const nav = new Nav(world);
 const ui = new UI(camera, canvas);

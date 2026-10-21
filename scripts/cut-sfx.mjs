@@ -21,6 +21,7 @@
 //   steps        everyone's footsteps, and a dodge or a hop coming down (npc.js, pilot.js, fight.js),
 //                from "Base movements"
 //   blade        the swing of a blow (combat.js), from "Base sword sounds"
+//   player       thou, struck (fight.js), from those loose in IMPORT
 //   cine         the world standing still as an ultimate is loosed (ults.js), from "During everyones
 //                ult camera focus"
 //   ui           the banners' and setting out's (ui.js, main.js), from those loose in client/assets/sfx
@@ -68,6 +69,10 @@ const SETS = {
       // passing out: his stone giving way as he tips over (freepassoutsound's Rock Meteor Throw 2 is
       // freemeteor's, the very same recording: throw-2), and crumbling as his body hits the floor
       ['crumble', 'freepassoutsound/Rock Wall 1.ogg', 0, 2.0, -3, 0, 0.6],
+      // rolling out of the crowd (a second of the recording's rumbling, its loudest), and the shock of
+      // air his lunge throws on past the axe (its whoosh, from its first sound)
+      ['roll', 'golem_roll.mp3', 4.9, 1.05, -3, 0.05, 0.3],
+      ['air-shock', 'golem_air_shock.mp3', 0.05, 1.25, -3, 0, 0.3],
     ],
   },
   ronin: {
@@ -123,6 +128,11 @@ const SETS = {
       ['crescent', 'fenrath_red_crescent sound.mp3', 0.03, 0.9, -3, 0, 0.4],
       ['lunge', 'fenrath_lunge.mp3', 0.2, 2.5, -3, 0, 0.6],
       ['slam', 'slam.mp3', 0.25, 2.75, -4.2, 0, 1.0],
+      // the slam's ring of light gathering round him (from its first sound: hushed as he slams), and
+      // the ring erupting at the end of his great attack (from its first sound; over full scale in
+      // its recording too: levelled lower)
+      ['slam-charge', 'fenrath_slam_charge.mp3', 0.05, 2.4, -3, 0.05, 0.4],
+      ['eruption', 'fenrath_eruption.mp3', 0.1, 3.4, -6, 0, 1.0],
       // his leap: trembling as he crouches (a stretch of the recording's steady 42 s, stopped as he
       // springs), and springing (from just before its loudest, 0.99 s in)
       ['tremble', 'fenrath_trembling_before_jump.mp3', 1.0, 1.4, -4, 0.1, 0.3],
@@ -189,6 +199,8 @@ const SETS = {
       // golden explosion
       ['jump', 'ruadan_ult_jump.mp3', 1.2, 1.25, -3, 0.02, 0.35],
       ['land', 'radahn_ult_landing_explosion.wav', 0, 5.5, -2, 0, 1.5],
+      // the Twofold changing form at dusk and dawn (Ruadan one of the two: from its first sound)
+      ['change', 'twofold_change.mp3', 0.05, 2.2, -3, 0, 0.6],
       // his maul landing (a blow of his, or thrown: striking, planted): one of the three Sacha chose
       // of hammer_hit_2_variations (between 1 and 2 s, 10 and 12, 12 and 13), each from just before
       // its crack (1.02, 11.02 and 13.04 s in: the swell into it left out), so that it cracks as the
@@ -228,6 +240,9 @@ const SETS = {
       ['projectile-2', 'Sellen_projectile_2.wav', 0, 1.6, -4, 0, 0.5, { group: 'projectile' }],
       // her Glintstone Arrow striking home
       ['ult-hit', 'ult_hit.wav', 0.08, 2.4, -2, 0, 0.6],
+      // her mask going on or coming off (the two together, as Sacha wants: in Ruadan's folder)
+      ['mask-1', '../Ruadan/sellen_mask1.mp3', 0, 1.3, -3, 0, 0.3, { group: 'mask' }],
+      ['mask-2', '../Ruadan/sellen_mask2.mp3', 0, 2.0, -3, 0, 0.6, { group: 'mask' }],
     ],
   },
   bloodbender: {
@@ -273,6 +288,10 @@ const SETS = {
       ['anvil-2', 'anvil-hit-2.wav', 0.36, 1.0, -4, 0, 0.4, { group: 'anvil' }],
       // the ritual circle invoked (E), and a spirit ash summoned (a subagent set to work)
       ['summon', 'summoning-magic-spell.flac', 0, 3.6, -3, 0, 0.8],
+      // a raven taking wing (its wings beating, seven times, dying away as it flies off), and the
+      // bell rung at the fog gate (struck, and ringing on)
+      ['raven', 'raven.mp3', 0.1, 3.45, -4, 0, 1.2],
+      ['bell', 'bell.mp3', 0.05, 3.6, -3, 0, 1.2],
     ],
   },
   yard: {
@@ -324,6 +343,14 @@ const SETS = {
       ['book-1', 'jorvik_ult_book1.mp3', 0.03, 2.0, -3, 0, 0.8],
       ['book-2', 'jorvik_ult_book2.mp3', 0, 2.0, -3, 0, 0.8],
       ['book-3', 'jorvik_ult_book3.mp3', 0.15, 2.0, -3, 0, 0.8],
+    ],
+  },
+  player: {
+    from: 'IMPORT',
+    clips: [
+      // thou, struck (from its first sound, half a second in; over full scale in the recording:
+      // levelled lower)
+      ['hurt', 'player_hurt.mp3', 0.48, 0.7, -5, 0, 0.3],
     ],
   },
   blade: {

@@ -318,7 +318,8 @@ class Boss {
     for (const m of this.marks) m.dispose();
     this.marks = [];
     this.attack?.during?.stop(1.5); // (his great attack's sound, dying away with it)
-    this.attack?.tremble?.stop(0.2); // (and his leap's trembling, cut short)
+    this.attack?.tremble?.stop(0.2); // (and his leap's trembling, cut short, or his slam's gathering)
+    this.attack?.charge?.stop(0.2);
     this.mind?.endMove(); // (while the move is still known: the Golem's fire, its roar and light, end with it)
     this.attack = null;
   }
@@ -801,6 +802,7 @@ export class Fight {
     const n = pilot.npc;
     if (!n || pilot.dead || n.travel || n.action?.kind === 'dodge') return; // nothing touches thee mid-dodge, or travelling by grace
     pilot.hp = Math.max(0, pilot.hp - dmg);
+    this.ctx.sound?.play('player-hurt', { at: [n.pos.x, n.pos.y] }); // (struck: audio.js)
     this.ui.hurt.classList.remove('flash');
     void this.ui.hurt.offsetWidth;
     this.ui.hurt.classList.add('flash');
@@ -1407,10 +1409,12 @@ export class Fight {
       }
       case 'slam:0':
         b.marks.push(new Decal(scene, 'ring', x, z, decalSize('ring', SLAM.r), { opacity: 0.35 }));
-        this.ctx.sound?.play('boss-anticipation', { at: [x, z] });
+        a.charge = this.ctx.sound?.play('boss-slam-charge', { at: [x, z] }) || null; // (its light gathering: hushed as he slams)
         break;
       case 'slam:1': {
         // the blade into the ground: the ring fills with light, and all inside it suffer
+        a.charge?.stop(0.15);
+        a.charge = null;
         this.ctx.sound?.play('boss-slam', { at: [x, z] });
         for (const m of b.marks) m.dispose();
         b.marks = [];
@@ -1697,6 +1701,7 @@ export class Fight {
     const { scene, particles } = this.floor;
     const { rig } = this.ctx;
     const { cx, cz } = this.ctx.world.arena;
+    this.ctx.sound?.play('boss-eruption', { at: [cx, cz] }); // (audio.js)
     const E = WRATH.erupt;
     const R = ARENA.walkRadius;
     const inner = WRATH.safe;

@@ -865,6 +865,9 @@ export class Region extends Builder {
 
   ringBell() {
     this.bellSwing = Math.max(this.bellSwing, 0.6);
+    // (heard where it hangs: audio.js, the world's sound, main.js)
+    const at = this.bell.getWorldPosition(new THREE.Vector3());
+    this.world.sound?.play('work-bell', { at: [at.x, at.z] });
   }
 
   sendRaven() {
@@ -875,6 +878,9 @@ export class Region extends Builder {
     d.t = 0;
     d.dir = Math.random() < 0.5 ? -1 : 1;
     d.from = raven.position.clone();
+    // (its wings heard as it takes off: audio.js)
+    const at = raven.getWorldPosition(new THREE.Vector3());
+    this.world.sound?.play('work-raven', { at: [at.x, at.z] });
   }
 
   forgeStrike() {

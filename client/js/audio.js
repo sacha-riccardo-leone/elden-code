@@ -46,6 +46,9 @@ export const SOUNDS = {
   'golem-swarm': { set: 'golem', clips: ['swarm-1', 'swarm-2'], volume: 0.8, most: 1, half: 30 },
   'golem-tip': { set: 'golem', clips: ['throw-2'], volume: 0.85, most: 1, half: 26 },
   'golem-crumble': { set: 'golem', clips: ['crumble'], volume: 0.9, most: 1, half: 30 },
+  // (rolling out of the crowd, and the shock of air his lunge throws)
+  'golem-roll': { set: 'golem', clips: ['roll'], volume: 0.8, most: 1, half: 26 },
+  'golem-air-shock': { set: 'golem', clips: ['air-shock'], volume: 1, most: 2, half: 26 },
   // Wynn's, and nobody else's (heroes/ronin.js: on the drawings where they happen; ults.js)
   'ronin-slash': { set: 'ronin', clips: ['slash'], volume: 0.75, vary: 0.06, most: 3, half: 18 },
   'ronin-ult': { set: 'ronin', clips: ['ult'], volume: 0.9, most: 1, half: 22 },
@@ -67,6 +70,8 @@ export const SOUNDS = {
   'boss-crescent': { set: 'boss', clips: ['crescent'], volume: 0.6, vary: 0.05, most: 2, half: 24 },
   'boss-lunge': { set: 'boss', clips: ['lunge'], volume: 0.85, most: 2, half: 28 },
   'boss-slam': { set: 'boss', clips: ['slam'], volume: 0.9, most: 1, half: 30 },
+  'boss-slam-charge': { set: 'boss', clips: ['slam-charge'], volume: 0.75, most: 1, half: 28 },
+  'boss-eruption': { set: 'boss', clips: ['eruption'], volume: 1, most: 1, half: 40 },
   'boss-tremble': { set: 'boss', clips: ['tremble'], volume: 0.6, most: 1, half: 26 },
   'boss-jump': { set: 'boss', clips: ['jump'], volume: 0.85, most: 1, half: 30 },
   'boss-hit': { set: 'boss', clips: ['hit'], volume: 0.55, vary: 0.1, pitch: [0.92, 1.08], most: 3, half: 22 },
@@ -92,6 +97,10 @@ export const SOUNDS = {
   'paladin-theme': { set: 'paladin', clips: ['theme'], volume: 1, most: 1, half: 24, duck: 0.25 },
   'champion-jump': { set: 'champion', clips: ['jump'], volume: 0.85, most: 1, half: 26 },
   'champion-land': { set: 'champion', clips: ['land'], volume: 1, most: 1, half: 28 },
+  // the Twofold changing form (director.js), and the Glintstone Witch's mask going on or off (the two
+  // together), each at its loudest as the new form bursts out
+  'twofold-change': { set: 'champion', clips: ['change'], volume: 0.8, most: 1, half: 22 },
+  'sorceress-mask': { set: 'sorceress', clips: ['mask-1', 'mask-2'], layer: true, volume: 0.6, most: 1, half: 18 },
   // Ruadan's maul (combat.js): landing, a blow of his or thrown (one of five), flying back to his
   // hand, and its whoosh, again and again as it spins out
   'champion-hit': { set: 'champion', clips: takes('hit', 5), volume: 0.85, vary: 0.06, most: 3, half: 20 },
@@ -116,6 +125,11 @@ export const SOUNDS = {
   'spectre-appear': { set: 'spectre', clips: ['appear-1', 'appear-2'], layer: true, volume: 0.7, most: 2, half: 16 },
   'work-anvil': { set: 'work', clips: ['anvil-1', 'anvil-2'], layer: true, volume: 0.5, vary: 0.06, most: 4, half: 12 },
   'work-summon': { set: 'work', clips: ['summon'], volume: 0.6, most: 2, half: 16 },
+  // (a raven taking wing from its tower, and the fog gate's bell rung: region.js)
+  'work-raven': { set: 'work', clips: ['raven'], volume: 0.45, vary: 0.08, pitch: [0.95, 1.05], most: 2, half: 16 },
+  'work-bell': { set: 'work', clips: ['bell'], volume: 0.5, vary: 0.05, pitch: [0.96, 1.04], most: 2, half: 18 },
+  // thou, struck (fight.js: by a great enemy, or the tutorial's shockwaves)
+  'player-hurt': { set: 'player', clips: ['hurt'], volume: 0.8, vary: 0.08, pitch: [0.94, 1.06], most: 2, half: 20 },
   // (a straw dummy's each at a pitch of its own; the great one's lower than any: training.js)
   'yard-break': { set: 'yard', clips: ['break-1', 'break-2', 'break-3'], layer: true, volume: 0.85, vary: 0.05, pitch: [0.9, 1.18], most: 3, half: 20 },
   'yard-hit': { set: 'yard', clips: ['hit'], volume: 0.7, vary: 0.08, pitch: [0.92, 1.12], most: 4, half: 18 },

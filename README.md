@@ -1054,7 +1054,9 @@ table says what each clip is cut from.
     the fire comes), `Firespray 2` (`freeexplosionspitfire`) as it bursts out of him, the blaze
     burning on, looped, while he does, and dying away as he stops;
   - each meteor as it's flung up out of him (`Rock Meteor Throw 1` or `2`, `freemeteor`) and as it
-    lands, and the swarm of them (`Rock Meteor Swarm 1` or `2`) as the first is flung.
+    lands, and the swarm of them (`Rock Meteor Swarm 1` or `2`) as the first is flung;
+  - `golem_roll` as he rolls out of the crowd (a second of its rumbling), and `golem_air_shock` as
+    his lunge throws its shock of air on past the axe.
 - **Footsteps** (everyone's, `client/js/npc.js`): each foot as it's set down, on the walk's first
   and fourth drawings (where every rig's walk has a foot land), one of its kind's at random and a
   little different each time, its pitch and loudness: Maren, Aurelion, Ulric and Jorvik in armour,
@@ -1094,7 +1096,8 @@ table says what each clip is cut from.
   - `ult_damage_dealt` as the blade goes home and all of it lands on him at once.
 - **Fenrath** (`client/assets/sfx/Fenrath`):
   - `fenrath_appearing` (the newer recording) as he comes into the arena;
-  - `fenrath_anticipation_atk` as he draws back each blow (the swing, the lunge, the slam); the
+  - `fenrath_anticipation_atk` as he draws back his swing and his lunge; `fenrath_slam_charge` as
+    the ring of light gathers round him for his slam (hushed as he slams); the
     swing's cut: `fenrath_sword_woosh` (from just before its loudest) and `fenrath_greatsword_hit`
     as the greatsword lands, with `fenrath_arch` and the first second of `fenrath_red_crescent` as
     the arc of red light leaves his sword; `fenrath_lunge` (Sacha's newer recording) begun as he
@@ -1107,6 +1110,7 @@ table says what each clip is cut from.
     it ticks), no more than one a moment; `fenrath_death` as he's felled;
   - one of the four growls in `fenrath_growls` as he speaks, as his stance breaks, and every 8 to 14
     seconds as he fights, never two within 2.5 seconds;
+  - `fenrath_eruption` as the ring erupts at the end of his great attack;
   - his great attack: `roar` and `fenrath_big_atk_start` as he roars at the sky; as he springs up,
     `fenrath_big_atk_during` and `fenrath_big_atk_during2` together, on till it ends, then dying
     away; `fenrath_big_atk_sword_hit` on each cut of the ghost of his sword;
@@ -1149,13 +1153,18 @@ table says what each clip is cut from.
   `_2` together as it lands on what it struck.
 - **The world**: `anvil-hit-1` and `-2` together with every hammer blow at a forge;
   `summoning-magic-spell` each time you invoke a ritual circle (E) and as a spirit ash (a
-  subagent) is summoned; `noble_sorcerer` and `_2`
+  subagent) is summoned; `raven` as a raven takes wing from its tower (its wings beating, dying away
+  as it flies off); `bell` each time the bell at a fog gate rings; `noble_sorcerer` and `_2`
   together as a spectre of the Noble Sorcerers is called up at its grace; `dummy_hit` each time a
   dummy of the training yard is struck (a blow, a spell, each blow of an ultimate; not a poison or
   a bleeding as it ticks, nor the blow that breaks it), and `dummy_breaking`, `_2` and `_3`
   together as one bursts (a straw one's each at a pitch of its own, anywhere from a little lower to
   a good deal higher; the great one's louder, and lower than any, struck as bursting); and
   `after_click_start_your_tarnished_journey` as you set out from the title.
+- **Changing form**: `twofold_change` as the Twofold changes at dusk and dawn, and `sellen_mask1` and
+  `sellen_mask2` together as Corisande's mask goes on or comes off, each at its loudest as the new
+  form bursts out.
+- **You, struck** (by a great enemy, or the tutorial's shockwaves): `player_hurt`.
 - **Every banner** (a great enemy approaching, felled, prevailing or turning away, *You Died*, a
   region rising, a quest fulfilled or failed): `announcement_banner_reveal` as it's revealed, from
   its first sound (0.65 s in: silent before), swelling as the banner comes up and dying away about
