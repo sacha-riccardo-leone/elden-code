@@ -45,6 +45,7 @@ import { GOLEM, GOLEM_MOVES, GolemMind } from './golem.js';
 import { setFoe } from './voices.js';
 import { clearRipples, rippleAt, stepRipples } from './ripple.js';
 import { groundAt } from './ground.js';
+import { drawFace } from './faces.js';
 import { styleOf, blow, castSpell, muzzleOf, SPELL, RANGED, ultFill, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot, struckOf, reachOf } from './combat.js';
 
 // reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
@@ -56,6 +57,10 @@ const DAMAGE = { player: 55, fighter: 16, quest: 0.25 }; // quest: the share of 
 // to `most` metres nearer in his eyes (target); past `leap` of it, and `far` off, he comes down on
 // them with his leap (think).
 const HUNT = { from: 5.5, half: 5, per: 0.04, most: 8, leap: 60, far: 7 };
+// The faces by the health bars (faces.js, game.css): how big thine is and each of the others'
+// (CSS pixels inside the frame), and how long a face takes to fly from one frame to another as
+// thou carriest on as someone else (flySwap).
+const FACES = { me: 44, ally: 28, fly: 0.55 };
 // How Fenrath turns (think): he keeps to one foe `keep` seconds (not whoever stands nearest this
 // very moment: two about as near either side of him would have him turn back and forth every
 // frame); one more than `dead` behind him he turns round to once it has stayed there `after`
@@ -366,6 +371,7 @@ export class Fight {
       bossHp: document.querySelector('#boss .hp'),
       bossLag: document.querySelector('#boss .lag'),
       bossDmg: document.querySelector('#boss .dmg'),
+      meFace: document.getElementById('me-face'),
       hp: document.getElementById('hp'),
       hpBar: document.querySelector('#hp i'),
       ult: document.getElementById('ult'),
@@ -379,6 +385,8 @@ export class Fight {
     this.dmgUntil = 0;
     this.fallen = 0; // Tarnished fallen (for good) in this fight
     this.partyRows = new Map(); // npc -> its row under thy health (updateParty)
+    this.meFrame = this.frameOf(this.ui.meFace); // thy face, by thy health
+    this.swap = null; // faces to fly as thou carriest on as another (carryOn, flySwap)
     this.says = []; // his words to come: { at, text } (say)
   }
 
@@ -2208,7 +2216,11 @@ export class Fight {
     const { pilot, ui } = this.ctx;
     if (!pilot.dead || !this.carry || !npc.fighter || npc.fighter.dead || npc.piloted || npc.dead) return;
     const old = pilot.npc;
-    if (old) old.fighter = { ...(old.fighter || {}), hp: 0, dead: true, down: 1.5, vx: 0, vz: 0, speed: 0 };
+    // (the body left, fallen, at the foot of the others; its face flying down there as the new one's
+    // flies up into thine: flySwap)
+    if (old) old.fighter = { ...(old.fighter || {}), hp: 0, dead: true, down: 1.5, vx: 0, vz: 0, speed: 0, line: 1000 + this.fallen };
+    const from = this.partyRows.get(npc)?.face.el.getBoundingClientRect();
+    this.swap = old && from ? { up: npc, down: old, from } : null;
     pilot.dead = false;
     pilot.hp = Math.max(1, (npc.fighter.hp / 100) * pilot.maxHp);
     pilot.take(npc);
@@ -2253,11 +2265,75 @@ export class Fight {
     el.ult.hidden = !(fighting || this.ctx.training?.lesson?.ult);
     el.ultBar.style.width = `${100 * ult}%`;
     el.ult.classList.toggle('full', ult >= 1);
+    // thy face by them: whoever thou art just now
+    el.meFace.hidden = !me || (el.hp.hidden && el.ult.hidden);
+    if (!el.meFace.hidden) this.showFace(this.meFrame, me, FACES.me, pilot.hp / pilot.maxHp, pilot.dead);
     this.updateParty();
+    if (this.swap) this.flySwap();
   }
 
-  // Under thy health, the others in the fight: each one's name and health, in the order they
-  // lined up, the fallen greyed and struck through (out for good).
+  // A face's frame (faces.js): what's drawn in it, and whose health was last seen in it.
+  frameOf(el) {
+    return { el, canvas: el.querySelector('canvas'), sheet: null, n: null, hp: 1 };
+  }
+
+  // A face in its frame, kept up to date: drawn again only when whose it is changes (or the drawing
+  // they wear: the Twofold at dusk, the Witch's mask); darkened once they've fallen; a red light round
+  // its inside as they're struck (their health going down), a white-gold one while their ultimate
+  // is loosed (game.css).
+  showFace(frame, n, size, hp, dead) {
+    const sheet = n?.body?.sheet || null;
+    if (frame.sheet !== sheet) {
+      frame.sheet = sheet;
+      drawFace(frame.canvas, sheet, size);
+    }
+    frame.el.classList.toggle('dead', !!dead);
+    frame.el.classList.toggle('ulting', !dead && n?.action?.kind === 'ult');
+    // (the red light: once, as long as its flash lasts, game.css; else it would flash again as an
+    // ultimate's light goes out)
+    const now = performance.now();
+    if (frame.n === n && hp < frame.hp - 1e-3) {
+      frame.el.classList.remove('hurt');
+      void frame.el.offsetWidth;
+      frame.el.classList.add('hurt');
+      frame.hurtUntil = now + 700;
+    } else if (frame.hurtUntil && now > frame.hurtUntil) {
+      frame.el.classList.remove('hurt');
+      frame.hurtUntil = 0;
+    }
+    frame.n = n;
+    frame.hp = hp;
+  }
+
+  // Carried on as another: their face flies up out of its row into thy frame, growing as it goes,
+  // and the fallen one's flies down out of it to the foot of the others (each frame showing its
+  // own again once its face is there).
+  flySwap() {
+    const { up, down, from } = this.swap;
+    this.swap = null;
+    const me = this.meFrame;
+    const below = this.partyRows.get(down)?.face;
+    if (me.el.hidden || !below || !up.body || !down.body) return;
+    const big = me.el.getBoundingClientRect();
+    const fly = (n, a, b, land, dead) => {
+      const el = document.createElement('div');
+      el.className = `face face-fly${dead ? ' dead' : ''}`;
+      const canvas = document.createElement('canvas');
+      el.append(canvas);
+      drawFace(canvas, n.body.sheet, FACES.me);
+      document.body.append(el);
+      land.style.visibility = 'hidden';
+      const box = (r) => ({ left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
+      const done = () => { el.remove(); land.style.visibility = ''; };
+      el.animate([box(a), box(b)], { duration: FACES.fly * 1000, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'forwards' }).finished.then(done, done);
+    };
+    fly(up, from, big, me.el, false);
+    fly(down, big, below.el.getBoundingClientRect(), below.el, true);
+  }
+
+  // Under thy health, the others in the fight: each one's face, name and health, in the order they
+  // lined up (one thou'st carried on from at the foot), the fallen greyed and struck through (out
+  // for good).
   updateParty() {
     const el = this.ui.party;
     const allies = [...this.ctx.director.npcs.values()].filter((n) => n.fighter && !n.piloted).sort((a, b) => a.fighter.line - b.fighter.line);
@@ -2270,6 +2346,11 @@ export class Fight {
       if (!row) {
         const div = document.createElement('div');
         div.className = 'ally';
+        const face = document.createElement('div');
+        face.className = 'face';
+        face.append(document.createElement('canvas'));
+        const info = document.createElement('div');
+        info.className = 'ally-info';
         const name = document.createElement('span');
         name.className = 'ally-name';
         name.textContent = n.name.first;
@@ -2285,8 +2366,9 @@ export class Fight {
         const charge = document.createElement('i');
         ult.append(charge);
         bars.append(bar, ult);
-        div.append(name, bars);
-        row = { el: div, fill, ult, charge };
+        info.append(name, bars);
+        div.append(face, info);
+        row = { el: div, fill, ult, charge, face: this.frameOf(face) };
         this.partyRows.set(n, row);
       }
       if (el.children[i] !== row.el) el.insertBefore(row.el, el.children[i] || null);
@@ -2295,6 +2377,7 @@ export class Fight {
       row.fill.style.width = `${Math.max(0, f.hp)}%`;
       row.charge.style.width = `${100 * (f.ult || 0)}%`;
       row.ult.classList.toggle('full', (f.ult || 0) >= 1);
+      this.showFace(row.face, n, FACES.ally, Math.max(0, f.hp) / 100, f.dead);
     });
   }
 }

@@ -343,6 +343,7 @@ export default {
   head: 117, // art pixels from the ground to the top of the hair
   hits: { hammer: 3, cast: 1, send: 1, attack: 4 },
   feet: 'heels', // (each foot heard as it's set down: in heels, npc.js)
+  face: { x: 2, y: 5 }, // (her face in the fight's party, faces.js: under her crown)
   lunge: { attack: 0.35 }, // (her drawing thrown forward as the lance leaves the ring: npc.js)
   muzzles: { attack: muzzleAt(DRAWN.attack[1]), ult: muzzleAt(DRAWN.ult[1]) },
   glowIntensity: 1.3,

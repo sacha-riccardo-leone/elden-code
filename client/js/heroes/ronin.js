@@ -310,6 +310,7 @@ export default {
   px: 2.05 / 80, // world units per art pixel: his face, under the kasa, is level with the knight's visor
   head: 112, // art pixels from the ground to the tip of the kasa
   hits: { hammer: 4, cast: 1, send: 2, attack: 4 },
+  face: { y: 8, crop: 0.4 }, // (his face in the fight's party, faces.js: the hat, the shadow under it, the scarf)
   lunge: { attack: 0.35 }, // (his drawing thrown forward as the blade cuts: npc.js)
   // what's heard, by animation and step (audio.js; npc.js, heard): his blade cutting, as the cut is
   // drawn; his Iaijutsu loosed, as he takes his stance; half a second on, the glare flashing up on

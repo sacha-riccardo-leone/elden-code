@@ -273,6 +273,7 @@ export default {
   head: 95, // art pixels from the ground to the top of his hair
   hits: { hammer: 4, cast: 1, send: 1, attack: 4, spell: 4 },
   feet: 'bare', // (each foot heard as it's set down: barefoot, npc.js)
+  face: { x: 4, y: 1 }, // (his face in the fight's party, faces.js: before his hair)
   muzzles: { attack: muzzleAt(DRAWN.throw[0]) }, // (his maul thrown)
   lunge: { attack: 0.35 }, // (his drawing thrown forward as the maul comes down: npc.js)
   glowIntensity: 0.8, // he glows in many places at once: keep each one gentle

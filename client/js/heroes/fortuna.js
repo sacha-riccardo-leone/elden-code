@@ -307,6 +307,7 @@ export default {
   head: 140, // art pixels from the ground to the top of the hat
   hits: { hammer: 4, cast: 1, send: 1, attack: 4, spell: 1 },
   feet: 'heels', // (each foot heard as it's set down: in heels, npc.js)
+  face: { x: 14, y: 22, crop: 0.28 }, // (her face in the fight's party, faces.js: under her great hat)
   lunge: { attack: 0.35 }, // (her drawing thrown forward as the slash lands, springing back: npc.js)
   glowIntensity: 0.95,
   glowColors: [[24, 96, 210], [140, 196, 250]],

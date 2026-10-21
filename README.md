@@ -800,8 +800,13 @@ ground under you instead, so it flies at your hand's height there too.
   the charge, falling back, mourning the fallen, the victory). From the moment the enemy is
   announced until it's over, the message log carries only the fight. What the sessions did
   meanwhile is taken up again afterwards.
-- **The others' health:** under your own health bar (top left), each fighter's name and health,
-  in the order they lined up. The fallen stay greyed out and struck through.
+- **Faces and health:** top left, your character's face in a square frame like the companion
+  slots, your health and ultimate meter beside it. Under it, each fighter in a smaller frame, with
+  their name over their health and meter, in the order they lined up (`client/js/faces.js`: each
+  face is the head and shoulders of the character's own idle drawing). A face darkens once its
+  fighter has fallen (the name greyed and struck through). Its frame lights red round the inside
+  for a moment each time its fighter is struck, and white-gold, pulsing, while its fighter's
+  ultimate is loosed.
 - **The enemy waits for you:** it enters only once you stand on the arena. Until then the others
   wait for you in a curved line just inside the way in. The line follows the arena's round, in two
   wings facing a wide aisle down the middle for you to walk through (`LINE` in
@@ -954,7 +959,8 @@ ground under you instead, so it flies at your hand's height there too.
     to Roundtable Hold and rests at the grace until the fight is over.
   - When you fall, you see "YOU DIED", and the character you were is out too: it goes to rest at
     the Hold like the others. A panel then lists the fighters still standing (with their health);
-    choose one to carry on the fight as them.
+    choose one to carry on the fight as them. Their face flies up out of its row into your big
+    frame, growing as it goes, and the fallen character's flies down to the foot of the list.
   - Outside a fight, or once it's over, you rise at the Hold's grace instead (resting at a grace
     heals you).
 - **Outcomes:**
@@ -1339,7 +1345,8 @@ client/js/arena.js      the Arena of Trials, north of the Hold and higher, and t
 client/js/yard.js       the Training Yard below the Hold, and the stone stair down to it
 client/js/training.js   the yard's dummies (straw, and the great one: the Golem in wood, struck only on its ankle), their health over their heads, thy blows, spells and ultimates on them, and the Tarnished training there
 client/js/ground.js     the ground's height where it isn't level with the Hold (the yard, the arena, their stairs)
-client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the fighters, thy health
+client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the fighters, thy health and the faces by it
+client/js/faces.js      a character's face for those frames: the head and shoulders of its idle drawing
 client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes
 client/js/golem.js      the Guardian Golem's fight: his weak points, his fall, shockwaves, fire
 client/js/ripple.js     the arena floor rippling like water under the Golem's shockwaves (and the tutorial rocks' yard's, under theirs)
