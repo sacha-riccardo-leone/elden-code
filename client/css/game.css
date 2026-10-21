@@ -924,10 +924,10 @@ body.in-battle #dummy-bars { display: none; }
 }
 #hp {
   position: fixed;
-  top: 110px;
-  left: 78px; /* (by thy face: #me-face) */
+  top: 118px;
+  left: 96px; /* (by thy face: #me-face) */
   width: 200px;
-  height: 8px;
+  height: 10px;
   background: rgba(8, 6, 8, 0.75);
   border: 1px solid rgba(201, 164, 90, 0.5);
   pointer-events: none;
@@ -1134,8 +1134,8 @@ body.tutorial #regions { display: none; }
 .face {
   position: relative;
   flex: none;
-  width: 30px; /* (its face 28px inside its border: fight.js, FACES) */
-  height: 30px;
+  width: 42px; /* (its face 40px inside its border: fight.js, FACES) */
+  height: 42px;
   background: linear-gradient(180deg, rgba(36, 28, 18, 0.5), rgba(10, 9, 12, 0.9));
   border: 1px solid var(--gold-line);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
@@ -1147,24 +1147,24 @@ body.tutorial #regions { display: none; }
 .face.hurt::after { animation: faceHurt 0.65s ease-out; }
 .face.ulting::after { animation: faceUlt 0.9s ease-in-out infinite; }
 @keyframes faceHurt {
-  from { box-shadow: inset 0 0 6px 2px rgba(255, 40, 26, 0.95), inset 0 0 1px 1px rgba(255, 90, 60, 0.9); }
-  to { box-shadow: inset 0 0 6px 2px rgba(255, 40, 26, 0), inset 0 0 1px 1px rgba(255, 90, 60, 0); }
+  from { box-shadow: inset 0 0 8px 3px rgba(255, 40, 26, 0.95), inset 0 0 2px 1px rgba(255, 90, 60, 0.9); }
+  to { box-shadow: inset 0 0 8px 3px rgba(255, 40, 26, 0), inset 0 0 2px 1px rgba(255, 90, 60, 0); }
 }
 @keyframes faceUlt {
-  0%, 100% { box-shadow: inset 0 0 5px 2px rgba(255, 226, 150, 0.7), inset 0 0 1px 1px rgba(255, 250, 225, 0.8); }
-  50% { box-shadow: inset 0 0 8px 3px rgba(255, 240, 190, 1), inset 0 0 2px 1px rgba(255, 255, 245, 1); }
+  0%, 100% { box-shadow: inset 0 0 7px 3px rgba(255, 226, 150, 0.7), inset 0 0 2px 1px rgba(255, 250, 225, 0.8); }
+  50% { box-shadow: inset 0 0 11px 4px rgba(255, 240, 190, 1), inset 0 0 3px 1px rgba(255, 255, 245, 1); }
 }
-#me-face { position: fixed; top: 104px; left: 22px; width: 46px; height: 46px; pointer-events: none; }
+#me-face { position: fixed; top: 104px; left: 22px; width: 64px; height: 64px; pointer-events: none; }
 #me-face[hidden] { display: none; }
 #me-face.hurt::after { animation-name: faceHurtBig; }
 #me-face.ulting::after { animation-name: faceUltBig; }
 @keyframes faceHurtBig {
-  from { box-shadow: inset 0 0 10px 3px rgba(255, 40, 26, 0.95), inset 0 0 2px 1px rgba(255, 90, 60, 0.9); }
-  to { box-shadow: inset 0 0 10px 3px rgba(255, 40, 26, 0), inset 0 0 2px 1px rgba(255, 90, 60, 0); }
+  from { box-shadow: inset 0 0 13px 4px rgba(255, 40, 26, 0.95), inset 0 0 3px 1px rgba(255, 90, 60, 0.9); }
+  to { box-shadow: inset 0 0 13px 4px rgba(255, 40, 26, 0), inset 0 0 3px 1px rgba(255, 90, 60, 0); }
 }
 @keyframes faceUltBig {
-  0%, 100% { box-shadow: inset 0 0 8px 3px rgba(255, 226, 150, 0.7), inset 0 0 2px 1px rgba(255, 250, 225, 0.8); }
-  50% { box-shadow: inset 0 0 13px 5px rgba(255, 240, 190, 1), inset 0 0 3px 1px rgba(255, 255, 245, 1); }
+  0%, 100% { box-shadow: inset 0 0 11px 4px rgba(255, 226, 150, 0.7), inset 0 0 3px 1px rgba(255, 250, 225, 0.8); }
+  50% { box-shadow: inset 0 0 17px 6px rgba(255, 240, 190, 1), inset 0 0 4px 1px rgba(255, 255, 245, 1); }
 }
 /* (a face flying from one frame to another as thou carriest on as another: fight.js flySwap) */
 .face-fly { position: fixed; z-index: 30; pointer-events: none; }
@@ -1173,30 +1173,30 @@ body.tutorial #regions { display: none; }
    ultimate */
 #party {
   position: fixed;
-  top: 160px;
+  top: 178px;
   left: 22px;
-  width: 256px;
+  width: 274px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   pointer-events: none;
 }
 #party[hidden] { display: none; }
-.ally { display: flex; align-items: center; gap: 8px; }
-.ally-info { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ally { display: flex; align-items: center; gap: 10px; }
+.ally-info { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .ally-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--serif-title);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink);
   text-shadow: 0 1px 2px #000, 0 0 6px #000;
 }
 .ally-bar {
-  height: 6px;
+  height: 8px;
   background: rgba(8, 6, 8, 0.8);
   border: 1px solid rgba(201, 164, 90, 0.5);
 }
@@ -1208,16 +1208,16 @@ body.tutorial #regions { display: none; }
 /* ultimates (ults.js): thine under thy health (R once full), each ally's under its own, and the
    name of one as it's loosed, while the world stands still */
 .ally-bars { display: flex; flex-direction: column; gap: 1px; }
-.ally-ult { height: 3px; background: rgba(8, 6, 8, 0.6); }
+.ally-ult { height: 4px; background: rgba(8, 6, 8, 0.6); }
 .ally-ult i { display: block; height: 100%; background: #c9a45a; transition: width 0.25s; }
 .ally-ult.full i { background: #ffe9a8; box-shadow: 0 0 6px rgba(255, 220, 140, 0.9); }
 .ally.fallen .ally-ult { opacity: 0.3; }
 #ult {
   position: fixed;
-  top: 123px;
-  left: 78px; /* (by thy face: #me-face) */
+  top: 135px;
+  left: 96px; /* (by thy face: #me-face) */
   width: 200px;
-  height: 4px;
+  height: 5px;
   background: rgba(8, 6, 8, 0.75);
   border: 1px solid rgba(201, 164, 90, 0.4);
   pointer-events: none;

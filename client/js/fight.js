@@ -60,7 +60,7 @@ const HUNT = { from: 5.5, half: 5, per: 0.04, most: 8, leap: 60, far: 7 };
 // The faces by the health bars (faces.js, game.css): how big thine is and each of the others'
 // (CSS pixels inside the frame), and how long a face takes to fly from one frame to another as
 // thou carriest on as someone else (flySwap).
-const FACES = { me: 44, ally: 28, fly: 0.55 };
+const FACES = { me: 62, ally: 40, fly: 0.55 };
 // How Fenrath turns (think): he keeps to one foe `keep` seconds (not whoever stands nearest this
 // very moment: two about as near either side of him would have him turn back and forth every
 // frame); one more than `dead` behind him he turns round to once it has stayed there `after`
