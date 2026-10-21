@@ -168,13 +168,15 @@ export class Tutorial {
     if (this.again) setTimeout(() => this.el.fade.classList.remove('on'), 300);
   }
 
-  // Only the place a step is in shows: the Hold, or the yards (the training yard and those climbed
-  // from it); and thou keepest to it (on the yards, to the one thou'rt on, and once its step is
-  // done, the stair up from it and the yard it comes up onto: onClimb).
+  // Only the place a step is in shows: the Hold, or the yards (the training yard, without its stair
+  // up to the Hold, and those climbed from it); and thou keepest to it (on the yards, to the one
+  // thou'rt on, and once its step is done, the stair up from it and the yard it comes up onto:
+  // onClimb).
   show(place) {
     const { world } = this.ctx;
     world.hub.group.visible = place === 'hold';
     world.yard.group.visible = place === 'yards';
+    world.yard.stair.visible = place !== 'yards';
     this.fence = place === 'yards' ? (x, z) => this.onClimb(x, z) : (x, z) => world.hub.contains(x, z);
   }
 
@@ -364,13 +366,12 @@ export class Tutorial {
   // ------------------------------------------------------------------------------------------
   // the climb (climb.js)
 
-  // The walls of fog as things stand: at the foot of the training yard's stair up to the Hold, all
-  // the while; at the foot of each stair up still ahead (gone from the one up from thy yard once its
-  // step is done); and at the head of each come up, behind thee (`now`: at once).
+  // The walls of fog as things stand: at the foot of each stair up still ahead (gone from the one up
+  // from thy yard once its step is done), and at the head of each come up, behind thee (`now`: at
+  // once).
   seal(now = false) {
     const c = this.climb;
     if (!c) return;
-    c.seal(c.holdFog, true, now);
     c.stairs.forEach((s, k) => {
       c.seal(s.foot, k > this.at || (k === this.at && !this.open), now);
       c.seal(s.head, k < this.at, now);
@@ -818,6 +819,7 @@ export class Tutorial {
     safe(() => training.lessonEnd());
     world.hub.group.visible = true;
     world.yard.group.visible = true;
+    world.yard.stair.visible = true;
     this.fence = null;
     safe(() => this.clearIsland());
     safe(() => {

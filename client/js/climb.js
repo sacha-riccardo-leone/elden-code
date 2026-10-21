@@ -3,9 +3,9 @@
 // higher than the last, in a line east of it. They're bare: a floor of grey brick (the rocks' ripples
 // like the arena's under their shockwaves: ripple.js), a mossy lip open where a stair comes up or
 // goes on, a rock of its own down into the mist, lanterns about the edge. Walls of fog (the arena's,
-// arena.js) stand at the foot of each stair till its yard's step is done, and at its head behind
-// thee once thou'st come up it; another, all the while, at the foot of the training yard's own stair
-// up to the Hold. It's there only for the tutorial (world.climb while it is).
+// arena.js), standing across each stair, close its foot till its yard's step is done, and its head
+// behind thee once thou'st come up it. (The training yard's own stair up to the Hold is put away
+// meanwhile: tutorial.js.) It's there only for the tutorial (world.climb while it is).
 
 import * as THREE from 'three';
 import * as T from './textures.js';
@@ -30,10 +30,15 @@ C.cx = B.cx + B.R + STAIR.run + C.R;
 // (each stair: where it leaves the yard below and comes up onto the one above, and their heights)
 const STAIRS = [[A, B], [B, C]].map(([lo, hi]) => ({ x0: lo.cx + lo.R, x1: hi.cx - hi.R, y0: lo.y, y1: hi.y }));
 export const CLIMB = { z: Z, yards: [A, B, C], stairs: STAIRS };
-// The walls of fog: how wide and tall, and how far in front of a stair's middle line they stand
-// (over its edge nearest the camera, so that nothing on the stair stands in front of them); how
-// quickly one wells up, and thins away.
-const FOG = { w: 4.4, h: 4.2, front: STAIR.half + 0.4, up: 0.8, down: 1.4 };
+// The walls of fog across the stairs: how wide (across a stair, its posts and a little beyond) and
+// tall; how quickly one wells up, and thins away; and the mist banked in it, soft puffs that seen
+// from the side (as the camera sees a wall across a stair: edge on, thin) still read as fog: each
+// one's place (across the stair, and up from the ground) and size, its colour, how thick at most.
+const FOG = {
+  w: 4.4, h: 4.2, up: 0.8, down: 1.4,
+  puffs: [[-1.4, 1.0, 2.4], [0, 0.9, 2.6], [1.4, 1.0, 2.4], [-0.8, 2.3, 2.3], [0.8, 2.4, 2.3], [0, 3.4, 2.0]],
+  mist: '#e4e0d8', thick: 0.55,
+};
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -48,10 +53,9 @@ export class Climb extends Builder {
     this.buildYard(B, [Math.PI, 0]);
     this.buildYard(C, [Math.PI]);
     STAIRS.forEach((s, k) => this.buildStair(s, k));
-    // the fog at the foot of the training yard's stair up to the Hold, and at each stair's foot and
-    // head (local coordinates: the same x as the world's, z from the yards' middle line)
-    this.holdFog = this.fog(0, A.y, -A.R + 0.6);
-    this.stairs = STAIRS.map((s) => ({ ...s, foot: this.fog(s.x0 - 0.3, s.y0, FOG.front), head: this.fog(s.x1 + 0.3, s.y1, FOG.front) }));
+    // the fog across each stair's foot and head, between the stones either side of it (local
+    // coordinates: the same x as the world's, z from the yards' middle line)
+    this.stairs = STAIRS.map((s) => ({ ...s, foot: this.fog(s.x0 - 0.3, s.y0), head: this.fog(s.x1 + 0.3, s.y1) }));
     this.mergeStatic();
     // the ground: up each stair (before the training yard's own, which its foot lies in), and on
     // each yard and the air round it
@@ -194,12 +198,22 @@ export class Climb extends Builder {
     this.blockCircle(x, z, 0.35);
   }
 
-  // A wall of fog standing on the ground at (x, y, z), local, facing the camera.
-  fog(x, y, z) {
+  // A wall of fog standing across a stair on the ground at (x, y), local, facing up and down it, and
+  // the mist banked in it.
+  fog(x, y) {
     const f = fogWall(FOG.w, FOG.h);
-    f.mesh.position.set(x, y + FOG.h / 2, z);
+    f.mesh.rotation.y = Math.PI / 2;
+    f.mesh.position.set(x, y + FOG.h / 2, 0);
     this.add(f.mesh);
-    const wall = { ...f, x, y, z, on: false };
+    const puffs = FOG.puffs.map(([z, up, size], i) => {
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.world.tex.glow, color: FOG.mist, transparent: true, opacity: 0, depthWrite: false }));
+      sprite.scale.set(size, size, 1);
+      sprite.renderOrder = 4;
+      sprite.visible = false;
+      this.add(sprite);
+      return { sprite, z, up, phase: i * 1.7 + x };
+    });
+    const wall = { ...f, puffs, x, y, z: 0, on: false };
     this.fogs.push(wall);
     return wall;
   }
@@ -212,20 +226,27 @@ export class Climb extends Builder {
     wall.on = on;
     if (!on || now) return;
     this.world.particles.emit({
-      pos: [this.wx(wall.x), wall.y + 1.4, this.wz(wall.z)], spread: [FOG.w / 2, 1.2, 0.3], vel: [0, 0.6, 0], velSpread: [0.5, 0.5, 0.5],
+      pos: [this.wx(wall.x), wall.y + 1.4, this.wz(wall.z)], spread: [0.3, 1.2, FOG.w / 2], vel: [0, 0.6, 0], velSpread: [0.5, 0.5, 0.5],
       color: ['#e8e4dc', '#c8c4bc', '#f2dca8'], size: 0.12, life: 1.6, count: 50, drag: 0.8, intensity: 1.1,
     });
   }
 
   update(dt, t) {
-    // the walls of fog well up quickly, and thin away slowly
+    // the walls of fog well up quickly, and thin away slowly, their mist with them, stirring
     for (const f of this.fogs) {
       const u = f.uniforms;
       u.uTime.value = t;
       u.uIntensity.value = clamp(u.uIntensity.value + (f.on ? dt / FOG.up : -dt / FOG.down), 0, 1);
-      f.mesh.visible = u.uIntensity.value > 0.01;
-      f.mesh.scale.y = 0.4 + 0.6 * Math.min(1, u.uIntensity.value * 1.5);
-      f.mesh.position.y = f.y + (FOG.h / 2) * f.mesh.scale.y;
+      const k = u.uIntensity.value;
+      const tall = 0.4 + 0.6 * Math.min(1, k * 1.5);
+      f.mesh.visible = k > 0.01;
+      f.mesh.scale.y = tall;
+      f.mesh.position.y = f.y + (FOG.h / 2) * tall;
+      for (const p of f.puffs) {
+        p.sprite.visible = k > 0.01;
+        p.sprite.material.opacity = FOG.thick * k * (0.75 + 0.25 * Math.sin(t * 0.9 + p.phase));
+        p.sprite.position.set(f.x + 0.15 * Math.sin(t * 0.5 + p.phase), f.y + p.up * tall + 0.12 * Math.sin(t * 0.7 + p.phase * 2), p.z);
+      }
     }
     // the lanterns' flames stir
     for (const l of this.lanterns) {
@@ -246,7 +267,7 @@ export class Climb extends Builder {
     const shared = world.sharedMaterials();
     const sharedTex = new Set(Object.values(world.tex || {}));
     this.group.traverse((o) => {
-      o.geometry?.dispose();
+      if (!o.isSprite) o.geometry?.dispose(); // (every sprite's is the one, three.js's)
       for (const m of [].concat(o.material || [])) {
         if (shared.has(m)) continue;
         for (const key of ['map', 'emissiveMap']) if (m[key] && !sharedTex.has(m[key])) m[key].dispose();

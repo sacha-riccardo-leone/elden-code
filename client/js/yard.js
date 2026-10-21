@@ -170,7 +170,11 @@ export class Yard extends Builder {
 
     // the stair of stone down from the Hold's rim: its head over the cliff's edge, its steps on a
     // slab with a keel of mossy stone under it and a pier down into the mist, low stones along its
-    // sides and a taller one either side of its head and its foot
+    // sides and a taller one either side of its head and its foot. (In a group of its own, merged
+    // apart from the rest: the tutorial puts it away while it climbs from the yard, the Hold out
+    // of sight: tutorial.js.)
+    const yardGroup = this.group;
+    this.group = new THREE.Group();
     const wide = STAIR.half * 2 + 0.5;
     const tread = STAIR.run / STAIR.steps;
     const head = HUB.radius - 0.35;
@@ -196,6 +200,10 @@ export class Yard extends Builder {
       this.box(0.4, 0.9, 0.5, stoneMoss, x, 0.42, at(head + 0.35));
       this.box(0.4, 0.9, 0.5, stoneMoss, x, y + 0.42, n + 0.3);
     }
+    this.mergeStatic();
+    this.stair = this.group;
+    this.group = yardGroup;
+    this.add(this.stair);
 
     // its racks, barrels, crates and archery butt (PROPS)
     for (const [x, z, kinds] of PROPS.racks) this.rack(x, z, kinds, wood, dark);

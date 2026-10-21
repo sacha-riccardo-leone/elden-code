@@ -51,10 +51,12 @@ again by itself (`?tutorial` in the address shows it anyway).
 - **The climb** (`client/js/climb.js`): the training yard and two more yards east of it, there only
   for the tutorial, each 3.2 higher than the last and bare (a floor of grey brick, a mossy lip, its
   rock down into the mist, lanterns), joined by stone stairs like the Hold's. A wall of fog (the
-  arena's) stands at the foot of each stair till its yard's step is done; then it thins away and
-  the golden arrow that shows the way to the arena in a fight points you up. Come up onto the next
-  yard, the fog closes behind you, and its step begins. The training yard's own stair up to the
-  Hold is fogged all the while.
+  arena's) stands across the foot of each stair, between its end stones, till its yard's step is
+  done, with soft mist banked in it (seen from the side, as the camera sees a wall across a stair,
+  it would otherwise be a thin line); then it thins away and the golden arrow that shows the way to
+  the arena in a fight points you up. Come up onto the next yard, the fog closes across the stair's
+  head behind you, and its step begins. The training yard's own stair up to the Hold is put away
+  meanwhile (the Hold is out of sight: it would lead nowhere).
 - **The steps:**
   1. *Walking*, at the Hold: "Move around with W A S D or the arrows · Hold Shift to sprint".
      Each way lights up once it's been tried, and Shift once you've sprinted with it; once all
