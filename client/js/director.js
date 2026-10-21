@@ -995,6 +995,7 @@ export class Director {
     let working = 0;
     let waiting = 0;
     let visitors = 0;
+    let onYard = 0;
     for (const [sid, npc] of this.npcs) {
       npc.update(dt, t);
       if (npc.dead) {
@@ -1015,6 +1016,7 @@ export class Director {
       if (k === 'work' || k === 'channel') { working += 1; if (c) c.working += 1; }
       if (k === 'wait') { waiting += 1; if (c) c.waiting += 1; }
       if (this.seated(npc)) visitors += 1;
+      if (!npc.piloted && !npc.travel && world.yard.contains(npc.pos.x, npc.pos.y)) onYard += 1;
     }
     for (const [r, c] of counts) r.setActivity(c);
     this.hubVisitors = visitors;
@@ -1028,6 +1030,8 @@ export class Director {
       this.ctx.ui.setStats([...this.npcs.values()].filter((n) => !n.unbound).length, working, waiting);
       this.ctx.ui.setRegions([
         { area: world.hub, name: world.hub.name, color: '#d6b46e', total: visitors, working: 0, waiting: 0 },
+        // (the training yard below it, under its name: those on it)
+        { area: world.yard, name: world.yard.name, color: '#a8855a', total: onYard, working: 0, waiting: 0, under: true },
         // (only those that have risen: one still under the mist, or sinking into it, isn't on the map)
         ...world.regionList().filter((r) => r.risen && !r.sinking).map((r) => ({ area: r, name: r.project, color: r.color, ...counts.get(r) })),
       ]);

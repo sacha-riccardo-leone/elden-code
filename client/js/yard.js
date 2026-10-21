@@ -367,6 +367,12 @@ export class Yard extends Builder {
     return this.graceSpot();
   }
 
+  // Where its name floats over it, seen from afar (ui.js, updateLabels): as high over its floor, and
+  // as far back on it, as the others' over theirs.
+  labelSpot() {
+    return [this.cx, YARD.y + 9.5, this.cz - 8];
+  }
+
   update(dt, t) {
     // the lanterns' flames stir
     for (const l of this.lanterns) {

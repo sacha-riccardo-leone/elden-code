@@ -157,10 +157,13 @@ const travel = {
   overview() {
     if (overview) { endOverview(); return; }
     overview = { dist: rig.distGoal };
-    const { minX, maxX } = world.extent();
-    const aspect = window.innerWidth / window.innerHeight;
-    const fit = (maxX - minX + 10) / (2 * Math.tan((camera.fov * Math.PI) / 360) * aspect);
-    rig.flyTo((minX + maxX) / 2, -1, Math.max(40, Math.min(rig.overviewMax, fit)));
+    // the whole world: as wide as from the farthest island west to the farthest east, and as deep as
+    // from their backs down to the training yard below the Hold, as steeply as it's seen from afar
+    const { minX, maxX, minZ, maxZ } = world.extent();
+    const half = Math.tan((camera.fov * Math.PI) / 360);
+    const wide = (maxX - minX + 10) / (2 * half * (window.innerWidth / window.innerHeight));
+    const deep = ((maxZ - minZ + 10) * Math.sin(rig.pitchAt(rig.overviewMax))) / (2 * half);
+    rig.flyTo((minX + maxX) / 2, (minZ + maxZ) / 2, Math.max(40, Math.min(rig.overviewMax, Math.max(wide, deep))));
   },
 };
 
@@ -430,7 +433,7 @@ function step(dt) {
   sound.music.update(fight.state === 'fighting' && fight.boss?.alive ? 'fight' : 'calm', dt);
   ui.overview = rig.dist > 40;
   ui.setFocusArea(world.areaAt(rig.cur.x, rig.cur.z), t);
-  ui.updateLabels(areas());
+  ui.updateLabels([...areas(), world.yard]); // (and the training yard's, below the Hold)
   // the map strip: where thou art, between islands too, and the arena while a great enemy is abroad
   ui.updateMap(me ? me.pos.x : 0, fight.hunting(), fight.sealed);
   ui.update(dt);

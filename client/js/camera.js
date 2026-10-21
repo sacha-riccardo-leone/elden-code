@@ -21,7 +21,11 @@ export class CameraRig {
   }
 
   pitch() {
-    const d = this.dist;
+    return this.pitchAt(this.dist);
+  }
+
+  // How steeply it looks down from `d` away (radians): the farther, the more.
+  pitchAt(d) {
     if (d <= 44) return THREE.MathUtils.degToRad(19 + ((d - this.min) / (44 - this.min)) * 11);
     return THREE.MathUtils.degToRad(Math.min(46, 30 + ((d - 44) / 28) * 10));
   }
@@ -38,7 +42,7 @@ export class CameraRig {
 
   clamp() {
     this.target.x = clamp(this.target.x, this.bounds.minX, this.bounds.maxX);
-    this.target.z = clamp(this.target.z, -48, 7); // north as far as the Arena of Trials
+    this.target.z = clamp(this.target.z, -48, 40); // north as far as the Arena of Trials, south as far as the training yard below the Hold
   }
 
   flyTo(x, z, dist = null) {

@@ -178,7 +178,8 @@ export class UI {
 
   // The map strip at the bottom: one line as wide as the whole world (the Hold and every island
   // that has risen), each area's name over its own place on it (clicked, it takes thee there by
-  // grace), and a golden dot under it where thou art, between islands too (updateMap). While a
+  // grace; the training yard's under the Hold's, as it lies below it, on the same place), and a
+  // golden dot under it where thou art, between islands too (updateMap). While a
   // great enemy is abroad the Arena of Trials shows over the Hold in red, under a horned skull, and
   // every island but the Hold is out of reach.
   buildMap() {
@@ -231,8 +232,9 @@ export class UI {
         name.append(swatch, el('span', 'map-label', r.name), meta);
         btn.append(name, el('b', 'map-tick'));
         btn.addEventListener('click', () => this.onFocus && this.onFocus({ region: r.area }));
-        if (!r.area.biome) btn.classList.add('hub');
-        b = { btn, meta, name, area: r.area };
+        if (r.under) btn.classList.add('under'); // (the training yard, under the Hold's name: game.css)
+        else if (!r.area.biome) btn.classList.add('hub');
+        b = { btn, meta, name, area: r.area, under: !!r.under };
         this.regionButtons.set(r.area, b);
         this.mapMarks.append(btn);
       }
@@ -253,7 +255,7 @@ export class UI {
     // room to their neighbours allows (half the gap to an island's, all but the Hold's own half)
     const width = this.regionsEl.clientWidth || 600;
     const marks = [...this.regionButtons.values()].sort((a, b) => a.area.cx - b.area.cx);
-    const hub = marks.find((b) => !b.area.biome);
+    const hub = marks.find((b) => !b.area.biome && !b.under);
     if (hub) hub.name.style.maxWidth = 'none';
     const hubHalf = hub ? hub.name.offsetWidth / 2 + 10 : 0;
     const room = (b, o) => {
@@ -540,7 +542,9 @@ export class UI {
         this.labelsEl.append(lab);
         this.regionLabels.set(a, lab);
       }
-      const p = this.project(new THREE.Vector3(a.cx, 9.5, -8));
+      // (over the back of it; or where it says, one lower down: the training yard, yard.js)
+      const [lx, ly, lz] = a.labelSpot ? a.labelSpot() : [a.cx, 9.5, -8];
+      const p = this.project(new THREE.Vector3(lx, ly, lz));
       lab.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y)}px) translate(-50%, -100%)`;
       lab.hidden = !this.overview || p.behind;
     }

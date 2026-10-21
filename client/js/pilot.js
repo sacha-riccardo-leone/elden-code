@@ -216,14 +216,15 @@ export class Pilot {
     n.body.play('kneel', true);
   }
 
-  // Where one may travel by grace: Roundtable Hold always; an island once it has risen (not while
+  // Where one may travel by grace: Roundtable Hold always, and the training yard below it; an island
+  // once it has risen (not while
   // it's still under the mist, nor once it's sinking back into it); while a great enemy is abroad,
   // nowhere but the Hold (the way to the arena is on foot, guide.js); and sealed in the arena
   // with him, nowhere at all till the fight is over.
   canTravelTo(area) {
     const { world, fight } = this.ctx;
     if (fight?.sealed && this.npc && fight.inArena(this.npc)) return false;
-    if (area === world.hub) return true;
+    if (area === world.hub || area === world.yard) return true;
     return !!area?.walkRect && area.risen && !area.sinking && !fight?.hunting();
   }
 

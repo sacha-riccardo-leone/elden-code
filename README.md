@@ -216,11 +216,12 @@ can **become any character**: click one and choose **Become …** in the fan ove
     ritual circle, the raven tower, the fog gate, a site of grace, and the Round Table. Each
     works as it does for the sessions' characters (the forge glows and throws sparks, a raven
     takes wing…).
-  - **M** shows the map of every island. **Z / X** travel by grace to the previous / next area,
-    **H** to Roundtable Hold.
+  - **M** shows the map of every island, and the training yard below the Hold, each named. **Z / X**
+    travel by grace to the previous / next area, **H** to Roundtable Hold.
   - **The map strip** (along the bottom of the screen) is one line as wide as the whole world,
-    with Roundtable Hold always in the very middle. Each area's name sits over its own place on it,
-    and clicking a name takes you there by grace. A golden dot under
+    with Roundtable Hold always in the very middle, and the training yard (which lies below the Hold)
+    under the Hold's name. Each area's name sits over its own place on it, and clicking a name takes
+    you there by grace (the training yard always, like the Hold). A golden dot under
     the line shows where you are, moving with you even between islands. An island only appears on
     it, and can only be reached by grace, once it has fully risen from the mist.
   - While a great enemy is abroad, the **Arena of Trials** shows over Roundtable Hold in shining

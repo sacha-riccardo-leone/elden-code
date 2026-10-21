@@ -247,6 +247,10 @@ body.day #area h2 {
   height: 9px;
   background: rgba(214, 202, 180, 0.75);
 }
+/* the Hold over its training yard, which lies below it: the yard's name under the Hold's, on its
+   tick (ui.js, setRegions) */
+.map-mark.hub { bottom: 48px; }
+.map-mark.hub .map-tick { display: none; }
 .map-mark:hover .map-name, .map-mark:focus-visible .map-name { color: var(--gold-hi); }
 .map-mark:focus-visible { outline: none; }
 .map-mark[data-active='1'] .map-name { color: var(--gold-hi); }
@@ -273,7 +277,7 @@ body.day #area h2 {
 #regions.boss .map-mark:disabled { opacity: 0.32; filter: grayscale(1); cursor: default; pointer-events: none; }
 .map-arena {
   position: absolute;
-  bottom: 48px;
+  bottom: 66px; /* (over the Hold's name, itself over the yard's) */
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;

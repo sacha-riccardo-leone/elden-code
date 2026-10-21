@@ -20,7 +20,7 @@ import { BIOMES, BIOME_KEYS } from './biomes.js';
 import { Region } from './region.js';
 import { Hub } from './hub.js';
 import { Arena } from './arena.js';
-import { Yard } from './yard.js';
+import { Yard, YARD } from './yard.js';
 import { Builder, NOISE_GLSL, UV_VERT, glowTexture, scaleBoxUV, BRICK_TILE } from './build.js';
 
 const LIGHT_POOL = 16;
@@ -666,14 +666,18 @@ export class World {
     return area ? area.isBlocked(x, z, pad) : false;
   }
 
+  // (and north to the backs of the islands and the Hold, south to the far edge of the training yard
+  // below the Hold: the overview, main.js)
   extent() {
     let minX = -HUB.radius;
     let maxX = HUB.radius;
+    let minZ = -HUB.radius;
     for (const r of this.regions.values()) {
       minX = Math.min(minX, r.cx - REGION.halfW);
       maxX = Math.max(maxX, r.cx + REGION.halfW);
+      minZ = Math.min(minZ, r.cz + REGION.minZ);
     }
-    return { minX, maxX };
+    return { minX, maxX, minZ, maxZ: YARD.south };
   }
 
   update(dt, t, camera, camDist, hubResting = 0) {
