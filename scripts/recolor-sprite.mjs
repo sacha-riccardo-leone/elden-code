@@ -2,8 +2,8 @@
 // Image generators drift: gold comes back yellow, wine red comes back bright red, grey goes cold,
 // a navy robe comes back royal blue and dark wood comes back orange.
 // Each material is matched separately against the hero's master art (the image its art grid,
-// client/assets/hero/<hero>.json, was made from), in CIELAB, where distances are roughly what the
-// eye sees:
+// client/assets/hero/<hero>.json, was made from: beside the grid, or else found by its name anywhere in
+// art/, where all the art lives), in CIELAB, where distances are roughly what the eye sees:
 //   - pixels are sorted into materials: the dark outline, greys, then the colour families by hue;
 //   - a pixel takes the master's lightness at its rank within its material, held near one straight
 //     line through the two medians, so a part's tones land where the master has them while a robe's
@@ -26,9 +26,9 @@
 // written next to the input as <name>-recoloured.png, unless an output path is given.
 //
 //   node scripts/recolor-sprite.mjs <image> <hero> [out.png] [--weapon cut-out.png] [--light x1,y1,x2,y2,r ...]
-//   e.g. node scripts/recolor-sprite.mjs art-in/ult-aurelion-1-raise.png paladin --light 38,432,944,168,42
-//        node scripts/recolor-sprite.mjs art-in/ult-corisande.png sorceress-masked --weapon "character references/weapons/corisande-staff.png"
-//        node scripts/recolor-sprite.mjs art-in/boss-roar.png client/assets/boss/boss.json
+//   e.g. node scripts/recolor-sprite.mjs art/heroes/Aurelion/ult-aurelion-1-raise.png paladin --light 38,432,944,168,42
+//        node scripts/recolor-sprite.mjs art/heroes/Corisande/ult-corisande.png sorceress-masked --weapon art/heroes/Corisande/corisande-staff.png
+//        node scripts/recolor-sprite.mjs art/bosses/Fenrath/boss-roar.png client/assets/boss/boss.json
 //   heroes: knight, fortuna, ronin, bloodbender, runelord, paladin, bandit, champion, queen, sorceress-masked;
 //   any other art grid (a boss's) goes by its path, its master art beside it
 
@@ -181,7 +181,22 @@ for (const row of grid.rows) {
     if (n >= 0) uses[n]++;
   }
 }
-const master = decode(path.join(path.dirname(gridFile), grid.source.split(',')[0].trim()));
+// the master art: beside its grid, or (moved out of client/assets with the rest of the art) under art/
+function masterArt(name) {
+  const beside = path.join(path.dirname(gridFile), name);
+  if (fs.existsSync(beside)) return beside;
+  const found = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (e.isDirectory()) walk(path.join(dir, e.name));
+      else if (e.name === name) found.push(path.join(dir, e.name));
+    }
+  };
+  if (fs.existsSync(path.join(root, 'art'))) walk(path.join(root, 'art'));
+  if (!found.length) throw new Error(`${name}, the master art of ${gridFile}, is neither beside it nor in art/`);
+  return found[0];
+}
+const master = decode(masterArt(grid.source.split(',')[0].trim()));
 const masterBg = backgroundMask(master);
 const tones = {};
 for (let i = 0; i < master.w * master.h; i++) {

@@ -1,12 +1,13 @@
-// Exports every hand-drawn hero as files you can use anywhere:
-//   assets/hero/<id>-sheet.png   all frames, laid out on a grid
-//   assets/hero/<id>-glow.png    the glow (emissive) map for the same grid
-//   assets/hero/<id>-sheet.json  frame size, grid and every animation's frames and fps
-//   assets/hero/<id>-big-sheet.png, <id>-big-glow.png  a hero's big drawn poses, if it has any, in
-//                                 frames of their own (bigFrame; the sheet's json says which: big.poses,
-//                                 in order, the rest keeping theirs on the main sheet)
-//   assets/hero/<id>-<anim>.gif  an animated preview of each animation (3x, looping)
-// and the rigged fire of Roundtable Hold (client/js/fire.js) as assets/fx/<brazier-N|candle>.gif.
+// Exports every hand-drawn hero as files you can use anywhere, into art/exports (with the rest of the art,
+// never committed; the game itself draws from client/assets):
+//   <id>-sheet.png   all frames, laid out on a grid
+//   <id>-glow.png    the glow (emissive) map for the same grid
+//   <id>-sheet.json  frame size, grid and every animation's frames and fps
+//   <id>-big-sheet.png, <id>-big-glow.png  a hero's big drawn poses, if it has any, in frames of their own
+//                    (bigFrame; the sheet's json says which: big.poses, in order, the rest keeping theirs on
+//                    the main sheet)
+//   <id>-<anim>.gif  an animated preview of each animation (3x, looping)
+// and the rigged fire of Roundtable Hold (client/js/fire.js) as <brazier-N|candle>.gif.
 // Usage: node scripts/build-hero-sheets.mjs   (no dependencies; PNG and GIF are encoded here)
 
 import fs from 'node:fs';
@@ -18,7 +19,8 @@ import { sheetPixels, buildFrames, anchorOf, frameOf, NONE } from '../client/js/
 import { rigFires, BRAZIER, CANDLE } from '../client/js/fire.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const outDir = path.join(root, 'client', 'assets', 'hero');
+const outDir = path.join(root, 'art', 'exports');
+fs.mkdirSync(outDir, { recursive: true });
 
 // ---------------------------------------------------------------------------------------------
 // PNG (RGBA, filter 0)
@@ -233,7 +235,7 @@ for (const rig of HEROES) {
       }
       return out;
     });
-    fs.writeFileSync(path.join(fxDir, `${name}.gif`), gif(w * k, h * k, imgs, palette, Math.round(100 / fps)));
+    fs.writeFileSync(path.join(outDir, `${name}.gif`), gif(w * k, h * k, imgs, palette, Math.round(100 / fps)));
   }
-  console.log(`fire: ${loops.map(([n, f]) => `${n} (${f.length} frames)`).join(', ')} → client/assets/fx/*.gif`);
+  console.log(`fire: ${loops.map(([n, f]) => `${n} (${f.length} frames)`).join(', ')} → art/exports/*.gif`);
 }

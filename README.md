@@ -434,7 +434,7 @@ where its middle is, so a frame holds only what's ever drawn in it (the Witch's 
 ahead of her and little behind: hers is 218 wide with her middle at 74, where centred it was 300, a
 quarter of it always empty). `npm run heroes` exports each hero as `<id>-sheet.png` +
 `<id>-sheet.json` (grid and animations; with a big sheet, `<id>-big-sheet.png` too, and the poses
-on it: `big.poses`), a glow map, and an animated GIF per animation in `client/assets/hero/`. Preview
+on it: `big.poses`), a glow map, and an animated GIF per animation in `art/exports/`. Preview
 them at <http://127.0.0.1:7777/dev/hero.html?hero=ronin>.
 
 **Baked sheets.** Drawing every frame of every character as the game starts took some 12 s (the
@@ -458,6 +458,14 @@ load only once the world is ready (no great enemy comes till its own is), and th
 shaders are compiled side by side (`compileAsync`). Ready to set out: about 1.4 s for the public
 build, 3 to 4 s locally, 5 s with nothing baked (it was 11 to 15 s).
 
+All the art the game is drawn from lives in `art/` (never committed), one folder per character:
+`art/heroes/<Name>/` holds the hero's master stand and kneel (the images its art grids were made from),
+its attack, ultimate and effect drawings and its weapon cut-outs, with `ref/` for references and
+`krita/` for Krita files; `art/bosses/<Name>/` the same for each great enemy. Beside them are
+`art/dummies/`, the world's props (`art/world/`), the UI mock-ups (`art/ui/`), `art/references/`, the
+ChatGPT prompt templates (`art/prompts/`) and what `npm run heroes` exports (`art/exports/`). A new
+drawing goes straight into its character's folder.
+
 To turn new sprite images into art grids (no npm packages needed):
 
 ```
@@ -478,7 +486,7 @@ Image generators drift from a hero's colours (gold comes back yellow, wine red c
 red, a navy robe royal blue), so put a new pose back on its hero's palette before extracting it:
 
 ```
-node scripts/recolor-sprite.mjs art-in/ult-aurelion-1-raise.png paladin
+node scripts/recolor-sprite.mjs art/heroes/Aurelion/ult-aurelion-1-raise.png paladin
 ```
 
 Each material (outline, greys, reds, golds, blues…) takes the tonal range of the hero's master sprite
@@ -490,7 +498,7 @@ A weapon drifts on its own (Corisande's staff came back orange while her gold tr
 pass its cut-out, the weapon alone at the master's size, as the art prompts attach it:
 
 ```
-node scripts/recolor-sprite.mjs art-in/ult-corisande.png sorceress-masked --weapon "character references/weapons/corisande-staff.png"
+node scripts/recolor-sprite.mjs art/heroes/Corisande/ult-corisande.png sorceress-masked --weapon art/heroes/Corisande/corisande-staff.png
 ```
 
 The weapon is found where the cut-out's colours dominate and matched against the cut-out alone. New
@@ -499,7 +507,9 @@ light with no counterpart in the master, such as Aurelion's giant blade, goes in
 brightness on the palette's brightest colours. The hero is the art grid's name: `knight` (Maren),
 `fortuna`, `ronin` (Wynn), `bloodbender` (Vael), `runelord` (Jorvik), `paladin` (Aurelion), `bandit`
 (Ulric), `champion` (Ruadan), `queen` (Solenne) or `sorceress-masked` (Corisande). Any other art grid
-goes by its path, its master art beside it, e.g. Fenrath's `client/assets/boss/boss.json`.
+goes by its path, e.g. Fenrath's `client/assets/boss/boss.json`. The master art is looked for beside
+the grid, then by its name anywhere in `art/`. Once a recoloured pose is final, it takes the
+original's name and the original goes.
 
 Art that isn't a hero's (a training dummy, a prop) keeps its own colours. When one drawing of a set
 comes back lighter or more orange than the rest, as the great dummy's two wobbles did
@@ -509,7 +519,7 @@ its own colours (`extract-hero.mjs --colors`), keep that image beside the grid i
 background goes, found as above (`scripts/image-io.mjs` holds what the two tools share):
 
 ```
-node scripts/clear-background.mjs art-in/dummy-stand.png
+node scripts/clear-background.mjs art/dummies/dummy-stand.png
 ```
 
 The result is written next to the input as `…-clear.png`. When the outline is drawn nearly black on
@@ -518,7 +528,8 @@ a black background, lower `--dark` (24 by default) so that the outline stays.
 ### Fire
 
 The braziers and the candles on the round table in Roundtable Hold burn with pixel-art fire from
-two sprite sheets (`client/assets/fx/`, rigged in `client/js/fire.js`). So does every island: a
+two sprite sheets (`art/world/fire/`, extracted into `client/assets/fx/` and rigged in
+`client/js/fire.js`). So does every island: a
 candle flame on the scriptorium's candles and the war table's, two fires in the forge's dark
 mouth (fiercer while someone works it), and a smaller brazier fire on each torch by the fog gate.
 
@@ -534,7 +545,7 @@ mouth (fiercer while someone works it), and a smaller brazier fire on each torch
   black wick rises from the wax into the bottom of each flame.
 
 Preview the loops at <http://127.0.0.1:7777/dev/fire.html>. `npm run heroes` also writes them as
-GIFs to `client/assets/fx/`. To turn a sheet of frames into an animation file:
+GIFs to `art/exports/`. To turn a sheet of frames into an animation file:
 
 ```
 powershell -ExecutionPolicy Bypass -File scripts/decode-image.ps1 sheet.webp .elden/sheet.bgra
@@ -546,7 +557,7 @@ node scripts/pack-frames.mjs client/assets/fx/fire.json "Fire" "source note" .el
 Extract all of a sheet's frames in one run so they share a palette, and pack them in frame order.
 
 The fight art (an ultimate's pose, a blow's frames, its effects) comes as images of their own in
-`art-in/` (see `art-prompts.md` for what each holds). A pose goes back on its hero's palette, at
+the hero's folder in `art/heroes/` (see `art-prompts.md` for what each holds). A pose goes back on its hero's palette, at
 the size that matches the hero's standing pose: pass `:pitch=px,py` when the drawing's pixels are
 finer or softer than the master's. A sheet laid out in a grid (a blow's three frames in a 2 x 2
 grid, an effect's frames in a row) is split by its cells:

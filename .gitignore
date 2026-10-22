@@ -9,11 +9,8 @@ client/assets/hero/baked/
 # the bridge's local state, including its secret token (never commit)
 .elden/
 
-# the reference images the characters were drawn from (ChatGPT images, Krita files, other games'
-# art): the game doesn't need them, its art is already extracted into client/assets
-boss references/
-character references/
-npc-inspiration.png
-elden ring.png
-elden ring.png~
+# all the art, in one place: each hero's and great enemy's master and drawings, their effects and weapons,
+# the dummies, the world's props, references, Krita files, the ChatGPT prompt templates and what npm run
+# heroes exports. The game doesn't need it: its art is already extracted into client/assets
+art/
 *~
