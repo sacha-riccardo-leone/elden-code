@@ -103,7 +103,9 @@ export class Pilot {
     const sx = (h.x / len) * speed * dt;
     const sz = (h.z / len) * speed * dt;
     const { x, y: z } = n.pos;
-    if (this.canStand(x + sx, z + sz) || !this.canStand(x, z)) n.pos.set(x + sx, z + sz);
+    // (somewhere thou mayst not stand, in a wall or outside the tutorial's fence, thou mayst walk
+    // out of it any way, but never off the ground)
+    if (this.canStand(x + sx, z + sz) || (!this.canStand(x, z) && this.ctx.world.isWalkArea(x + sx, z + sz))) n.pos.set(x + sx, z + sz);
     else if (sx && this.canStand(x + sx, z)) n.pos.x += sx;
     else if (sz && this.canStand(x, z + sz)) n.pos.y += sz;
     else if (!this.nudge(n, speed * dt, h)) return false;
@@ -130,8 +132,9 @@ export class Pilot {
         const ahead = h.x ? [px + h.x * 0.4, pz] : [px, pz + h.z * 0.4];
         if (!this.canStand(px, pz) || !this.canStand(ahead[0], ahead[1])) continue;
         const d = Math.min(step, Math.abs(o)) * sign;
-        if (h.x) n.pos.y += d;
-        else n.pos.x += d;
+        const [lx, lz] = h.x ? [x, z + d] : [x + d, z];
+        if (!this.canStand(lx, lz)) continue; // (nor slides into what stands between: a pillar)
+        n.pos.set(lx, lz);
         return true;
       }
     }
@@ -240,9 +243,18 @@ export class Pilot {
     if (n.isMaren && area.walkRect) n.region = area;
   }
 
+  // Standing on nothing, off the edge of the world (which no step, dodge or push should ever
+  // allow): back onto the nearest ground, or from far out, by grace to the Hold.
+  reground(n) {
+    const [x, z] = this.ctx.nav.clampToWalkable(n.pos.x, n.pos.y);
+    if (this.ctx.world.isWalkArea(x, z)) n.pos.set(x, z);
+    else this.travelTo(this.ctx.world.hub, true);
+  }
+
   // One frame of the held character (from its update): its action (a blow, a crouch, a gesture,
   // its change of form) or a step where the keys point. Returns whether it moved.
   drive(n, dt) {
+    if (!n.action && !n.travel && !n.dragged && !n.shift && !this.dead && !this.ctx.world.isWalkArea(n.pos.x, n.pos.y)) this.reground(n);
     const h = this.heading();
     const going = !!(h.x || h.z);
     // setting off cuts a gesture or a crouch short (not a blow, nor rising from grace, nor a change of

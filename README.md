@@ -265,6 +265,10 @@ can **become any character**: click one and choose **Become …** in the fan ove
   - **Getting nowhere for 6 seconds** (wedged somewhere, however it tries), an NPC travels the rest
     of the way by grace; a step from where it's going, it simply stops there.
   - **In a fight,** fighters keep some room between one another and you.
+- **You never leave the ground** (`client/js/pilot.js`). Walking, dodging, or sliding along the
+  rim onto a bridge, nothing takes you off the walkable ground or into a pillar. Should anything
+  ever leave you standing on nothing, you're put back on the nearest ground, or, from far out,
+  taken to Roundtable Hold by grace.
 
 Every time the world loads, the hand-drawn heroes are already seated at the Round Table in
 Roundtable Hold, before any island exists, and Maren rises from grace beside them. Each Claude Code
