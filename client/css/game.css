@@ -616,7 +616,8 @@ body.in-battle #trainees { display: none; }
   z-index: 10;
   pointer-events: none;
 }
-#dummy-bars .bar {
+#dummy-bars .bar,
+#foe-bar {
   position: absolute;
   left: 0;
   top: 0;
@@ -628,11 +629,18 @@ body.in-battle #trainees { display: none; }
   opacity: 0;
   transition: opacity 0.25s;
 }
-#dummy-bars .bar.great { width: 120px; height: 8px; }
+#dummy-bars .bar.great,
+#foe-bar { width: 120px; height: 8px; }
 #dummy-bars .bar.shown { opacity: 1; }
-#dummy-bars .bar i { position: absolute; left: 0; top: 0; bottom: 0; }
-#dummy-bars .lag { background: #f2ecdc; } /* what it just lost, lingering */
-#dummy-bars .hp { background: linear-gradient(#b8301f, #6e120c); }
+#dummy-bars .bar i,
+#foe-bar i { position: absolute; left: 0; top: 0; bottom: 0; }
+#dummy-bars .lag,
+#foe-bar .lag { background: #f2ecdc; } /* what it just lost, lingering */
+#dummy-bars .hp,
+#foe-bar .hp { background: linear-gradient(#b8301f, #6e120c); }
+/* (a great enemy's, worn over his head as the dummies wear theirs: Morvane's first form, fight.js) */
+#foe-bar { position: fixed; z-index: 10; opacity: 1; pointer-events: none; }
+#foe-bar[hidden] { display: none; }
 body.in-battle #dummy-bars { display: none; }
 
 /* ---------------------------------------------------------------- fan of gestures */

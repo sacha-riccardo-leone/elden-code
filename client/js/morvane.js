@@ -3,9 +3,12 @@
 // the Guardian Golem and Fenrath have been beaten (fight.js, ORDER).
 //
 // His first form, the withered lord, won't fight: he flees all round the arena, away from whoever's
-// near, and every so often stops, out of breath: only then can he be struck (a blow, a spell, an
-// ultimate's; while he runs, all of it passes him by). He's thine alone: thy companions wait in their
-// places by the way in, watching, for his second form (waits). His bar emptied, he
+// near, and every so often stops, out of breath. Thy blade reaches him only then (as an ultimate
+// does); what thou loosest from afar (a spell, a thrown spear, Ruadan's maul) reaches him running
+// too. He's thine alone: thy companions wait in their places by the way in, watching, for his second
+// form (waits). His health he wears over his head, as the training yard's dummies do theirs
+// (fight.updateUi): the great enemy's bar shows only once he's the Lord of Frenzied Flame. His bar
+// emptied, he
 // changes (CHANGE), the camera on him and everyone holding still: he kneels and grips the sword in
 // his skull, screaming; he pulls, and the sword, stuck fast, drags his head up on a stretching neck
 // till he rips it off, a burst of frenzied flame swallowing it; from behind, he kneels headless, the
@@ -53,7 +56,7 @@ const FLAME_LIGHT = '#ffb030';
 // Where, in his drawings, things are (art pixels over his feet: up): the fire, his head as he grips and
 // pulls, his neck once it's torn off, the head of flame; his middle, where a spell strikes, in either
 // form.
-const AT = { grip: 150, pull: 170, pulled: 134, back: 158, flame: 241, middle: 96, flameMiddle: 160 };
+const AT = { grip: 150, pull: 170, pulled: 134, back: 158, flame: 241, middle: 96, flameMiddle: 160, top: 243 };
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -97,7 +100,12 @@ export class MorvaneMind {
 
   // Out of breath: the only time he can be struck.
   open() { return this.b.state === 'ready' && this.form === 1 && this.mode === 'pant'; }
-  immune() { return !this.open(); }
+  // (out of breath, anything wounds him; running, only what thou loosest from afar: struck, `through`)
+  immune() { return !this.open() && !(this.through && this.b.state === 'ready' && this.form === 1); }
+  // His health over his head, in his first form and his change, till he's named the Lord of Frenzied
+  // Flame (fight.updateUi): where it goes.
+  ownBar() { return !this.titled; }
+  barAt() { return this.b.lift + this.up('top') + 0.25; }
   get lying() { return false; }
   // (and everyone holding still, the camera on him, while he changes and as he's revealed)
   holds() { return this.b.state === 'change'; }
@@ -134,15 +142,19 @@ export class MorvaneMind {
     return [b.pos.x, b.lift + this.up(this.form === 1 ? 'middle' : 'flameMiddle'), b.pos.y + 0.2];
   }
 
+  // (thine reaches him running too: a spell, a spear or the maul thrown, a thunderbolt; another's only
+  // as he stands out of breath)
   spellBlow(n, share, player) {
-    if (!this.open()) { if (player) this.slip(); return false; }
-    this.struck(n, this.fight.blowWorth(n, true) * share, 'spell');
+    if (!this.open() && !player) return false;
+    this.struck(n, this.fight.blowWorth(n, true) * share, 'spell', player);
     return true;
   }
 
-  struck(n, amount, how) {
+  struck(n, amount, how, through = false) {
     const b = this.b;
+    this.through = through;
     this.fight.hit(b, amount, null, n, true, how);
+    this.through = false;
     // (heard: thine own cry as thou art struck, higher, the nearest there is to his own till he has one)
     this.ctx.sound?.play('player-hurt', { at: [b.pos.x, b.pos.y], volume: 0.55, pitch: 1.2 });
     this.floor.particles.emit({
@@ -151,9 +163,9 @@ export class MorvaneMind {
     });
   }
 
-  // A blow or a spell of thine, while he runs: it passes him by (said once).
+  // A blow of thine, while he runs: it passes him by (said once).
   slip() {
-    this.tell('slip', 'Morvane slips away from every blow: strike him when he stops, out of breath');
+    this.tell('slip', 'Morvane slips away from thy blade: strike him from afar as he runs, or when he stops, out of breath');
   }
 
   // Where a fighter goes to strike: beside him, on its own side, while he's out of breath; nowhere
@@ -350,6 +362,7 @@ export class MorvaneMind {
     }
     if (at('title')) {
       b.name = 'Morvane, Lord of Frenzied Flame';
+      this.titled = true; // (the great enemy's bar, filling: fight.updateUi)
       b.max = MORVANE.flameHp;
       this.ctx.ui.banner('Morvane', 'Lord of Frenzied Flame', 'gold');
       this.ctx.ui.log('Morvane, Lord of Frenzied Flame, is revealed', 'red', { region: this.ctx.world.arena });

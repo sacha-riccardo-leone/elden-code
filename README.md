@@ -973,10 +973,12 @@ ground under you instead, so it flies at your hand's height there too.
   through his ribs, his mustard drapes in rags. Every drawing is Sacha's (`art/bosses/Morvane`).
   - **His first form won't fight:** he flees all round the arena, away from whoever comes near
     (you most), and after three to six seconds of running stops, **out of breath**, for about three.
-    Only then can he be struck. While he runs, every blow, spell and ultimate passes him by (the log
-    says so once). He's yours alone: your companions stay in their places in line by the way in,
-    watching him, and join only once he's in his second form. His first bar is 1,500: about a
-    minute.
+    Your blade (and an ultimate) reaches him only then: running, he slips away from it (the log says
+    so once). What you loose from afar reaches him running too: a spell, Ulric's spear, Ruadan's
+    thrown maul, Maren's thunderbolt. He's yours alone: your companions stay in their places in line
+    by the way in, watching him, and join only once he's in his second form. His health (1,500,
+    about a minute) is a small bar he wears over his head, as the training yard's dummies do; the
+    great enemy's bar at the bottom of the screen shows only once he's the Lord of Frenzied Flame.
   - **His change**, as that bar empties: everyone holds still (you can't move or strike) and the
     camera comes in close on him, pulling back as he grows. About 25 seconds:
     - he kneels, grips the sword in his skull and screams;

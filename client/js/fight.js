@@ -396,6 +396,9 @@ export class Fight {
       bossHp: document.querySelector('#boss .hp'),
       bossLag: document.querySelector('#boss .lag'),
       bossDmg: document.querySelector('#boss .dmg'),
+      foeBar: document.getElementById('foe-bar'),
+      foeHp: document.querySelector('#foe-bar .hp'),
+      foeLag: document.querySelector('#foe-bar .lag'),
       meFace: document.getElementById('me-face'),
       hp: document.getElementById('hp'),
       hpBar: document.querySelector('#hp i'),
@@ -413,6 +416,7 @@ export class Fight {
     this.meFrame = this.frameOf(this.ui.meFace); // thy face, by thy health
     this.swap = null; // faces to fly as thou carriest on as another (carryOn, flySwap)
     this.says = []; // his words to come: { at, text } (say)
+    this.barV = new THREE.Vector3(); // (where the health worn over his head goes: updateUi)
   }
 
   get active() { return this.state !== 'idle'; }
@@ -2361,7 +2365,10 @@ export class Fight {
     this.stepSays();
     const b = this.boss;
     const el = this.ui;
-    el.boss.hidden = !(b && (this.state === 'fighting'));
+    // (one that wears his health over his head, as the training yard's dummies do, has no other till
+    // the mind says: Morvane's first form, morvane.js)
+    const own = !!b?.mind?.ownBar?.();
+    el.boss.hidden = !(b && this.state === 'fighting' && !own);
     if (b) {
       el.bossName.textContent = b.name;
       el.bossHp.style.width = `${(100 * b.hp) / b.max}%`;
@@ -2373,6 +2380,16 @@ export class Fight {
       this.lagHp = Math.max(b.hp, this.lagHp);
       el.bossLag.style.width = `${(100 * this.lagHp) / b.max}%`;
       el.bossDmg.textContent = this.clock < this.dmgUntil ? String(this.dmgShown) : '';
+    }
+    // that one over his head, following him (not while everyone holds still for him)
+    const over = own && this.state === 'fighting' && !b.mind.holds?.();
+    el.foeBar.hidden = !over;
+    if (over) {
+      const p = this.ctx.ui.project(this.barV.set(b.pos.x, groundAt(b.pos.x, b.pos.y) + b.mind.barAt(), b.pos.y));
+      el.foeBar.hidden = p.behind;
+      el.foeBar.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y)}px) translate(-50%, -100%)`;
+      el.foeHp.style.width = `${(100 * b.hp) / b.max}%`;
+      el.foeLag.style.width = `${(100 * this.lagHp) / b.max}%`;
     }
     const pilot = this.ctx.pilot;
     el.hp.hidden = !(this.active || pilot.hp < pilot.maxHp);
