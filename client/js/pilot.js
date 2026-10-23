@@ -21,6 +21,7 @@ const WALK = 3.4;
 const RUN = 6.2;
 const DODGE = { speed: 9.5, time: 0.32, cooldown: 0.7 };
 const PAD = 0.25; // keep this far from walls and furniture
+const REGROUND = 6; // (standing on nothing: how far round thee ground is looked for before going by grace, reground)
 
 const MOVE = {
   KeyW: [0, -1], ArrowUp: [0, -1],
@@ -248,12 +249,24 @@ export class Pilot {
     if (n.isMaren && area.walkRect) n.region = area;
   }
 
-  // Standing on nothing, off the edge of the world (which no step, dodge or push should ever
-  // allow): back onto the nearest ground, or from far out, by grace to the Hold.
+  // Standing on nothing: off the edge of the world (which no step, dodge or push should ever allow),
+  // or on the top of the arena's stair as the fog seals it behind thee, a great enemy entering. Onto
+  // the nearest ground thou mayst stand on (the arena's floor, a step away), searched round thee
+  // outward (not on the nav grid, which may not have caught up yet); only from far out, by grace to
+  // the Hold.
   reground(n) {
-    const [x, z] = this.ctx.nav.clampToWalkable(n.pos.x, n.pos.y);
-    if (this.ctx.world.isWalkArea(x, z)) n.pos.set(x, z);
-    else this.travelTo(this.ctx.world.hub, true);
+    const { x, y: z } = n.pos;
+    for (let r = 0.25; r <= REGROUND; r += 0.25) {
+      const k = Math.max(8, Math.round(r * 8));
+      for (let i = 0; i < k; i++) {
+        const a = (i / k) * Math.PI * 2;
+        if (this.canStand(x + Math.cos(a) * r, z + Math.sin(a) * r)) {
+          n.pos.set(x + Math.cos(a) * r, z + Math.sin(a) * r);
+          return;
+        }
+      }
+    }
+    this.travelTo(this.ctx.world.hub, true);
   }
 
   // One frame of the held character (from its update): its action (a blow, a crouch, a gesture,
