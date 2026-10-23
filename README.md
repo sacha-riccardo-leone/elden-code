@@ -1206,10 +1206,9 @@ table says what each clip is cut from.
   - his change, heard wherever you are, holding the music down: `morvane_sword_anticipation` and
     `morvane_removing_sword_during` (from its first burst, 0.8 s in) as he grips the sword;
     `morvane_removing_sword_during_end` coming in halfway through that (the two cut short as his
-    head comes off);
-    `morvane_sword_removed_instant` and `_instant_second` together as it's ripped off;
-    `morvane_before_reveal` as he grows (its
-    silent lead-in left out); `morvane_blackscreen_to_flame_reveal` and `…2` together as the screen
+    head comes off); `morvane_sword_removed_instant`, `_instant_second` and `_instant_second2`
+    together as it's ripped off; `morvane_before_reveal` as he grows (its silent lead-in left out);
+    `morvane_blackscreen_to_flame_reveal` and `…2` together as the screen
     goes black, swelling into the reveal; `morvane_reveal` and `morvane_reveal2` together as he's
     revealed, with `morvane_reveal3_low_volume` quietly under them, all dying away as he vanishes
     (each of the long ones cut to the 15 to 20 s the encounter lasts for now);
