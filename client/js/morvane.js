@@ -5,7 +5,9 @@
 // His first form, the withered lord, won't fight: he flees all round the arena, away from whoever's
 // near, and every so often stops, out of breath. Thy blade reaches him only then (as an ultimate
 // does); what thou loosest from afar (a spell, a thrown spear, Ruadan's maul) reaches him running
-// too. He's thine alone: thy companions wait in their places by the way in, watching, for his second
+// too. His wounds barely fill thine ultimate. Nearly done for, he makes one last run, to the middle
+// of the arena, and stays there out of breath till thou finishest him: so his change, and his reveal,
+// come there. He's thine alone: thy companions wait in their places by the way in, watching, for his second
 // form (waits). His health he wears over his head, as the training yard's dummies do theirs
 // (fight.updateUi): the great enemy's bar shows only once he's the Lord of Frenzied Flame. His bar
 // emptied, he
@@ -34,6 +36,11 @@ export const MORVANE = {
   pant: [2.6, 3.4], // seconds out of breath: the only time he can be struck
   leg: 7, // how far he'd rather each dash take him
   shy: 2.6, // a foe this near, he runs elsewhere
+  last: 0.15, // this much of his bar left, he makes one last run, to the middle of the arena, and stays there out of breath
+  wheeze: 5.6, // (and wheezes on and on there: his panting heard again every so often)
+  // what his first form's wounds fill thine ultimate with: a twentieth of what they would (all of his
+  // first bar, a quarter of it: the annoying part of him)
+  ultFill: 20,
   hover: 0.35, // how high his second form floats (over the toes' place in his drawing), bobbing
 };
 
@@ -102,6 +109,8 @@ export class MorvaneMind {
   open() { return this.b.state === 'ready' && this.form === 1 && this.mode === 'pant'; }
   // (out of breath, anything wounds him; running, only what thou loosest from afar: struck, `through`)
   immune() { return !this.open() && !(this.through && this.b.state === 'ready' && this.form === 1); }
+  // (how hard his wounds fill an ultimate: his first form's barely, combat.js)
+  ultFill() { return this.form === 1 ? MORVANE.ultFill : 1; }
   // His health over his head, in his first form and his change, till he's named the Lord of Frenzied
   // Flame (fight.updateUi): where it goes.
   ownBar() { return !this.titled; }
@@ -186,6 +195,8 @@ export class MorvaneMind {
   think(dt) {
     const b = this.b;
     this.t += dt;
+    if (!this.last && b.hp <= b.max * MORVANE.last) this.lastRun();
+    if (this.last) return this.stepLast(dt);
     if (this.mode === 'pant') {
       b.pose('pant');
       if (this.t >= this.until) this.run();
@@ -255,6 +266,47 @@ export class MorvaneMind {
     this.b.pose('pant', true);
     this.voices.pant = this.sound('pant');
     this.tell('pant', 'Morvane stops, out of breath: strike him now!');
+  }
+
+  // Nearly done for: one last run, to the middle of the arena (whoever's in the way), and there, out
+  // of breath for good, wheezing on till he's finished (or he can get no nearer: there, then).
+  lastRun() {
+    const { cx, cz } = this.ctx.world.arena;
+    this.last = 'run';
+    this.mode = 'run';
+    this.goal = [cx, cz];
+    this.closest = Infinity;
+    this.stuckT = 0;
+    this.hush('pant', 0.4);
+    this.sound('run');
+    this.tell('last', 'Morvane staggers to the middle of the arena, out of breath: finish him!', 'red');
+  }
+
+  stepLast(dt) {
+    const b = this.b;
+    if (this.last === 'there') {
+      b.pose('pant');
+      this.wheeze = (this.wheeze || 0) + dt;
+      if (this.wheeze >= MORVANE.wheeze) { this.wheeze = 0; this.voices.pant = this.sound('pant'); }
+      return false;
+    }
+    const [gx, gz] = this.goal;
+    const d = Math.hypot(gx - b.pos.x, gz - b.pos.y);
+    // (no nearer for a while: someone stands where he'd be)
+    if (d < this.closest - 0.05) { this.closest = d; this.stuckT = 0; } else this.stuckT += dt;
+    if (d < 0.4 || this.stuckT > 1.2) {
+      this.last = 'there';
+      this.mode = 'pant';
+      this.wheeze = 0;
+      b.pose('pant', true);
+      this.voices.pant = this.sound('pant');
+      return false;
+    }
+    const step = Math.min(d, MORVANE.speed * dt);
+    this.fight.shift(b, ((gx - b.pos.x) / d) * step, ((gz - b.pos.y) / d) * step);
+    if (Math.abs(gx - b.pos.x) > 0.2) b.body.facing = gx > b.pos.x ? 1 : -1;
+    b.pose('run');
+    return true;
   }
 
   // His bare feet as they're set down, running (the run's first and third drawings).

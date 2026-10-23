@@ -979,6 +979,10 @@ ground under you instead, so it flies at your hand's height there too.
     by the way in, watching him, and join only once he's in his second form. His health (1,500,
     about a minute) is a small bar he wears over his head, as the training yard's dummies do; the
     great enemy's bar at the bottom of the screen shows only once he's the Lord of Frenzied Flame.
+    His wounds barely fill your ultimate (a twentieth of what they would: all of his first bar fills
+    a quarter of it). With 15% of his bar left, he makes one last run, to the middle of the arena,
+    and stays there out of breath, wheezing, till you finish him: his change and his reveal come
+    there, where he stands, nobody moved for them.
   - **His change**, as that bar empties: everyone holds still (you can't move or strike) and the
     camera comes in close on him, pulling back as he grows. About 25 seconds:
     - he kneels, grips the sword in his skull and screams;

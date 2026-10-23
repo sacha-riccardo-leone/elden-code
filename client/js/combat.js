@@ -58,8 +58,9 @@ export const SPELL = { npc: 7, player: 22 };
 // thine: a few in a fight, not one every few blows), how hard one hits per share of it (thine
 // half as hard again), and the least time between two loosed by the fighters (thine never waits).
 export const ULT = { fill: { npc: 0.04, player: 0.2 }, power: { npc: 0.0025, player: 0.00375 }, gap: 12 };
-// (an enemy may have them fill sooner: the Golem, whose stone takes little from blows, golem.js)
-export const ultFill = (b, player = false) => (b?.max || 8000) * (b?.kind?.ultFill ?? 1) * ULT.fill[player ? 'player' : 'npc'];
+// (an enemy may have them fill sooner: the Golem, whose stone takes little from blows, golem.js; or
+// barely at all, as his mind says: Morvane's first form, morvane.js)
+export const ultFill = (b, player = false) => (b?.max || 8000) * (b?.mind?.ultFill?.() ?? b?.kind?.ultFill ?? 1) * ULT.fill[player ? 'player' : 'npc'];
 export const ultPower = (b, player = false) => (b?.max || 8000) * ULT.power[player ? 'player' : 'npc'];
 // Where the mages stand off from him, and how long they take between spells.
 export const RANGED = { ring: [6.5, 9.5], reach: 13, cd: [2.2, 3.8] };
