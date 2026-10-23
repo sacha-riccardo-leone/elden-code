@@ -86,7 +86,7 @@ export default {
   title: 'Great Enemy',
   frame: FRAME,
   cols: 4,
-  px: 1.72 / 91, // (the same as his first form's: three times as tall, in three times the pixels)
+  px: 2.31 / 91, // (the same as his first form's: three times as tall, in three times the pixels; 7 units, flame to toes)
   head: 290,
   below: BELOW, // (rows under his toes in every frame: morvane.js floats him by them)
   hits: {},

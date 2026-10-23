@@ -177,8 +177,8 @@ const KINDS = {
     ultFill: 0.6, // (his stone takes little from blows: ultimates, which wound him whole, fill sooner)
   },
   morvane: {
-    sheet: 'morvaneSheet', form: 'morvaneFlameSheet', hp: MORVANE.hp, speed: MORVANE.speed, reach: 1.2, radius: 0.55,
-    lane: 0.8, depth: 0.9, spacing: 2, crowd: CROWD.radius, shadow: [1.5, 0.9], cam: { far: 20, y: 1.2 }, moves: {}, says: {},
+    sheet: 'morvaneSheet', form: 'morvaneFlameSheet', hp: MORVANE.hp, speed: MORVANE.speed, reach: 1.5, radius: 0.7,
+    lane: 1, depth: 1.1, spacing: 2.5, crowd: CROWD.radius, shadow: [2, 1.2], cam: { far: 24, y: 1.6 }, moves: {}, says: {},
     Mind: MorvaneMind,
     sounds: 'frenzy',
   },
@@ -1810,7 +1810,9 @@ export class Fight {
       f.vz = 0;
       return false;
     }
-    const live = b && b.alive && b.state !== 'enter';
+    // (Morvane's first form, and his change, are thine alone: thy companions wait in their places by
+    // the way in, watching, till his second form, morvane.js)
+    const live = b && b.alive && b.state !== 'enter' && !b.mind?.waits?.();
     let goal;
     let speed = 3.4;
     let faceBoss = live;
@@ -1957,7 +1959,7 @@ export class Fight {
     f.speed = v;
     if (faceBoss) { if (Math.abs(b.pos.x - n.pos.x) > 0.3) n.body.facing = b.pos.x > n.pos.x ? 1 : -1; }
     else if (Math.abs(f.vx) > 0.3) n.body.facing = f.vx > 0 ? 1 : -1;
-    else if (!live) n.body.facing = n.pos.x < world.arena.cx ? 1 : -1; // (in line, facing the aisle)
+    else if (!live) n.body.facing = (b?.mind?.waits?.() ? b.pos.x : world.arena.cx) > n.pos.x ? 1 : -1; // (in line, facing the aisle; or him, waiting for him)
     // (the Bandit Knight, still in his hiding place with the enemy well away, crouches out of sight)
     n.body.play(moving ? 'walk' : f.coward && live && Math.hypot(n.pos.x - b.pos.x, n.pos.y - b.pos.y) > 9 ? 'kneel' : 'idle');
     return moving;

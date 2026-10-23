@@ -4,7 +4,8 @@
 //
 // His first form, the withered lord, won't fight: he flees all round the arena, away from whoever's
 // near, and every so often stops, out of breath: only then can he be struck (a blow, a spell, an
-// ultimate's; while he runs, all of it passes him by), and the fighters rush him. His bar emptied, he
+// ultimate's; while he runs, all of it passes him by). He's thine alone: thy companions wait in their
+// places by the way in, watching, for his second form (waits). His bar emptied, he
 // changes (CHANGE), the camera on him and everyone holding still: he kneels and grips the sword in
 // his skull, screaming; he pulls, and the sword, stuck fast, drags his head up on a stretching neck
 // till he rips it off, a burst of frenzied flame swallowing it; from behind, he kneels headless, the
@@ -30,7 +31,7 @@ export const MORVANE = {
   pant: [2.6, 3.4], // seconds out of breath: the only time he can be struck
   leg: 7, // how far he'd rather each dash take him
   shy: 2.6, // a foe this near, he runs elsewhere
-  hover: 0.25, // how high his second form floats (over the toes' place in his drawing), bobbing
+  hover: 0.35, // how high his second form floats (over the toes' place in his drawing), bobbing
 };
 
 // His change, in seconds from his first bar emptying: the grip (C), the pull (D) and the neck tearing,
@@ -41,15 +42,16 @@ export const MORVANE = {
 const CHANGE = {
   grip: 0, pull: 2.6, tear: 4.6, rip: 6.2, pulled: 6.45, back: 9.2, grow: 9.6, grown: 13.4,
   black: 13.8, reveal: 17.3, title: 18.6, idle: 20.6, halt: 25,
-  cam: { near: 13, grown: 21, reveal: 24 },
+  cam: { near: 15, grown: 25, reveal: 30 },
 };
 const GROW = 2.1; // (his body, from his soles to his neck, as tall again as the Lord of Frenzied Flame's)
 const FILL = 1.6;
 const FLAME = ['#fff4b0', '#ffd23a', '#ff9a1a', '#ff6a10']; // (frenzied flame: white-hot to orange)
 const FLAME_LIGHT = '#ffb030';
-// Where, in his drawings, the fire is (world units over his feet, at his size): his head as he grips
-// and pulls, his neck once it's torn off, the head of flame.
-const AT = { grip: 1.42, pull: 1.6, pulled: 1.27, back: 1.5, flame: 4.55 };
+// Where, in his drawings, things are (art pixels over his feet: up): the fire, his head as he grips and
+// pulls, his neck once it's torn off, the head of flame; his middle, where a spell strikes, in either
+// form.
+const AT = { grip: 75, pull: 85, pulled: 67, back: 79, flame: 241, middle: 48, flameMiddle: 160 };
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -97,8 +99,14 @@ export class MorvaneMind {
   get lying() { return false; }
   // (and everyone holding still, the camera on him, while he changes and as he's revealed)
   holds() { return this.b.state === 'change'; }
-  crowdRadius(r) { return this.form === 1 ? r : r * 2.6; }
-  shadow() { return this.form === 2 ? [3.4, 1.8] : null; }
+  // (the fighters wait in their places by the way in through his first form and his change: his
+  // second form's fight, when it's made, is where they join it, fight.driveFighter)
+  waits() { return this.form === 1 || this.b.state === 'change'; }
+  crowdRadius(r) { return this.form === 1 ? r * 1.25 : r * 3.4; }
+  shadow() { return this.form === 2 ? [4.5, 2.4] : null; }
+
+  // How high a spot of his (AT) stands over his feet, in the drawings he's in just now.
+  up(k) { return AT[k] * this.b.body.sheet.px; }
 
   // Thy blow (fight.strikeFrom): along the line thou aimed it, within reach, while he's out of breath.
   playerBlow(p) {
@@ -121,7 +129,7 @@ export class MorvaneMind {
   // Where a spell flies at him (his middle), and a spell landing (`share` of an ordinary one).
   spellPoint() {
     const b = this.b;
-    return [b.pos.x, b.lift + (this.form === 1 ? 0.9 : 3), b.pos.y + 0.2];
+    return [b.pos.x, b.lift + this.up(this.form === 1 ? 'middle' : 'flameMiddle'), b.pos.y + 0.2];
   }
 
   spellBlow(n, share, player) {
@@ -136,7 +144,7 @@ export class MorvaneMind {
     // (heard: thine own cry as thou art struck, higher, the nearest there is to his own till he has one)
     this.ctx.sound?.play('player-hurt', { at: [b.pos.x, b.pos.y], volume: 0.55, pitch: 1.2 });
     this.floor.particles.emit({
-      pos: [b.pos.x, 0.9, b.pos.y + 0.2], spread: [0.3, 0.4, 0.2], vel: [0, 1, 0], velSpread: [1, 0.8, 0.6],
+      pos: [b.pos.x, this.up('middle'), b.pos.y + 0.2], spread: [0.3, 0.4, 0.2], vel: [0, 1, 0], velSpread: [1, 0.8, 0.6],
       color: ['#7a1a10', '#c8a070', '#2a0808'], size: 0.05, life: 0.5, count: 8, drag: 1.4, intensity: 1,
     });
   }
@@ -267,8 +275,8 @@ export class MorvaneMind {
     const C = CHANGE;
     const k = Math.max(0, Math.min(1, (t - C.grow) / (C.grown - C.grow)));
     let dist = C.cam.near + (C.cam.grown - C.cam.near) * k;
-    let y = 1 + 1.4 * k;
-    if (this.form === 2) { dist = C.cam.reveal; y = 2.9; }
+    let y = this.up('middle') * (1.1 + 1.6 * k);
+    if (this.form === 2) { dist = C.cam.reveal; y = this.up('flameMiddle'); }
     return { at: [b.pos.x, ARENA.y + y, b.pos.y], dist, mode: 'change', close: true };
   }
 
@@ -299,10 +307,10 @@ export class MorvaneMind {
       this.hush('pull', 0.4);
       this.hush('tear', 0.8);
       this.sound('rip', true);
-      this.burst(head(AT.pull), 1.3, 90);
-      flash(this.floor.scene, head(AT.pull), { color: FLAME_LIGHT, power: 60, reach: 16, life: 0.7 });
+      this.burst(head(this.up('pull')), 1.7, 90);
+      flash(this.floor.scene, head(this.up('pull')), { color: FLAME_LIGHT, power: 60, reach: 16, life: 0.7 });
       this.ctx.rig?.shake?.(0.25);
-      this.light = carry(this.floor.scene, head(AT.pull), { color: FLAME_LIGHT, power: 22, reach: 9, waver: 0.5 });
+      this.light = carry(this.floor.scene, head(this.up('pull')), { color: FLAME_LIGHT, power: 22, reach: 9, waver: 0.5 });
       this.step = 'pulled';
     }
     if (at('pulled')) {
@@ -333,8 +341,8 @@ export class MorvaneMind {
       b.pose('reveal', true);
       this.voices.reveal = this.sound('reveal', true);
       this.voices.low = this.sound('reveal-low', true);
-      this.burst(head(AT.flame), 2.4, 140);
-      flash(this.floor.scene, head(AT.flame), { color: FLAME_LIGHT, power: 45, reach: 22, life: 0.8 });
+      this.burst(head(this.up('flame')), 3.2, 140);
+      flash(this.floor.scene, head(this.up('flame')), { color: FLAME_LIGHT, power: 45, reach: 22, life: 0.8 });
       this.ctx.rig?.shake?.(0.3);
       this.step = 'title';
     }
@@ -368,7 +376,7 @@ export class MorvaneMind {
     }
     if (t < C.rip && Math.random() < dt * (t < C.pull ? 6 : 14)) {
       this.floor.particles.emit({
-        pos: head(t < C.pull ? AT.grip : AT.pull), spread: [0.15, 0.2, 0.1], vel: [0, 0.7, 0], velSpread: [0.3, 0.3, 0.2],
+        pos: head(this.up(t < C.pull ? 'grip' : 'pull')), spread: [0.15, 0.2, 0.1], vel: [0, 0.7, 0], velSpread: [0.3, 0.3, 0.2],
         color: FLAME, size: 0.04, life: 0.7, count: 2, drag: 1, intensity: 2.2,
       });
     }
@@ -377,7 +385,7 @@ export class MorvaneMind {
       const grow = t >= C.back;
       if (Math.random() < dt * (grow ? 40 : 12)) {
         this.floor.particles.emit({
-          pos: head(grow ? AT.back : AT.pulled), spread: [0.12, 0.05, 0.08], vel: [0, grow ? 2.2 : 1, 0], velSpread: [0.35, 0.6, 0.3],
+          pos: head(this.up(grow ? 'back' : 'pulled')), spread: [0.12, 0.05, 0.08], vel: [0, grow ? 2.2 : 1, 0], velSpread: [0.35, 0.6, 0.3],
           color: FLAME, size: grow ? 0.09 : 0.06, life: grow ? 0.9 : 0.6, count: grow ? 4 : 2, drag: 0.8, intensity: 2.8,
         });
       }
@@ -398,7 +406,7 @@ export class MorvaneMind {
     const b = this.b;
     if (!this.light) return;
     if (this.form === 2) this.light.at(b.pos.x, 1.4, b.pos.y + 2.6);
-    else this.light.at(b.pos.x, (t >= CHANGE.back ? AT.back * (b.body.zoom || 1) : AT.pulled), b.pos.y + 0.6);
+    else this.light.at(b.pos.x, (t >= CHANGE.back ? this.up('back') * (b.body.zoom || 1) : this.up('pulled')), b.pos.y + 0.6);
     const base = this.form === 2 ? 1 : t >= CHANGE.back ? 0.5 + 0.7 * Math.min(1, (t - CHANGE.back) / 4) : 0.35;
     this.light.level = base * (0.85 + 0.15 * Math.sin(t * 17) + 0.1 * Math.sin(t * 41));
   }
@@ -435,7 +443,7 @@ export class MorvaneMind {
     b.lift = MORVANE.hover;
     this.form = 2;
     this.light?.end(0.1);
-    this.light = carry(this.floor.scene, [b.pos.x, AT.flame, b.pos.y + 1.5], { color: FLAME_LIGHT, power: 16, reach: 14, waver: 0.6 });
+    this.light = carry(this.floor.scene, [b.pos.x, 1.4, b.pos.y + 2.6], { color: FLAME_LIGHT, power: 16, reach: 14, waver: 0.6 });
   }
 
   // ------------------------------------------------------------------------------------------
@@ -448,7 +456,7 @@ export class MorvaneMind {
     b.lift = MORVANE.hover + 0.12 * Math.sin(this.bob * 1.6);
     if (Math.random() < dt * 10) {
       this.floor.particles.emit({
-        pos: [b.pos.x, b.lift + AT.flame, b.pos.y + 0.1], spread: [0.7, 0.5, 0.3], vel: [0, 1.3, 0], velSpread: [0.4, 0.5, 0.3],
+        pos: [b.pos.x, b.lift + this.up('flame'), b.pos.y + 0.1], spread: [0.9, 0.7, 0.4], vel: [0, 1.3, 0], velSpread: [0.4, 0.5, 0.3],
         color: FLAME, size: 0.06, life: 1.2, count: 3, drag: 0.7, intensity: 2.6,
       });
     }
@@ -464,7 +472,7 @@ export class MorvaneMind {
       this.flicker(CHANGE.halt + b.t);
       b.fade = Math.max(0, 1 - b.t / 1.4);
       if (this.light) this.light.level = b.fade;
-      if (Math.random() < dt * 30) this.burst([b.pos.x, 1 + Math.random() * 4, b.pos.y], 1.4, 6);
+      if (Math.random() < dt * 30) this.burst([b.pos.x, 1 + Math.random() * this.up('flame') * 0.9, b.pos.y], 1.8, 6);
       if (b.t >= 1.6) b.state = 'gone';
     }
     return 0;
@@ -475,8 +483,8 @@ export class MorvaneMind {
     const b = this.b;
     b.state = 'vanish';
     b.t = 0;
-    this.burst([b.pos.x, AT.flame * 0.6, b.pos.y], 3, 160);
-    flash(this.floor.scene, [b.pos.x, AT.flame, b.pos.y], { color: FLAME_LIGHT, power: 70, reach: 22, life: 0.9 });
+    this.burst([b.pos.x, this.up('flame') * 0.6, b.pos.y], 4, 160);
+    flash(this.floor.scene, [b.pos.x, this.up('flame'), b.pos.y], { color: FLAME_LIGHT, power: 70, reach: 22, life: 0.9 });
     this.hush('reveal', 2.5);
     this.hush('low', 2.5);
     this.hush('black', 2.5);

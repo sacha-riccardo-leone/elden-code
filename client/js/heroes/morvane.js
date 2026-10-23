@@ -1,5 +1,5 @@
 // Morvane, the last great enemy of the Arena of Trials (fight.js, morvane.js), in his first form: a
-// withered old lord, smaller than any Tarnished, a greatsword of twisted gold driven down through his
+// withered old lord, a little smaller than Maren, a greatsword of twisted gold driven down through his
 // skull and its spikes out through his ribs, his mustard drapes in rags. Every drawing is Sacha's own
 // (art/bosses/Morvane): standing, fleeing (four), out of breath (two), each also drawn facing left
 // (not a mirror: one of his eyes is covered in dead skin, and it keeps its side); and his change:
@@ -109,7 +109,7 @@ export default {
   title: 'Great Enemy',
   frame: FRAME,
   cols: 6,
-  px: 1.72 / 91, // world units per art pixel: 1.72 from his soles to the top of his skull, four-fifths of a Tarnished
+  px: 2.31 / 91, // world units per art pixel: 2.31 from his soles to the top of his skull, 0.95 of Maren (to her helm's top)
   head: 110,
   hits: {},
   glowIntensity: 1,

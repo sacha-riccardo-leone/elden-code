@@ -968,14 +968,15 @@ ground under you instead, so it flies at your hand's height there too.
     attack comes) is the `GOLEM` table in `client/js/golem.js`. His size is `px` in
     `client/js/heroes/golem.js`.
 - **Morvane** (drawings `client/js/heroes/morvane.js` and `client/js/heroes/morvane-flame.js`,
-  fight `client/js/morvane.js`): the last of them. A withered old lord, smaller than any Tarnished
-  (four-fifths of one), a greatsword of twisted gold driven down through his skull and its spikes out
+  fight `client/js/morvane.js`): the last of them. A withered old lord, a little smaller than Maren
+  (0.95 of her height), a greatsword of twisted gold driven down through his skull and its spikes out
   through his ribs, his mustard drapes in rags. Every drawing is Sacha's (`art/bosses/Morvane`).
   - **His first form won't fight:** he flees all round the arena, away from whoever comes near
     (you most), and after three to six seconds of running stops, **out of breath**, for about three.
     Only then can he be struck. While he runs, every blow, spell and ultimate passes him by (the log
-    says so once), and the fighters go round after him; as he stops, they rush him. His first bar is
-    1,500: about a minute with four companions.
+    says so once). He's yours alone: your companions stay in their places in line by the way in,
+    watching him, and join only once he's in his second form. His first bar is 1,500: about a
+    minute.
   - **His change**, as that bar empties: everyone holds still (you can't move or strike) and the
     camera comes in close on him, pulling back as he grows. About 25 seconds:
     - he kneels, grips the sword in his skull and screams;
@@ -985,7 +986,8 @@ ground under you instead, so it flies at your hand's height there too.
     - he stands, still turned away, flames rising from his neck, and **grows** under them to his
       second form's size;
     - the screen goes **black**;
-    - he turns round as **the Lord of Frenzied Flame**: his head a ring of frenzied flame round a
+    - he turns round as **the Lord of Frenzied Flame**, three times as tall (7 units from his head of
+      flame to his toes, a little taller than Fenrath): his head a ring of frenzied flame round a
       black hole, arms spread, the sword in one hand and a gold fang in the other. His title shows,
       and his second bar (9,000) fills.
   - **To be continued:** his second form's fight isn't made yet. He floats there a moment, then
