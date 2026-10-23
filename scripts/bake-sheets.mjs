@@ -26,11 +26,11 @@ const module = (rel) => import(pathToFileURL(path.join(CLIENT, 'js', rel)).href)
 const read = async (url) => fs.readFileSync(url.startsWith('file:') ? fileURLToPath(url) : path.join(CLIENT, url), 'utf8');
 
 export async function bake({ out = path.join(CLIENT, 'assets', 'hero', 'baked'), stale = false, trusted = false } = {}) {
-  const [{ HEROES }, boss, golem, spectre, { sheetPixels }, { inputs, hashOf }] = await Promise.all([
-    module('heroes/index.js'), module('heroes/boss.js'), module('heroes/golem.js'), module('heroes/spectre.js'),
-    module('heroes/core.js'), module('heroes/bake.js'),
+  const [{ HEROES }, boss, golem, morvane, morvaneFlame, spectre, { sheetPixels }, { inputs, hashOf }] = await Promise.all([
+    module('heroes/index.js'), module('heroes/boss.js'), module('heroes/golem.js'), module('heroes/morvane.js'),
+    module('heroes/morvane-flame.js'), module('heroes/spectre.js'), module('heroes/core.js'), module('heroes/bake.js'),
   ]);
-  const rigs = [...HEROES, boss.default, golem.default, spectre.default];
+  const rigs = [...HEROES, boss.default, golem.default, morvane.default, morvaneFlame.default, spectre.default];
   fs.mkdirSync(out, { recursive: true });
   const done = { baked: [], kept: [], bytes: 0 };
   for (const rig of rigs) {

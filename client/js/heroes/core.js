@@ -253,7 +253,7 @@ export function energy(f, spec, level, seed) {
       glow.set(x, y, 1);
     }
   }
-  if (spec.faint) for (let k = 0; k < f.c.length; k++) if (!glow.c[k] && spec.faint.has(f.c[k])) glow.c[k] = 3;
+  if (spec.faint) for (let k = 0; k < f.c.length; k++) if (glow.c[k] <= 0 && spec.faint.has(f.c[k])) glow.c[k] = 3;
   return glow;
 }
 

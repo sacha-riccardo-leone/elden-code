@@ -18,9 +18,10 @@
 // is lost. (The Bandit Knight, Elden Ring's Patches in all but name, never fights: he keeps as far
 // from the enemy as he can.) Nothing here ever reaches Claude Code.
 //
-// Two great enemies, one or the other by chance (KINDS): Fenrath, the Crimson Fang, below, and the
-// Guardian Golem, whose fight is golem.js. Fenrath (heroes/boss.js): every blow of his shows itself
-// before it lands (bossfx.js): step out of its way, or dodge through it (Space).
+// Three great enemies, met one after another (KINDS, ORDER): the Guardian Golem, whose fight is
+// golem.js; once he's beaten, Fenrath, the Crimson Fang, below; and once Fenrath is, Morvane, whose
+// fight is morvane.js. Fenrath (heroes/boss.js): every blow of his shows itself before it lands
+// (bossfx.js): step out of its way, or dodge through it (Space).
 //   swing – the greatsword raised and brought down: a crescent of red light flies on down his lane;
 //   lunge – a thrust: a lance of light runs along the blade and far past its point;
 //   slam  – a ring of light gathers round him for a moment, then fills: all inside it suffer;
@@ -42,6 +43,7 @@ import { flash } from './lights.js';
 import { fxArt } from './fxart.js';
 import { Spark } from './spellfx.js';
 import { GOLEM, GOLEM_MOVES, GolemMind } from './golem.js';
+import { MORVANE, MorvaneMind } from './morvane.js';
 import { setFoe } from './voices.js';
 import { clearRipples, rippleAt, stepRipples } from './ripple.js';
 import { groundAt } from './ground.js';
@@ -155,12 +157,13 @@ const WHY = {
 };
 const whyOf = (cause) => WHY[cause.kind]?.(cause) || '';
 
-// The great enemies (Fight.call picks one by chance, of those whose art loaded): his art
-// (ctx[sheet]), health, pace and bulk (reach/radius/lane as BOSS's; depth: how far out of his
-// line, in depth, thy blow still lands on him; spacing: how far off he stands to strike; crowd:
-// his circle on the floor, crowd.js; shadow: its width and depth, and how far behind his feet it
-// lies), his moves, the camera as it frames him (how far back it pulls, how high it looks) and what
-// he says. `Mind`: his own fight, where it isn't Fenrath's.
+// The great enemies (Fight.next picks the one that comes, of those whose art loaded): his art
+// (ctx[sheet]; `form`, his second form's, Morvane's), health, pace and bulk (reach/radius/lane as
+// BOSS's; depth: how far out of his line, in depth, thy blow still lands on him; spacing: how far off
+// he stands to strike; crowd: his circle on the floor, crowd.js; shadow: its width and depth, and how
+// far behind his feet it lies), his moves, the camera as it frames him (how far back it pulls, how
+// high it looks) and what he says. `Mind`: his own fight, where it isn't Fenrath's; `sounds`: his own
+// set of them, fetched as his fight begins (audio.js).
 const KINDS = {
   fenrath: {
     sheet: 'bossSheet', ...BOSS, depth: 1.9, spacing: 4, crowd: CROWD.bossRadius, shadow: [3.6, 2.6, 0.55],
@@ -170,9 +173,21 @@ const KINDS = {
     sheet: 'golemSheet', hp: GOLEM.hp, speed: GOLEM.speed, reach: 3.4, radius: 2.0, lane: 1.6, depth: 2.2, spacing: 4.4,
     crowd: CROWD.golemRadius, shadow: [4.4, 3.0], cam: { far: BOSS_CAM.far * 1.3, y: 3.6 }, moves: GOLEM_MOVES, says: {},
     Mind: GolemMind,
+    sounds: 'golem',
     ultFill: 0.6, // (his stone takes little from blows: ultimates, which wound him whole, fill sooner)
   },
+  morvane: {
+    sheet: 'morvaneSheet', form: 'morvaneFlameSheet', hp: MORVANE.hp, speed: MORVANE.speed, reach: 1.2, radius: 0.55,
+    lane: 0.8, depth: 0.9, spacing: 2, crowd: CROWD.radius, shadow: [1.5, 0.9], cam: { far: 20, y: 1.2 }, moves: {}, says: {},
+    Mind: MorvaneMind,
+    sounds: 'frenzy',
+  },
 };
+// The order they're met in (Fight.next): each once the one before it is beaten, as remembered in the
+// browser (FELLED); every one beaten, any of them. (?foe=golem, fenrath or morvane in the address
+// brings that one.)
+const ORDER = ['golem', 'fenrath', 'morvane'];
+const FELLED = 'elden-code:felled';
 const TRIGGER = {
   failures: 3, failureWindow: 120, // tool failures in a row (seconds) that summon one
   longQuest: 600,                  // seconds a single quest may run before one comes
@@ -235,8 +250,9 @@ class Boss {
     this.offset = (sheet.rig.offset || 0) * sheet.px;
     this.body = new SpriteBody(ctx.scene, sheet);
     this.body.mat.transparent = true;
-    // (Fenrath's feet heard as they're set down, heavily, audio.js; the Golem's are his own, golem.js)
-    if (kind !== 'golem') this.body.footfall = () => ctx.sound?.play('step-heavy', { at: [this.pos.x, this.pos.y] });
+    // (Fenrath's feet heard as they're set down, heavily, audio.js; the Golem's and Morvane's are their
+    // own, golem.js, morvane.js)
+    if (kind === 'fenrath') this.body.footfall = () => ctx.sound?.play('step-heavy', { at: [this.pos.x, this.pos.y] });
     this.body.blob.material.map = shadowTex();
     this.body.blob.material.opacity = 1;
     this.pose('idle');
@@ -286,6 +302,7 @@ class Boss {
     this.posture += dealt;
     this.hurtLog.push([performance.now() / 1000, dealt]);
     const airborne = (this.attack?.kind === 'leap' && this.attack.step >= 1 && this.attack.step <= 2) || !!this.attack?.air;
+    if (this.hp <= 0 && this.mind?.change?.()) return dealt; // (not his end but his change: Morvane's, morvane.js)
     if (this.hp <= 0) {
       const lying = this.mind?.lying;
       this.mind?.dies?.(lying);
@@ -427,9 +444,23 @@ export class Fight {
     return true;
   }
 
-  // The great enemies whose art loaded (should one's fail, only the other comes).
+  // The great enemies whose art loaded (should one's fail, the others still come).
   kinds() {
-    return Object.keys(KINDS).filter((k) => this.ctx[KINDS[k].sheet]);
+    return Object.keys(KINDS).filter((k) => this.ctx[KINDS[k].sheet] && (!KINDS[k].form || this.ctx[KINDS[k].form]));
+  }
+
+  // Those beaten so far, in this browser.
+  felled() {
+    try { return new Set(JSON.parse(localStorage.getItem(FELLED) || '[]')); } catch { return new Set(); }
+  }
+
+  // The one that comes next: the first of ORDER not yet beaten (of those whose art loaded), every one
+  // beaten, any of them; or the one the address asks for.
+  next(kinds = this.kinds()) {
+    const asked = new URLSearchParams(location.search).get('foe');
+    if (kinds.includes(asked)) return asked;
+    const felled = this.felled();
+    return ORDER.find((k) => kinds.includes(k) && !felled.has(k)) || pickOf(kinds);
   }
 
   // ------------------------------------------------------------------------------------------
@@ -443,7 +474,7 @@ export class Fight {
     // only the user's own great enemies ever come: without their art (it failed to load), none do
     const kinds = this.kinds();
     if (this.active || this.calling || !kinds.length) return false;
-    const kind = pickOf(kinds); // (an even chance of either)
+    const kind = this.next(kinds);
     const rig = this.ctx[KINDS[kind].sheet]?.rig;
     const foe = rig ? [rig.firstName, rig.epithet].filter(Boolean).join(', ') : 'A great enemy';
     const call = { cause, kind, at: this.clock };
@@ -470,7 +501,7 @@ export class Fight {
     const kinds = this.kinds();
     if (this.active || !kinds.length) return false;
     const { ui, world } = this.ctx;
-    this.kind = kinds.includes(kind) ? kind : pickOf(kinds);
+    this.kind = kinds.includes(kind) ? kind : this.next(kinds);
     setFoe(this.kind); // (the Tarnished's lines about him, voices.js)
     this.companions = new Set(party);
     this.cause = cause;
@@ -479,7 +510,8 @@ export class Fight {
     this.hinted = false;
     this.state = 'rising';
     this.t = 0;
-    if (this.kind === 'golem') this.ctx.sound?.load('golem'); // (his sounds, ready by the time he comes: golem.js)
+    const set = KINDS[this.kind].sounds;
+    if (set) this.ctx.sound?.load(set); // (his own sounds, ready by the time he comes: golem.js, morvane.js)
     world.arena.raise();
     ui.banner('A Great Enemy Approaches', `${whyOf(cause)} · Face it in the Arena of Trials`, 'red');
     ui.log('The Arena of Trials rises north of Roundtable Hold', 'red', { region: world.arena });
@@ -788,7 +820,7 @@ export class Fight {
   playerUlt(at) {
     const { pilot, ults } = this.ctx;
     const n = pilot.npc;
-    if (!n || pilot.dead || (pilot.ult || 0) < 1 || !this.inArena(n) || !ults?.ready(n, true)) return false;
+    if (!n || pilot.dead || (pilot.ult || 0) < 1 || !this.inArena(n) || !ults?.ready(n, true) || this.holds()) return false;
     if (n.travel || n.shift || (n.action && !['attack', 'cast', 'hurt', 'crouch', 'use', 'gesture'].includes(n.action.kind))) return false;
     // (an aimed one along the line to the pointer, at the height it goes at)
     const dir = ults.of(n)?.aim ? aimOf(n, at, muzzleSpot(n, 'ult')[1] + (n.lift || 0)) : null;
@@ -905,6 +937,9 @@ export class Fight {
   aim(me) {
     const b = this.boss;
     if (!this.facing(me)) return null;
+    // (his own: Morvane changing, close up, morvane.js)
+    const own = b.mind?.aim?.();
+    if (own) return own;
     // his great attack: him as he roars, then the whole arena, from farther back, till the ring
     // has erupted
     if (b.attack?.kind === 'wrath') {
@@ -917,6 +952,11 @@ export class Fight {
     if (this.clock < this.introUntil) return { at: [b.pos.x, y, b.pos.y], dist: far };
     if (this.focus) return { at: [me.pos.x + (b.pos.x - me.pos.x) * 0.45, y, me.pos.y + (b.pos.y - me.pos.y) * 0.45], dist: far };
     return { at: null, dist: BOSS_CAM.near };
+  }
+
+  // Everyone holding still, the camera on him (Morvane changing: morvane.js): thou canst do nothing.
+  holds() {
+    return !!this.boss?.mind?.holds?.();
   }
 
   // Thou, up against him on the arena.
@@ -1071,7 +1111,7 @@ export class Fight {
         break;
       }
       default:
-        b.mind?.stepState(bdt); // (the Golem falling, felled, getting up)
+        jitter = b.mind?.stepState(bdt) || 0; // (the Golem falling, felled, getting up; Morvane changing)
         break;
     }
     // where he's been standing: rooted too long and he'll want to leap elsewhere
@@ -1083,12 +1123,12 @@ export class Fight {
     // his shadow: wide and deep (he's long, and heavy), a little smaller the higher he leaps (and
     // longer, the Golem lying on his face); Fenrath's set back under his paws, so they stand in it
     const s = 1 - Math.min(0.3, b.lift * 0.045);
-    const [sw, sd, back = 0] = b.kind.shadow;
-    const lying = b.mind?.lying ? 1.6 : 1;
+    const [sw, sd, back = 0] = b.mind?.shadow?.() || b.kind.shadow;
+    const lying = (b.mind?.lying ? 1.6 : 1) * (b.body.zoom || 1);
     b.body.blob.position.x = b.pos.x + (lying > 1 ? b.body.facing * 1.4 : 0);
     b.body.blob.position.z = b.pos.y + 0.05 - back;
     b.body.blob.position.y = groundAt(b.body.blob.position.x, b.pos.y) + rippleAt(b.body.blob.position.x, b.pos.y) + 0.015;
-    b.body.blob.scale.set(sw * s * lying, sd * s, 1);
+    b.body.blob.scale.set(sw * s * lying, sd * s * (b.body.zoom || 1), 1);
     b.body.blob.material.opacity = b.fade;
     b.body.mat.opacity = b.fade;
     b.body.mat.depthWrite = b.fade > 0.99;
@@ -1762,6 +1802,14 @@ export class Fight {
       if (world.arena.risen && !n.travel) n.fastTravel(world.arena.cx, world.arena.cz);
       return false;
     }
+    // (as Morvane changes, everyone holds still and watches: morvane.js)
+    if (b?.mind?.holds?.()) {
+      if (Math.abs(b.pos.x - n.pos.x) > 0.3) n.body.facing = b.pos.x > n.pos.x ? 1 : -1;
+      n.body.play('idle');
+      f.vx = 0;
+      f.vz = 0;
+      return false;
+    }
     const live = b && b.alive && b.state !== 'enter';
     let goal;
     let speed = 3.4;
@@ -2180,6 +2228,10 @@ export class Fight {
 
   win() {
     const { ui, director } = this.ctx;
+    // (remembered: the next to come is the one after him, ORDER)
+    const felled = this.felled();
+    felled.add(this.kind);
+    try { localStorage.setItem(FELLED, JSON.stringify([...felled])); } catch {}
     ui.banner('Great Enemy Felled', '', 'gold');
     ui.log('The great enemy is felled', 'gold', { region: this.ctx.world.arena });
     for (const n of director.npcs.values()) {
@@ -2223,6 +2275,16 @@ export class Fight {
       }
     }
     return this.clock - this.cowardsAlone > 20;
+  }
+
+  // The encounter ends short of its end, neither won nor lost (Morvane revealed, his second form's
+  // fight still to come: morvane.js): he vanishes, and he'll be met again next time.
+  halt(b) {
+    const { ui, world } = this.ctx;
+    ui.banner('To Be Continued', 'Morvane, Lord of Frenzied Flame, will return', 'gold');
+    ui.log('Morvane vanishes in a burst of frenzied flame… to be continued', 'gold', { region: world.arena });
+    b.mind?.vanish?.();
+    this.end();
   }
 
   // He leaves the arena (unbeaten): he fades into red mist, and the fight is over.

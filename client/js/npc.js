@@ -207,6 +207,7 @@ export class SpriteBody {
     this.facing = 1;
     this.frame = -1;
     this.shown = 0; // the facing the texture last drew (`facing` is set freely; tick catches it up)
+    this.zoom = 1;
     this.anim = null;
     this.lamp = null; // the light of what glows on it (shine), once it shows any
   }
@@ -238,8 +239,17 @@ export class SpriteBody {
       t.repeat.set(facing / cols, 1 / rows);
       t.offset.set((facing > 0 ? col : col + 1) / cols, 1 - (row + 1) / rows);
     }
-    this.mesh.scale.set(grid.frameW / this.sheet.frameW, grid.frameH / this.sheet.frameH, 1);
-    this.shift = (grid.frameW / 2 - (grid.anchor ?? grid.frameW / 2)) * this.sheet.px;
+    this.mesh.scale.set((grid.frameW / this.sheet.frameW) * this.zoom, (grid.frameH / this.sheet.frameH) * this.zoom, 1);
+    this.shift = (grid.frameW / 2 - (grid.anchor ?? grid.frameW / 2)) * this.sheet.px * this.zoom;
+  }
+
+  // Drawn `k` times its size, from its feet up (Morvane growing in his change: morvane.js).
+  setZoom(k) {
+    if (k === this.zoom) return;
+    this.zoom = k;
+    const frame = this.frame;
+    this.frame = -1;
+    if (frame >= 0) this.setFrame(frame, this.facing);
   }
 
   play(name, restart = false) {
@@ -253,13 +263,15 @@ export class SpriteBody {
     const a = this.anim;
     if (!a) return null;
     a.t += dt * a.def.fps * rate;
+    // (facing left, its frames drawn facing left, where it has them: Morvane's, heroes/morvane.js)
+    const frames = this.facing < 0 && a.def.left ? a.def.left : a.def.frames;
     let i = Math.floor(a.t);
     if (a.def.once) {
-      if (i >= a.def.frames.length) { i = a.def.frames.length - 1; a.done = true; }
+      if (i >= frames.length) { i = frames.length - 1; a.done = true; }
     } else {
-      i %= a.def.frames.length;
+      i %= frames.length;
     }
-    const frame = a.def.frames[i];
+    const frame = frames[i];
     const prev = a.index;
     const changed = i !== prev;
     a.index = i;

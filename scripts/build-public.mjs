@@ -98,7 +98,7 @@ bytes += baked.bytes;
 copy(path.join(CLIENT, 'assets', 'fx', 'grace-core.png'), path.join(OUT, 'assets', 'fx', 'grace-core.png'));
 // the sounds, each set as the game cut it (client/assets/sfx/<set>: audio.js's SOUNDS; the sets of
 // scripts/cut-sfx.mjs), not the recordings beside them it was cut from
-const SFX_SETS = ['golem', 'boss', 'ronin', 'knight', 'paladin', 'champion', 'frost', 'sorceress', 'bloodbender', 'holy', 'bandit', 'spectre', 'work', 'yard', 'steps', 'blade', 'cine', 'runelord', 'player', 'ui'];
+const SFX_SETS = ['golem', 'boss', 'frenzy', 'ronin', 'knight', 'paladin', 'champion', 'frost', 'sorceress', 'bloodbender', 'holy', 'bandit', 'spectre', 'work', 'yard', 'steps', 'blade', 'cine', 'runelord', 'player', 'ui'];
 for (const set of SFX_SETS) walk(path.join(CLIENT, 'assets', 'sfx', set), (p) => p.endsWith('.mp3'), (p) => copy(p, path.join(OUT, rel(p))));
 // and the music, as levelled (client/assets/music: audio.js's MUSIC)
 walk(path.join(CLIENT, 'assets', 'music'), (p) => p.endsWith('.mp3'), (p) => copy(p, path.join(OUT, rel(p))));

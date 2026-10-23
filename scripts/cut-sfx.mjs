@@ -5,6 +5,7 @@
 // ffmpeg. The cut points were found from the recordings' loudness (each sound's sudden rise).
 //   golem        the Guardian Golem's (golem.js), from "Golem Guardian"
 //   boss         Fenrath's (fight.js), from "Fenrath"
+//   frenzy       Morvane's (morvane.js), from "Morvane"
 //   runelord     Jorvik's Flight of Tomes (ults.js), from "Jorvik"
 //   ronin        Wynn's (heroes/ronin.js, ults.js), from "Wynn"
 //   knight       Maren's thunderbolt and Red Storm (combat.js, ults.js), from "Marren"
@@ -156,6 +157,34 @@ const SETS = {
       ['land-1', 'fenrath_jump_landing.wav', 0, 2.0, -2, 0, 0.6],
       ['land-2', 'fenrath_jump_landing.wav', 2.98, 3.8, -2, 0, 1.0],
       ['land-3', 'fenrath_jump_landing.wav', 7.98, 4.8, -2, 0, 1.2],
+    ],
+  },
+  frenzy: {
+    from: 'IMPORT/Morvane',
+    clips: [
+      // breaking into a run (from its first sound, 0.6 s in); out of breath, the two together (the
+      // first a stretch of its long panting, stopped as he runs again), levelled as one
+      ['run', 'morvane_starts_running.mp3', 0.58, 0.72, -3, 0, 0.15],
+      ['pant-1', 'morvane_out_of_stamina_1.mp3', 0.7, 6, -3, 0, 0.5, { group: 'pant' }],
+      ['pant-2', 'morvane_out_of_stamina_2.mp3', 0, 2.62, -3, 0, 0.3, { group: 'pant' }],
+      // the change (morvane.js): gripping the sword in his skull (from its first sound); the pull (from
+      // its first burst, 0.8 s in) and the neck tearing; his head ripped off (the two together); kneeling
+      // headless; growing under the flames (its silent lead-in left out); the cut to black and the
+      // reveal (each group together: the reveal's beds 15 s of their length, all the encounter lasts
+      // for now; over full scale in their recordings, levelled lower), and the last of them on its
+      // own, heard quietly
+      ['grip', 'morvane_sword_anticipation.mp3', 0.12, 2.6, -3, 0, 0.6],
+      ['pull', 'morvane_removing_sword_during.mp3', 0.78, 6.9, -3, 0, 0.6],
+      ['tear', 'morvane_removing_sword_during_end.mp3', 0, 7.6, -3, 0, 1.2],
+      ['rip-1', 'morvane_sword_removed_instant.mp3', 0.03, 1.95, -3, 0, 0.3, { group: 'rip' }],
+      ['rip-2', 'morvane_sword_removed_instant_second.mp3', 0.03, 1.6, -3, 0, 0.3, { group: 'rip' }],
+      ['headless', 'morvane_sword_removed_after.mp3', 0, 3, -4, 0, 0.6],
+      ['grow', 'morvane_before_reveal.mp3', 0.5, 3.9, -3, 0, 0.6],
+      ['black-1', 'morvane_blackscreen_to_flame_reveal.mp3', 0, 9.5, -3, 0, 1.5, { group: 'black' }],
+      ['black-2', 'morvane_blackscreen_to_flame_reveal2.mp3', 1.2, 20, -3, 0, 3, { group: 'black' }],
+      ['reveal-1', 'morvane_reveal.mp3', 0, 15, -4, 0.2, 2, { group: 'reveal' }],
+      ['reveal-2', 'morvane_reveal2.mp3', 0.9, 15, -4, 0, 2, { group: 'reveal' }],
+      ['reveal-3', 'morvane_reveal3_low_volume.mp3', 0, 15, -3, 0.4, 2],
     ],
   },
   knight: {

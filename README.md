@@ -453,7 +453,7 @@ very sheet it would draw, pixel for pixel. A bake is used only while it's still 
 - Served any other way, the page checks a bake itself (`fingerprint`).
 
 A sheet without a bake of its own is drawn as before, but in workers off the page's thread, a few at
-once (`client/js/heroes/compose-worker.js`), else on the page. Fenrath's and the Golem's sheets
+once (`client/js/heroes/compose-worker.js`), else on the page. The great enemies' sheets
 load only once the world is ready (no great enemy comes till its own is), and the first frame's
 shaders are compiled side by side (`compileAsync`). Ready to set out: about 1.4 s for the public
 build, 3 to 4 s locally, 5 s with nothing baked (it was 11 to 15 s).
@@ -861,9 +861,12 @@ ground under you instead, so it flies at your hand's height there too.
     the enemy he begs ("Wrong bandit! Wrong bandit!"). Hidden, he mutters ("I'm a rock. A small,
     rusty, handsome rock."). From a safe distance he taunts it. When an ally falls he mourns them
     in his own way ("Rest easy. Dibs on yer purse.").
-- **The enemies:** one of two comes, an even chance of either: Fenrath, the Crimson Fang, or the
-  Guardian Golem. If one's art fails to load, only the other comes. The Tarnished's battle lines
-  fit whichever came (Ulric has his own jokes for each).
+- **The enemies, one after another:** never by chance (`ORDER` in `client/js/fight.js`). The
+  Guardian Golem comes first; once he's been beaten, Fenrath, the Crimson Fang; once Fenrath has,
+  Morvane. Each win is remembered in the browser (`elden-code:felled`), and with all three beaten any
+  of them may come. Add `?foe=golem`, `?foe=fenrath` or `?foe=morvane` to the address to bring that
+  one. If one's art fails to load, the next in line comes instead. The Tarnished's battle lines fit
+  whichever came (Ulric has his own jokes for Fenrath and the Golem).
 - **Fenrath, the Crimson Fang** (`client/js/heroes/boss.js`, effects in `client/js/bossfx.js`).
   He has 8,000 health: about two minutes with four companions. He walks into his target's lane and
   strikes along it. Every blow shows itself before it lands: step out of the way, or dodge through
@@ -963,6 +966,43 @@ ground under you instead, so it flies at your hand's height there too.
   - Tuning (health, damage, how many ankle blows, the circle, the shockwaves, how often each
     attack comes) is the `GOLEM` table in `client/js/golem.js`. His size is `px` in
     `client/js/heroes/golem.js`.
+- **Morvane** (drawings `client/js/heroes/morvane.js` and `client/js/heroes/morvane-flame.js`,
+  fight `client/js/morvane.js`): the last of them. A withered old lord, smaller than any Tarnished
+  (four-fifths of one), a greatsword of twisted gold driven down through his skull and its spikes out
+  through his ribs, his mustard drapes in rags. Every drawing is Sacha's (`art/bosses/Morvane`).
+  - **His first form won't fight:** he flees all round the arena, away from whoever comes near
+    (you most), and after three to six seconds of running stops, **out of breath**, for about three.
+    Only then can he be struck. While he runs, every blow, spell and ultimate passes him by (the log
+    says so once), and the fighters go round after him; as he stops, they rush him. His first bar is
+    1,500: about a minute with four companions.
+  - **His change**, as that bar empties: everyone holds still (you can't move or strike) and the
+    camera comes in close on him, pulling back as he grows. About 25 seconds:
+    - he kneels, grips the sword in his skull and screams;
+    - he pulls, and the sword, stuck fast, drags his head up on a stretching neck till he **rips his
+      own head off**: a burst of frenzied flame swallows it, never to be seen again;
+    - from behind, he kneels headless, arms numb, the sword dragging;
+    - he stands, still turned away, flames rising from his neck, and **grows** under them to his
+      second form's size;
+    - the screen goes **black**;
+    - he turns round as **the Lord of Frenzied Flame**: his head a ring of frenzied flame round a
+      black hole, arms spread, the sword in one hand and a gold fang in the other. His title shows,
+      and his second bar (9,000) fills.
+  - **To be continued:** his second form's fight isn't made yet. He floats there a moment, then
+    vanishes in a burst of frenzied flame: "TO BE CONTINUED". It counts as neither won nor lost, and
+    he comes again next time.
+  - **His drawings:** standing, fleeing (four frames) and out of breath (two) are each also drawn
+    facing left. They're not mirrors (one of his eyes is covered in dead skin and keeps its side), so
+    he plays them whenever he faces left (an animation's `left` frames, `client/js/npc.js`). The
+    drawings came at many sizes. Each was sampled on the grid that makes the brooch on his chest the
+    master's size (from behind, where it doesn't show, by his body), and set in the frame by his
+    chest, so he doesn't jump between them. His two forms are two sheets on the same scale: the
+    second has three times the pixels for three times the height. Grown in his change, his first
+    form is simply scaled up under the flames (`setZoom`). The second form's flames are drawn as
+    they are, glowing orange, with embers; the game's light lies low in front of him so that his
+    head of flame keeps its black hole.
+  - Tuning (health, speed, how long he runs and pants, the change's timings, how much he grows) is
+    `MORVANE`, `CHANGE` and `GROW` in `client/js/morvane.js`. His size is `px` in
+    `client/js/heroes/morvane.js`.
 - **The fight:**
   - Enough damage in quick succession breaks his stance: he reels and takes more from every blow.
   - As you step in and he enters, the camera shows him for a few seconds, then comes back to
@@ -995,9 +1035,10 @@ ground under you instead, so it flies at your hand's height there too.
     on as, or every fighter has fallen while you're away), "THE GREAT ENEMY PREVAILS" and he fades
     into red mist.
   - **Withdrawn:** he leaves on his own after eight minutes.
+  - **To be continued:** Morvane, revealed, vanishes for now (above).
 
   Nothing here ever reaches Claude Code.
-- If neither enemy's art loads, no great enemy comes at all.
+- If no enemy's art loads, no great enemy comes at all.
 
 ## Day and night
 
@@ -1052,11 +1093,12 @@ comes up, so nothing blinks.
 
 ## Sound
 
-The Lands Between are heard (`client/js/audio.js`, Web Audio): both great enemies, everyone's
+The Lands Between are heard (`client/js/audio.js`, Web Audio): the great enemies, everyone's
 footsteps and blows, every hero's ultimate and spells, the stations, the spectres, the training
 yard's dummies, the banners and setting out. The sounds are cut from Sacha's recordings (`client/assets/sfx/IMPORT/<their folder>`,
 one per hero or kind, and a few loose in `client/assets/sfx`, kept as they are and never deployed) into a set
-each (`client/assets/sfx/<set>`): small MP3 clips, about 3.5 MB in all. A recording that holds many
+each (`client/assets/sfx/<set>`): small MP3 clips, about 5.7 MB in all (the Golem's and Morvane's
+fetched only as their fight begins). A recording that holds many
 of one sound (footsteps, landings, lightning) is cut into each of them, every other sound from where
 it starts, each levelled to one peak; a recording's 1 and 2 (and 3) are heard together, levelled as
 one (left out: `dontuse.wav`, as named; `golem_explosion_on_spitfire`, `maren_ult_start` and both
@@ -1145,6 +1187,23 @@ table says what each clip is cut from.
     away; `fenrath_big_atk_sword_hit` on each cut of the ghost of his sword;
   - `fenrath_jump_landing` each time he lands, from a leap or from his great attack (the recording
     holds three landings: one at random).
+- **Morvane** (`client/assets/sfx/IMPORT/Morvane`, cut into the `frenzy` set):
+  - `morvane_starts_running` each time he breaks into a run (from its first sound), and
+    `morvane_out_of_stamina_1` and `_2` together as he stops, out of breath (the first, a stretch of
+    its long panting, hushed as he runs again); his bare feet as he runs, on the run's first and third
+    drawings (everyone's `bare` step);
+  - struck, for now: your own `player_hurt`, higher, till he has his own;
+  - his change, heard wherever you are, holding the music down: `morvane_sword_anticipation` as he
+    grips the sword; `morvane_removing_sword_during` as he pulls (from its first burst, 0.8 s in) and
+    `morvane_removing_sword_during_end` as his neck tears (both cut short as his head comes off);
+    `morvane_sword_removed_instant` and `_instant_second` together as it's ripped off;
+    `morvane_sword_removed_after` as he kneels headless; `morvane_before_reveal` as he grows (its
+    silent lead-in left out); `morvane_blackscreen_to_flame_reveal` and `…2` together as the screen
+    goes black, swelling into the reveal; `morvane_reveal` and `morvane_reveal2` together as he's
+    revealed, with `morvane_reveal3_low_volume` quietly under them, all dying away as he vanishes
+    (each of the long ones cut to the 15 to 20 s the encounter lasts for now);
+  - kept for his second form: `morvane_teleport`, `morvane_flying_woosh` (and `2`),
+    `morvane_before_knife_throw`, `morvane_big_attack_eye_growing` (and `2`).
 - **Maren's thunderbolt** (her right click): one of the sixteen zaps of `maren_atk1`, a different
   one each time, and with it the rush in `maren_atk2` (between 2 and 3 s, as its name says: from
   where it's heard, so that it peaks as the bolt is there).
@@ -1405,6 +1464,7 @@ client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the 
 client/js/faces.js      a character's face for those frames: the head and shoulders of its idle drawing
 client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes
 client/js/golem.js      the Guardian Golem's fight: his weak points, his fall, shockwaves, fire
+client/js/morvane.js    Morvane's fight: fleeing and out of breath, his change, his reveal (to be continued)
 client/js/ripple.js     the arena floor rippling like water under the Golem's shockwaves (and the tutorial rocks' yard's, under theirs)
 client/js/bossfx.js     the enemies' effects: crescent, lance, floor marks, the ghost sword, the eruption, the air shock, meteors
 client/js/director.js   event → behaviour, regions, slash-command effects, chatter, visits

@@ -147,14 +147,19 @@ export class Pilot {
 
   // Busy: travelling, changing form, or in the middle of something that isn't a crouch.
   busy(n) {
-    return !n || this.dead || n.travel || n.shift || n.dragged || (n.action && n.action.kind !== 'crouch');
+    return !n || this.dead || n.travel || n.shift || n.dragged || (n.action && n.action.kind !== 'crouch') || this.held();
+  }
+
+  // Everyone holding still while a great enemy changes (fight.js, holds: Morvane's, morvane.js).
+  held() {
+    return !!this.ctx.fight?.holds?.();
   }
 
   // Space: a quick dash where the keys point (or straight ahead); no blow can touch thee in it.
   dodge() {
     const n = this.npc;
     const now = performance.now() / 1000;
-    if (!n || this.dead || n.travel || n.shift || n.dragged || now < this.dodgeReady) return;
+    if (!n || this.dead || n.travel || n.shift || n.dragged || now < this.dodgeReady || this.held()) return;
     if (n.action && !['use', 'crouch', 'hurt', 'gesture'].includes(n.action.kind)) return;
     const h = this.heading();
     const len = Math.hypot(h.x, h.z);
@@ -255,6 +260,11 @@ export class Pilot {
   // its change of form) or a step where the keys point. Returns whether it moved.
   drive(n, dt) {
     if (!n.action && !n.travel && !n.dragged && !n.shift && !this.dead && !this.ctx.world.isWalkArea(n.pos.x, n.pos.y)) this.reground(n);
+    if (this.held() && !n.action) {
+      n.body.play(this.idleOf(n));
+      this.moving = false;
+      return false;
+    }
     const h = this.heading();
     const going = !!(h.x || h.z);
     // setting off cuts a gesture or a crouch short (not a blow, nor rising from grace, nor a change of

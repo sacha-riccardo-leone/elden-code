@@ -85,6 +85,22 @@ export const SOUNDS = {
   'boss-wrath-during': { set: 'boss', clips: ['wrath-during-1', 'wrath-during-2'], layer: true, volume: 0.7, most: 1, half: 40 },
   'boss-sword': { set: 'boss', clips: ['sword'], volume: 1, most: 2, half: 40 },
   'boss-land': { set: 'boss', clips: ['land-1', 'land-2', 'land-3'], volume: 1, most: 2, half: 30 },
+  // Morvane's (morvane.js): breaking into a run, out of breath (the two together); his change, heard
+  // wherever thou art (the camera's on him): gripping the sword in his skull, the pull, the neck
+  // tearing, his head ripped off (the two together), kneeling headless, growing under the flames,
+  // the cut to black (the two together), the reveal (the two together, and the third, quietly), each
+  // holding the music down while it sounds
+  'morvane-run': { set: 'frenzy', clips: ['run'], volume: 0.7, vary: 0.06, pitch: [0.95, 1.06], most: 1, half: 20 },
+  'morvane-pant': { set: 'frenzy', clips: ['pant-1', 'pant-2'], layer: true, volume: 0.75, most: 1, half: 18 },
+  'morvane-grip': { set: 'frenzy', clips: ['grip'], volume: 0.9, most: 1, duck: 0.3 },
+  'morvane-pull': { set: 'frenzy', clips: ['pull'], volume: 0.85, most: 1, duck: 0.3 },
+  'morvane-tear': { set: 'frenzy', clips: ['tear'], volume: 0.85, most: 1, duck: 0.3 },
+  'morvane-rip': { set: 'frenzy', clips: ['rip-1', 'rip-2'], layer: true, volume: 1, most: 1, duck: 0.3 },
+  'morvane-headless': { set: 'frenzy', clips: ['headless'], volume: 0.85, most: 1, duck: 0.3 },
+  'morvane-grow': { set: 'frenzy', clips: ['grow'], volume: 0.9, most: 1, duck: 0.3 },
+  'morvane-black': { set: 'frenzy', clips: ['black-1', 'black-2'], layer: true, volume: 0.95, most: 1, duck: 0.15 },
+  'morvane-reveal': { set: 'frenzy', clips: ['reveal-1', 'reveal-2'], layer: true, volume: 0.75, most: 1, duck: 0.15 },
+  'morvane-reveal-low': { set: 'frenzy', clips: ['reveal-3'], volume: 0.3, most: 1 },
   // the ultimates' (ults.js): Maren's bolts (one of six each) and her great bolt, the camera closing
   // on her, Aurelion's verdict and his giant (rising, and striking: one of fifteen blows), Ruadan's
   // leap and landing, Fortuna's mass of ice bursting, Corisande's arrow, Ulric's spears

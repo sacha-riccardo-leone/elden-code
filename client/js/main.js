@@ -18,6 +18,8 @@ import { loadSheet } from './heroes/core.js';
 import { loadFxArt } from './fxart.js';
 import bossRig from './heroes/boss.js';
 import golemRig from './heroes/golem.js';
+import morvaneRig from './heroes/morvane.js';
+import morvaneFlameRig from './heroes/morvane-flame.js';
 import spectreRig from './heroes/spectre.js';
 import { loadFireArt } from './fire.js';
 import { Pilot } from './pilot.js';
@@ -56,9 +58,9 @@ const rig = new CameraRig(camera);
 // what's heard, from where the camera looks (audio.js); it may begin once thou settest out
 const sound = new Sound();
 sound.view = { camera, focus: rig.target };
-// (every set fetched now, under the title, to be ready the moment sound may begin; but the Golem's,
-// fetched as his fight begins: fight.js)
-for (const set of new Set(Object.values(SOUNDS).map((s) => s.set))) if (set !== 'golem') sound.load(set);
+// (every set fetched now, under the title, to be ready the moment sound may begin; but the Golem's
+// and Morvane's, fetched as their fight begins: fight.js)
+for (const set of new Set(Object.values(SOUNDS).map((s) => s.set))) if (set !== 'golem' && set !== 'frenzy') sound.load(set);
 const particles = new Particles(scene);
 const world = new World(scene, particles);
 world.sound = sound; // (what the islands make heard of themselves: a raven taking wing, the bell, region.js)
@@ -79,7 +81,7 @@ world.fireArt = fireArt; // (each island lights its own when it's built, region.
 world.hub.lightFires(fireArt);
 world.arena.lightFires(fireArt);
 const playerSheet = allHeroes.find((s) => s.hero === 'knight') || null;
-const ctx = { scene, world, nav, particles, ui, director: null, heroSheets: allHeroes.filter((s) => s !== playerSheet), bossSheet: null, golemSheet: null, spectreSheet };
+const ctx = { scene, world, nav, particles, ui, director: null, heroSheets: allHeroes.filter((s) => s !== playerSheet), bossSheet: null, golemSheet: null, morvaneSheet: null, morvaneFlameSheet: null, spectreSheet };
 ctx.sound = sound;
 const director = new Director(ctx);
 ctx.director = director;
@@ -445,6 +447,8 @@ function step(dt) {
         rig.distGoal = mode ? Math.max(camBase, aim.dist) : camBase;
         camMode = mode;
       }
+      // (close up, nearer than thou wast, and moving as it goes: a great enemy changing, morvane.js)
+      if (aim?.close) rig.distGoal = Math.max(rig.min, aim.dist);
       const [x, y, z] = aim?.at || [me.pos.x, groundAt(me.pos.x, me.pos.y) + 0.8, me.pos.y];
       rig.target.set(x, y, z - 0.6);
     }
@@ -560,8 +564,9 @@ try {
 }
 markReady();
 // The great enemies' drawings, only now and meanwhile: they're wanted for a fight alone, and none
-// comes till its own is ready (fight.js, kinds; should one's fail, only the other ever comes).
-for (const [key, rig] of [['bossSheet', bossRig], ['golemSheet', golemRig]]) {
+// comes till its own is ready (fight.js, kinds; should one's fail, the others still come). Morvane
+// has two, one for each of his forms.
+for (const [key, rig] of [['bossSheet', bossRig], ['golemSheet', golemRig], ['morvaneSheet', morvaneRig], ['morvaneFlameSheet', morvaneFlameRig]]) {
   loadSheet(rig).then((sheet) => { ctx[key] = sheet; }).catch((err) => console.warn(`${rig.id} art unavailable`, err));
 }
 await started;

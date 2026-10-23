@@ -1132,6 +1132,17 @@ body.in-battle #dummy-bars { display: none; }
   transition: opacity 0.55s ease;
 }
 #tut-fade.on { opacity: 1; pointer-events: auto; }
+/* the screen gone black, in Morvane's change (morvane.js sets how fast) */
+#black {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+#black.on { opacity: 1; }
 /* (and in the tutorial, no map strip: nothing to go to yet) */
 body.tutorial #regions { display: none; }
 
