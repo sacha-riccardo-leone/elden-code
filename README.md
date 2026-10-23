@@ -997,8 +997,9 @@ ground under you instead, so it flies at your hand's height there too.
     facing left. They're not mirrors (one of his eyes is covered in dead skin and keeps its side), so
     he plays them whenever he faces left (an animation's `left` frames, `client/js/npc.js`). The
     drawings came at many sizes. Each was sampled on the grid that makes the brooch on his chest the
-    master's size (from behind, where it doesn't show, by his body), and set in the frame by his
-    chest, so he doesn't jump between them. His two forms are two sheets on the same scale: the
+    master's size (from behind, where it doesn't show, by his body), at half the master's block, so
+    that the details drawn at half a block (his eyes, teeth, the brooch's discs, his hair) are kept;
+    and each is set in the frame by his chest, so he doesn't jump between them. His two forms are two sheets on the same scale: the
     second has three times the pixels for three times the height. Grown in his change, his first
     form is simply scaled up under the flames (`setZoom`). The second form's flames are drawn as
     they are, glowing orange, with embers; the game's light lies low in front of him so that his
@@ -1196,11 +1197,12 @@ table says what each clip is cut from.
     its long panting, hushed as he runs again); his bare feet as he runs, on the run's first and third
     drawings (everyone's `bare` step);
   - struck, for now: your own `player_hurt`, higher, till he has his own;
-  - his change, heard wherever you are, holding the music down: `morvane_sword_anticipation` as he
-    grips the sword; `morvane_removing_sword_during` as he pulls (from its first burst, 0.8 s in) and
-    `morvane_removing_sword_during_end` as his neck tears (both cut short as his head comes off);
+  - his change, heard wherever you are, holding the music down: `morvane_sword_anticipation` and
+    `morvane_removing_sword_during` (from its first burst, 0.8 s in) as he grips the sword;
+    `morvane_removing_sword_during_end` coming in halfway through that; `morvane_sword_removed_after`
+    as he pulls (the two pulling ones cut short as his head comes off);
     `morvane_sword_removed_instant` and `_instant_second` together as it's ripped off;
-    `morvane_sword_removed_after` as he kneels headless; `morvane_before_reveal` as he grows (its
+    `morvane_before_reveal` as he grows (its
     silent lead-in left out); `morvane_blackscreen_to_flame_reveal` and `…2` together as the screen
     goes black, swelling into the reveal; `morvane_reveal` and `morvane_reveal2` together as he's
     revealed, with `morvane_reveal3_low_volume` quietly under them, all dying away as he vanishes

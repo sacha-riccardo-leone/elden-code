@@ -34,13 +34,15 @@ export const MORVANE = {
   hover: 0.35, // how high his second form floats (over the toes' place in his drawing), bobbing
 };
 
-// His change, in seconds from his first bar emptying: the grip (C), the pull (D) and the neck tearing,
-// his head ripped off, kneeling headless from behind (D2), standing so (E) and growing (from `grow` to
+// His change, in seconds from his first bar emptying: the grip (C), heard pulling from the moment he
+// grips the sword, its tearing coming in halfway through that (`tear`: the pull's clip is 6.9 s long);
+// the pull (D), heard as he pulls; his head ripped off, kneeling headless from behind (D2), standing so
+// (E) and growing (from `grow` to
 // `grown`, GROW times his size), the screen black (from `black`, gone again at `reveal`), revealed (F),
 // his title and his second bar filling over FILL seconds, at rest (master 2), and at `halt`, to be
 // continued. `cam`: how far back the camera stands for each (it pulls back as he grows).
 const CHANGE = {
-  grip: 0, pull: 2.6, tear: 4.6, rip: 6.2, pulled: 6.45, back: 9.2, grow: 9.6, grown: 13.4,
+  grip: 0, pull: 2.6, tear: 3.45, rip: 6.2, pulled: 6.45, back: 9.2, grow: 9.6, grown: 13.4,
   black: 13.8, reveal: 17.3, title: 18.6, idle: 20.6, halt: 25,
   cam: { near: 15, grown: 25, reveal: 30 },
 };
@@ -51,7 +53,7 @@ const FLAME_LIGHT = '#ffb030';
 // Where, in his drawings, things are (art pixels over his feet: up): the fire, his head as he grips and
 // pulls, his neck once it's torn off, the head of flame; his middle, where a spell strikes, in either
 // form.
-const AT = { grip: 75, pull: 85, pulled: 67, back: 79, flame: 241, middle: 48, flameMiddle: 160 };
+const AT = { grip: 150, pull: 170, pulled: 134, back: 158, flame: 241, middle: 96, flameMiddle: 160 };
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -291,11 +293,12 @@ export class MorvaneMind {
     if (this.step === 0) {
       b.pose('grip', true);
       this.voices.grip = this.sound('grip', true);
+      this.voices.pull = this.sound('pull', true);
       this.step = 'pull';
     }
     if (at('pull')) {
       b.pose('pull', true);
-      this.voices.pull = this.sound('pull', true);
+      this.sound('headless', true);
       this.step = 'tear';
     }
     if (at('tear')) {
@@ -315,7 +318,6 @@ export class MorvaneMind {
     }
     if (at('pulled')) {
       b.pose('pulled', true);
-      this.sound('headless', true);
       this.step = 'back';
     }
     if (at('back')) {

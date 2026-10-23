@@ -6,11 +6,13 @@
 // gripping the sword in his skull, ripping his own head off with it, kneeling headless from behind,
 // and standing so. His second form, the Lord of Frenzied Flame, is heroes/morvane-flame.js.
 //
-// Source art: assets/morvane/morvane.json (69x122, from morvane-idle.png on its 11.821 px grid) and
-// morvane-<drawing>.json, all on its palette. The drawings come at other sizes, so each was sampled
-// on the grid that makes the brooch on his chest the master's size: the run at 4.85 source px per art
-// pixel, the out of breath at 7.27, the grip at 11.82, the pull at 11.49; and the two from behind,
-// where the brooch doesn't show, by his body: kneeling at 10.5, standing at 11.1.
+// Source art: assets/morvane/morvane.json (135x243, from morvane-idle.png at half its 11.821 px grid,
+// 5.9105: the finer details ChatGPT drew at half a block, his eyes, teeth, the brooch's discs, the
+// strands of his hair, would be lost on the whole one) and morvane-<drawing>.json, all on its palette.
+// The drawings come at other sizes, so each was sampled on the grid that makes the brooch on his chest
+// the master's size: the run at 2.425 source px per art pixel, the out of breath at 3.635, the grip
+// at 5.91, the pull at 5.745; and the two from behind, where the brooch doesn't show, by his body:
+// kneeling at 5.25, standing at 5.55.
 //
 // Every drawing is set in the frame by his chest (the brooch, or from behind, between his shoulders)
 // on its middle column, its ground on the frame's last row. One drawn facing left is set in mirrored,
@@ -19,23 +21,23 @@
 
 import { Img, NONE } from './core.js';
 
-const FRAME = { w: 192, h: 124 };
+const FRAME = { w: 392, h: 248 };
 const MID = FRAME.w / 2;
 
 // Each drawing (assets/morvane/morvane-<name>.json; the standing one is the master, morvane.json): its
 // chest's column, its ground row, the row his breathing sinks above (`heave`), and whether it's drawn
 // facing left.
 const ART = {
-  idle: { mid: 47.6, ground: 120, heave: 92 },
-  'idle-left': { mid: 21.3, ground: 120, heave: 92, left: true },
-  run: { mid: 97.4, ground: 103 },
-  'run-left': { mid: 49, ground: 104, left: true },
-  pant: { mid: 67.7, ground: 113 },
-  'pant-left': { mid: 46.5, ground: 113, left: true },
-  grip: { mid: 37.8, ground: 119 },
-  pull: { mid: 38.5, ground: 119 },
-  pulled: { mid: 37.3, ground: 68 },
-  back: { mid: 23, ground: 80, heave: 52 },
+  idle: { mid: 93.2, ground: 241, heave: 184 },
+  'idle-left': { mid: 41.6, ground: 241, heave: 184, left: true },
+  run: { mid: 193, ground: 208 },
+  'run-left': { mid: 98.4, ground: 209, left: true },
+  pant: { mid: 134.7, ground: 225 },
+  'pant-left': { mid: 91.3, ground: 227, left: true },
+  grip: { mid: 75.1, ground: 238 },
+  pull: { mid: 75.4, ground: 237 },
+  pulled: { mid: 73.9, ground: 139 },
+  back: { mid: 46.6, ground: 161, heave: 104 },
 };
 const EXTRA = Object.keys(ART).filter((k) => k !== 'idle');
 
@@ -90,13 +92,13 @@ function anim(name, list) {
 }
 const seq = (n, fn) => Array.from({ length: n }, (_, i) => fn(i));
 
-// standing, he breathes: his chest and head sink a pixel and rise
-for (const k of ['idle', 'idle-left']) anim(k, seq(4, (i) => ({ art: k, heave: [0, 0, 1, 1][i] })));
+// standing, he breathes: his chest and head sink two pixels and rise
+for (const k of ['idle', 'idle-left']) anim(k, seq(4, (i) => ({ art: k, heave: [0, 0, 2, 2][i] })));
 for (const k of ['run', 'run-left']) anim(k, seq(4, (i) => ({ art: k, frame: i })));
 for (const k of ['pant', 'pant-left']) anim(k, seq(2, (i) => ({ art: k, frame: i })));
 for (const k of ['grip', 'pull', 'pulled']) anim(k, [{ art: k }]);
 // headless, his back to us, heaving for breath
-anim('back', seq(4, (i) => ({ art: 'back', heave: [1, 0, 1, 2][i] })));
+anim('back', seq(4, (i) => ({ art: 'back', heave: [2, 0, 2, 4][i] })));
 
 const G = groups;
 export default {
@@ -109,8 +111,8 @@ export default {
   title: 'Great Enemy',
   frame: FRAME,
   cols: 6,
-  px: 2.31 / 91, // world units per art pixel: 2.31 from his soles to the top of his skull, 0.95 of Maren (to her helm's top)
-  head: 110,
+  px: 2.31 / 182, // world units per art pixel: 2.31 from his soles to the top of his skull, 0.95 of Maren (to her helm's top)
+  head: 220,
   hits: {},
   glowIntensity: 1,
   glowColors: [[255, 180, 60], [255, 230, 160], [235, 150, 40]],
