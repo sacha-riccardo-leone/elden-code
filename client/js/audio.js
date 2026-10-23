@@ -99,7 +99,7 @@ export const SOUNDS = {
   'morvane-grow': { set: 'frenzy', clips: ['grow'], volume: 0.9, most: 1, duck: 0.3 },
   'morvane-black': { set: 'frenzy', clips: ['black-1', 'black-2'], layer: true, volume: 0.95, most: 1, duck: 0.15 },
   'morvane-reveal': { set: 'frenzy', clips: ['reveal-1', 'reveal-2'], layer: true, volume: 0.75, most: 1, duck: 0.15 },
-  'morvane-reveal-low': { set: 'frenzy', clips: ['reveal-3'], volume: 0.3, most: 1 },
+  'morvane-reveal-low': { set: 'frenzy', clips: ['reveal-3'], volume: 0.12, most: 1 }, // (quieter still, as Sacha asked)
   // the ultimates' (ults.js): Maren's bolts (one of six each) and her great bolt, the camera closing
   // on her, Aurelion's verdict and his giant (rising, and striking: one of fifteen blows), Ruadan's
   // leap and landing, Fortuna's mass of ice bursting, Corisande's arrow, Ulric's spears
