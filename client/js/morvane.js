@@ -46,7 +46,7 @@ export const MORVANE = {
 
 // His change, in seconds from his first bar emptying: the grip (C), heard pulling from the moment he
 // grips the sword, its tearing coming in halfway through that (`tear`: the pull's clip is 6.9 s long);
-// the pull (D), heard as he pulls; his head ripped off, kneeling headless from behind (D2), standing so
+// the pull (D); his head ripped off, kneeling headless from behind (D2), standing so
 // (E) and growing (from `grow` to
 // `grown`, GROW times his size), the screen black (from `black`, gone again at `reveal`), revealed (F),
 // his title and his second bar filling over FILL seconds, at rest (master 2), and at `halt`, to be
@@ -362,7 +362,6 @@ export class MorvaneMind {
     }
     if (at('pull')) {
       b.pose('pull', true);
-      this.sound('headless', true);
       this.step = 'tear';
     }
     if (at('tear')) {

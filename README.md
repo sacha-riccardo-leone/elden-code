@@ -1114,7 +1114,7 @@ it starts, each levelled to one peak; a recording's 1 and 2 (and 3) are heard to
 one (left out: `dontuse.wav`, as named; `golem_explosion_on_spitfire`, `maren_ult_start` and both
 `maren_ult_start_on_click`s, replaced as Sacha asked; `Stone Chain Jump` and
 `Stone Chain Land`, as everyone comes down on `Stone Land`; Ruadan's `hammer_hit`, its sound not
-good enough; Wynn's `unsheathe`, as asked).
+good enough; Wynn's `unsheathe` and Morvane's `morvane_sword_removed_after`, as asked).
 `node scripts/cut-sfx.mjs [set]` cuts them again, from the recordings, whenever they change; its
 table says what each clip is cut from.
 
@@ -1205,8 +1205,8 @@ table says what each clip is cut from.
   - struck, for now: your own `player_hurt`, higher, till he has his own;
   - his change, heard wherever you are, holding the music down: `morvane_sword_anticipation` and
     `morvane_removing_sword_during` (from its first burst, 0.8 s in) as he grips the sword;
-    `morvane_removing_sword_during_end` coming in halfway through that; `morvane_sword_removed_after`
-    as he pulls (the two pulling ones cut short as his head comes off);
+    `morvane_removing_sword_during_end` coming in halfway through that (the two cut short as his
+    head comes off);
     `morvane_sword_removed_instant` and `_instant_second` together as it's ripped off;
     `morvane_before_reveal` as he grows (its
     silent lead-in left out); `morvane_blackscreen_to_flame_reveal` and `…2` together as the screen

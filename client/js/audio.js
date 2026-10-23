@@ -87,7 +87,7 @@ export const SOUNDS = {
   'boss-land': { set: 'boss', clips: ['land-1', 'land-2', 'land-3'], volume: 1, most: 2, half: 30 },
   // Morvane's (morvane.js): breaking into a run, out of breath (the two together); his change, heard
   // wherever thou art (the camera's on him): gripping the sword in his skull, the pull, the neck
-  // tearing, his head ripped off (the two together), kneeling headless, growing under the flames,
+  // tearing, his head ripped off (the two together), growing under the flames,
   // the cut to black (the two together), the reveal (the two together, and the third, quietly), each
   // holding the music down while it sounds
   'morvane-run': { set: 'frenzy', clips: ['run'], volume: 0.7, vary: 0.06, pitch: [0.95, 1.06], most: 1, half: 20 },
@@ -96,7 +96,6 @@ export const SOUNDS = {
   'morvane-pull': { set: 'frenzy', clips: ['pull'], volume: 0.85, most: 1, duck: 0.3 },
   'morvane-tear': { set: 'frenzy', clips: ['tear'], volume: 0.85, most: 1, duck: 0.3 },
   'morvane-rip': { set: 'frenzy', clips: ['rip-1', 'rip-2'], layer: true, volume: 1, most: 1, duck: 0.3 },
-  'morvane-headless': { set: 'frenzy', clips: ['headless'], volume: 0.85, most: 1, duck: 0.3 },
   'morvane-grow': { set: 'frenzy', clips: ['grow'], volume: 0.9, most: 1, duck: 0.3 },
   'morvane-black': { set: 'frenzy', clips: ['black-1', 'black-2'], layer: true, volume: 0.95, most: 1, duck: 0.15 },
   'morvane-reveal': { set: 'frenzy', clips: ['reveal-1', 'reveal-2'], layer: true, volume: 0.75, most: 1, duck: 0.15 },

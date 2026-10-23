@@ -168,8 +168,8 @@ const SETS = {
       ['pant-1', 'morvane_out_of_stamina_1.mp3', 0.7, 6, -3, 0, 0.5, { group: 'pant' }],
       ['pant-2', 'morvane_out_of_stamina_2.mp3', 0, 2.62, -3, 0, 0.3, { group: 'pant' }],
       // the change (morvane.js): gripping the sword in his skull (from its first sound); the pull (from
-      // its first burst, 0.8 s in) and the neck tearing; his head ripped off (the two together); kneeling
-      // headless; growing under the flames (its silent lead-in left out); the cut to black and the
+      // its first burst, 0.8 s in) and the neck tearing; his head ripped off (the two together); growing
+      // under the flames (its silent lead-in left out); the cut to black and the
       // reveal (each group together: the reveal's beds 15 s of their length, all the encounter lasts
       // for now; over full scale in their recordings, levelled lower), and the last of them on its
       // own, heard quietly
@@ -178,7 +178,6 @@ const SETS = {
       ['tear', 'morvane_removing_sword_during_end.mp3', 0, 7.6, -3, 0, 1.2],
       ['rip-1', 'morvane_sword_removed_instant.mp3', 0.03, 1.95, -3, 0, 0.3, { group: 'rip' }],
       ['rip-2', 'morvane_sword_removed_instant_second.mp3', 0.03, 1.6, -3, 0, 0.3, { group: 'rip' }],
-      ['headless', 'morvane_sword_removed_after.mp3', 0, 3, -4, 0, 0.6],
       ['grow', 'morvane_before_reveal.mp3', 0.5, 3.9, -3, 0, 0.6],
       ['black-1', 'morvane_blackscreen_to_flame_reveal.mp3', 0, 9.5, -3, 0, 1.5, { group: 'black' }],
       ['black-2', 'morvane_blackscreen_to_flame_reveal2.mp3', 1.2, 20, -3, 0, 3, { group: 'black' }],
