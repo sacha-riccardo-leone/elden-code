@@ -1035,7 +1035,8 @@ ground under you instead, so it flies at your hand's height there too.
     head of flame keeps its black hole. His second form's fight drawings (the flight, the lunge, the
     slash, the fang thrown, the fall) came at about two-thirds of the master's size, so they're
     sampled at 3.33 px (his height from the hole in his head of flame to his toes the master's); the
-    two flights, drawn bigger, at 4.8 and 5.1. Each is set in the frame by the brooch on his belly, so
+    two flights, drawn bigger, at 4.8 and 5.1; the lunge's, whose head of flame came out bigger
+    coiled and smaller thrusting, each at its own (3.55 to 2.65) so that he keeps his size through it. Each is set in the frame by the brooch on his belly, so
     that his body stays put whatever he does; those that reach far out (a sword at full stretch, the
     flights) are in frames of their own. All but the reveal and the fall are drawn facing left too,
     not mirrored: his hands never swap (the sword always in his right hand, the fang in his left).

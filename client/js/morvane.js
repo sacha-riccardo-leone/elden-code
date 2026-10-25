@@ -111,7 +111,7 @@ const FLAME_FIGHT = {
   chain: [2, 3],
   throws: [1, 3],
   eye: [2 / 3, 1 / 3],
-  reach: { slash: 6.4, lunge: 7.6 },
+  reach: { slash: 6.4, lunge: 9 },
   low: { coil: -0.8, thrust: -1.9, fly: -2.3 },
   dash: [5, 11],
   fly: 24,

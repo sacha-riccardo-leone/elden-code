@@ -13,15 +13,17 @@
 // 4.959 x 4.995 px grid) and morvane-flame-<drawing>.json, all on its palette. The reveal is sampled
 // at 4.72 x 4.76; the fight's drawings, which came at about two-thirds the master's size, at 3.33 (his
 // height from the hole in his head of flame to his toes the master's); the two flights, drawn bigger,
-// at 4.8 and 5.1 (his body as long as the lunge's). Each is set in the frame by the brooch on his
-// belly (BROOCH: the frame's anchor column, and row BROOCH), so that whatever he does his body stays
-// where it was; the fallen ones by the ground they kneel on (the frame's last row). The drawings
-// that reach far out (a sword at full stretch, a flight) are in frames of their own (BIG).
+// at 4.8 and 5.1; the lunge's, its head of flame drawn bigger coiled and smaller thrusting, each so
+// that he keeps his size through it (coiled at 3.55 and 3.66, the thrust at 2.65 and 2.85: his sword
+// the longer for it). Each is set in the frame by the brooch on his belly (BROOCH: the frame's
+// anchor column, and row BROOCH), so that whatever he does his body stays where it was; the fallen
+// ones by the ground they kneel on (the frame's last row). The drawings that reach far out (a sword
+// at full stretch, a flight) are in frames of their own (BIG).
 
 import { Img, NONE } from './core.js';
 
 const FRAME = { w: 336, h: 325, anchor: 169 };
-const BIG = { w: 600, h: 325, anchor: 278 };
+const BIG = { w: 680, h: 325, anchor: 278 };
 const BROOCH = 158; // (the brooch's row: 166 rows above the frame's last, room for the sword below his toes)
 
 // Each drawing (assets/morvane/morvane-flame-<name>.json; at rest, the master, morvane-flame.json):
@@ -33,10 +35,10 @@ const ART = {
   reveal: { mid: 98.6, row: 139.7 },
   fly: { mid: 202.7, row: 98.8, big: true },
   'fly-left': { mid: 115.5, row: 94.2, left: true, big: true },
-  'lunge-1': { mid: 224, row: 144.5, big: true },
-  'lunge-1-left': { mid: 275.7, row: 148.2, left: true, big: true },
-  'lunge-2': { mid: 176.9, row: 94, big: true },
-  'lunge-2-left': { mid: 313.5, row: 95.2, left: true, big: true },
+  'lunge-1': { mid: 210.4, row: 136.2, big: true },
+  'lunge-1-left': { mid: 251.2, row: 134.7, left: true, big: true },
+  'lunge-2': { mid: 222.1, row: 117.6, big: true },
+  'lunge-2-left': { mid: 365.4, row: 110.6, left: true, big: true },
   'swing-1': { mid: 230.8, row: 141, big: true },
   'swing-1-left': { mid: 77.6, row: 148.1, left: true },
   'swing-2': { mid: 175.4, row: 147.9, big: true },
