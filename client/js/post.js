@@ -2,7 +2,8 @@
 // the courtyard crisp, then a grade with vignette and grain: cold shadows and old-gold highlights
 // by night, fuller and sunnier colour by day (uDay, set by daylight.js). And, before the bloom,
 // Fenrath's great attack (fight.js, wrath): the world gone black round what's drawn on it, and
-// the shockwaves of his roar bending the picture round his head (DarkShader).
+// the shockwaves of his roar bending the picture round his head; and the heat of the frenzied flame
+// round Morvane's arena shimmering through it (frenzyfx.js): all DarkShader.
 
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -48,7 +49,9 @@ const TiltShiftShader = {
 // The dark of his great attack: the world (tDark: black wherever no character, mark or effect is
 // drawn) gone black behind a front spreading out from uDarkAt (uDarkR: its radius, in screen
 // heights) and lit again behind another (uLightR); and his roar's shockwaves (uRings: each a ring
-// round [x, y] of radius z, pushing the picture out by w and smearing it along the push).
+// round [x, y] of radius z, pushing the picture out by w and smearing it along the push). The heat
+// haze (uHeat, 0..1): the picture wavering a little, as through heat rising, the more toward its
+// edges and its foot (where the ring of flame stands), never so much that the fight blurs.
 const DarkShader = {
   uniforms: {
     tDiffuse: { value: null },
@@ -59,6 +62,8 @@ const DarkShader = {
     uLightR: { value: 0 },
     uAspect: { value: 1 },
     uRings: { value: [new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4()] },
+    uHeat: { value: 0 },
+    uTime: { value: 0 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -66,7 +71,7 @@ const DarkShader = {
   `,
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse, tDark;
-    uniform float uDark, uDarkR, uLightR, uAspect;
+    uniform float uDark, uDarkR, uLightR, uAspect, uHeat, uTime;
     uniform vec2 uDarkAt;
     uniform vec4 uRings[4];
     varying vec2 vUv;
@@ -82,6 +87,15 @@ const DarkShader = {
         if (len > 1e-4) push += d / len / aspect * band * R.w;
       }
       vec2 uv = vUv - push; // (the picture pushed outward)
+      if (uHeat > 0.0) {
+        // (heat rising: fine waves climbing the picture, crossed by slower ones)
+        float edge = smoothstep(0.2, 0.75, length((vUv - 0.5) * aspect));
+        float foot = 1.0 - smoothstep(0.0, 0.55, vUv.y);
+        float m = uHeat * (0.35 + 0.65 * max(edge, foot));
+        vec2 w = vec2(sin(vUv.y * 95.0 - uTime * 7.0 + sin(vUv.x * 31.0 + uTime * 1.7) * 2.0),
+                      cos(vUv.x * 73.0 + uTime * 5.0 + sin(vUv.y * 23.0 - uTime * 2.3) * 2.0));
+        uv += w * vec2(0.0018, 0.0026) * m;
+      }
       vec3 c = texture2D(tDiffuse, uv).rgb;
       if (dot(push, push) > 1e-8) {
         // smeared along the push
@@ -190,6 +204,7 @@ export class Post {
     this.spot = null; // an ultimate's spotlight: { desat 0..1, meshes kept in colour }
     this.dark = null; // his great attack's dark: { amount 0..1, at: [u, v] on screen, front, light } (fight.js)
     this.rings = []; // his roar's shockwaves: [u, v, radius, push] (fight.js)
+    this.heat = 0; // the heat haze round Morvane's arena, 0..1 (frenzyfx.js)
     this.maskRT = new THREE.WebGLRenderTarget(Math.max(1, size.x >> 1), Math.max(1, size.y >> 1));
     this.darkRT = new THREE.WebGLRenderTarget(Math.max(1, size.x >> 1), Math.max(1, size.y >> 1));
     const target = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: 4 });
@@ -240,10 +255,12 @@ export class Post {
     // his great attack: the dark, and the shockwaves of his roar
     const dark = this.dark?.amount || 0;
     const rings = this.rings || [];
-    this.darkPass.enabled = dark > 0 || rings.length > 0;
+    this.darkPass.enabled = dark > 0 || rings.length > 0 || this.heat > 0;
     if (this.darkPass.enabled) {
       const u = this.darkPass.uniforms;
       u.uDark.value = dark;
+      u.uHeat.value = this.heat;
+      u.uTime.value = t;
       if (dark > 0) {
         u.uDarkAt.value.set(...this.dark.at);
         u.uDarkR.value = this.dark.front;

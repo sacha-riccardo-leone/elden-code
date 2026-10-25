@@ -44,6 +44,12 @@ const LOOK = {
 // Halfway between the two (dusk, dawn): the light the colours above are pulled toward.
 const DUSK = { sun: '#ff8a4c', hemiSky: '#8c6c94', fog: '#6e5266' };
 
+// Round the Lord of Frenzied Flame (frenzyfx.js, Inferno), by day or by night: the world beyond his
+// arena gone black (no sky, no horizon, no sea of cloud below, the fog black and thicker), the moon
+// or the sun all but out, and the light that's left the colour of his fire (his ring of it lights
+// the arena itself).
+const FRENZY = { fog: '#000000', background: '#000000', hemiSky: '#6a2c0c', hemiGround: '#140804', fill: '#ff8a3a', hemi: 0.45, sun: 0.15, fillIntensity: 0.35, fogDensity: 1.6 };
+
 const ease = (x) => x * x * (3 - 2 * x);
 
 // How much day it is (0 night .. 1 day) at a time in seconds.
@@ -79,8 +85,11 @@ export class Daylight {
     this.begun = null;
     this.amount = null;
     this.fogDensity = 1; // how thick the fog is, relative to night (main.js applies it)
+    this.frenzy = 0; // how far the world's gone black round Morvane's arena, 0 .. 1 (frenzyfx.js: FRENZY)
+    this.frenzied = 0; // (as it was last applied)
     const colors = (pair) => pair.map((c) => new THREE.Color(c));
     this.c = Object.fromEntries(['fog', 'background', 'spires', 'hemiSky', 'hemiGround', 'sun', 'fill'].map((k) => [k, colors(LOOK[k])]));
+    this.black = Object.fromEntries(['fog', 'background', 'hemiSky', 'hemiGround', 'fill'].map((k) => [k, new THREE.Color(FRENZY[k])]));
     this.sunFrom = LOOK.sunFrom.map((v) => new THREE.Vector3(...v));
     this.dusk = Object.fromEntries(Object.entries(DUSK).map(([k, c]) => [k, new THREE.Color(c)]));
   }
@@ -106,37 +115,42 @@ export class Daylight {
 
   update() {
     const d = this.now();
-    if (d === this.amount) return;
+    if (d === this.amount && this.frenzy === this.frenzied) return;
     // dusk and dawn are announced as they begin
     if (this.amount === 1 && d < 1) this.ui.log('Dusk falls over the Lands Between', 'gold');
     if (this.amount === 0 && d > 0) this.ui.log('Dawn breaks over the Lands Between', 'gold');
     this.amount = d;
+    this.frenzied = this.frenzy;
     this.apply(d);
   }
 
   apply(d) {
     const dusk = 4 * d * (1 - d); // 0 by full day or night, 1 halfway through dusk or dawn
     const num = (k) => LOOK[k][0] + (LOOK[k][1] - LOOK[k][0]) * d;
+    const f = this.frenzy;
     const col = (target, k) => {
       target.lerpColors(this.c[k][0], this.c[k][1], d);
       if (this.dusk[k]) target.lerp(this.dusk[k], dusk * 0.65);
+      if (f > 0 && this.black[k]) target.lerp(this.black[k], f);
     };
+    const less = (k, v) => v * (1 + (FRENZY[k] - 1) * f); // (a light's strength, brought toward its share of it)
     const { world, post, scene } = this;
     this.renderer.toneMappingExposure = num('exposure');
     col(scene.fog.color, 'fog');
-    this.fogDensity = num('fogDensity');
+    this.fogDensity = num('fogDensity') * (1 + (FRENZY.fogDensity - 1) * f);
     col(scene.background, 'background');
     col(world.spireMat.color, 'spires');
-    world.spireMat.opacity = num('spireOpacity');
+    world.spireMat.opacity = num('spireOpacity') * (1 - f);
     world.skyline.visible = world.spireMat.opacity > 0.01;
+    world.uBlack.value = f;
     col(world.hemi.color, 'hemiSky');
     col(world.hemi.groundColor, 'hemiGround');
-    world.hemi.intensity = num('hemi');
+    world.hemi.intensity = less('hemi', num('hemi'));
     col(world.moon.color, 'sun');
-    world.moon.intensity = num('sunIntensity');
+    world.moon.intensity = less('sun', num('sunIntensity'));
     world.sunFrom.lerpVectors(this.sunFrom[0], this.sunFrom[1], d);
     col(world.fill.color, 'fill');
-    world.fill.intensity = num('fillIntensity');
+    world.fill.intensity = less('fillIntensity', num('fillIntensity'));
     world.lampLevel = num('lamps');
     SPRITE_LIGHT.lit.value = num('spriteLit');
     SPRITE_LIGHT.self.value = num('spriteSelf');

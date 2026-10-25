@@ -27,13 +27,17 @@ const DEPTH = 46; // how far below the mist it waits
 // likewise, going down).
 const STAIR = { foot: -(HUB.radius + 0.5), head: ARENA.z + ARENA.radius, steps: 20, lead: 0.22 };
 const GATE = { w: ARENA.bridgeHalf * 2 + 0.9, h: 4.2 }; // the fog wall across its entrance
+const FOG_LIGHT = new THREE.Color('#dfe2ea'); // (its light: pale; round the Lord of Frenzied Flame, his fire's)
+const FRENZY_FOG = new THREE.Color('#ff8a3a');
 
 // The fog wall that seals the arena once thou'st stepped in to face a great enemy: a curtain of
 // pale, gold-shot mist welling up and swirling, thick enough to be seen as a wall (`w` wide, `h`
-// tall).
+// tall); round the Lord of Frenzied Flame (uFrenzy: his arena's fire, frenzyfx.js), a curtain of
+// that fire instead.
 const sealFrag = (w, h) => /* glsl */ `
   uniform float uTime;
   uniform float uIntensity;
+  uniform float uFrenzy;
   varying vec2 vUv;
   ${NOISE_GLSL}
   void main() {
@@ -43,6 +47,7 @@ const sealFrag = (w, h) => /* glsl */ `
     float n = swirl * 0.7 + streak * 0.4;
     float edge = smoothstep(0.0, 0.5, ${(w / 2).toFixed(2)} - abs(p.x)) * smoothstep(0.0, 0.25, p.y) * smoothstep(0.0, 1.4, ${h.toFixed(2)} - p.y);
     vec3 col = mix(vec3(0.72, 0.72, 0.78), vec3(1.0, 0.9, 0.68), smoothstep(0.5, 0.95, n));
+    col = mix(col, mix(vec3(0.85, 0.22, 0.02), vec3(1.0, 0.78, 0.25), smoothstep(0.45, 0.95, n)), uFrenzy);
     float a = edge * (0.2 + 0.55 * smoothstep(0.35, 0.95, n)) * uIntensity;
     gl_FragColor = vec4(col, a);
   }
@@ -52,7 +57,7 @@ const sealFrag = (w, h) => /* glsl */ `
 // of sight till its `uIntensity` (0..1) brings it up, its `uTime` swirling it: the arena's, across
 // its way in, and the tutorial's, at the feet and heads of its stairs (climb.js).
 export function fogWall(w, h) {
-  const uniforms = { uTime: { value: 0 }, uIntensity: { value: 0 } };
+  const uniforms = { uTime: { value: 0 }, uIntensity: { value: 0 }, uFrenzy: { value: 0 } };
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.ShaderMaterial({
     vertexShader: UV_VERT, fragmentShader: sealFrag(w, h), uniforms,
     transparent: true, depthWrite: false, side: THREE.DoubleSide,
@@ -318,6 +323,9 @@ export class Arena extends Builder {
     this.fogWall.scale.y = 0.4 + 0.6 * Math.min(1, u.uIntensity.value * 1.5);
     this.fogWall.position.y = (GATE.h / 2) * this.fogWall.scale.y;
     this.fogLight.intensity = up ? 7 * u.uIntensity.value : 0;
+    // (its fire round the Lord of Frenzied Flame, as the world beyond goes black: daylight.js)
+    u.uFrenzy.value = this.world.uBlack.value;
+    this.fogLight.color.lerpColors(FOG_LIGHT, FRENZY_FOG, u.uFrenzy.value);
     for (const b of this.braziers) {
       const f = b.flame ? 0.75 + 0.3 * b.flame.step(dt) : 0.85 + 0.15 * Math.sin(t * 10 + b.phase);
       b.light.intensity = up ? 10 * f : 0;

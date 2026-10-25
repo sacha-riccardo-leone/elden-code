@@ -34,10 +34,12 @@ const SKY_VERT = /* glsl */ `
 `;
 
 // Night: near-black with stars. Day: deep blue overhead paling to haze at the horizon, with soft
-// clouds drifting across it. Dusk and dawn: a warm glow along the horizon.
+// clouds drifting across it. Dusk and dawn: a warm glow along the horizon. And (uBlack) gone black,
+// stars and all, round the Lord of Frenzied Flame's arena (daylight.js, frenzyfx.js).
 const SKY_FRAG = /* glsl */ `
   uniform float uDay;
   uniform float uDusk;
+  uniform float uBlack;
   uniform float uTime;
   varying vec3 vDir;
   float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
@@ -63,16 +65,17 @@ const SKY_FRAG = /* glsl */ `
       col = mix(night, day, uDay);
     }
     col += vec3(0.75, 0.3, 0.12) * uDusk * (1.0 - smoothstep(0.0, 0.35, abs(h - 0.02)));
-    gl_FragColor = vec4(col, 1.0);
+    gl_FragColor = vec4(col * (1.0 - uBlack), 1.0);
   }
 `;
 
 // A sea of slow cloud far below the islands: dark by night; by day white clouds drifting over
-// the blue of the sky below.
+// the blue of the sky below; gone (uBlack) round the Lord of Frenzied Flame's arena.
 const MIST_FRAG = /* glsl */ `
   uniform float uTime;
   uniform float uDay;
   uniform float uDusk;
+  uniform float uBlack;
   uniform vec2 uOffset;
   varying vec2 vUv;
   ${NOISE_GLSL}
@@ -88,7 +91,7 @@ const MIST_FRAG = /* glsl */ `
     // by day its far edges would show against the sky: fade them out
     vec2 e = min(vUv, 1.0 - vUv);
     float edge = mix(1.0, smoothstep(0.0, 0.3, e.y) * smoothstep(0.0, 0.12, e.x), uDay);
-    gl_FragColor = vec4(col, mix(0.55 + 0.4 * m, 0.25 + 0.75 * cloud, uDay) * edge);
+    gl_FragColor = vec4(col, mix(0.55 + 0.4 * m, 0.25 + 0.75 * cloud, uDay) * edge * (1.0 - uBlack));
   }
 `;
 
@@ -106,6 +109,7 @@ export class World {
     this.particles = particles;
     this.uTime = { value: 0 };
     this.uDay = { value: 0 }; // 0 night .. 1 day, for the shaders that change with it (daylight.js)
+    this.uBlack = { value: 0 }; // the sky and the sea of cloud gone black, 0 .. 1 (daylight.js: Morvane's arena)
     this.regions = new Map();
     this.bridges = [];
     this.lightSources = [];
@@ -279,7 +283,7 @@ export class World {
   // sky, far skyline, mist
 
   buildSky() {
-    this.skyUniforms = { uDay: this.uDay, uDusk: { value: 0 }, uTime: this.uTime };
+    this.skyUniforms = { uDay: this.uDay, uDusk: { value: 0 }, uTime: this.uTime, uBlack: this.uBlack };
     const sky = new THREE.Mesh(
       new THREE.SphereGeometry(600, 32, 16),
       new THREE.ShaderMaterial({
@@ -313,7 +317,7 @@ export class World {
   }
 
   buildMist() {
-    this.mistUniforms = { uTime: this.uTime, uDay: this.uDay, uDusk: { value: 0 }, uOffset: { value: new THREE.Vector2() } };
+    this.mistUniforms = { uTime: this.uTime, uDay: this.uDay, uDusk: { value: 0 }, uBlack: this.uBlack, uOffset: { value: new THREE.Vector2() } };
     const mist = new THREE.Mesh(new THREE.PlaneGeometry(700, 360), new THREE.ShaderMaterial({
       vertexShader: UV_VERT, fragmentShader: MIST_FRAG, uniforms: this.mistUniforms, transparent: true, depthWrite: false,
     }));

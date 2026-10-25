@@ -1009,9 +1009,13 @@ ground under you instead, so it flies at your hand's height there too.
       11 units, two or three in a row (vanishing into your lane between them if you've left it);
     - **the fly-by:** drawn back, he streaks across the whole arena flat out, head first, burning
       everyone in his path;
-    - **the fang:** he hurls his gold fang, wreathed in frenzied flame, at where you stand (marked on
-      the floor as he draws back). It bursts there, stays a moment, and flies back to his hand,
-      burning anyone in its way again; one to three throws in a row;
+    - **the fang:** he throws his gold fang at where you stand (marked on the floor as he draws back),
+      one way or the other each time. **Bare**, it flies fast and flat, spinning (drawn bigger than in
+      his hand, so that you see it, gold sparks streaming off it), and stabs point-first into a small
+      mark. **Wreathed in frenzied flame**, it flies in a high arc, the flame's tongues always
+      trailing behind it, and bursts over a bigger one. Either way it stays a moment, then flies back
+      to his hand, hurting anyone in its way again (the flame turning round as it comes back); one to
+      three throws in a row;
     - **the Frenzied Eye**, as his bar falls to two-thirds, and again at one-third: he vanishes, comes
       back over the middle of the arena facing you, arms spread, rises, and his head of flame swells
       into a huge burning eye (the camera pulls back to show the whole arena). It drags everyone
@@ -1022,6 +1026,14 @@ ground under you instead, so it flies at your hand's height there too.
       nor up over the arena). The camera follows you from farther back than for the others, so that
       you see him coming. Felled, he falls to his knees, his flame shrinking, and slumps, his sword
       and fang dropping to the floor: "GREAT ENEMY FELLED".
+    - **His arena**, from the moment he's revealed (it comes while the screen is black): the world
+      beyond it goes black, by day or by night (no sky, no horizon, no sea of cloud below); a ring of
+      frenzied flame burns all round its edge, about three-quarters of the pillars' height, lower and
+      fainter on your side so that it hides nobody, and the fog sealing the way out burns as that
+      fire too; its light falls on the arena from all round; the picture shimmers with the heat; and
+      burning ash drifts up through the air, small glinting orange pixels. It all dies away as he
+      falls. (`Inferno` in `client/js/frenzyfx.js`; the flames are drawn by the game, in his head of
+      flame's colours, till Sacha draws them.)
   - **His drawings:** standing, fleeing (four frames) and out of breath (two) are each also drawn
     facing left. They're not mirrors (one of his eyes is covered in dead skin and keeps its side), so
     he plays them whenever he faces left (an animation's `left` frames, `client/js/npc.js`). The
@@ -1253,7 +1265,8 @@ table says what each clip is cut from.
     `morvane_big_attack_eye_growing` and `2` together as the Eye swells, and
     `morvane_sword_removed_after`, looped, as it drags everyone in;
   - for now, till he has his own: struck, your own `player_hurt`, higher for his first form and
-    deeper for his second; the fang and the falling flames bursting, the Golem's `meteorite_hit`;
+    deeper for his second; the fang in flame and the falling flames bursting, the Golem's
+    `meteorite_hit`; the bare fang stabbing into the floor, Fenrath's ghost sword striking, higher;
     the Eye bursting, the Golem's `Firespray 2`; the cue to dodge it, Ronin's shine; dying, his own
     panting, slower.
 - **Maren's thunderbolt** (her right click): one of the sixteen zaps of `maren_atk1`, a different
@@ -1517,7 +1530,7 @@ client/js/faces.js      a character's face for those frames: the head and should
 client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes
 client/js/golem.js      the Guardian Golem's fight: his weak points, his fall, shockwaves, fire
 client/js/morvane.js    Morvane's fight: fleeing and out of breath, his change and reveal, his second form's blows, the Frenzied Eye
-client/js/frenzyfx.js   Morvane's frenzied flame, drawn: flying and bursting, his thrown fang, the Eye, his dropped sword and fang
+client/js/frenzyfx.js   Morvane's frenzied flame, drawn: flying and bursting, his thrown fang (bare, or in flame), the Eye, his dropped sword and fang, and his arena once he's revealed (black beyond, a ring of fire, heat haze, ash)
 client/js/ripple.js     the arena floor rippling like water under the Golem's shockwaves (and the tutorial rocks' yard's, under theirs)
 client/js/bossfx.js     the enemies' effects: crescent, lance, floor marks, the ghost sword, the eruption, the air shock, meteors
 client/js/director.js   event → behaviour, regions, slash-command effects, chatter, visits
