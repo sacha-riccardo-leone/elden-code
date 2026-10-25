@@ -1,4 +1,4 @@
-// Effects drawn by hand for the Tarnished's ultimates and spells, and Fenrath's great attack
+// Effects drawn by hand for the Tarnished's ultimates and spells, Fenrath's great attack and Morvane's flame
 // (assets/fx/<name>.json: a sheet
 // split with scripts/split-sheet.mjs --grid, extracted with extract-hero.mjs --keep and packed
 // with pack-frames.mjs, so its frames stay in register; see README). Each is loaded once, its
@@ -40,6 +40,13 @@ const ART = {
   // Fenrath's great attack (fight.js, wrath): the ghost of his sword, the ring's eruption
   'fenrath-sword': '/assets/fx/fenrath-sword.json',
   'fenrath-eruption': '/assets/fx/fenrath-eruption.json',
+  // Morvane's (frenzyfx.js): his frenzied flame, flying and bursting; the Frenzied Eye; his fang, thrown,
+  // and his sword and fang, dropped as he falls
+  'morvane-flame-ball': '/assets/fx/morvane-flame-ball.json',
+  'morvane-flame-burst': '/assets/fx/morvane-flame-burst.json',
+  'morvane-eye': '/assets/fx/morvane-eye.json',
+  'morvane-fang': '/assets/fx/morvane-fang.json',
+  'morvane-sword': '/assets/fx/morvane-sword.json',
   // the tutorial's rune rocks, dark and their rune alight (tutorial.js)
   'rune-rock-1': '/assets/fx/rune-rock-1.json',
   'rune-rock-2': '/assets/fx/rune-rock-2.json',

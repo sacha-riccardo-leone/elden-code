@@ -42,11 +42,12 @@ export class Crowd {
       const player = n === pilot.npc;
       list.push({ who: n, pos: n.pos, r: CROWD.radius, w: player ? CROWD.playerWeight : this.weightOf(n), player, boss: false });
     }
-    // a great enemy, once he's come and while he's not in the air
+    // a great enemy, once he's come and while he's not in the air (nor sweeping through everyone:
+    // Morvane lunging or flying, morvane.js)
     const b = fight?.boss;
     if (b && b.alive && b.fade > 0.5 && b.lift < 1) {
       const r = b.mind ? b.mind.crowdRadius(b.kind.crowd) : b.kind.crowd;
-      list.push({ who: b, pos: b.pos, r, w: Infinity, player: false, boss: true });
+      if (r > 0) list.push({ who: b, pos: b.pos, r, w: Infinity, player: false, boss: true });
     }
     this.bodies = list;
   }

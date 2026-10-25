@@ -186,6 +186,25 @@ const SETS = {
       ['reveal-1', 'morvane_reveal.mp3', 0, 15, -4, 0.2, 2, { group: 'reveal' }],
       ['reveal-2', 'morvane_reveal2.mp3', 0.9, 15, -4, 0, 2, { group: 'reveal' }],
       ['reveal-3', 'morvane_reveal3_low_volume.mp3', 0, 15, -3, 0.4, 2],
+      // his second form's fight: vanishing and coming back (one recording, for both); flying across the
+      // arena (the two together, each from its first sound); his blade's whoosh (three takes in one
+      // recording, each from its first sound, one picked each time); the wind-up before the fang's
+      // throw (a slow whirr, recorded very quietly: from where it begins to rise, so that its crest
+      // comes as he throws); the Frenzied Eye swelling (the two together) and dragging everyone in
+      // (the pull left over from his change, looped: audio.js); and for now, till he has his own, the
+      // fang and the falling flames bursting as the Golem's meteors land, and the Eye as his fire bursts
+      ['teleport', 'morvane_teleport.mp3', 0.05, 3.4, -3, 0, 1.5],
+      ['fly-1', 'morvane_flying_woosh.mp3', 0.14, 3.2, -3, 0, 1.4, { group: 'fly' }],
+      ['fly-2', 'morvane_flying_woosh2.mp3', 0.09, 3.2, -3, 0, 1.4, { group: 'fly' }],
+      ['woosh-1', 'morvane_sword_woosh.mp3', 0.4, 0.44, -3, 0, 0.15],
+      ['woosh-2', 'morvane_sword_woosh.mp3', 0.85, 0.55, -3, 0, 0.2],
+      ['woosh-3', 'morvane_sword_woosh.mp3', 1.44, 1.0, -3, 0, 0.4],
+      ['windup', 'morvane_before_knife_throw.mp3', 1.25, 1.5, -6, 0, 0.6],
+      ['eye-1', 'morvane_big_attack_eye_growing.mp3', 0.1, 1.6, -3, 0, 0.4, { group: 'eye' }],
+      ['eye-2', 'morvane_big_attack_eye_growing2.mp3', 0, 5.59, -3, 0, 2, { group: 'eye' }],
+      ['eye-pull', 'morvane_sword_removed_after.mp3', 0.05, 2.95, -3, 0.3, 0.8],
+      ['burst', '../Golem Guardian/meteorite_hit.wav', 2.02, 1.6, -4, 0, 0.6],
+      ['eye-burst', '../Golem Guardian/freeexplosionspitfire/Firespray 2.ogg', 0.035, 2.03, -2, 0, 0.6],
     ],
   },
   knight: {

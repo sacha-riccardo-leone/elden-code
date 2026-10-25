@@ -19,9 +19,10 @@
 // from the enemy as he can.) Nothing here ever reaches Claude Code.
 //
 // Three great enemies, met one after another (KINDS, ORDER): the Guardian Golem, whose fight is
-// golem.js; once he's beaten, Fenrath, the Crimson Fang, below; and once Fenrath is, Morvane, whose
-// fight is morvane.js. Fenrath (heroes/boss.js): every blow of his shows itself before it lands
-// (bossfx.js): step out of its way, or dodge through it (Space).
+// golem.js; once he's beaten, Fenrath, the Crimson Fang, below; and once Fenrath is, Morvane, Lord of
+// Frenzied Flame, whose fight (his first form, his change, and his second) is morvane.js. Fenrath
+// (heroes/boss.js): every blow of his shows itself before it lands (bossfx.js): step out of its way,
+// or dodge through it (Space).
 //   swing – the greatsword raised and brought down: a crescent of red light flies on down his lane;
 //   lunge – a thrust: a lance of light runs along the blade and far past its point;
 //   slam  – a ring of light gathers round him for a moment, then fills: all inside it suffer;
@@ -43,7 +44,7 @@ import { flash } from './lights.js';
 import { fxArt } from './fxart.js';
 import { Spark } from './spellfx.js';
 import { GOLEM, GOLEM_MOVES, GolemMind } from './golem.js';
-import { MORVANE, MorvaneMind } from './morvane.js';
+import { MORVANE, MORVANE_MOVES, MorvaneMind } from './morvane.js';
 import { setFoe } from './voices.js';
 import { clearRipples, rippleAt, stepRipples } from './ripple.js';
 import { groundAt } from './ground.js';
@@ -178,7 +179,7 @@ const KINDS = {
   },
   morvane: {
     sheet: 'morvaneSheet', form: 'morvaneFlameSheet', hp: MORVANE.hp, speed: MORVANE.speed, reach: 1.5, radius: 0.7,
-    lane: 1, depth: 1.1, spacing: 2.5, crowd: CROWD.radius, shadow: [2, 1.2], cam: { far: 24, y: 1.6 }, moves: {}, says: {},
+    lane: 1, depth: 1.1, spacing: 2.5, crowd: CROWD.radius, shadow: [2, 1.2], cam: { far: 24, y: 1.6 }, moves: MORVANE_MOVES, says: {},
     Mind: MorvaneMind,
     sounds: 'frenzy',
   },
@@ -955,7 +956,9 @@ export class Fight {
     const y = ARENA.y + b.kind.cam.y; // (above the arena's floor)
     if (this.clock < this.introUntil) return { at: [b.pos.x, y, b.pos.y], dist: far };
     if (this.focus) return { at: [me.pos.x + (b.pos.x - me.pos.x) * 0.45, y, me.pos.y + (b.pos.y - me.pos.y) * 0.45], dist: far };
-    return { at: null, dist: BOSS_CAM.near };
+    // (following thee, as far back as he needs: the Lord of Frenzied Flame, so tall and so quick,
+    // farther, morvane.js)
+    return { at: null, dist: b.kind.cam.near ?? BOSS_CAM.near };
   }
 
   // Everyone holding still, the camera on him (Morvane changing: morvane.js): thou canst do nothing.
@@ -2281,16 +2284,6 @@ export class Fight {
       }
     }
     return this.clock - this.cowardsAlone > 20;
-  }
-
-  // The encounter ends short of its end, neither won nor lost (Morvane revealed, his second form's
-  // fight still to come: morvane.js): he vanishes, and he'll be met again next time.
-  halt(b) {
-    const { ui, world } = this.ctx;
-    ui.banner('To Be Continued', 'Morvane, Lord of Frenzied Flame, will return', 'gold');
-    ui.log('Morvane vanishes in a burst of frenzied flame… to be continued', 'gold', { region: world.arena });
-    b.mind?.vanish?.();
-    this.end();
   }
 
   // He leaves the arena (unbeaten): he fades into red mist, and the fight is over.

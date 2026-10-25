@@ -100,6 +100,18 @@ export const SOUNDS = {
   'morvane-black': { set: 'frenzy', clips: ['black-1', 'black-2'], layer: true, volume: 0.95, most: 1, duck: 0.15 },
   'morvane-reveal': { set: 'frenzy', clips: ['reveal-1', 'reveal-2'], layer: true, volume: 0.75, most: 1, duck: 0.15 },
   'morvane-reveal-low': { set: 'frenzy', clips: ['reveal-3'], volume: 0.12, most: 1 }, // (quieter still, as Sacha asked)
+  // and his second form's: vanishing and coming back, flying (the two together), his blade (one of
+  // three), the fang drawn back to be thrown, the Frenzied Eye swelling (the two together; heard
+  // wherever thou art) and dragging (on and on, till it bursts), and, for now, what bursts: the fang
+  // and the falling flames (the Golem's meteor), the Eye (his fire)
+  'morvane-teleport': { set: 'frenzy', clips: ['teleport'], volume: 0.75, vary: 0.05, pitch: [0.95, 1.06], most: 2, half: 26 },
+  'morvane-fly': { set: 'frenzy', clips: ['fly-1', 'fly-2'], layer: true, volume: 0.85, most: 2, half: 30 },
+  'morvane-woosh': { set: 'frenzy', clips: ['woosh-1', 'woosh-2', 'woosh-3'], volume: 0.8, vary: 0.06, pitch: [0.92, 1.05], most: 3, half: 22 },
+  'morvane-windup': { set: 'frenzy', clips: ['windup'], volume: 0.7, most: 1, half: 20 },
+  'morvane-eye': { set: 'frenzy', clips: ['eye-1', 'eye-2'], layer: true, volume: 0.9, most: 1, duck: 0.3 },
+  'morvane-eye-pull': { set: 'frenzy', clips: ['eye-pull'], volume: 0.7, most: 1, loop: [0.4, 2.1] },
+  'morvane-burst': { set: 'frenzy', clips: ['burst'], volume: 0.75, vary: 0.08, pitch: [0.9, 1.1], most: 5, half: 22 },
+  'morvane-eye-burst': { set: 'frenzy', clips: ['eye-burst'], volume: 1, most: 1 },
   // the ultimates' (ults.js): Maren's bolts (one of six each) and her great bolt, the camera closing
   // on her, Aurelion's verdict and his giant (rising, and striking: one of fifteen blows), Ruadan's
   // leap and landing, Fortuna's mass of ice bursting, Corisande's arrow, Ulric's spears

@@ -57,11 +57,12 @@ export function texture(canvas) {
   return t;
 }
 
-// heat 0..1 → a colour of red light
-const shade = (k) => (k > 0.86 ? RED.core : k > 0.62 ? RED.hot : k > 0.36 ? RED.red : k > 0.16 ? RED.deep : RED.dark);
+// heat 0..1 → a colour of red light (or of another light's: `P`, as RED)
+const shade = (k, P = RED) => (k > 0.86 ? P.core : k > 0.62 ? P.hot : k > 0.36 ? P.red : k > 0.16 ? P.deep : P.dark);
 
-// The crescent: a band of light along an arc, thickest in the middle, ragged at its edge.
-function crescentCanvas(seed) {
+// The crescent: a band of light along an arc, thickest in the middle, ragged at its edge (in red
+// light, or in `P`'s: Morvane's frenzied flame, frenzyfx.js).
+function crescentCanvas(seed, P = RED) {
   const r = rng(seed);
   return canvasOf(40, 72, (put, w, h) => {
     const cx = -18;
@@ -74,9 +75,9 @@ function crescentCanvas(seed) {
       const outer = cx + Math.sqrt(Math.max(0, R * R - (y - cy) ** 2));
       for (let x = Math.floor(outer - thick); x <= outer; x++) {
         const k = (x - (outer - thick)) / thick; // 0 inner edge → 1 outer edge
-        put(x, y, shade(0.15 + k * 0.85 * (1 - Math.abs(t) * 0.4)));
+        put(x, y, shade(0.15 + k * 0.85 * (1 - Math.abs(t) * 0.4), P));
       }
-      if (r() < 0.3) put(outer + 1 + r() * 3, y, RED.deep); // sparks thrown off its edge
+      if (r() < 0.3) put(outer + 1 + r() * 3, y, P.deep); // sparks thrown off its edge
     }
   });
 }
@@ -184,15 +185,16 @@ export const glowing = (map, opacity = 1) => new THREE.MeshBasicMaterial({
 });
 
 export class Crescent {
-  // from (x, z) at height y, flying toward dir (±1) for `life` seconds
-  constructor(scene, x, y, z, dir, { size = 4.2, speed = 15, life = 0.5 } = {}) {
-    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(size * 40 / 72, size), glowing(texture(crescentCanvas(Math.random() * 1000))));
+  // from (x, z) at height y, flying toward dir (±1) for `life` seconds (in `palette`'s light, its own
+  // `light` cast round it: red, or another's)
+  constructor(scene, x, y, z, dir, { size = 4.2, speed = 15, life = 0.5, palette = RED, light = RED_LIGHT } = {}) {
+    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(size * 40 / 72, size), glowing(texture(crescentCanvas(Math.random() * 1000, palette))));
     this.mesh.scale.x = dir;
     this.mesh.position.set(x, y, z);
     this.mesh.renderOrder = 6;
     scene.add(this.mesh);
     Object.assign(this, { scene, dir, speed, life, t: 0, x, y, z, hit: new Set() });
-    this.light = carry(scene, [x, y, z + 0.3], { color: RED_LIGHT, power: 40, reach: 14 });
+    this.light = carry(scene, [x, y, z + 0.3], { color: light, power: 40, reach: 14 });
   }
 
   // returns false once it has faded

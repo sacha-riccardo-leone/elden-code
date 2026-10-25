@@ -996,9 +996,32 @@ ground under you instead, so it flies at your hand's height there too.
       flame to his toes, a little taller than Fenrath): his head a ring of frenzied flame round a
       black hole, arms spread, the sword in one hand and a gold fang in the other. His title shows,
       and his second bar (9,000) fills.
-  - **To be continued:** his second form's fight isn't made yet. He floats there a moment, then
-    vanishes in a burst of frenzied flame: "TO BE CONTINUED". It counts as neither won nor lost, and
-    he comes again next time.
+  - **His second form** then fights, and your companions are at him now too. He floats, and never
+    stays where he is: he drifts about whoever he's after, into their lane a little off them, and
+    comes at them quickly, every blow showing itself first (his flame flares as he draws back):
+    - he **vanishes** in a burst of frenzied flame and is back a moment later behind you (to slash
+      you) or across the arena from you (to lunge at you): unbidden every 7 to 11 seconds, and
+      whenever three of you crowd him;
+    - **the slash:** the sword raised high, then swept down and across. Everyone before him, out to
+      his sword's point (6.4 units), is struck, and a crescent of frenzied flame flies on down his
+      lane;
+    - **the lunges:** coiled in the air, he shoots forward low with the sword at arm's length, 5 to
+      11 units, two or three in a row (vanishing into your lane between them if you've left it);
+    - **the fly-by:** drawn back, he streaks across the whole arena flat out, head first, burning
+      everyone in his path;
+    - **the fang:** he hurls his gold fang, wreathed in frenzied flame, at where you stand (marked on
+      the floor as he draws back). It bursts there, stays a moment, and flies back to his hand,
+      burning anyone in its way again; one to three throws in a row;
+    - **the Frenzied Eye**, as his bar falls to two-thirds, and again at one-third: he vanishes, comes
+      back over the middle of the arena facing you, arms spread, rises, and his head of flame swells
+      into a huge burning eye (the camera pulls back to show the whole arena). It drags everyone
+      toward him while flames rain down on marked spots; then, white-hot, it bursts over the whole
+      arena, hardest near him (46 there, 28 at the edge). Only a dodge (Space) as it bursts escapes
+      it; your companions hop it, mostly.
+    - Every blade, spell and ultimate reaches him whenever he's there to be reached (not vanished,
+      nor up over the arena). The camera follows you from farther back than for the others, so that
+      you see him coming. Felled, he falls to his knees, his flame shrinking, and slumps, his sword
+      and fang dropping to the floor: "GREAT ENEMY FELLED".
   - **His drawings:** standing, fleeing (four frames) and out of breath (two) are each also drawn
     facing left. They're not mirrors (one of his eyes is covered in dead skin and keeps its side), so
     he plays them whenever he faces left (an animation's `left` frames, `client/js/npc.js`). The
@@ -1009,10 +1032,20 @@ ground under you instead, so it flies at your hand's height there too.
     second has three times the pixels for three times the height. Grown in his change, his first
     form is simply scaled up under the flames (`setZoom`). The second form's flames are drawn as
     they are, glowing orange, with embers; the game's light lies low in front of him so that his
-    head of flame keeps its black hole.
+    head of flame keeps its black hole. His second form's fight drawings (the flight, the lunge, the
+    slash, the fang thrown, the fall) came at about two-thirds of the master's size, so they're
+    sampled at 3.33 px (his height from the hole in his head of flame to his toes the master's); the
+    two flights, drawn bigger, at 4.8 and 5.1. Each is set in the frame by the brooch on his belly, so
+    that his body stays put whatever he does; those that reach far out (a sword at full stretch, the
+    flights) are in frames of their own. All but the reveal and the fall are drawn facing left too,
+    not mirrored: his hands never swap (the sword always in his right hand, the fang in his left).
+    He swoops low to lunge and to fly, so that his blade and his body pass through the heroes, not
+    over them. His effects are Sacha's drawings too (`art/bosses/Morvane`, `client/js/frenzyfx.js`):
+    the frenzied flame flying and bursting, the Eye, his fang.
   - Tuning (health, speed, how long he runs and pants, the change's timings, how much he grows) is
-    `MORVANE`, `CHANGE` and `GROW` in `client/js/morvane.js`. His size is `px` in
-    `client/js/heroes/morvane.js`.
+    `MORVANE`, `CHANGE` and `GROW` in `client/js/morvane.js`; his second form's (how fast and how
+    often, how far each blow reaches, what each takes, the Eye) is `FLAME_FIGHT`, `EYE` and
+    `MORVANE_MOVES` there. His size is `px` in `client/js/heroes/morvane.js`.
 - **The fight:**
   - Enough damage in quick succession breaks his stance: he reels and takes more from every blow.
   - As you step in and he enters, the camera shows him for a few seconds, then comes back to
@@ -1045,7 +1078,6 @@ ground under you instead, so it flies at your hand's height there too.
     on as, or every fighter has fallen while you're away), "THE GREAT ENEMY PREVAILS" and he fades
     into red mist.
   - **Withdrawn:** he leaves on his own after eight minutes.
-  - **To be continued:** Morvane, revealed, vanishes for now (above).
 
   Nothing here ever reaches Claude Code.
 - If no enemy's art loads, no great enemy comes at all.
@@ -1107,14 +1139,15 @@ The Lands Between are heard (`client/js/audio.js`, Web Audio): the great enemies
 footsteps and blows, every hero's ultimate and spells, the stations, the spectres, the training
 yard's dummies, the banners and setting out. The sounds are cut from Sacha's recordings (`client/assets/sfx/IMPORT/<their folder>`,
 one per hero or kind, and a few loose in `client/assets/sfx`, kept as they are and never deployed) into a set
-each (`client/assets/sfx/<set>`): small MP3 clips, about 5.7 MB in all (the Golem's and Morvane's
+each (`client/assets/sfx/<set>`): small MP3 clips, about 6 MB in all (the Golem's and Morvane's
 fetched only as their fight begins). A recording that holds many
 of one sound (footsteps, landings, lightning) is cut into each of them, every other sound from where
 it starts, each levelled to one peak; a recording's 1 and 2 (and 3) are heard together, levelled as
 one (left out: `dontuse.wav`, as named; `golem_explosion_on_spitfire`, `maren_ult_start` and both
 `maren_ult_start_on_click`s, replaced as Sacha asked; `Stone Chain Jump` and
 `Stone Chain Land`, as everyone comes down on `Stone Land`; Ruadan's `hammer_hit`, its sound not
-good enough; Wynn's `unsheathe` and Morvane's `morvane_sword_removed_after`, as asked).
+good enough; Wynn's `unsheathe`, as asked; Morvane's `morvane_sword_removed_after` is out of his
+change, as asked, and the Frenzied Eye's pull instead).
 `node scripts/cut-sfx.mjs [set]` cuts them again, from the recordings, whenever they change; its
 table says what each clip is cut from.
 
@@ -1202,7 +1235,6 @@ table says what each clip is cut from.
     `morvane_out_of_stamina_1` and `_2` together as he stops, out of breath (the first, a stretch of
     its long panting, hushed as he runs again); his bare feet as he runs, on the run's first and third
     drawings (everyone's `bare` step);
-  - struck, for now: your own `player_hurt`, higher, till he has his own;
   - his change, heard wherever you are, holding the music down: `morvane_sword_anticipation` and
     `morvane_removing_sword_during` (from its first burst, 0.8 s in) as he grips the sword;
     `morvane_removing_sword_during_end` coming in halfway through that (the two cut short as his
@@ -1210,10 +1242,19 @@ table says what each clip is cut from.
     together as it's ripped off; `morvane_before_reveal` as he grows (its silent lead-in left out);
     `morvane_blackscreen_to_flame_reveal` and `…2` together as the screen
     goes black, swelling into the reveal; `morvane_reveal` and `morvane_reveal2` together as he's
-    revealed, with `morvane_reveal3_low_volume` quietly under them, all dying away as he vanishes
-    (each of the long ones cut to the 15 to 20 s the encounter lasts for now);
-  - kept for his second form: `morvane_teleport`, `morvane_flying_woosh` (and `2`),
-    `morvane_before_knife_throw`, `morvane_big_attack_eye_growing` (and `2`).
+    revealed, with `morvane_reveal3_low_volume` quietly under them, all dying away as the fight
+    begins (each of the long ones cut to 15 to 20 s);
+  - his second form: `morvane_teleport` as he vanishes, and again, higher, as he comes back;
+    `morvane_flying_woosh` and `2` together as he flies (and, quieter, with each lunge); one of the
+    three whooshes in `morvane_sword_woosh` with each slash and lunge, and as the fang is thrown and
+    comes back; `morvane_before_knife_throw` as he draws the fang back (from where its whirr begins
+    to rise, so that it crests as he throws; recorded very quietly, so it's raised a lot);
+    `morvane_big_attack_eye_growing` and `2` together as the Eye swells, and
+    `morvane_sword_removed_after`, looped, as it drags everyone in;
+  - for now, till he has his own: struck, your own `player_hurt`, higher for his first form and
+    deeper for his second; the fang and the falling flames bursting, the Golem's `meteorite_hit`;
+    the Eye bursting, the Golem's `Firespray 2`; the cue to dodge it, Ronin's shine; dying, his own
+    panting, slower.
 - **Maren's thunderbolt** (her right click): one of the sixteen zaps of `maren_atk1`, a different
   one each time, and with it the rush in `maren_atk2` (between 2 and 3 s, as its name says: from
   where it's heard, so that it peaks as the bolt is there).
@@ -1474,7 +1515,8 @@ client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the 
 client/js/faces.js      a character's face for those frames: the head and shoulders of its idle drawing
 client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes
 client/js/golem.js      the Guardian Golem's fight: his weak points, his fall, shockwaves, fire
-client/js/morvane.js    Morvane's fight: fleeing and out of breath, his change, his reveal (to be continued)
+client/js/morvane.js    Morvane's fight: fleeing and out of breath, his change and reveal, his second form's blows, the Frenzied Eye
+client/js/frenzyfx.js   Morvane's frenzied flame, drawn: flying and bursting, his thrown fang, the Eye, his dropped sword and fang
 client/js/ripple.js     the arena floor rippling like water under the Golem's shockwaves (and the tutorial rocks' yard's, under theirs)
 client/js/bossfx.js     the enemies' effects: crescent, lance, floor marks, the ghost sword, the eruption, the air shock, meteors
 client/js/director.js   event → behaviour, regions, slash-command effects, chatter, visits
