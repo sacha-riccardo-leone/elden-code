@@ -485,7 +485,8 @@ export class Tutorial {
     }
   }
 
-  // A rock comes down: dust and blue light, a crack, the view jolted, and its shockwave; heard crashing.
+  // A rock comes down: dust and blue light, a crack glowing its rune's blue, the view jolted, and its
+  // shockwave; heard crashing.
   crash(rock) {
     const { training, rig } = this.ctx;
     const { scene, particles } = training.fxCtx;
@@ -501,7 +502,7 @@ export class Tutorial {
     });
     flash(null, [x, rock.Y.y + 0.8, z + 0.3], { color: ROCKS.glow, power: 26, reach: 10, life: 0.45 });
     rig.shake?.(0.35);
-    this.marks.push({ crack: new Decal(scene, 'crack', x, z, 3.6, { glow: false }), t: 0 });
+    this.marks.push({ crack: new Decal(scene, 'runeCrack', x, z, 3.6, { glow: false }), t: 0 }); // (in its rune's blue)
     this.waves.push({ ripple: addRipple(x, z, WAVE), x, z, met: false });
   }
 

@@ -158,9 +158,11 @@ function zoneCanvas() {
 }
 
 // A crack in the stone where it landed: branching fissures glowing red at their hearts (`heart`,
-// `edge`: another light's, Ruadan's gold where his thrown maul plants itself, combat.js).
+// `edge`, and the shadow along them, `dark`: another light's, Ruadan's gold where his thrown maul
+// plants itself, combat.js; the blue of the tutorial's rune rocks, their runes' light, tutorial.js).
 const GOLD_CRACK = { heart: [250, 209, 64], edge: [178, 103, 7] };
-function crackCanvas(seed, { heart = RED.red, edge = RED.dark } = {}) {
+const RUNE_CRACK = { heart: [83, 232, 255], edge: [24, 128, 178], dark: [12, 20, 30] };
+function crackCanvas(seed, { heart = RED.red, edge = RED.dark, dark = [24, 16, 16] } = {}) {
   const r = rng(seed);
   return canvasOf(80, 80, (put, w, h) => {
     const walk = (x, y, a, len, depth) => {
@@ -169,7 +171,7 @@ function crackCanvas(seed, { heart = RED.red, edge = RED.dark } = {}) {
         x += Math.cos(a);
         y += Math.sin(a);
         put(x, y, i < len * 0.5 ? heart : edge);
-        put(x + 1, y, [24, 16, 16]);
+        put(x + 1, y, dark);
         if (depth < 2 && r() < 0.08) walk(x, y, a + (r() < 0.5 ? -1 : 1) * 0.9, len * 0.5, depth + 1);
       }
     };
@@ -313,7 +315,7 @@ function annulusCanvas(inner = 0.3) {
 
 const DECALS = {
   ring: () => ringCanvas(7, false), fill: () => ringCanvas(11, true), zone: zoneCanvas, crack: () => crackCanvas(Math.random() * 1000), heart: heartCanvas,
-  goldCrack: () => crackCanvas(Math.random() * 1000, GOLD_CRACK),
+  goldCrack: () => crackCanvas(Math.random() * 1000, GOLD_CRACK), runeCrack: () => crackCanvas(Math.random() * 1000, RUNE_CRACK),
   half: halfCanvas, annulus: annulusCanvas,
 };
 
