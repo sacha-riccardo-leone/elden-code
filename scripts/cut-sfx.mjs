@@ -202,7 +202,7 @@ const SETS = {
       // over full scale in their recordings, levelled lower); his
       // fall (the two together, whole: his end seen through, morvane.js) and his sword and fang falling
       // to the floor (each from its first sound, levelled as one, heard where each lies); and for now,
-      // till he has his own, the fang and the falling flames bursting as the Golem's meteors land, and
+      // till he has his own, the falling flames bursting as the Golem's meteors land, and
       // the Eye as his fire bursts
       ['teleport', 'morvane_teleport.mp3', 0.05, 3.4, -3, 0, 1.5],
       ['fly-1', 'morvane_flying_woosh.mp3', 0.14, 3.2, -3, 0, 1.4, { group: 'fly' }],

@@ -5,8 +5,6 @@
 //   FlameBall    – a ball of it in flight, a little copy of his head of flame, its tongues trailing
 //                  behind it whichever way it goes;
 //   FlameBurst   – a ball of it bursting where it lands: the flash, the full burst, the broken tongues;
-//   Fang         – his gold fang thrown, pointing the way it flies, wreathed in a ball of it (his
-//                  flame throw);
 //   BareFang     – his gold fang thrown bare, point first and never turning, bigger than in his hand
 //                  so that it's seen, stuck in the floor where it lands (his fang throw);
 //   Eye          – the Frenzied Eye, his head of flame grown huge, its tongues swirling;
@@ -77,15 +75,6 @@ export class FlameBall {
     this.mesh.rotation.z = turn * dir;
   }
 
-  // Turned to face the camera, flying `angle` (radians, on the screen: 0 to the right, up from there)
-  // so that its tongues trail straight behind it, however it goes.
-  point(angle, camera) {
-    if (!this.mesh) return;
-    this.mesh.scale.x = 1;
-    this.mesh.quaternion.copy(camera.quaternion);
-    this.mesh.rotateZ(angle);
-  }
-
   set opacity(v) {
     if (this.mesh) this.mesh.material.opacity = v;
     if (this.light) this.light.level = v;
@@ -131,46 +120,6 @@ export class FlameBurst {
   }
 
   dispose() {
-    drop(this.scene, this.mesh);
-  }
-}
-
-export class Fang {
-  // His fang in the air at (x, y, z), pointing the way it flies, a ball of frenzied flame round it; or
-  // stuck in the floor, point down.
-  constructor(scene, x, y, z) {
-    const art = fxArt('morvane-fang');
-    this.mesh = plane(art, 2.31 / 91, 7); // (as big as in his hand: heroes/morvane-flame.js)
-    if (this.mesh) scene.add(this.mesh);
-    this.ball = new FlameBall(scene, x, y, z, { size: 2.1 });
-    Object.assign(this, { scene, stuck: false });
-    this.at(x, y, z);
-  }
-
-  at(x, y, z) {
-    this.mesh?.position.set(x, y, z + 0.05);
-    this.ball.at(x, y, z);
-  }
-
-  // flying `angle` on the screen (its point that way, its flame's tongues trailing behind it:
-  // FlameBall.point), or stuck in the floor (still, point down)
-  step(dt, angle = 0, camera = null) {
-    this.ball.step(dt);
-    if (this.stuck) { if (this.mesh) this.mesh.rotation.set(0, 0, 0); return; }
-    if (!camera) return;
-    this.ball.point(angle, camera);
-    if (!this.mesh) return;
-    this.mesh.quaternion.copy(camera.quaternion);
-    this.mesh.rotateZ(angle + Math.PI / 2); // (its point, drawn at the bottom, that way)
-  }
-
-  set opacity(v) {
-    if (this.mesh) { this.mesh.material.transparent = true; this.mesh.material.opacity = v; }
-    this.ball.opacity = v;
-  }
-
-  dispose() {
-    this.ball.dispose();
     drop(this.scene, this.mesh);
   }
 }

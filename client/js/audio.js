@@ -105,7 +105,7 @@ export const SOUNDS = {
   // art): his rising into place, its opening, its roar all the while it swells (on and on till it
   // bursts, the music held down meanwhile) and the cue to dodge it; his fall (the two together, the
   // music held down meanwhile), his sword and his fang falling to the floor, and, for now, what
-  // bursts: the fang and the falling flames (the Golem's meteor), the Eye (his fire)
+  // bursts: the falling flames (the Golem's meteor), the Eye (his fire)
   'morvane-teleport': { set: 'frenzy', clips: ['teleport'], volume: 0.75, vary: 0.05, pitch: [0.95, 1.06], most: 2, half: 26 },
   'morvane-fly': { set: 'frenzy', clips: ['fly-1', 'fly-2', 'fly-3'], layer: true, volume: 0.85, most: 2, half: 30 },
   'morvane-anticipation': { set: 'frenzy', clips: ['anticipation'], volume: 0.8, vary: 0.05, most: 1, half: 22 },

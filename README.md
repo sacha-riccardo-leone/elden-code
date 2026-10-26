@@ -1036,15 +1036,12 @@ ground under you instead, so it flies at your hand's height there too.
       11 units, two or three in a row (vanishing into your lane between them if you've left it);
     - **the fly-by:** drawn back, he streaks across the whole arena flat out, head first, burning
       everyone in his path;
-    - **the fang:** he throws his gold fang at where you stand (marked on the floor as he draws back),
-      one way or the other each time. **Bare**, it flies straight at the mark, point first and never
-      turning, very fast (45 units a second; drawn bigger than in his hand, so that you see it, gold
-      sparks streaming off it), and stabs into the floor at the slant it came in at, in a small mark
-      (0.9 units round); it comes back as straight and as fast, grip first. **Wreathed in frenzied
-      flame**, it flies in a high arc, the fang in it pointing the way it goes and the flame's tongues
-      always trailing behind it, and bursts over a bigger mark. Either way it stays a moment, then
-      flies back to his hand, hurting anyone in its way again (the flame turning round as it comes
-      back); one to three throws in a row;
+    - **the fang:** he throws his gold fang at where you stand (marked on the floor as he draws back).
+      It flies straight at the mark, point first and never turning, very fast (45 units a second;
+      drawn bigger than in his hand, so that you see it, gold sparks streaming off it), and stabs into
+      the floor at the slant it came in at, in a small mark (0.9 units round). It stays a moment, then
+      flies back to his hand as straight and as fast, grip first, hurting anyone in its way again;
+      one to three throws in a row;
     - **the Frenzied Eye**, as his bar falls to two-thirds, and again at one-third: he vanishes, comes
       back over the middle of the arena facing you, arms spread, rises, and his head of flame swells
       into a huge burning eye (the camera pulls back to show the whole arena). It drags everyone
@@ -1321,7 +1318,7 @@ table says what each clip is cut from.
     under it), heard whole through his fall, and `morvane_felled3_sword_dropping` and
     `_fang_dropping` with them, a little quieter, each where his sword and his fang fall;
   - for now, till he has his own: struck, your own `player_hurt`, higher for his first form and
-    deeper for his second; the fang in flame and the falling flames bursting, the Golem's
+    deeper for his second; the falling flames bursting, the Golem's
     `meteorite_hit`; the bare fang stabbing into the floor, Fenrath's ghost sword striking, higher;
     the Eye bursting, the Golem's `Firespray 2`.
 - **Maren's thunderbolt** (her right click): one of the sixteen zaps of `maren_atk1`, a different
@@ -1592,7 +1589,7 @@ client/js/faces.js      a character's face for those frames: the head and should
 client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes
 client/js/golem.js      the Guardian Golem's fight: his weak points, his fall, shockwaves, fire
 client/js/morvane.js    Morvane's fight: fleeing and out of breath, his change and reveal, his second form's blows, the Frenzied Eye
-client/js/frenzyfx.js   Morvane's frenzied flame, drawn: flying and bursting, his thrown fang (bare, or in flame), the Eye, his dropped sword and fang, and his arena once he's revealed (black beyond, a ring of fire, heat haze, ash)
+client/js/frenzyfx.js   Morvane's frenzied flame, drawn: flying and bursting, his thrown fang, the Eye, his dropped sword and fang, and his arena once he's revealed (black beyond, a ring of fire, heat haze, ash)
 client/js/felled-loop.js  ?felled: Morvane felled again and again, to watch and hear his fall
 client/js/ripple.js     the arena floor rippling like water under the Golem's shockwaves (and the tutorial rocks' yard's, under theirs)
 client/js/bossfx.js     the enemies' effects: crescent, lance, floor marks, the ghost sword, the eruption, the air shock, meteors

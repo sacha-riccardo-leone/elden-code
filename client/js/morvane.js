@@ -28,11 +28,9 @@
 //   lunge – coiled in the air, he shoots forward low, the sword thrust out at arm's length, half the
 //           arena long; two or three times running (turning, or vanishing into his foe's lane, between);
 //   fly   – drawn back, he streaks across the whole arena flat out, head first, burning all in his path;
-//   throw – his gold fang hurled at where his foe stands (marked as he draws back), bare or wreathed in
-//           frenzied flame, one or the other each time: bare, it flies fast and flat, spinning, and stabs
-//           point-first into the floor (a smaller mark); in flame, it bursts there; either way it stays a
-//           moment, and flies back to his hand, cutting or burning all in its way again; once to three
-//           times running;
+//   throw – his gold fang hurled at where his foe stands (marked as he draws back): it flies fast and
+//           flat and stabs point-first into the floor, stays a moment, and flies back to his hand,
+//           cutting all in its way again; once to three times running;
 //   eye   – his great attack, as his second bar falls to two-thirds, and again at one-third: gone, he
 //           rises over the middle of the arena facing thee, arms spread, and his head of flame swells
 //           into a huge burning eye, the arena turning the colour of it, dragging everyone toward him
@@ -55,7 +53,7 @@ import { flash, carry } from './lights.js';
 import { onAim, wayOf, AIM, reachOf } from './combat.js';
 import { ARENA, BOSS_CAM } from './config.js';
 import { Crescent, Decal } from './bossfx.js';
-import { FRENZY, FRENZY_LIGHT, FlameBall, FlameBurst, Fang, BareFang, Eye, Dropped, Inferno, Head } from './frenzyfx.js';
+import { FRENZY, FRENZY_LIGHT, FlameBall, FlameBurst, BareFang, Eye, Dropped, Inferno, Head } from './frenzyfx.js';
 import { holeOf } from './heroes/morvane-flame.js';
 
 export const MORVANE = {
@@ -109,10 +107,9 @@ const AHEAD = { hand: 122, catch: 118 };
 // How far his sword reaches before him, slashing and lunging (world units), how low he swoops to lunge
 // and to fly (his lift: coiled, thrusting, flying), how far a lunge carries him, how fast he flies,
 // how far either side of his lane his blade and his body sweep, his slash's crescent (from where
-// before him, how high, how big, how fast, how long, how wide what it strikes), his fang's flight in
-// flame (the circle it bursts in, how long it flies out, how high its arc, how long it stays, how
-// long it takes to come back) and bare (the circle it stabs, how fast it flies, straight there and
-// straight back, how long it stays, how many times as big as in his hand); and what each
+// before him, how high, how big, how fast, how long, how wide what it strikes), his fang's flight
+// (the circle it stabs, how fast it flies, straight there and straight back, how long it stays, how
+// many times as big as in his hand); and what each
 // blow takes from thee (of 100; the fighters as much), the Eye's the most beside him, the least at the
 // arena's edge.
 const FLAME_FIGHT = {
@@ -129,9 +126,8 @@ const FLAME_FIGHT = {
   fly: 24,
   half: { slash: 1.6, lunge: 1.4, fly: 1.4, fang: 0.9 },
   crescent: { from: 2.4, y: 2.4, size: 5.2, speed: 17, life: 0.5, half: 1.7 },
-  flame: { r: 2.3, out: 0.55, arc: 2.2, stay: 0.35, back: 0.5 },
   fang: { r: 0.9, speed: 45, stay: 0.4, size: 1.6 },
-  hurt: { slash: 24, crescent: 18, lunge: 22, fly: 26, flame: 20, stab: 18, back: 12, rain: 14, eye: 46, eyeEdge: 28 },
+  hurt: { slash: 24, crescent: 18, lunge: 22, fly: 26, stab: 18, back: 12, rain: 14, eye: 46, eyeEdge: 28 },
 };
 // The Frenzied Eye: how high he rises over the middle of the arena, how big it grows (across, its
 // whole drawing, from his head of flame's size: its black hole as big as his head's), how hard it
@@ -952,13 +948,11 @@ export class MorvaneMind {
       a.shape = 'line';
       a.opt = { dir, from: -1, len: room + 3, half: FLAME_FIGHT.half.fly };
     } else if (kind === 'throw') {
-      // his fang, bare or in flame (one or the other each time), at where his foe stands, marked as he
-      // draws back
+      // his fang, at where his foe stands, marked as he draws back
       if (!tgt) return false;
-      a.with = Math.random() < 0.5 ? 'fang' : 'flame';
       const [tx, tz] = this.inside(tgt.pos.x, tgt.pos.y, 1.5);
       if (Math.abs(tx - b.pos.x) > 0.3) a.dir = Math.sign(tx - b.pos.x);
-      Object.assign(a, { x: tx, z: tz, shape: 'disc', opt: { r: FLAME_FIGHT[a.with].r } });
+      Object.assign(a, { x: tx, z: tz, shape: 'disc', opt: { r: FLAME_FIGHT.fang.r } });
     } else if (kind === 'eye') {
       Object.assign(a, { to: [cx, cz], opt: { spots: [] }, rainIn: 0.6 });
     }
@@ -1196,38 +1190,35 @@ export class MorvaneMind {
     this.ctx.rig?.shake?.(0.15);
   }
 
-  // The fang flung from his hand (throw-2's, before him) at the marked spot: in flame, in a high arc,
-  // bursting there and burning in the floor a moment; bare, straight there and very fast, point first,
-  // never turning, stabbing into the floor at the slant it came in at. Either way it flies back to his
-  // hand (held out: throw-3's), cutting or burning all in its way again (bare, as straight and as fast,
-  // grip first); caught, the throw is over (stepMove). As it goes, its flame's tongues trail behind it,
-  // whichever way it's going (or gold sparks off it, bare). He gone meanwhile, it burns out where it is.
+  // The fang flung from his hand (throw-2's, before him) at the marked spot: straight there and very
+  // fast, point first, never turning, stabbing into the floor at the slant it came in at; then back to
+  // his hand (held out: throw-3's), as straight and as fast, grip first, cutting all in its way again;
+  // caught, the throw is over (stepMove). Gold sparks stream off it as it goes. He gone meanwhile, it
+  // fades where it is.
   fling(a) {
     const b = this.b;
     const fight = this.fight;
-    const bare = a.with === 'fang';
-    const F = FLAME_FIGHT[a.with];
+    const F = FLAME_FIGHT.fang;
     const px = b.body.sheet.px;
     const reach = (key) => [b.pos.x + b.body.facing * AHEAD[key] * px, b.lift + this.up(key), b.pos.y];
     const from = reach('hand');
-    const to = [a.x, bare ? 0 : 0.5, a.z];
+    const to = [a.x, 0, a.z];
     const scene = this.floor.scene;
-    const fang = bare ? new BareFang(scene, from[0], from[1], from[2] + 0.3, F.size) : new Fang(scene, from[0], from[1], from[2] + 0.3);
+    const fang = new BareFang(scene, from[0], from[1], from[2] + 0.3, F.size);
     const camera = this.ctx.rig?.camera;
-    if (bare) fang.aim(this.screenAngle(from, to), camera); // (pointing at the mark, and so it stays)
-    const out = bare ? Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]) / F.speed : F.out;
+    fang.aim(this.screenAngle(from, to), camera); // (pointing at the mark, and so it stays)
+    const out = Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]) / F.speed;
     this.sound('woosh', false, { volume: 0.8 });
     let phase = 'out';
     let t = 0;
     let gone = 0;
     let last = from;
     const seen = new Set();
-    // (there, turned the way it goes on the screen, streaming what comes off it)
+    // (there, streaming sparks)
     const move = (p, dt) => {
       fang.at(p[0], p[1], p[2] + 0.3);
-      if (bare) fang.step(dt);
-      else fang.step(dt, this.screenAngle(last, p), camera);
-      this.streak(p, last, bare, dt);
+      fang.step(dt);
+      this.streak(p, last, dt);
       last = p;
     };
     fight.fx.push({
@@ -1240,15 +1231,13 @@ export class MorvaneMind {
         }
         if (phase === 'out') {
           const k = Math.min(1, t / out);
-          const arc = bare ? 0 : F.arc * 4 * k * (1 - k);
-          move([from[0] + (to[0] - from[0]) * k, from[1] + (to[1] - from[1]) * k + arc, from[2] + (to[2] - from[2]) * k], dt);
+          move([from[0] + (to[0] - from[0]) * k, from[1] + (to[1] - from[1]) * k, from[2] + (to[2] - from[2]) * k], dt);
           if (k >= 1) {
             phase = 'stuck';
             t = 0;
             fang.stuck = true;
             fang.at(to[0], to[1], to[2] + 0.3);
-            if (bare) this.fangLands(a, to);
-            else this.flameLands(a, to);
+            this.fangLands(a, to);
           }
           return true;
         }
@@ -1264,7 +1253,7 @@ export class MorvaneMind {
         }
         // back to his hand, wherever it is now
         const goal = reach('catch');
-        const back = bare ? Math.hypot(goal[0] - to[0], goal[1] - to[1], goal[2] - to[2]) / F.speed : F.back;
+        const back = Math.hypot(goal[0] - to[0], goal[1] - to[1], goal[2] - to[2]) / F.speed;
         const k = Math.min(1, t / back);
         const p = [to[0] + (goal[0] - to[0]) * k, to[1] + (goal[1] - to[1]) * k, to[2] + (goal[2] - to[2]) * k];
         move(p, dt);
@@ -1287,21 +1276,19 @@ export class MorvaneMind {
     return Math.atan2(c.y - a.y, (c.x - a.x) * cam.aspect);
   }
 
-  // What streams off the thrown fang behind it, going from `q` to `p`: gold sparks off it bare,
-  // frenzied flame off it in flame.
-  streak(p, q, bare, dt) {
-    if (Math.random() > dt * (bare ? 40 : 55)) return;
+  // What streams off the thrown fang behind it, going from `q` to `p`: gold sparks.
+  streak(p, q, dt) {
+    if (Math.random() > dt * 40) return;
     const d = [p[0] - q[0], p[1] - q[1], p[2] - q[2]];
     const len = Math.hypot(d[0], d[1], d[2]) || 1;
     this.floor.particles.emit({
       pos: [p[0], p[1], p[2] + 0.2], spread: [0.15, 0.15, 0.1],
       vel: [(-d[0] / len) * 2.2, (-d[1] / len) * 2.2 + 0.3, (-d[2] / len) * 2.2], velSpread: [0.5, 0.5, 0.3],
-      color: bare ? ['#fff2b0', '#ffd24a', '#e8a020'] : FLAME, size: bare ? 0.05 : 0.09, life: bare ? 0.35 : 0.55,
-      count: bare ? 2 : 3, drag: 1.4, intensity: 2.8,
+      color: ['#fff2b0', '#ffd24a', '#e8a020'], size: 0.05, life: 0.35, count: 2, drag: 1.4, intensity: 2.8,
     });
   }
 
-  // The bare fang lands: point-first in the floor, all inside its mark suffer, the stone cracks, gold
+  // The fang lands: point-first in the floor, all inside its mark suffer, the stone cracks, gold
   // sparks fly (heard, for now, as Fenrath's ghost sword striking, higher, till the fang has its own).
   fangLands(a, [x, , z]) {
     const b = this.b;
@@ -1323,29 +1310,6 @@ export class MorvaneMind {
     flash(scene, [x, 0.8, z + 0.3], { color: '#ffd27a', power: 35, reach: 8, life: 0.3 });
     this.ctx.sound?.play('boss-sword', { at: [x, z], volume: 0.55, pitch: 1.4 });
     this.ctx.rig?.shake?.(0.08);
-  }
-
-  // The fang in flame lands: it bursts in frenzied flame, all inside the mark suffer, the stone cracks.
-  flameLands(a, [x, , z]) {
-    const b = this.b;
-    const { scene, particles } = this.floor;
-    if (a.mark && b.marks.includes(a.mark)) this.fight.unmark(b, a.mark);
-    a.mark = null;
-    a.shape = 'none';
-    this.fight.strike((px, pz) => Math.hypot(px - x, (pz - z) * 1.1) <= FLAME_FIGHT.flame.r, FLAME_FIGHT.hurt.flame);
-    this.fight.fx.push(new FlameBurst(scene, x, 1.3, z + 0.3, { size: 4.8, life: 0.5 }));
-    const crack = new Decal(scene, 'goldCrack', x, z, 4.2, { glow: false });
-    let life = 0;
-    this.fight.fx.push({
-      step: (dt) => { life += dt; crack.opacity = Math.min(1, Math.max(0, (4 - life) / 1.5)); return life < 4; },
-      dispose: () => crack.dispose(),
-    });
-    particles.emit({
-      pos: [x, 0.4, z], spread: [0.6, 0.3, 0.5], vel: [0, 3.6, 0], velSpread: [3, 2.4, 2.2],
-      color: FLAME, size: 0.12, life: 0.8, count: 34, gravity: 6, drag: 0.6, intensity: 2.8,
-    });
-    this.ctx.sound?.play('morvane-burst', { at: [x, z] });
-    this.ctx.rig?.shake?.(0.12);
   }
 
   // The Frenzied Eye as it goes on: gathering, he vanishes; back over the middle of the arena, fading
