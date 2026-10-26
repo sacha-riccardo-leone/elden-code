@@ -1243,13 +1243,14 @@ table says what each clip is cut from.
     away; `fenrath_big_atk_sword_hit` on each cut of the ghost of his sword;
   - `fenrath_jump_landing` each time he lands, from a leap or from his great attack (the recording
     holds three landings: one at random).
-- **Morvane** (`client/assets/sfx/IMPORT/Morvane`, cut into the `frenzy` set):
+- **Morvane** (`client/assets/sfx/IMPORT/Morvane`, his first form's in its `morvane_phase_1`, cut
+  into the `frenzy` set):
   - `morvane_starts_running` each time he breaks into a run (from its first sound), and
     `morvane_out_of_stamina_1` and `_2` together as he stops, out of breath (the first, a stretch of
     its long panting, hushed as he runs again); his bare feet as he runs, on the run's first and third
     drawings (everyone's `bare` step);
-  - his change, heard wherever you are, holding the music down: `morvane_sword_anticipation` and
-    `morvane_removing_sword_during` (from its first burst, 0.8 s in) as he grips the sword;
+  - his change, heard wherever you are, holding the music down: `morvane_removing_sword_during`
+    (from its first burst, 0.8 s in) as he grips the sword;
     `morvane_removing_sword_during_end` coming in halfway through that (the two cut short as his
     head comes off); `morvane_sword_removed_instant`, `_instant_second` and `_instant_second2`
     together as it's ripped off; `morvane_before_reveal` as he grows (its silent lead-in left out);
@@ -1257,10 +1258,13 @@ table says what each clip is cut from.
     goes black, swelling into the reveal; `morvane_reveal` and `morvane_reveal2` together as he's
     revealed, with `morvane_reveal3_low_volume` quietly under them, all dying away as the fight
     begins (each of the long ones cut to 15 to 20 s);
-  - his second form: `morvane_teleport` as he vanishes, and again, higher, as he comes back;
-    `morvane_flying_woosh` and `2` together as he flies (and, quieter, with each lunge); one of the
-    three whooshes in `morvane_sword_woosh` with each slash and lunge, and as the fang is thrown and
-    comes back; `morvane_before_knife_throw` as he draws the fang back (from where its whirr begins
+  - his second form: `morvane_teleport` as he vanishes (once: from just before its burst, so that it
+    bursts as he's gone, and dying away as he moves on, never heard under the lunge that follows);
+    `morvane_flying_woosh`, `2` and `3` together each time he lunges and as he flies (begun as he
+    coils to lunge, so that their rush comes with the thrust); `morvane_sword_anticipation` as he
+    draws his sword back to slash; the three whooshes in `morvane_sword_woosh` with each slash and
+    lunge, and as the fang is thrown and comes back (in turn, each heard before any is again);
+    `morvane_before_knife_throw` as he draws the fang back (from where its whirr begins
     to rise, so that it crests as he throws; recorded very quietly, so it's raised a lot);
     `morvane_big_attack_eye_growing` and `2` together as the Eye swells, and
     `morvane_sword_removed_after`, looped, as it drags everyone in;

@@ -133,6 +133,10 @@ const FLAME_FIGHT = {
 // flame falls (seconds), the share falling about a foe, each one's circle and how long it takes to
 // fall; and how far back the camera pulls meanwhile, to show the whole arena.
 const EYE = { height: 3.4, size: [2.3, 17], pull: [0.6, 3.4], rain: [0.16, 0.3], aimed: 0.35, r: 1.5, fall: 0.75, cam: 38 };
+// His second form's sounds, timed (seconds): how far into the teleport's recording its burst comes
+// (heard from where it falls as he's gone, a blink's second step), and how far into the flight's three
+// wooshes their rush comes (begun that long before a lunge's thrust, so that the two come together).
+const HEARD = { burst: 0.45, rush: 0.3 };
 
 // His second form's moves: each one's drawings and how long each is held (seconds; `true`: fixed,
 // else quicker when he's wounded: fight.js), a move's own (`dur`) where it says; `danger`: the last
@@ -492,7 +496,6 @@ export class MorvaneMind {
     const head = (h) => [b.pos.x, h * (b.body.zoom || 1), b.pos.y + 0.15];
     if (this.step === 0) {
       b.pose('grip', true);
-      this.voices.grip = this.sound('grip', true);
       this.voices.pull = this.sound('pull', true);
       this.step = 'pull';
     }
@@ -892,6 +895,7 @@ export class MorvaneMind {
     b.attack = a;
     b.state = 'attack';
     b.idleT = 0;
+    if (kind !== 'blink' && kind !== 'eye') this.hush('teleport', 0.3); // (his vanishing dies away as he moves on: never heard under a lunge)
     this.nextStep();
     return true;
   }
@@ -906,10 +910,11 @@ export class MorvaneMind {
     a.t += dt;
     this.t += dt;
     this.flaring = Math.max(0, this.flaring - dt);
-    let k = Math.min(1, a.t / (fixed ? dur : dur / fast));
+    const span = fixed ? dur : dur / fast;
+    let k = Math.min(1, a.t / span);
     let lift = true; // (bobbing as he floats, unless the move has him lower or higher)
     if (a.kind === 'slash' && a.step === 0) this.flare(dt);
-    else if (a.kind === 'lunge') lift = this.stepLunge(a, k, dt);
+    else if (a.kind === 'lunge') lift = this.stepLunge(a, k, dt, span - a.t);
     else if (a.kind === 'fly') lift = this.stepFly(a, k, dt);
     else if (a.kind === 'blink') this.stepBlink(a, k, dt);
     else if (a.kind === 'throw') {
@@ -925,14 +930,19 @@ export class MorvaneMind {
     return 0;
   }
 
-  // The lunge: coiled, he sinks a little, his flame flaring; thrusting, he shoots forward low, all on his
-  // way to his sword's point suffering; recovering, he rises again.
-  stepLunge(a, k, dt) {
+  // The lunge: coiled, he sinks a little, his flame flaring, the rush of his flight heard coming (`left`:
+  // the seconds till he thrusts); thrusting, he shoots forward low, all on his way to his sword's point
+  // suffering; recovering, he rises again.
+  stepLunge(a, k, dt, left) {
     const b = this.b;
     const L = FLAME_FIGHT.low;
     if (a.step === 0) {
       this.flare(dt);
       this.ease(L.coil, dt, 6);
+      if (!a.rushed && left <= HEARD.rush) {
+        a.rushed = true;
+        this.sound('fly', false, { offset: Math.max(0, HEARD.rush - left) });
+      }
     } else if (a.step === 1) {
       const e = 1 - (1 - k) ** 2; // (fastest as it begins)
       this.fight.shift(b, a.x + (a.toX - a.x) * e - b.pos.x, 0);
@@ -994,12 +1004,14 @@ export class MorvaneMind {
     }
     b.pose(steps[a.step][0], true);
     switch (`${a.kind}:${a.step}`) {
+      case 'slash:0':
+        this.sound('anticipation');
+        break;
       case 'slash:1':
         this.cut(a);
         break;
       case 'lunge:1':
         this.sound('woosh');
-        this.sound('fly', false, { volume: 0.4 });
         break;
       case 'fly:1':
         this.sound('fly');
@@ -1014,7 +1026,7 @@ export class MorvaneMind {
         break;
       case 'blink:0':
       case 'eye:0':
-        this.sound('teleport');
+        this.voices.teleport = this.sound('teleport', false, { offset: Math.max(0, HEARD.burst - MORVANE_MOVES[a.kind].steps[0][1]) });
         break;
       case 'blink:1':
       case 'eye:1':
@@ -1081,7 +1093,6 @@ export class MorvaneMind {
     const mid = b.lift + this.up('flameMiddle');
     this.fight.fx.push(new FlameBurst(this.floor.scene, b.pos.x, mid, b.pos.y + 0.3, { size: 6, life: 0.55 }));
     this.burst([b.pos.x, mid, b.pos.y], 2.4, 60);
-    this.sound('teleport', false, { pitch: 1.1 });
   }
 
   // The slash's cut: all before him to his sword's point suffer, and a crescent of frenzied flame

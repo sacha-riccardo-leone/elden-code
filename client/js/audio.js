@@ -22,11 +22,12 @@ const unit = (v) => (Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1);
 // heard at half its loudness (world units), how far off it isn't heard at all (`far`: fading out
 // toward it; else it never quite is), and, looped, the stretch of its clip that repeats; with
 // `layer`, its clips are all heard together (a recording's 1 and 2, as Sacha names them), rather
-// than one of them; with `pitch`, the range its pitch is picked from each time (a playback rate:
-// lower is deeper, and longer), unless the one who plays it says (play); with `duck`, the music
-// held down to that much of its loudness while it sounds (an ultimate's own). (A clip is played from its
-// first sound: whatever silence its decoding left before it is skipped, so that it sounds on the
-// very frame: leadOf.)
+// than one of them; with `deal`, its clips come round in turn, in an order shuffled anew each round
+// (each heard before any is again), rather than any one at random; with `pitch`, the range its
+// pitch is picked from each time (a playback rate: lower is deeper, and longer), unless the one
+// who plays it says (play); with `duck`, the music held down to that much of its loudness while it
+// sounds (an ultimate's own). (A clip is played from its first sound: whatever silence its decoding
+// left before it is skipped, so that it sounds on the very frame: leadOf.)
 const SET = '/assets/sfx/';
 const takes = (clip, n) => Array.from({ length: n }, (_, i) => `${clip}-${i + 1}`); // (clip-1 … clip-n)
 export const SOUNDS = {
@@ -86,13 +87,12 @@ export const SOUNDS = {
   'boss-sword': { set: 'boss', clips: ['sword'], volume: 1, most: 2, half: 40 },
   'boss-land': { set: 'boss', clips: ['land-1', 'land-2', 'land-3'], volume: 1, most: 2, half: 30 },
   // Morvane's (morvane.js): breaking into a run, out of breath (the two together); his change, heard
-  // wherever thou art (the camera's on him): gripping the sword in his skull, the pull, the neck
+  // wherever thou art (the camera's on him): the pull as he grips the sword in his skull, the neck
   // tearing, his head ripped off (the three together), growing under the flames,
   // the cut to black (the two together), the reveal (the two together, and the third, quietly), each
   // holding the music down while it sounds
   'morvane-run': { set: 'frenzy', clips: ['run'], volume: 0.7, vary: 0.06, pitch: [0.95, 1.06], most: 1, half: 20 },
   'morvane-pant': { set: 'frenzy', clips: ['pant-1', 'pant-2'], layer: true, volume: 0.75, most: 1, half: 18 },
-  'morvane-grip': { set: 'frenzy', clips: ['grip'], volume: 0.9, most: 1, duck: 0.3 },
   'morvane-pull': { set: 'frenzy', clips: ['pull'], volume: 0.85, most: 1, duck: 0.3 },
   'morvane-tear': { set: 'frenzy', clips: ['tear'], volume: 0.85, most: 1, duck: 0.3 },
   'morvane-rip': { set: 'frenzy', clips: ['rip-1', 'rip-2', 'rip-3'], layer: true, volume: 1.38, most: 1, duck: 0.3 }, // (its clips levelled lower than the rest: cut-sfx.mjs)
@@ -100,13 +100,14 @@ export const SOUNDS = {
   'morvane-black': { set: 'frenzy', clips: ['black-1', 'black-2'], layer: true, volume: 0.95, most: 1, duck: 0.15 },
   'morvane-reveal': { set: 'frenzy', clips: ['reveal-1', 'reveal-2'], layer: true, volume: 0.75, most: 1, duck: 0.15 },
   'morvane-reveal-low': { set: 'frenzy', clips: ['reveal-3'], volume: 0.12, most: 1 }, // (quieter still, as Sacha asked)
-  // and his second form's: vanishing and coming back, flying (the two together), his blade (one of
-  // three), the fang drawn back to be thrown, the Frenzied Eye swelling (the two together; heard
-  // wherever thou art) and dragging (on and on, till it bursts), and, for now, what bursts: the fang
-  // and the falling flames (the Golem's meteor), the Eye (his fire)
+  // and his second form's: vanishing, lunging and flying (the three together), his sword drawn back
+  // to slash, his blade (its three in turn), the fang drawn back to be thrown, the Frenzied Eye
+  // swelling (the two together; heard wherever thou art) and dragging (on and on, till it bursts),
+  // and, for now, what bursts: the fang and the falling flames (the Golem's meteor), the Eye (his fire)
   'morvane-teleport': { set: 'frenzy', clips: ['teleport'], volume: 0.75, vary: 0.05, pitch: [0.95, 1.06], most: 2, half: 26 },
-  'morvane-fly': { set: 'frenzy', clips: ['fly-1', 'fly-2'], layer: true, volume: 0.85, most: 2, half: 30 },
-  'morvane-woosh': { set: 'frenzy', clips: ['woosh-1', 'woosh-2', 'woosh-3'], volume: 0.8, vary: 0.06, pitch: [0.92, 1.05], most: 3, half: 22 },
+  'morvane-fly': { set: 'frenzy', clips: ['fly-1', 'fly-2', 'fly-3'], layer: true, volume: 0.85, most: 2, half: 30 },
+  'morvane-anticipation': { set: 'frenzy', clips: ['anticipation'], volume: 0.8, vary: 0.05, most: 1, half: 22 },
+  'morvane-woosh': { set: 'frenzy', clips: ['woosh-1', 'woosh-2', 'woosh-3'], deal: true, volume: 0.8, vary: 0.06, pitch: [0.92, 1.05], most: 3, half: 22 },
   'morvane-windup': { set: 'frenzy', clips: ['windup'], volume: 0.7, most: 1, half: 20 },
   'morvane-eye': { set: 'frenzy', clips: ['eye-1', 'eye-2'], layer: true, volume: 0.9, most: 1, duck: 0.3 },
   'morvane-eye-pull': { set: 'frenzy', clips: ['eye-pull'], volume: 0.7, most: 1, loop: [0.4, 2.1] },
@@ -232,6 +233,7 @@ export class Sound {
     this.bytes = new Map(); // clip path → the promise of its file, fetched (load)
     this.leads = new Map(); // clip path → the silence it begins with (leadOf)
     this.voices = new Map(); // sound name → what's sounding of it
+    this.decks = new Map(); // sound name → its clips still to come this round (deal)
     this.view = null; // { camera, focus }: where it's heard from (main.js)
     this.log = []; // (what was played lately: [seconds, name])
     this.p = new THREE.Vector3();
@@ -303,7 +305,7 @@ export class Sound {
     this.log.push([performance.now() / 1000, name]);
     if (this.log.length > 200) this.log.splice(0, 100);
     if (!s || !this.ctx || this.ctx.state !== 'running') return null;
-    const clips = s.layer ? s.clips : [s.clips[Math.floor(Math.random() * s.clips.length)]];
+    const clips = s.layer ? s.clips : [s.deal ? this.deal(name, s.clips) : s.clips[Math.floor(Math.random() * s.clips.length)]];
     const paths = clips.map((clip) => `${SET}${s.set}/${clip}.mp3`);
     if (!paths.every((p) => this.clips.get(p) instanceof AudioBuffer)) return null; // (not loaded yet)
     const vary = s.vary || 0;
@@ -366,6 +368,24 @@ export class Sound {
     playing.push(voice);
     this.voices.set(name, playing);
     return voice;
+  }
+
+  // The next of a sound's clips, dealt (SOUNDS `deal`): each once a round, in an order shuffled anew
+  // each round, and the last of one never the first of the next.
+  deal(name, clips) {
+    let deck = this.decks.get(name);
+    if (!deck?.length) {
+      const last = deck?.last;
+      deck = [...clips];
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      if (deck.length > 1 && deck[deck.length - 1] === last) [deck[0], deck[deck.length - 1]] = [deck[deck.length - 1], deck[0]];
+      this.decks.set(name, deck);
+    }
+    deck.last = deck.pop();
+    return deck.last;
   }
 
   // Plays a sound (as play) as soon as its clips are ready, if that's within `within` seconds: the
