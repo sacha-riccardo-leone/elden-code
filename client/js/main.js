@@ -546,8 +546,11 @@ function setOutWorld() {
     director.holdRisesUntil(director.clock + 5);
     demo.startWorld();
   } else if (new URLSearchParams(window.location.search).has('demo')) setTimeout(() => demo.start(), 600);
-  // (?felled: Morvane felled again and again, to watch and hear his fall: felled-loop.js)
-  if (new URLSearchParams(window.location.search).has('felled')) import('./felled-loop.js').then(({ felledLoop }) => felledLoop({ fight, pilot, world }));
+  // (?felled: Morvane felled again and again, to watch and hear his fall: felled-loop.js; ?morvane,
+  // or ?morvane=slash…: one of his moves again and again: move-loop.js)
+  const asked = new URLSearchParams(window.location.search);
+  if (asked.has('felled')) import('./felled-loop.js').then(({ felledLoop }) => felledLoop({ fight, pilot, world }));
+  else if (asked.has('morvane')) import('./move-loop.js').then(({ moveLoop }) => moveLoop({ fight, pilot, world }, asked.get('morvane')));
 }
 try {
   nav.sync();

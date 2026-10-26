@@ -25,7 +25,8 @@ export function felledLoop({ fight, pilot, world }) {
     if (pilot.npc) pilot.hp = pilot.maxHp; // (never felled himself)
     switch (phase) {
       case 'call':
-        if (pilot.npc && fight.state === 'idle' && fight.start('felled', [], 'morvane')) phase = 'arena';
+        // (once his art has loaded: before, another great enemy would come instead)
+        if (pilot.npc && fight.state === 'idle' && fight.kinds().includes('morvane') && fight.start('felled', [], 'morvane')) phase = 'arena';
         break;
       case 'arena':
         // (once the arena has risen: on it, so that he comes)

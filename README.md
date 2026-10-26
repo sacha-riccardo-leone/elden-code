@@ -889,8 +889,11 @@ ground under you instead, so it flies at your hand's height there too.
   one. Add `?felled` instead to watch and hear Morvane's fall again and again: as you set out, his
   fight is called and you're set in his arena (nothing can fell you); he comes straight in his
   second form, stands three seconds, falls as he does in the fight, and stands again where he fell
-  just before he'd be gone, on and on, never felled for good (`client/js/felled-loop.js`). If one's
-  art fails to load, the next in line comes instead. The Tarnished's battle lines fit
+  just before he'd be gone, on and on, never felled for good (`client/js/felled-loop.js`). Or add
+  `?morvane` to watch and hear one of his moves again and again without fighting him: the Frenzied
+  Eye, or the one named (`?morvane=slash`, `lunge`, `fly` or `throw`); the same way in, but he makes
+  that move and no other, at you, a moment apart (`client/js/move-loop.js`). Both wait for his art
+  to load before calling him. If one's art fails to load, the next in line comes instead. The Tarnished's battle lines fit
   whichever came (Ulric has his own jokes for Fenrath and the Golem).
 - **Fenrath, the Crimson Fang** (`client/js/heroes/boss.js`, effects in `client/js/bossfx.js`).
   He has 8,000 health: about two minutes with four companions. He walks into his target's lane and
