@@ -1027,7 +1027,9 @@ ground under you instead, so it flies at your hand's height there too.
     - Every blade, spell and ultimate reaches him whenever he's there to be reached (not vanished,
       nor up over the arena). The camera follows you from farther back than for the others, so that
       you see him coming. Felled, he falls to his knees, his flame shrinking, and slumps, his sword
-      and fang dropping to the floor: "GREAT ENEMY FELLED".
+      and fang dropping to the floor, all of it seen whole for three and a half seconds; then he, his
+      head of flame, his sword and fang, his light and his arena's fire fade out together (a second
+      and a half): "GREAT ENEMY FELLED". (`MORVANE.felled` in `client/js/morvane.js`.)
     - **His head of flame** burns all the while, whatever he does: its tongues swirl round the black
       hole, swelling and shrinking as it burns, embers rising off it (Sacha's drawing of it alone,
       the Frenzied Eye's, set over the head in each of his drawings, the hole on the hole: `Head` in

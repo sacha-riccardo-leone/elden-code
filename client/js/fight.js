@@ -1084,17 +1084,22 @@ export class Fight {
         }
         if (b.t >= 2.7) b.state = 'gone';
         break;
-      case 'dying':
-        b.fade = Math.max(0, 1 - b.t / 3);
+      case 'dying': {
+        // he fades away (seen whole a while first, where his mind would have it so: Morvane's fall,
+        // morvane.js), motes rising off him meanwhile
+        const { hold = 0, fade = 3 } = b.mind?.felled?.() || {};
+        const k = b.t - hold;
+        b.fade = Math.max(0, Math.min(1, 1 - k / fade));
         b.lift = Math.max(0, b.lift - dt * 14);
-        if (Math.random() < dt * 20) {
+        if (k >= 0 && Math.random() < dt * 20) {
           this.floor.particles.emit({
             pos: [b.pos.x, 1.5 + Math.random() * 3, b.pos.y], spread: [1.6, 1, 0.4], vel: [0, 1.2, 0], velSpread: [0.6, 0.6, 0.4],
             color: ['#ffd27a', '#2a1a1a', '#fff1c0'], size: 0.09, life: 1.6, count: 6, drag: 0.6, intensity: 1.8,
           });
         }
-        if (b.t >= 3.2) b.state = 'gone';
+        if (k >= fade + 0.2) b.state = 'gone';
         break;
+      }
       case 'attack':
         if (!held) jitter = b.mind ? b.mind.stepMove(bdt, t, fast) : this.stepMove(b, bdt, t, fast);
         break;
@@ -1141,6 +1146,12 @@ export class Fight {
     b.body.blob.material.opacity = b.fade;
     b.body.mat.opacity = b.fade;
     b.body.mat.depthWrite = b.fade > 0.99;
+    // (a body drawn see-through, Morvane's second form's, fades as a whole: its cut-off brought down
+    // with it, else all of it would go at once at half; and its shadow with it)
+    if (b.body.mat.transparent) {
+      b.body.mat.alphaTest = Math.max(0.01, Math.min(0.5, b.fade * 0.5));
+      b.body.mesh.castShadow = b.fade > 0.5;
+    }
   }
 
   // Ready: pick a foe, come into its lane a sword's length off, and choose a blow.

@@ -72,6 +72,9 @@ export const MORVANE = {
   // either form (fight.js, charge)
   ultHits: 6,
   hover: 0, // how high his second form floats over where it's drawn floating (heroes/morvane-flame.js), bobbing
+  // felled: his fall seen whole so long (on his knees, then slumped), then all of him (body, head of
+  // flame, sword and fang, his light, his arena's fire) fading out together over so long (fight.js)
+  felled: { hold: 3.5, fade: 1.5 },
 };
 
 // His change, in seconds from his first bar emptying: the grip (C), heard pulling from the moment he
@@ -233,6 +236,7 @@ export class MorvaneMind {
   }
   // (how hard his wounds fill an ultimate: his first form's barely, combat.js)
   ultHits() { return MORVANE.ultHits; }
+  felled() { return MORVANE.felled; }
   // His health over his head, in his first form and his change, till he's named the Lord of Frenzied
   // Flame (fight.updateUi): where it goes.
   ownBar() { return !this.titled; }
@@ -1511,20 +1515,36 @@ export class MorvaneMind {
     }
   }
 
-  // Felled (fight.js, his second bar emptied): on his knees, his flame shrinking, and slumped (the
-  // fight fades him meanwhile); his sword and his fang let fall on the floor beside him; his breath
-  // going out of him (for now his panting, slower and deeper, till he has his own); his light dying.
+  // Felled (fight.js, his second bar emptied): on his knees, his flame shrinking, and slumped, seen
+  // whole a while (MORVANE.felled), then fading away (the fight fades him); his sword and his fang let
+  // fall on the floor beside him, fading as he does; his breath going out of him (for now his panting,
+  // slower and deeper, till he has his own); his light and his arena's fire burning on till he fades,
+  // and dying with him.
   dies() {
     const b = this.b;
     for (const k of Object.keys(this.voices)) this.hush(k, 0.6);
     const { scene } = this.floor;
     const f = b.body.facing;
-    this.fight.fx.push(new Dropped(scene, 'morvane-sword', b.pos.x - f * 1.4, b.pos.y + 0.5, { angle: f * 0.5, life: 9 }));
-    this.fight.fx.push(new Dropped(scene, 'morvane-fang', b.pos.x + f * 1.6, b.pos.y + 0.7, { angle: -f * 1.2, life: 9 }));
+    const seen = () => b.fade;
+    this.fight.fx.push(new Dropped(scene, 'morvane-sword', b.pos.x - f * 1.4, b.pos.y + 0.5, { angle: f * 0.5, seen }));
+    this.fight.fx.push(new Dropped(scene, 'morvane-fang', b.pos.x + f * 1.6, b.pos.y + 0.7, { angle: -f * 1.2, seen }));
     this.sound('pant', false, { pitch: 0.78 });
-    this.light?.end(3);
+    const { hold, fade } = MORVANE.felled;
+    const light = this.light;
     this.light = null;
-    this.inferno?.end(); // (his arena's fire dying with him)
+    const level = light?.level ?? 0;
+    let faded = false;
+    this.fight.fx.push({
+      step: () => {
+        if (light) light.level = level * b.fade;
+        if (!faded && b.t >= hold) {
+          faded = true;
+          this.inferno?.end(fade); // (his arena's fire dying with him)
+        }
+        return !faded || b.fade > 0;
+      },
+      dispose: () => light?.end(0.1),
+    });
     this.ctx.ui.log('Morvane, Lord of Frenzied Flame, falls to his knees, his flame guttering out', 'gold', { region: this.ctx.world.arena });
   }
 

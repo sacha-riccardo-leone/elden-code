@@ -270,9 +270,9 @@ export class Eye {
 
 export class Dropped {
   // His sword or his fang (`key`: its drawing, fxart.js) lying on the floor at (x, z), turned `angle`
-  // (radians) about the upright, as big as in his hand; fading out after `life` seconds. Returns
-  // false from step once it's gone.
-  constructor(scene, key, x, z, { angle = 0, life = 8 } = {}) {
+  // (radians) about the upright, as big as in his hand; fading out after `life` seconds, or as much
+  // of it seen as `seen()` says (his own fade: morvane.js). Returns false from step once it's gone.
+  constructor(scene, key, x, z, { angle = 0, life = 8, seen = null } = {}) {
     const art = fxArt(key);
     this.mesh = null;
     if (art) {
@@ -285,13 +285,17 @@ export class Dropped {
       this.mesh.renderOrder = 3;
       scene.add(this.mesh);
     }
-    Object.assign(this, { scene, life, t: 0 });
+    Object.assign(this, { scene, life, seen, t: 0 });
   }
 
   step(dt) {
     this.t += dt;
-    if (this.mesh) this.mesh.material.opacity = Math.max(0, Math.min(1, (this.life - this.t) / 1.5));
-    return this.t < this.life;
+    const v = Math.max(0, Math.min(1, this.seen ? this.seen() : (this.life - this.t) / 1.5));
+    if (this.mesh) {
+      this.mesh.material.opacity = v;
+      this.mesh.material.alphaTest = Math.max(0.01, v * 0.5); // (fading as a whole, not gone at once at half)
+    }
+    return this.seen ? v > 0 : this.t < this.life;
   }
 
   dispose() {
@@ -449,12 +453,17 @@ export class Inferno {
     Object.assign(this, { scene, particles, cx, cz, daylight, post, t: 0, level: 0, ending: false, owed: 0 });
   }
 
-  end() { this.ending = true; }
+  // (going out over `secs`: the first time it's told to)
+  end(secs = INFERNO.fadeOut) {
+    if (this.ending) return;
+    this.ending = true;
+    this.out = secs;
+  }
 
   step(dt) {
     const I = INFERNO;
     this.t += dt;
-    this.level = this.ending ? Math.max(0, this.level - dt / I.fadeOut) : Math.min(1, this.level + dt / I.fadeIn);
+    this.level = this.ending ? Math.max(0, this.level - dt / this.out) : Math.min(1, this.level + dt / I.fadeIn);
     const k = this.level;
     this.daylight.frenzy = k;
     this.post.heat = k;
