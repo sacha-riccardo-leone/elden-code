@@ -1398,7 +1398,6 @@ export class MorvaneMind {
     a.eye = new Eye(this.floor.scene, b.pos.x, b.lift + this.up('eye'), b.pos.y + 0.4, EYE.size[0]);
     a.shape = 'spots';
     this.voices.eye = this.sound('eye', true);
-    this.voices.drag = this.sound('eye-pull', true);
     this.tell('eye', 'The Frenzied Eye drags everyone in while flames rain down: keep off their marks, and dodge (Space) the moment it bursts', 'red');
   }
 
@@ -1418,7 +1417,6 @@ export class MorvaneMind {
     const R = ARENA.walkRadius;
     const H = FLAME_FIGHT.hurt;
     this.hurtAll((n) => Math.round(H.eyeEdge + (H.eye - H.eyeEdge) * Math.max(0, 1 - Math.hypot(n.pos.x - cx, n.pos.y - cz) / R)));
-    this.hush('drag', 0.3);
     this.sound('eye-burst', true);
     const e = a.eye;
     for (let k = 0; k < 4; k++) {
@@ -1550,10 +1548,7 @@ export class MorvaneMind {
       a.eye.dispose();
       a.eye = null;
     }
-    if (a?.kind === 'eye') {
-      this.hush('eye', 1.2);
-      this.hush('drag', 0.3);
-    }
+    if (a?.kind === 'eye') this.hush('eye', 1.2);
     if (this.gone) {
       this.gone = false;
       this.b.fade = 1;

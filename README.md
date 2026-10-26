@@ -1202,8 +1202,8 @@ it starts, each levelled to one peak; a recording's 1 and 2 (and 3) are heard to
 one (left out: `dontuse.wav`, as named; `golem_explosion_on_spitfire`, `maren_ult_start` and both
 `maren_ult_start_on_click`s, replaced as Sacha asked; `Stone Chain Jump` and
 `Stone Chain Land`, as everyone comes down on `Stone Land`; Ruadan's `hammer_hit`, its sound not
-good enough; Wynn's `unsheathe`, as asked; Morvane's `morvane_sword_removed_after` is out of his
-change, as asked, and the Frenzied Eye's pull instead).
+good enough; Wynn's `unsheathe`, as asked; Morvane's `morvane_sword_removed_after`, out of his
+change and of the Frenzied Eye's pull, as asked).
 `node scripts/cut-sfx.mjs [set]` cuts them again, from the recordings, whenever they change; its
 table says what each clip is cut from.
 
@@ -1310,8 +1310,7 @@ table says what each clip is cut from.
     lunge, and as the fang is thrown and comes back (in turn, each heard before any is again);
     `morvane_before_knife_throw` as he draws the fang back (from where its whirr begins
     to rise, so that it crests as he throws; recorded very quietly, so it's raised a lot);
-    `morvane_big_attack_eye_growing` and `2` together as the Eye swells, and
-    `morvane_sword_removed_after`, looped, as it drags everyone in; `morvane_felled` and `2` together
+    `morvane_big_attack_eye_growing` and `2` together as the Eye swells; `morvane_felled` and `2` together
     as he's felled (his cry raised, held under full scale, to be heard over all else; the second well
     under it), heard whole through his fall, and `morvane_felled3_sword_dropping` and
     `_fang_dropping` with them, a little quieter, each where his sword and his fang fall;
