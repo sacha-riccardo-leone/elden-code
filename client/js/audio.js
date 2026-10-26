@@ -103,8 +103,9 @@ export const SOUNDS = {
   // and his second form's: vanishing, lunging and flying (the three together), his sword drawn back
   // to slash, his blade (its three in turn), the fang drawn back to be thrown, the Frenzied Eye
   // swelling (the two together; heard wherever thou art) and dragging (on and on, till it bursts),
-  // his fall (the two together, the music held down meanwhile), and, for now, what bursts: the fang
-  // and the falling flames (the Golem's meteor), the Eye (his fire)
+  // his fall (the two together, the music held down meanwhile), his sword and his fang falling to the
+  // floor, and, for now, what bursts: the fang and the falling flames (the Golem's meteor), the Eye
+  // (his fire)
   'morvane-teleport': { set: 'frenzy', clips: ['teleport'], volume: 0.75, vary: 0.05, pitch: [0.95, 1.06], most: 2, half: 26 },
   'morvane-fly': { set: 'frenzy', clips: ['fly-1', 'fly-2', 'fly-3'], layer: true, volume: 0.85, most: 2, half: 30 },
   'morvane-anticipation': { set: 'frenzy', clips: ['anticipation'], volume: 0.8, vary: 0.05, most: 1, half: 22 },
@@ -115,6 +116,8 @@ export const SOUNDS = {
   'morvane-burst': { set: 'frenzy', clips: ['burst'], volume: 0.75, vary: 0.08, pitch: [0.9, 1.1], most: 5, half: 22 },
   'morvane-eye-burst': { set: 'frenzy', clips: ['eye-burst'], volume: 1, most: 1 },
   'morvane-felled': { set: 'frenzy', clips: ['felled-1', 'felled-2'], layer: true, volume: 0.95, most: 1, half: 30, duck: 0.3 },
+  'morvane-drop-sword': { set: 'frenzy', clips: ['drop-sword'], volume: 0.8, most: 1, half: 24 },
+  'morvane-drop-fang': { set: 'frenzy', clips: ['drop-fang'], volume: 0.8, most: 1, half: 24 },
   // the ultimates' (ults.js): Maren's bolts (one of six each) and her great bolt, the camera closing
   // on her, Aurelion's verdict and his giant (rising, and striking: one of fifteen blows), Ruadan's
   // leap and landing, Fortuna's mass of ice bursting, Corisande's arrow, Ulric's spears

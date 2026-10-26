@@ -660,11 +660,54 @@ export class MorvaneMind {
     // (his head of flame alight, and his arena his, coming while the screen is still black: frenzyfx.js)
     this.head = new Head(body.scene, () => this.holeAt()); // (in the world his body's in, not the arena floor's raised group)
     this.fight.fx.push(this.head);
+    this.burn();
+  }
+
+  // His arena his: the world beyond it black, the ring of flame round it (frenzyfx.js, Inferno).
+  burn() {
     const { daylight, post, world } = this.ctx;
-    if (daylight && post) {
-      this.inferno = new Inferno({ scene: this.floor.scene, particles: this.floor.particles, cx: world.arena.cx, cz: world.arena.cz, daylight, post });
-      this.fight.fx.push(this.inferno);
-    }
+    if (!daylight || !post) return;
+    this.inferno = new Inferno({ scene: this.floor.scene, particles: this.floor.particles, cx: world.arena.cx, cz: world.arena.cz, daylight, post });
+    this.fight.fx.push(this.inferno);
+  }
+
+  // Straight to his second form, as if just revealed (no first form, no change): ?felled's loop
+  // (felled-loop.js).
+  flameNow() {
+    const b = this.b;
+    b.endMove();
+    this.becomeFlame();
+    this.step = 'done';
+    b.name = 'Morvane, Lord of Frenzied Flame';
+    this.titled = true;
+    b.max = MORVANE.flameHp;
+    b.hp = b.max;
+    this.fight.lagHp = b.hp;
+    b.fade = 1;
+    b.pose('idle', true);
+    this.wake();
+  }
+
+  // Up again after his fall, whole, fading in where he fell: what's left of the fall gone at once (his
+  // dropped sword and fang, his dying light), his own light and his arena's fire burning again.
+  // ?felled's loop (felled-loop.js).
+  rise() {
+    const b = this.b;
+    if (this.fall) this.fall.over = true;
+    this.fall = null;
+    b.attack = null;
+    b.state = 'enter'; // (fading in: fight.js)
+    b.t = 0;
+    b.fade = 0;
+    b.hp = b.max;
+    this.fight.lagHp = b.hp;
+    b.lift = MORVANE.hover;
+    b.pose('idle', true);
+    this.gone = false;
+    if (this.inferno?.ending && this.inferno.level > 0) this.inferno.ending = false; // (flaring up again)
+    else if (!this.inferno || this.inferno.ending) this.burn();
+    this.light?.end(0.1);
+    this.light = carry(this.floor.scene, [b.pos.x, 1.4, b.pos.y + 2.6], { color: FRENZY_LIGHT, power: 16, reach: 14, waver: 0.6 });
   }
 
   // Where the hole in his head of flame is just now (whichever drawing he shows, his body where it
@@ -1518,17 +1561,24 @@ export class MorvaneMind {
 
   // Felled (fight.js, his second bar emptied): on his knees, his flame shrinking, and slumped, seen
   // whole a while (MORVANE.felled), then fading away (the fight fades him); his sword and his fang let
-  // fall on the floor beside him, fading as he does; heard falling (morvane_felled and 2); his light
-  // and his arena's fire burning on till he fades, and dying with him.
+  // fall on the floor beside him (heard where each lies), fading as he does; heard falling
+  // (morvane_felled and 2); his light and his arena's fire burning on till he fades, and dying with him.
   dies() {
     const b = this.b;
     for (const k of Object.keys(this.voices)) this.hush(k, 0.6);
     const { scene } = this.floor;
     const f = b.body.facing;
-    const seen = () => b.fade;
-    this.fight.fx.push(new Dropped(scene, 'morvane-sword', b.pos.x - f * 1.4, b.pos.y + 0.5, { angle: f * 0.5, seen }));
-    this.fight.fx.push(new Dropped(scene, 'morvane-fang', b.pos.x + f * 1.6, b.pos.y + 0.7, { angle: -f * 1.2, seen }));
+    // (all of his fall that outlasts him, done with at once should he stand again: rise)
+    const fall = { over: false };
+    this.fall = fall;
+    const seen = () => (fall.over ? 0 : b.fade);
+    const sword = [b.pos.x - f * 1.4, b.pos.y + 0.5];
+    const fang = [b.pos.x + f * 1.6, b.pos.y + 0.7];
+    this.fight.fx.push(new Dropped(scene, 'morvane-sword', ...sword, { angle: f * 0.5, seen }));
+    this.fight.fx.push(new Dropped(scene, 'morvane-fang', ...fang, { angle: -f * 1.2, seen }));
     this.sound('felled');
+    this.ctx.sound?.play('morvane-drop-sword', { at: sword });
+    this.ctx.sound?.play('morvane-drop-fang', { at: fang });
     const { hold, fade } = MORVANE.felled;
     const light = this.light;
     this.light = null;
@@ -1536,6 +1586,7 @@ export class MorvaneMind {
     let faded = false;
     this.fight.fx.push({
       step: () => {
+        if (fall.over) return false;
         if (light) light.level = level * b.fade;
         if (!faded && b.t >= hold) {
           faded = true;

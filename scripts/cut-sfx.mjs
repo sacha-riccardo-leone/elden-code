@@ -194,9 +194,10 @@ const SETS = {
       // audio.js); the wind-up before the fang's throw (a slow whirr, recorded very quietly: from where
       // it begins to rise, so that its crest comes as he throws); the Frenzied Eye swelling (the two
       // together) and dragging everyone in (the pull left over from his change, looped: audio.js); his
-      // fall (the two together, whole: his end seen through, morvane.js); and for now, till he has his
-      // own, the fang and the falling flames bursting as the Golem's meteors land, and the Eye as his
-      // fire bursts
+      // fall (the two together, whole: his end seen through, morvane.js) and his sword and fang falling
+      // to the floor (each from its first sound, levelled as one, heard where each lies); and for now,
+      // till he has his own, the fang and the falling flames bursting as the Golem's meteors land, and
+      // the Eye as his fire bursts
       ['teleport', 'morvane_teleport.mp3', 0.05, 3.4, -3, 0, 1.5],
       ['fly-1', 'morvane_flying_woosh.mp3', 0.14, 3.2, -3, 0, 1.4, { group: 'fly' }],
       ['fly-2', 'morvane_flying_woosh2.mp3', 0.09, 3.2, -3, 0, 1.4, { group: 'fly' }],
@@ -211,6 +212,8 @@ const SETS = {
       ['eye-pull', 'morvane_phase_1/morvane_sword_removed_after.mp3', 0.05, 2.95, -3, 0.3, 0.8],
       ['felled-1', 'morvane_felled.wav', 0, 3.3, -3, 0, 0.5, { group: 'felled' }],
       ['felled-2', 'morvane_felled2.mp3', 0, 5.6, -3, 0, 0.8, { group: 'felled' }],
+      ['drop-sword', 'morvane_felled3_sword_dropping.mp3', 0.03, 0.8, -3, 0, 0.15, { group: 'drop' }],
+      ['drop-fang', 'morvane_felled3_fang_dropping.mp3', 0.03, 1.55, -3, 0, 0.2, { group: 'drop' }],
       ['burst', '../Golem Guardian/meteorite_hit.wav', 2.02, 1.6, -4, 0, 0.6],
       ['eye-burst', '../Golem Guardian/freeexplosionspitfire/Firespray 2.ogg', 0.035, 2.03, -2, 0, 0.6],
     ],

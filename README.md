@@ -866,7 +866,11 @@ ground under you instead, so it flies at your hand's height there too.
   Guardian Golem comes first; once he's been beaten, Fenrath, the Crimson Fang; once Fenrath has,
   Morvane. Each win is remembered in the browser (`elden-code:felled`), and with all three beaten any
   of them may come. Add `?foe=golem`, `?foe=fenrath` or `?foe=morvane` to the address to bring that
-  one. If one's art fails to load, the next in line comes instead. The Tarnished's battle lines fit
+  one. Add `?felled` instead to watch and hear Morvane's fall again and again: as you set out, his
+  fight is called and you're set in his arena (nothing can fell you); he comes straight in his
+  second form, stands three seconds, falls as he does in the fight, and stands again where he fell
+  just before he'd be gone, on and on, never felled for good (`client/js/felled-loop.js`). If one's
+  art fails to load, the next in line comes instead. The Tarnished's battle lines fit
   whichever came (Ulric has his own jokes for Fenrath and the Golem).
 - **Fenrath, the Crimson Fang** (`client/js/heroes/boss.js`, effects in `client/js/bossfx.js`).
   He has 8,000 health: about two minutes with four companions. He walks into his target's lane and
@@ -1287,7 +1291,8 @@ table says what each clip is cut from.
     to rise, so that it crests as he throws; recorded very quietly, so it's raised a lot);
     `morvane_big_attack_eye_growing` and `2` together as the Eye swells, and
     `morvane_sword_removed_after`, looped, as it drags everyone in; `morvane_felled` and `2` together
-    as he's felled, heard whole through his fall;
+    as he's felled, heard whole through his fall, and `morvane_felled3_sword_dropping` and
+    `_fang_dropping` with them, each where his sword and his fang fall;
   - for now, till he has his own: struck, your own `player_hurt`, higher for his first form and
     deeper for his second; the fang in flame and the falling flames bursting, the Golem's
     `meteorite_hit`; the bare fang stabbing into the floor, Fenrath's ghost sword striking, higher;
@@ -1554,6 +1559,7 @@ client/js/companions.js choosing thy companions as one comes: the slots, the cat
 client/js/golem.js      the Guardian Golem's fight: his weak points, his fall, shockwaves, fire
 client/js/morvane.js    Morvane's fight: fleeing and out of breath, his change and reveal, his second form's blows, the Frenzied Eye
 client/js/frenzyfx.js   Morvane's frenzied flame, drawn: flying and bursting, his thrown fang (bare, or in flame), the Eye, his dropped sword and fang, and his arena once he's revealed (black beyond, a ring of fire, heat haze, ash)
+client/js/felled-loop.js  ?felled: Morvane felled again and again, to watch and hear his fall
 client/js/ripple.js     the arena floor rippling like water under the Golem's shockwaves (and the tutorial rocks' yard's, under theirs)
 client/js/bossfx.js     the enemies' effects: crescent, lance, floor marks, the ghost sword, the eruption, the air shock, meteors
 client/js/director.js   event → behaviour, regions, slash-command effects, chatter, visits
