@@ -47,9 +47,11 @@ const FADE = { out: 0.6, hold: 0.35 };
 // The yards climbed (climb.js): the training yard, the rocks', the great dummy's.
 const [, ROCK_YARD, GREAT_YARD] = CLIMB.yards;
 // Where thou standest: by the Hold's grace (as thou risest there), or from the training yard's
-// middle; and the straw dummies' spots before thee.
+// middle; the straw dummies' spots before thee, and how many of thy hits (blows or spells) break
+// each (the training yard's own take four blows, or five spells: training.js).
 const SPOT = { hold: [1.6, 1.8], dummies: [0, 5.5] };
 const DUMMIES = [[-3.6, 1], [0, 0], [3.6, 1]];
+const DUMMY_HITS = 2;
 // The rune rocks (fx/rune-rock-*.json: dark, and the rune alight): each one's drawing and where it
 // stands round the middle of its yard (degrees from the east, round by the south, `spread` out from
 // the middle), how big they're drawn (world units to their drawing's pixel), how much of the floor
@@ -343,7 +345,7 @@ export class Tutorial {
     this.seal(true);
     this.show('yards');
     this.place(SPOT.dummies[0], CLIMB.z + SPOT.dummies[1]);
-    this.dummies = DUMMIES.map(([x, z]) => training.addDummy(x, CLIMB.z + z));
+    this.dummies = DUMMIES.map(([x, z]) => training.addDummy(x, CLIMB.z + z, { hits: DUMMY_HITS }));
     this.rocks = ROCKS.spots.map(([k, deg]) => {
       const a = (deg * Math.PI) / 180;
       return new RuneRock(this, k, ROCK_YARD.cx + Math.cos(a) * ROCKS.spread, CLIMB.z + Math.sin(a) * ROCKS.spread, ROCK_YARD);

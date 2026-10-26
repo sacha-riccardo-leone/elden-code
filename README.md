@@ -62,7 +62,8 @@ again by itself (`?tutorial` in the address shows it anyway).
      have, on.
   2. *Blows*, on the training yard, emptied of its dummies (and anyone training) but for three
      straw ones before you, the Hold out of sight: "Destroy the three dummies · Attack with" a
-     left click (or a left or right click, for whoever casts). Broken, they stay in pieces.
+     left click (or a left or right click, for whoever casts). Two hits break each, blows or spells
+     (the training yard's own take four blows); broken, they stay in pieces.
   3. *Dodging*, up the stair on the next yard, three rune rocks in a wide triangle round its
      middle (the user's drawings, `client/assets/fx/rune-rock-1..3.json`, dark and with the rune
      alight, recoloured to the yard's slabs). As soon as the fog has shut you in, each one's rune

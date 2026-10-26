@@ -105,8 +105,9 @@ const meetAt = (n, d) => {
 
 class Dummy {
   // (`great`: the great one; `block`: what keeps others off its spot, on `on`, the place it stands
-  // in (yard.js; the tutorial's yards, climb.js), its floor `y` high)
-  constructor(training, x, z, great = false, block = null, { on = training.ctx.world.yard, y = YARD.y } = {}) {
+  // in (yard.js; the tutorial's yards, climb.js), its floor `y` high; `hits`: a straw one broken by
+  // so many of thine, blows or spells, rather than by its own health)
+  constructor(training, x, z, great = false, block = null, { on = training.ctx.world.yard, y = YARD.y, hits = 0 } = {}) {
     this.training = training;
     this.great = great;
     this.block = block;
@@ -120,7 +121,9 @@ class Dummy {
     this.mind = null;
     this.kind = great ? { radius: BOSS_DUMMY.radius, reach: 0, depth: GREAT.depth } : { radius: DUMMY.radius, reach: 0, depth: 0.9 };
     this.max = 8000; // (an ultimate hits it as hard as a great enemy: combat.ultPower)
-    this.hpMax = great ? GREAT.hp : DUMMY.hp; // (its own health: a straw one's in blows' worth, the great one's in its ankle's)
+    // (its own health: a straw one's in blows' worth, or, broken by so many hits, that many of the
+    // lighter, a spell's; the great one's in its ankle's)
+    this.hpMax = great ? GREAT.hp : hits ? hits * Math.min(DUMMY.blow, DUMMY.spell) : DUMMY.hp;
     this.hp = this.hpMax;
     this.lag = this.hpMax; // (its bar's: what it just lost, lingering)
     this.hitAt = -Infinity;
@@ -565,11 +568,12 @@ export class Training {
     for (const d of this.dummies) d.putAway(false);
   }
 
-  // A dummy of the tutorial's own, at (x, z): a straw one, or the great one (`great`); on the
-  // training yard, or on `on`, one of its yards above (climb.js), whose floor is `y` high.
-  addDummy(x, z, { great = false, on = this.ctx.world.yard, y = YARD.y } = {}) {
+  // A dummy of the tutorial's own, at (x, z): a straw one (broken by so many of thy `hits`, if it
+  // says), or the great one (`great`); on the training yard, or on `on`, one of its yards above
+  // (climb.js), whose floor is `y` high.
+  addDummy(x, z, { great = false, on = this.ctx.world.yard, y = YARD.y, hits = 0 } = {}) {
     const block = on.blockCircle(x - on.cx, z - on.cz, great ? BOSS_DUMMY.radius : 0.5);
-    const d = new Dummy(this, x, z, great, block, { on, y });
+    const d = new Dummy(this, x, z, great, block, { on, y, hits });
     this.dummies.push(d);
     this.extra.push(d);
     return d;
