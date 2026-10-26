@@ -1311,16 +1311,19 @@ table says what each clip is cut from.
     coils to lunge, so that their rush comes with the thrust); `morvane_sword_anticipation` as he
     draws his sword back to slash; the three whooshes in `morvane_sword_woosh` with each slash and
     lunge, and as the fang is thrown and comes back (in turn, each heard before any is again);
-    `morvane_before_knife_throw` as he draws the fang back (from where its whirr begins
-    to rise, so that it crests as he throws; recorded very quietly, so it's raised a lot);
-    `morvane_big_attack_eye_growing` and `2` together as the Eye swells; `morvane_felled` and `2` together
-    as he's felled (his cry raised, held under full scale, to be heard over all else; the second well
+    `morvane_before_knife_throw` as he throws the fang (its short whirr begun just before, so
+    that it crests as the fang leaves his hand); the Frenzied Eye: `morvane_big_attack_eye_positioning`
+    as he rises into place over the middle of the arena, `morvane_big_attack_eye_start` as it opens,
+    `morvane_big_attack_eye_during` under it all the while it swells (its steady stretch looped, the
+    music held down meanwhile, and dying away as it bursts), and `morvane_dodge_signal` as it's about
+    to burst, the cue to dodge (the opening and the roar over full scale in their recordings,
+    levelled lower); `morvane_felled` and `2` together as he's felled (his cry raised, held under full scale, to be heard over all else; the second well
     under it), heard whole through his fall, and `morvane_felled3_sword_dropping` and
     `_fang_dropping` with them, a little quieter, each where his sword and his fang fall;
   - for now, till he has his own: struck, your own `player_hurt`, higher for his first form and
     deeper for his second; the fang in flame and the falling flames bursting, the Golem's
     `meteorite_hit`; the bare fang stabbing into the floor, Fenrath's ghost sword striking, higher;
-    the Eye bursting, the Golem's `Firespray 2`; the cue to dodge it, Ronin's shine.
+    the Eye bursting, the Golem's `Firespray 2`.
 - **Maren's thunderbolt** (her right click): one of the sixteen zaps of `maren_atk1`, a different
   one each time, and with it the rush in `maren_atk2` (between 2 and 3 s, as its name says: from
   where it's heard, so that it peaks as the bolt is there).

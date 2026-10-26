@@ -140,9 +140,10 @@ const FLAME_FIGHT = {
 // fall; and how far back the camera pulls meanwhile, to show the whole arena.
 const EYE = { height: 3.4, size: [2.3, 17], pull: [0.6, 3.4], rain: [0.16, 0.3], aimed: 0.35, r: 1.5, fall: 0.75, cam: 38 };
 // His second form's sounds, timed (seconds): how far into the teleport's recording its burst comes
-// (heard from where it falls as he's gone, a blink's second step), and how far into the flight's three
-// wooshes their rush comes (begun that long before a lunge's thrust, so that the two come together).
-const HEARD = { burst: 0.45, rush: 0.3 };
+// (heard from where it falls as he's gone, a blink's second step), how far into the flight's three
+// wooshes their rush comes (begun that long before a lunge's thrust, so that the two come together),
+// and into the fang's whirr its crest (begun that long before he throws).
+const HEARD = { burst: 0.45, rush: 0.3, whirr: 0.145 };
 
 // His second form's moves: each one's drawings and how long each is held (seconds; `true`: fixed,
 // else quicker when he's wounded: fight.js), a move's own (`dur`) where it says; `danger`: the last
@@ -991,6 +992,11 @@ export class MorvaneMind {
       if (a.step === 0) {
         this.flare(dt);
         if (a.mark) a.mark.opacity = (0.35 + 0.6 * k) * (0.8 + 0.2 * Math.sin(t * 24));
+        const left = span - a.t;
+        if (!a.whirred && left <= HEARD.whirr) {
+          a.whirred = true;
+          this.sound('windup', false, { offset: Math.max(0, HEARD.whirr - left) });
+        }
       }
       if (a.step === 2 && a.caught) k = 1; // (the fang back in his hand)
     } else if (a.kind === 'eye') lift = this.stepEye(a, k, dt, t);
@@ -1089,7 +1095,6 @@ export class MorvaneMind {
       case 'throw:0':
         a.mark = new Decal(this.floor.scene, 'zone', a.x, a.z, a.opt.r * 2 * 32 / 31, { opacity: 0.4 });
         b.marks.push(a.mark);
-        this.sound('windup');
         break;
       case 'throw:1':
         this.fling(a);
@@ -1109,7 +1114,7 @@ export class MorvaneMind {
         this.appear();
         break;
       case 'eye:3':
-        this.sound('fly', true, { volume: 0.5 });
+        this.sound('eye-position', true);
         break;
       case 'eye:4':
         this.swell(a);
@@ -1398,14 +1403,14 @@ export class MorvaneMind {
     a.eye = new Eye(this.floor.scene, b.pos.x, b.lift + this.up('eye'), b.pos.y + 0.4, EYE.size[0]);
     a.shape = 'spots';
     this.voices.eye = this.sound('eye', true);
+    this.voices.during = this.sound('eye-during', true);
     this.tell('eye', 'The Frenzied Eye drags everyone in while flames rain down: keep off their marks, and dodge (Space) the moment it bursts', 'red');
   }
 
-  // About to burst: white-hot, quivering, and a sharp cue to dodge (for now another's, till he has his
-  // own: audio.js).
+  // About to burst: white-hot, quivering, and a sharp cue to dodge.
   warn(a) {
     const e = a.eye;
-    this.ctx.sound?.play('ronin-shine', { volume: 1 });
+    this.sound('dodge', true);
     flash(this.floor.scene, [e.x, e.y, e.z + 1], { color: '#fff4c0', power: 90, reach: 30, life: 0.5 });
   }
 
@@ -1417,6 +1422,7 @@ export class MorvaneMind {
     const R = ARENA.walkRadius;
     const H = FLAME_FIGHT.hurt;
     this.hurtAll((n) => Math.round(H.eyeEdge + (H.eye - H.eyeEdge) * Math.max(0, 1 - Math.hypot(n.pos.x - cx, n.pos.y - cz) / R)));
+    this.hush('during', 0.3);
     this.sound('eye-burst', true);
     const e = a.eye;
     for (let k = 0; k < 4; k++) {
@@ -1548,7 +1554,10 @@ export class MorvaneMind {
       a.eye.dispose();
       a.eye = null;
     }
-    if (a?.kind === 'eye') this.hush('eye', 1.2);
+    if (a?.kind === 'eye') {
+      this.hush('eye', 1.2);
+      this.hush('during', 0.3);
+    }
     if (this.gone) {
       this.gone = false;
       this.b.fade = 1;

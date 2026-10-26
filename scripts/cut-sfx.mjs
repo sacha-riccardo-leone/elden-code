@@ -195,9 +195,11 @@ const SETS = {
       // flying across the arena (the three together, each from its first sound: the third's rush at
       // once, the first two's 0.3 s in); his sword drawn back to slash (from its first sound); his
       // blade's whoosh (three takes in one recording, each from its first sound, dealt in turn:
-      // audio.js); the wind-up before the fang's throw (a slow whirr, recorded very quietly: from where
-      // it begins to rise, so that its crest comes as he throws); the Frenzied Eye swelling (the two
-      // together) and dragging everyone in (the pull left over from his change, looped: audio.js); his
+      // audio.js); the fang's throw (a short whirr, from just before its first sound: begun so that its
+      // crest comes as he throws, morvane.js); the Frenzied Eye: his rising into place over the arena,
+      // its opening, the roar under it all the while it swells (its steady stretch looped: audio.js),
+      // and the cue to dodge as it's about to burst (each from its first sound; the opening and the roar
+      // over full scale in their recordings, levelled lower); his
       // fall (the two together, whole: his end seen through, morvane.js) and his sword and fang falling
       // to the floor (each from its first sound, levelled as one, heard where each lies); and for now,
       // till he has his own, the fang and the falling flames bursting as the Golem's meteors land, and
@@ -210,9 +212,11 @@ const SETS = {
       ['woosh-1', 'morvane_sword_woosh.mp3', 0.4, 0.44, -3, 0, 0.15],
       ['woosh-2', 'morvane_sword_woosh.mp3', 0.85, 0.55, -3, 0, 0.2],
       ['woosh-3', 'morvane_sword_woosh.mp3', 1.44, 1.0, -3, 0, 0.4],
-      ['windup', 'morvane_before_knife_throw.mp3', 1.25, 1.5, -6, 0, 0.6],
-      ['eye-1', 'morvane_big_attack_eye_growing.mp3', 0.1, 1.6, -3, 0, 0.4, { group: 'eye' }],
-      ['eye-2', 'morvane_big_attack_eye_growing2.mp3', 0, 5.59, -3, 0, 2, { group: 'eye' }],
+      ['windup', 'morvane_before_knife_throw.mp3', 0.07, 0.42, -3, 0, 0.1],
+      ['eye-position', 'morvane_big_attack_eye_positioning.mp3', 0.11, 1.5, -3, 0, 0.4],
+      ['eye-start', 'morvane_big_attack_eye_start.mp3', 0, 5.59, -5.5, 0, 2],
+      ['eye-during', 'morvane_big_attack_eye_during.mp3', 0.9, 12, -4.5, 0, 0.5],
+      ['dodge', 'morvane_dodge_signal.mp3', 0.02, 2.2, -3, 0, 0.8],
       // (his cry, its body far under its sharpest peaks, made 16 dB louder, limited, as Sacha asked
       // twice; the second 12 dB under its own peak: the cry heard over it)
       ['felled-1', 'morvane_felled.wav', 0, 3.3, -1, 0, 0.5, { group: 'felled', loud: 16 }],
