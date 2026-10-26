@@ -37,7 +37,10 @@ const SFX = path.join(repo, 'client/assets/sfx');
 // on Windows the two would be one folder), and its clips: [name, source file, start (s), length (s),
 // peak (dBFS), fade in (s), fade out (s), and { reverse } to have that stretch played backward (its
 // fades then at the ends of what's heard), { group } for clips heard together (a recording's 1 and
-// 2: audio.js, `layer`), levelled as one so that they keep the balance they were made with].
+// 2: audio.js, `layer`), levelled as one so that they keep the balance they were made with, and
+// { loud } to have it so many dB louder than its peak alone would let it be, its peaks held at that
+// peak by a limiter (a sound whose body is far quieter than its sharpest peaks: heard as loud as
+// the rest)].
 const SETS = {
   golem: {
     from: 'IMPORT/Golem Guardian',
@@ -210,8 +213,10 @@ const SETS = {
       ['eye-1', 'morvane_big_attack_eye_growing.mp3', 0.1, 1.6, -3, 0, 0.4, { group: 'eye' }],
       ['eye-2', 'morvane_big_attack_eye_growing2.mp3', 0, 5.59, -3, 0, 2, { group: 'eye' }],
       ['eye-pull', 'morvane_phase_1/morvane_sword_removed_after.mp3', 0.05, 2.95, -3, 0.3, 0.8],
-      ['felled-1', 'morvane_felled.wav', 0, 3.3, -3, 0, 0.5, { group: 'felled' }],
-      ['felled-2', 'morvane_felled2.mp3', 0, 5.6, -9, 0, 0.8, { group: 'felled' }], // (6 dB under the first, as Sacha asked)
+      // (his cry, its body far under its sharpest peaks, made 9 dB louder, limited; the second 12 dB
+      // under its own peak, as Sacha asked: the cry heard over it)
+      ['felled-1', 'morvane_felled.wav', 0, 3.3, -3, 0, 0.5, { group: 'felled', loud: 9 }],
+      ['felled-2', 'morvane_felled2.mp3', 0, 5.6, -15, 0, 0.8, { group: 'felled' }],
       ['drop-sword', 'morvane_felled3_sword_dropping.mp3', 0.03, 0.8, -3, 0, 0.15, { group: 'drop' }],
       ['drop-fang', 'morvane_felled3_fang_dropping.mp3', 0.03, 1.55, -3, 0, 0.2, { group: 'drop' }],
       ['burst', '../Golem Guardian/meteorite_hit.wav', 2.02, 1.6, -4, 0, 0.6],
@@ -447,19 +452,20 @@ for (const [set, { from, clips }] of Object.entries(SETS)) {
   const peaks = clips.map(([, file, start, len]) => peakOf(path.join(SRC, file), start, len));
   const loudest = {};
   clips.forEach(([, , , , , , , { group } = {}], i) => { if (group) loudest[group] = Math.max(loudest[group] ?? -Infinity, peaks[i]); });
-  for (const [i, [name, file, start, len, peak, fin, fout, { reverse = false, group = null } = {}]] of clips.entries()) {
+  for (const [i, [name, file, start, len, peak, fin, fout, { reverse = false, group = null, loud = 0 } = {}]] of clips.entries()) {
     const src = path.join(SRC, file);
     const max = group ? loudest[group] : peaks[i];
-    const gain = peak - max;
+    const gain = peak - max + loud;
+    const limit = loud ? `alimiter=limit=${(10 ** (peak / 20)).toFixed(3)}:attack=2:release=80:level=false` : null;
     const fades = [fin ? `afade=t=in:st=0:d=${fin}` : null, `afade=t=out:st=${(len - fout).toFixed(3)}:d=${fout}`].filter(Boolean);
     const out = path.join(OUT, `${name}.mp3`);
     // (its sound only: a picture a recording carries is left behind)
-    const r = ff(['-ss', String(start), '-t', String(len), '-i', src, '-map', '0:a:0', '-ac', '1', '-ar', '44100', '-af', [reverse ? 'areverse' : null, `volume=${gain.toFixed(2)}dB`, ...fades].filter(Boolean).join(','),
+    const r = ff(['-ss', String(start), '-t', String(len), '-i', src, '-map', '0:a:0', '-ac', '1', '-ar', '44100', '-af', [reverse ? 'areverse' : null, `volume=${gain.toFixed(2)}dB`, limit, ...fades].filter(Boolean).join(','),
       '-codec:a', 'libmp3lame', '-b:a', '112k', out]);
     if (r.status !== 0) { console.error(name, r.stderr.slice(-400)); process.exit(1); }
     const size = fs.statSync(out).size;
     total += size;
-    console.log(`${set}/${name}.mp3  ${file} ${start.toFixed(2)}+${len}s${reverse ? ' reversed' : ''}  peak ${peaks[i].toFixed(1)}${group ? ` (${group}: ${max.toFixed(1)})` : ''} -> ${(peaks[i] + gain).toFixed(1)} dB  ${(size / 1024).toFixed(0)} KB`);
+    console.log(`${set}/${name}.mp3  ${file} ${start.toFixed(2)}+${len}s${reverse ? ' reversed' : ''}  peak ${peaks[i].toFixed(1)}${group ? ` (${group}: ${max.toFixed(1)})` : ''} -> ${loud ? `${(peaks[i] + gain - loud).toFixed(1)} dB, ${loud} dB louder, limited` : `${(peaks[i] + gain).toFixed(1)} dB`}  ${(size / 1024).toFixed(0)} KB`);
   }
   console.log(`${set}: ${clips.length} clips, ${(total / 1024).toFixed(0)} KB`);
 }

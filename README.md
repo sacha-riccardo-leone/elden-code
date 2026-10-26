@@ -1292,9 +1292,9 @@ table says what each clip is cut from.
     to rise, so that it crests as he throws; recorded very quietly, so it's raised a lot);
     `morvane_big_attack_eye_growing` and `2` together as the Eye swells, and
     `morvane_sword_removed_after`, looped, as it drags everyone in; `morvane_felled` and `2` together
-    as he's felled (the second 6 dB under the first), heard whole through his fall, and
-    `morvane_felled3_sword_dropping` and `_fang_dropping` with them, each where his sword and his
-    fang fall;
+    as he's felled (his cry raised, held under full scale, to be heard over all else; the second well
+    under it), heard whole through his fall, and `morvane_felled3_sword_dropping` and
+    `_fang_dropping` with them, a little quieter, each where his sword and his fang fall;
   - for now, till he has his own: struck, your own `player_hurt`, higher for his first form and
     deeper for his second; the fang in flame and the falling flames bursting, the Golem's
     `meteorite_hit`; the bare fang stabbing into the floor, Fenrath's ghost sword striking, higher;
