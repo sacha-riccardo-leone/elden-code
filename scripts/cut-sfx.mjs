@@ -168,19 +168,21 @@ const SETS = {
       ['pant-1', 'morvane_phase_1/morvane_out_of_stamina_1.mp3', 0.7, 6, -3, 0, 0.5, { group: 'pant' }],
       ['pant-2', 'morvane_phase_1/morvane_out_of_stamina_2.mp3', 0, 2.62, -3, 0, 0.3, { group: 'pant' }],
       // the change (morvane.js): the pull (from its first burst, 0.8 s in, as he grips the sword in his
-      // skull) and the neck tearing; his head ripped off (the three together: the
-      // third from just where the second is first heard, so that the two are as one, its long dying
-      // away kept; the third near full scale, all three levelled lower, and played louder: audio.js);
-      // growing under the flames (its silent lead-in left out); the cut to black and the reveal (each
-      // group together: the reveal's beds 15 s of their length, all the encounter lasts for now; over
-      // full scale in their recordings, levelled lower), and the last of them on its own, heard quietly
+      // skull) and the neck tearing (his scream, 6.4 s to its end, all of it heard before his head
+      // comes off); his head ripped off (the three together: the third from just where the second is
+      // first heard, so that the two are as one, its long dying away kept; the third near full scale,
+      // all three levelled lower, and played louder: audio.js); growing under the flames (its silent
+      // lead-in left out); the cut to black (the first, Sacha's newer recording, 14 s of its 25: heard
+      // from the black till the fight's begun, and dying away then) and the reveal (each group
+      // together: the reveal's beds 15 s of their length; over full scale in their recordings,
+      // levelled lower), and the last of them on its own, heard quietly
       ['pull', 'morvane_phase_1/morvane_removing_sword_during.mp3', 0.78, 6.9, -3, 0, 0.6],
       ['tear', 'morvane_phase_1/morvane_removing_sword_during_end.mp3', 0, 7.6, -3, 0, 1.2],
       ['rip-1', 'morvane_phase_1/morvane_sword_removed_instant.mp3', 0.03, 1.95, -3.5, 0, 0.3, { group: 'rip' }],
       ['rip-2', 'morvane_phase_1/morvane_sword_removed_instant_second.mp3', 0.03, 1.6, -3.5, 0, 0.3, { group: 'rip' }],
       ['rip-3', 'morvane_phase_1/morvane_sword_removed_instant_second2.mp3', 0.059, 3.4, -3.5, 0, 1, { group: 'rip' }],
       ['grow', 'morvane_phase_1/morvane_before_reveal.mp3', 0.5, 3.9, -3, 0, 0.6],
-      ['black-1', 'morvane_phase_1/morvane_blackscreen_to_flame_reveal.mp3', 0, 9.5, -3, 0, 1.5, { group: 'black' }],
+      ['black-1', 'morvane_phase_1/morvane_blackscreen_to_flame_reveal.mp3', 0, 14, -3, 0, 2, { group: 'black' }],
       ['black-2', 'morvane_phase_1/morvane_blackscreen_to_flame_reveal2.mp3', 1.2, 20, -3, 0, 3, { group: 'black' }],
       ['reveal-1', 'morvane_phase_1/morvane_reveal.mp3', 0, 15, -4, 0.2, 2, { group: 'reveal' }],
       ['reveal-2', 'morvane_phase_1/morvane_reveal2.mp3', 0.9, 15, -4, 0, 2, { group: 'reveal' }],
@@ -189,11 +191,12 @@ const SETS = {
       // flying across the arena (the three together, each from its first sound: the third's rush at
       // once, the first two's 0.3 s in); his sword drawn back to slash (from its first sound); his
       // blade's whoosh (three takes in one recording, each from its first sound, dealt in turn:
-      // audio.js); the wind-up before the fang's
-      // throw (a slow whirr, recorded very quietly: from where it begins to rise, so that its crest
-      // comes as he throws); the Frenzied Eye swelling (the two together) and dragging everyone in
-      // (the pull left over from his change, looped: audio.js); and for now, till he has his own, the
-      // fang and the falling flames bursting as the Golem's meteors land, and the Eye as his fire bursts
+      // audio.js); the wind-up before the fang's throw (a slow whirr, recorded very quietly: from where
+      // it begins to rise, so that its crest comes as he throws); the Frenzied Eye swelling (the two
+      // together) and dragging everyone in (the pull left over from his change, looped: audio.js); his
+      // fall (the two together, whole: his end seen through, morvane.js); and for now, till he has his
+      // own, the fang and the falling flames bursting as the Golem's meteors land, and the Eye as his
+      // fire bursts
       ['teleport', 'morvane_teleport.mp3', 0.05, 3.4, -3, 0, 1.5],
       ['fly-1', 'morvane_flying_woosh.mp3', 0.14, 3.2, -3, 0, 1.4, { group: 'fly' }],
       ['fly-2', 'morvane_flying_woosh2.mp3', 0.09, 3.2, -3, 0, 1.4, { group: 'fly' }],
@@ -206,6 +209,8 @@ const SETS = {
       ['eye-1', 'morvane_big_attack_eye_growing.mp3', 0.1, 1.6, -3, 0, 0.4, { group: 'eye' }],
       ['eye-2', 'morvane_big_attack_eye_growing2.mp3', 0, 5.59, -3, 0, 2, { group: 'eye' }],
       ['eye-pull', 'morvane_phase_1/morvane_sword_removed_after.mp3', 0.05, 2.95, -3, 0.3, 0.8],
+      ['felled-1', 'morvane_felled.wav', 0, 3.3, -3, 0, 0.5, { group: 'felled' }],
+      ['felled-2', 'morvane_felled2.mp3', 0, 5.6, -3, 0, 0.8, { group: 'felled' }],
       ['burst', '../Golem Guardian/meteorite_hit.wav', 2.02, 1.6, -4, 0, 0.6],
       ['eye-burst', '../Golem Guardian/freeexplosionspitfire/Firespray 2.ogg', 0.035, 2.03, -2, 0, 0.6],
     ],

@@ -984,7 +984,7 @@ ground under you instead, so it flies at your hand's height there too.
     and stays there out of breath, wheezing, till you finish him: his change and his reveal come
     there, where he stands, nobody moved for them.
   - **His change**, as that bar empties: everyone holds still (you can't move or strike) and the
-    camera comes in close on him, pulling back as he grows. About 25 seconds:
+    camera comes in close on him, pulling back as he grows. About 26 seconds:
     - he kneels, grips the sword in his skull and screams;
     - he pulls, and the sword, stuck fast, drags his head up on a stretching neck till he **rips his
       own head off**: a burst of frenzied flame swallows it, never to be seen again;
@@ -1269,13 +1269,14 @@ table says what each clip is cut from.
     drawings (everyone's `bare` step);
   - his change, heard wherever you are, holding the music down: `morvane_removing_sword_during`
     (from its first burst, 0.8 s in) as he grips the sword;
-    `morvane_removing_sword_during_end` coming in halfway through that (the two cut short as his
-    head comes off); `morvane_sword_removed_instant`, `_instant_second` and `_instant_second2`
+    `morvane_removing_sword_during_end` coming in halfway through that, his scream, heard to its end
+    before his head comes off (it comes off 6.45 s after the scream begins, `CHANGE` in
+    `client/js/morvane.js`); `morvane_sword_removed_instant`, `_instant_second` and `_instant_second2`
     together as it's ripped off; `morvane_before_reveal` as he grows (its silent lead-in left out);
-    `morvane_blackscreen_to_flame_reveal` and `…2` together as the screen
+    `morvane_blackscreen_to_flame_reveal` (Sacha's newer recording) and `…2` together as the screen
     goes black, swelling into the reveal; `morvane_reveal` and `morvane_reveal2` together as he's
     revealed, with `morvane_reveal3_low_volume` quietly under them, all dying away as the fight
-    begins (each of the long ones cut to 15 to 20 s);
+    begins (each of the long ones cut to 14 to 20 s);
   - his second form: `morvane_teleport` as he vanishes (once: from just before its burst, so that it
     bursts as he's gone, and dying away as he moves on, never heard under the lunge that follows);
     `morvane_flying_woosh`, `2` and `3` together each time he lunges and as he flies (begun as he
@@ -1285,12 +1286,12 @@ table says what each clip is cut from.
     `morvane_before_knife_throw` as he draws the fang back (from where its whirr begins
     to rise, so that it crests as he throws; recorded very quietly, so it's raised a lot);
     `morvane_big_attack_eye_growing` and `2` together as the Eye swells, and
-    `morvane_sword_removed_after`, looped, as it drags everyone in;
+    `morvane_sword_removed_after`, looped, as it drags everyone in; `morvane_felled` and `2` together
+    as he's felled, heard whole through his fall;
   - for now, till he has his own: struck, your own `player_hurt`, higher for his first form and
     deeper for his second; the fang in flame and the falling flames bursting, the Golem's
     `meteorite_hit`; the bare fang stabbing into the floor, Fenrath's ghost sword striking, higher;
-    the Eye bursting, the Golem's `Firespray 2`; the cue to dodge it, Ronin's shine; dying, his own
-    panting, slower.
+    the Eye bursting, the Golem's `Firespray 2`; the cue to dodge it, Ronin's shine.
 - **Maren's thunderbolt** (her right click): one of the sixteen zaps of `maren_atk1`, a different
   one each time, and with it the rush in `maren_atk2` (between 2 and 3 s, as its name says: from
   where it's heard, so that it peaks as the bolt is there).

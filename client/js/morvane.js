@@ -79,14 +79,15 @@ export const MORVANE = {
 
 // His change, in seconds from his first bar emptying: the grip (C), heard pulling from the moment he
 // grips the sword, its tearing coming in halfway through that (`tear`: the pull's clip is 6.9 s long);
-// the pull (D); his head ripped off, kneeling headless from behind (D2), standing so
+// the pull (D); his head ripped off once his scream (the tearing's clip) has been heard to its end
+// (`rip`: 6.45 s after `tear`), kneeling headless from behind (D2), standing so
 // (E) and growing (from `grow` to
 // `grown`, GROW times his size), the screen black (from `black`, gone again at `reveal`), revealed (F),
 // his title and his second bar filling over FILL seconds, at rest (master 2), and at `fight`, the
 // fight his. `cam`: how far back the camera stands for each (it pulls back as he grows).
 const CHANGE = {
-  grip: 0, pull: 2.6, tear: 3.45, rip: 6.2, pulled: 6.45, back: 9.2, grow: 9.6, grown: 13.4,
-  black: 13.8, reveal: 17.3, title: 18.6, idle: 20.6, fight: 22.4,
+  grip: 0, pull: 2.6, tear: 3.45, rip: 9.9, pulled: 10.15, back: 12.9, grow: 13.3, grown: 17.1,
+  black: 17.5, reveal: 21, title: 22.3, idle: 24.3, fight: 26.1,
   cam: { near: 15, grown: 25, reveal: 30 },
 };
 const GROW = 2.1; // (his body, from his soles to his neck, as tall again as the Lord of Frenzied Flame's)
@@ -1517,9 +1518,8 @@ export class MorvaneMind {
 
   // Felled (fight.js, his second bar emptied): on his knees, his flame shrinking, and slumped, seen
   // whole a while (MORVANE.felled), then fading away (the fight fades him); his sword and his fang let
-  // fall on the floor beside him, fading as he does; his breath going out of him (for now his panting,
-  // slower and deeper, till he has his own); his light and his arena's fire burning on till he fades,
-  // and dying with him.
+  // fall on the floor beside him, fading as he does; heard falling (morvane_felled and 2); his light
+  // and his arena's fire burning on till he fades, and dying with him.
   dies() {
     const b = this.b;
     for (const k of Object.keys(this.voices)) this.hush(k, 0.6);
@@ -1528,7 +1528,7 @@ export class MorvaneMind {
     const seen = () => b.fade;
     this.fight.fx.push(new Dropped(scene, 'morvane-sword', b.pos.x - f * 1.4, b.pos.y + 0.5, { angle: f * 0.5, seen }));
     this.fight.fx.push(new Dropped(scene, 'morvane-fang', b.pos.x + f * 1.6, b.pos.y + 0.7, { angle: -f * 1.2, seen }));
-    this.sound('pant', false, { pitch: 0.78 });
+    this.sound('felled');
     const { hold, fade } = MORVANE.felled;
     const light = this.light;
     this.light = null;
