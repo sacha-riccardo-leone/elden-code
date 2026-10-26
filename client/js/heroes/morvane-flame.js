@@ -56,6 +56,35 @@ const ART = {
 };
 const EXTRA = Object.keys(ART).filter((k) => k !== 'idle');
 
+// The hole in each drawing's head of flame (its round blob of black): its middle (column, row, from the
+// drawing's corner) and how wide (art pixels): where his head of flame alight is set over it, as big
+// as it (frenzyfx.js, Head).
+const HOLES = {
+  idle: [110.9, 54.3, 21.6],
+  'idle-left': [130.8, 55.2, 22.2],
+  reveal: [102.6, 53.5, 23.9],
+  fly: [277.4, 48.9, 19.9],
+  'fly-left': [35.8, 47.9, 19.8],
+  'lunge-1': [201.7, 59.8, 24.1],
+  'lunge-1-left': [226.4, 54.4, 24.1],
+  'lunge-2': [323, 54.1, 22.8],
+  'lunge-2-left': [279.3, 51.9, 23.1],
+  'swing-1': [227.2, 52.4, 22.3],
+  'swing-1-left': [76.3, 57.6, 23],
+  'swing-2': [197.1, 57, 22.1],
+  'swing-2-left': [264.1, 59.3, 24.9],
+  'swing-3': [274.8, 60, 25.1],
+  'swing-3-left': [227.8, 63.5, 25.9],
+  'throw-1': [160.1, 60.9, 23.9],
+  'throw-1-left': [152.4, 51.8, 22.6],
+  'throw-2': [159, 57.1, 25],
+  'throw-2-left': [135.4, 52.5, 21.6],
+  'throw-3': [125.6, 56.4, 23.6],
+  'throw-3-left': [144, 53.9, 22.6],
+  'death-1': [119, 41.5, 16.5],
+  'death-2': [143.2, 24.9, 14.3],
+};
+
 // What burns: the head of flame, the burning edges of his drapes, the cracks in his chest and the
 // sword's gold, all of it glowing orange (none white-hot: that would bloom the head of flame into a
 // blot, its black hole lost), always lit as drawn (never dimmed nor flared, which would paint the
@@ -101,6 +130,20 @@ function compose(ctx, p) {
     }
   }
   return f;
+}
+
+// Where the hole in his head of flame is in pose `index`'s frame (columns and rows from the frame's
+// corner, as compose sets the drawing in it, a left one mirrored), how wide, and the frame (FRAME or
+// BIG); null for a pose it isn't known in.
+export function holeOf(index) {
+  const p = poses[index];
+  const a = p && ART[p.art];
+  const h = p && HOLES[p.art];
+  if (!a || !h) return null;
+  const frame = a.big ? BIG : FRAME;
+  const x = a.left ? Math.round(frame.anchor + 1 + a.mid) - h[0] : Math.round(frame.anchor - a.mid) + h[0];
+  const y = (a.ground != null ? frame.h - 1 - a.ground : Math.round(BROOCH - a.row)) + h[1];
+  return { x, y, d: h[2], frame };
 }
 
 // ---------------------------------------------------------------------------------------------

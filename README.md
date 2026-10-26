@@ -1026,16 +1026,20 @@ ground under you instead, so it flies at your hand's height there too.
       nor up over the arena). The camera follows you from farther back than for the others, so that
       you see him coming. Felled, he falls to his knees, his flame shrinking, and slumps, his sword
       and fang dropping to the floor: "GREAT ENEMY FELLED".
+    - **His head of flame** burns all the while, whatever he does: its tongues swirl round the black
+      hole, swelling and shrinking as it burns, embers rising off it (Sacha's drawing of it alone,
+      the Frenzied Eye's, set over the head in each of his drawings, the hole on the hole: `Head` in
+      `client/js/frenzyfx.js`). It's hidden while he's vanished, and while the Eye itself is open.
     - **His arena**, from the moment he's revealed (it comes while the screen is black): the world
-      beyond it goes black, by day or by night (no sky, no horizon, no sea of cloud below); a ring of
-      frenzied flame burns all round its edge, black inside like his head of flame, about
-      three-quarters of the pillars' height, lower and fainter on your side so that it hides nobody,
-      and the fog sealing the way out burns as that fire too; its light falls on the arena from all
-      round; the picture shimmers with the heat; and burning ash drifts up through the air, small
-      glinting orange pixels. It all dies away as he falls. (`Inferno` in `client/js/frenzyfx.js`:
-      Sacha's band of flame, stood in copies all round, each bent to the round, every other one
-      mirrored and each at its own moment of the band's four drawings, overlapping so that their
-      dying ends meet; a second row behind them, darker, between them, except on your side.)
+      beyond it goes black, by day or by night (no sky, no horizon, no sea of cloud below); a wall of
+      frenzied flame burns round the far half of its edge, black inside like his head of flame,
+      about three-quarters of the pillars' height (none on your side, so that nothing stands between
+      you and the fight), and the fog sealing the way out burns as that fire too; its light falls on
+      the arena from all round; the picture shimmers with the heat; and burning ash drifts up through
+      the air, small glinting orange pixels. It all dies away as he falls. (`Inferno` in
+      `client/js/frenzyfx.js`: Sacha's band of flame, stood in copies round it, each bent to the
+      round, every other one mirrored and each at its own moment of the band's four drawings,
+      overlapping so that their dying ends meet; a second row behind them, darker, between them.)
   - **His drawings:** standing, fleeing (four frames) and out of breath (two) are each also drawn
     facing left. They're not mirrors (one of his eyes is covered in dead skin and keeps its side), so
     he plays them whenever he faces left (an animation's `left` frames, `client/js/npc.js`). The
@@ -1058,7 +1062,13 @@ ground under you instead, so it flies at your hand's height there too.
     over them. His effects are Sacha's drawings too (`art/bosses/Morvane`, `client/js/frenzyfx.js`):
     the frenzied flame flying and bursting, the Eye, his fang, and the band of flame round his arena
     (`fx-frenzy-band`, four frames sampled at 3 px, its drawing having no even grid to find; its
-    bottom row's grid set 2 px lower, so that all four frames' black base lies on one line).
+    bottom row's grid set 2 px lower, so that all four frames' black base lies on one line). His head
+    of flame alight is the Eye's drawing again (`morvane-head`), sampled at 5.4 px so that its
+    pixels are his body's at the size his head is drawn, its last two frames moved down 5 rows so
+    that its hole stays still (the Eye's own frames jump); where the hole is in each of his drawings
+    is `HOLES` in `client/js/heroes/morvane-flame.js`, and his head alight is set a little bigger
+    than the hole there (`HEAD` in `client/js/frenzyfx.js`), as the tongues he's drawn with reach
+    further from it than the Eye's.
   - Tuning (health, speed, how long he runs and pants, the change's timings, how much he grows) is
     `MORVANE`, `CHANGE` and `GROW` in `client/js/morvane.js`; his second form's (how fast and how
     often, how far each blow reaches, what each takes, the Eye) is `FLAME_FIGHT`, `EYE` and

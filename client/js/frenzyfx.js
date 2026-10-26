@@ -9,6 +9,7 @@
 //   BareFang     – his gold fang thrown bare, spinning, bigger than in his hand so that it's seen,
 //                  stuck point-first in the floor where it lands (his fang throw);
 //   Eye          – the Frenzied Eye, his head of flame grown huge, its tongues swirling;
+//   Head         – his head of flame alight, its tongues swirling, over the one in his drawings;
 //   Dropped      – his sword or his fang, let fall as he's felled, lying on the floor;
 //   Inferno      – his arena once he's revealed: the world beyond it gone black, a ring of frenzied
 //                  flame all round it, its light, heat shimmering, burning ash drifting.
@@ -284,6 +285,56 @@ export class Dropped {
 }
 
 // ---------------------------------------------------------------------------------------------
+// his head of flame, alight
+
+// Sacha's drawing of his head of flame alone, its tongues swirling (the Frenzied Eye's four frames, cut
+// at his body's pixel size: fxart.js), set over the one drawn in whichever of his drawings he shows,
+// the hole in its middle on the hole in theirs: where that hole is in its frames, how wide (art
+// pixels), how much wider than theirs it's set (so that its fire reaches as far out as their tongues
+// do: they reach further from the hole than its own), how fast it flips through its frames, how it
+// swells and shrinks as it burns (two beats: each so much either way, so many radians a second), and
+// how bright.
+const HEAD = { hole: [56.4, 58.5], d: 26.5, over: 1.15, fps: 10, beat: [0.04, 5.3, 0.02, 13.1], bright: 0.95 };
+
+export class Head {
+  // `where()`, each moment (after his body is set where it stands: fight.js): where the hole in his
+  // head of flame is ({ x, y, z } in the world), how wide (`d`, world units), how much of him is seen
+  // (`opacity`); or null while it isn't to be seen. On till ended (end).
+  constructor(scene, where) {
+    this.art = fxArt('morvane-head');
+    Object.assign(this, { scene, where, t: 0, ending: false, mesh: null });
+    if (!this.art) return;
+    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), glowing(this.art.frames[0]));
+    this.mesh.material.color.setScalar(HEAD.bright);
+    this.mesh.visible = false;
+    scene.add(this.mesh);
+  }
+
+  end() { this.ending = true; }
+
+  step(dt) {
+    this.t += dt;
+    if (this.ending) return false;
+    if (!this.mesh) return true;
+    const at = this.where();
+    this.mesh.visible = !!at;
+    if (!at) return true;
+    const A = this.art;
+    const [b1, w1, b2, w2] = HEAD.beat;
+    const s = ((at.d * HEAD.over) / HEAD.d) * (1 + b1 * Math.sin(this.t * w1) + b2 * Math.sin(this.t * w2)); // (world units to its pixel)
+    this.mesh.scale.set(A.w * s, A.h * s, 1);
+    this.mesh.position.set(at.x - (HEAD.hole[0] - A.w / 2) * s, at.y + (HEAD.hole[1] - A.h / 2) * s, at.z);
+    this.mesh.material.map = A.frames[Math.floor(this.t * HEAD.fps) % A.frames.length];
+    this.mesh.material.opacity = at.opacity;
+    return true;
+  }
+
+  dispose() {
+    drop(this.scene, this.mesh);
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
 // his arena, once he's revealed
 
 // The ring of frenzied flame round it, Sacha's band of it (fxart.js: four drawings of one wall of
@@ -292,25 +343,24 @@ export class Dropped {
 // little narrower front to back), how tall a copy stands (world units: its tallest tongues about
 // three-quarters of the pillars' height; each a little taller or shorter, up to `vary` either way),
 // how far along from one copy the next stands (a share of its width: they overlap, so that one's
-// dying ends meet the next one's middle), and how bright (the colour its drawing is multiplied by:
-// past 1, the bloom catches it); a second row behind, so far further out, taller, darker, standing
-// between the first's copies, and only where it's seen over the first (its angle's sine below
-// `upTo`: not toward thee); how fast a copy flips through its drawings (each at its own moment of
-// them, a little quicker or slower than the next); toward thee (+z: the sine of its angle, from `from`
-// to `to`) each lower and fainter, down to `low` and `faint`, so that it hides nobody. Its light: so
-// many fires' worth round it, each so strong, reaching so far, so high, so far in from the flames. The
-// burning ash drifting up over the arena: so many a second, living so long. And how long it all takes
-// to come, and to go.
+// dying ends meet the next one's middle), only on the far half of the round (the sine of a copy's
+// angle at most `upTo`: none on thy side, +z, where it would stand between thee and the fight), and
+// how bright (the colour its drawing is multiplied by: past 1, the bloom catches it); a second row
+// behind, so far further out, taller, darker, standing between the first's copies, ending a little
+// sooner; how fast a copy flips through its drawings (each at its own moment of them, a little
+// quicker or slower than the next). Its light: so many fires' worth round it, each so strong,
+// reaching so far, so high, so far in from the flames. The burning ash drifting up over the arena:
+// so many a second, living so long. And how long it all takes to come, and to go.
 const INFERNO = {
   radius: 19.9,
   squash: 0.94,
   height: 5.6,
   vary: 0.1,
   spacing: 0.55,
+  upTo: 0.05,
   bright: [1.15, 1.0, 0.9],
-  back: { out: 1.2, size: 1.05, tint: 0.7, upTo: 0.35 },
+  back: { out: 1.2, size: 1.05, tint: 0.7, upTo: -0.1 },
   fps: 6,
-  near: { from: -0.1, to: 0.6, low: 0.16, faint: 0.4 },
   lights: { count: 6, power: 46, reach: 30, y: 2.6, inset: 1.8 },
   ash: { rate: 60, life: [2.2, 3.8] },
   fadeIn: 1.2,
@@ -348,7 +398,7 @@ export class Inferno {
     if (art) {
       const r = rng(907);
       const rows = [
-        { radius: I.radius, size: 1, tint: 1, order: 4, shift: 0, upTo: 2 },
+        { radius: I.radius, size: 1, tint: 1, order: 4, shift: 0, upTo: I.upTo },
         { radius: I.radius + I.back.out, size: I.back.size, tint: I.back.tint, order: 3, shift: 0.5, upTo: I.back.upTo },
       ];
       for (const row of rows) {
@@ -360,8 +410,6 @@ export class Inferno {
         for (let i = 0; i < n; i++) {
           const a = ((i + row.shift) / n) * Math.PI * 2 + (r() - 0.5) * 0.06;
           if (Math.sin(a) > row.upTo) continue;
-          const s = Math.min(1, Math.max(0, (Math.sin(a) - I.near.from) / (I.near.to - I.near.from)));
-          const near = s * s * (3 - 2 * s);
           const mat = glowing(art.frames[0], 0);
           mat.color.setRGB(...I.bright.map((c) => c * row.tint));
           mat.fog = false; // (its light, against the black: never dimmed by the fog)
@@ -369,11 +417,11 @@ export class Inferno {
           const m = new THREE.Mesh(geo, mat);
           m.position.set(Math.cos(a) * row.radius, 0, Math.sin(a) * row.radius);
           m.rotation.y = Math.PI / 2 - a; // (facing the arena's middle)
-          m.scale.set(r() < 0.5 ? -1 : 1, (1 + (r() * 2 - 1) * I.vary) * (1 - near * (1 - I.near.low)), 1);
+          m.scale.set(r() < 0.5 ? -1 : 1, 1 + (r() * 2 - 1) * I.vary, 1);
           m.renderOrder = row.order;
           m.visible = false;
           this.round.add(m);
-          this.copies.push({ m, phase: r() * art.frames.length, speed: 0.8 + r() * 0.4, faint: 1 - near * (1 - I.near.faint) });
+          this.copies.push({ m, phase: r() * art.frames.length, speed: 0.8 + r() * 0.4 });
         }
       }
     }
@@ -397,7 +445,7 @@ export class Inferno {
     for (const c of this.copies) {
       c.m.visible = k > 0.01;
       c.m.material.map = this.art.frames[Math.floor(this.t * I.fps * c.speed + c.phase) % this.art.frames.length];
-      c.m.material.opacity = k * c.faint;
+      c.m.material.opacity = k;
     }
     for (const L of this.lights) L.level = k;
     // burning ash, drifting up over the arena: small bright orange pixels, glinting

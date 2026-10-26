@@ -55,7 +55,8 @@ import { flash, carry } from './lights.js';
 import { onAim, wayOf, AIM, reachOf } from './combat.js';
 import { ARENA, BOSS_CAM } from './config.js';
 import { Crescent, Decal } from './bossfx.js';
-import { FRENZY, FRENZY_LIGHT, FlameBall, FlameBurst, Fang, BareFang, Eye, Dropped, Inferno } from './frenzyfx.js';
+import { FRENZY, FRENZY_LIGHT, FlameBall, FlameBurst, Fang, BareFang, Eye, Dropped, Inferno, Head } from './frenzyfx.js';
+import { holeOf } from './heroes/morvane-flame.js';
 
 export const MORVANE = {
   hp: 1500, // his first bar
@@ -650,12 +651,29 @@ export class MorvaneMind {
     this.form = 2;
     this.light?.end(0.1);
     this.light = carry(this.floor.scene, [b.pos.x, 1.4, b.pos.y + 2.6], { color: FRENZY_LIGHT, power: 16, reach: 14, waver: 0.6 });
-    // (and his arena his, coming while the screen is still black: frenzyfx.js)
+    // (his head of flame alight, and his arena his, coming while the screen is still black: frenzyfx.js)
+    this.head = new Head(this.floor.scene, () => this.holeAt());
+    this.fight.fx.push(this.head);
     const { daylight, post, world } = this.ctx;
     if (daylight && post) {
       this.inferno = new Inferno({ scene: this.floor.scene, particles: this.floor.particles, cx: world.arena.cx, cz: world.arena.cz, daylight, post });
       this.fight.fx.push(this.inferno);
     }
+  }
+
+  // Where the hole in his head of flame is just now (whichever drawing he shows, his body where it
+  // stands, facing, lifted, grown): { x, y, z } in the world, how wide, how much of him is seen; null
+  // while it isn't to be seen (vanished, or the Frenzied Eye open over it): frenzyfx.js, Head.
+  holeAt() {
+    const b = this.b;
+    const body = b.body;
+    const seen = Math.min(1, b.fade ?? 1);
+    if (this.form !== 2 || this.gone || b.attack?.eye || seen <= 0.01) return null;
+    const h = holeOf(body.frame);
+    if (!h) return null;
+    const k = body.sheet.px * body.zoom;
+    const m = body.mesh.position;
+    return { x: m.x + body.facing * (h.x - h.frame.w / 2) * k, y: m.y + (h.frame.h - h.y) * k, z: m.z + 0.06, d: h.d * k, opacity: seen };
   }
 
   // His reveal over: the fight is his. Everyone free again, the camera back on thee, thy companions
@@ -677,16 +695,17 @@ export class MorvaneMind {
   // his second form
 
   // Floating, bobbing gently (as he hovers: `lift`, unless a move has him lower or higher; back from
-  // one, easing up into it), embers rising off his head of flame.
+  // one, easing up into it), embers rising off his head of flame wherever it is.
   float(dt, lift = true) {
     const b = this.b;
     this.bobT += dt;
     this.bob = MORVANE.hover + 0.12 * Math.sin(this.bobT * 1.6);
     if (lift) b.lift = Math.abs(b.lift - this.bob) < 0.05 ? this.bob : b.lift + (this.bob - b.lift) * Math.min(1, dt * 5);
-    if (!this.gone && Math.random() < dt * 10) {
+    const at = this.holeAt();
+    if (at && Math.random() < dt * 16) {
       this.floor.particles.emit({
-        pos: [b.pos.x, b.lift + this.up('flame'), b.pos.y + 0.1], spread: [0.9, 0.7, 0.4], vel: [0, 1.3, 0], velSpread: [0.4, 0.5, 0.3],
-        color: FLAME, size: 0.06, life: 1.2, count: 3, drag: 0.7, intensity: 2.6,
+        pos: [at.x, at.y + at.d * 0.9, at.z + 0.04], spread: [at.d * 1.3, at.d, 0.3], vel: [0, 1.6, 0], velSpread: [0.5, 0.6, 0.3],
+        color: FLAME, size: 0.06, life: 1.1, count: 3, drag: 0.7, intensity: 2.6,
       });
     }
   }
@@ -1511,6 +1530,8 @@ export class MorvaneMind {
     this.light = null;
     this.inferno?.end();
     this.inferno = null;
+    this.head?.end();
+    this.head = null;
     this.dark(false, 0.3);
   }
 }
