@@ -68,7 +68,7 @@ again by itself (`?tutorial` in the address shows it anyway).
      middle (the user's drawings, `client/assets/fx/rune-rock-1..3.json`, dark and with the rune
      alight, recoloured to the yard's slabs). As soon as the fog has shut you in, each one's rune
      lights in turn, it's lifted in blue magic (its own light, and motes), held up a second and
-     dropped, cracking the floor in its rune's blue, and its shockwave ripples out over the whole
+     dropped, cracking the floor in its rune's cyan, and its shockwave ripples out over the whole
      floor as the Golem's do, though slower (`client/js/ripple.js`); each is heard too (see Sound). "Dodge with Space to not get hit": a dodge as its crest comes counts,
      on a counter over the words (0 / 3); a crest that reaches you strikes as a great enemy's blow
      does (red, thrown back) but takes no health, and the count starts again. Three in a row, and

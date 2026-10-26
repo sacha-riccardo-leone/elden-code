@@ -159,9 +159,10 @@ function zoneCanvas() {
 
 // A crack in the stone where it landed: branching fissures glowing red at their hearts (`heart`,
 // `edge`, and the shadow along them, `dark`: another light's, Ruadan's gold where his thrown maul
-// plants itself, combat.js; the blue of the tutorial's rune rocks, their runes' light, tutorial.js).
+// plants itself, combat.js; the cyan of the tutorial's rune rocks' runes alight, as drawn, and the
+// teal it tints their stone, tutorial.js).
 const GOLD_CRACK = { heart: [250, 209, 64], edge: [178, 103, 7] };
-const RUNE_CRACK = { heart: [83, 232, 255], edge: [24, 128, 178], dark: [12, 20, 30] };
+const RUNE_CRACK = { heart: [10, 250, 245], edge: [24, 176, 166], dark: [8, 30, 30] };
 function crackCanvas(seed, { heart = RED.red, edge = RED.dark, dark = [24, 16, 16] } = {}) {
   const r = rng(seed);
   return canvasOf(80, 80, (put, w, h) => {
