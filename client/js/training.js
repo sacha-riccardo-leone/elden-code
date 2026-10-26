@@ -17,7 +17,8 @@
 // great one at its cracked ankle, or, a caster, off to one side), and strikes or casts there every
 // so often, now and then going over to another dummy; and, rarely, looses its ultimate at it,
 // quietly (ults.js, startQuiet: nothing stands still for it, nothing goes grey, and the camera
-// stays with thee).
+// stays with thee). Now and then it goes to the rune rocks instead (two at most at once), stands in
+// their ring and hops their shockwaves as they come (runerocks.js).
 //
 // Thy blows, spells and ultimates find a dummy as they find a great enemy on the arena (fight.js):
 // a dummy has the few things of his they ask after (where it stands, its body, that it lives), and
@@ -43,7 +44,7 @@ import { styleOf, castSpell, muzzleOf, stepStatus, RANGED, blow, casts, heroKey,
 import { groundAt } from './ground.js';
 import { Spark } from './spellfx.js';
 import { GOLEM } from './golem.js';
-import { RockRing } from './runerocks.js';
+import { RockRing, AT_ROCKS } from './runerocks.js';
 
 // A dummy: its health, what a blow and a spell of thine take of it (an ultimate's blows take what
 // they take, ults.js; a poison what it takes), how far in front of thee a blow finds it, its size
@@ -84,7 +85,8 @@ const BTN_LINGER = 0.4; // (seconds a Dismiss button stays once the pointer has 
 // Those training: how far beside a straw dummy a blade stands, and behind the great one's cracked
 // ankle (a spear its farther reach the farther: combat.js, reachOf); the seconds between blows, and
 // between spells; what a blow and a spell of theirs take of a
-// dummy (of thine); how far off a caster stands; how long before each goes over to another dummy;
+// dummy (of thine); how far off a caster stands; how long before each goes over to another dummy (or
+// to the rune rocks: the chance of them, `rocks`, each time it chooses, while there's room there);
 // and one that comes of itself: how long it stays, how many may at once, how long its session must
 // have been idle first, how long after it last trained (or was sent back) before it comes again, and
 // the chance of it, each look round, every `every` seconds. Their ultimates, rarely: seconds of
@@ -92,7 +94,7 @@ const BTN_LINGER = 0.4; // (seconds a Dismiss button stays once the pointer has 
 const TRAIN = {
   beside: 1.6, ankle: [2.0, 2.3],
   blow: [1.3, 2.8], cast: [2.2, 3.8], hurt: { blow: 0.6, spell: 0.5 },
-  ring: [6, 8.5], swap: [25, 50],
+  ring: [6, 8.5], swap: [25, 50], rocks: 0.3,
   self: { stay: [60, 150], most: 3, idle: 40, rest: 180, chance: 0.04, every: 4 },
   ult: { first: [40, 100], every: [90, 180], gap: 20 },
 };
@@ -666,7 +668,8 @@ export class Training {
   }
 
   // One training, from moment to moment (npc.js, pursue): to the yard if it isn't on it; to its
-  // post, facing the dummy; and there, a blow or a spell every so often while the dummy stands.
+  // post, facing the dummy; and there, a blow or a spell every so often while the dummy stands (or,
+  // at the rune rocks, facing in, nothing but their shockwaves to hop as they come: runerocks.js).
   drive(n, dt) {
     const t = n.trainee;
     if (!t) { n.intent = { kind: 'none' }; n.setIntent({ kind: 'wander' }); return false; }
@@ -678,7 +681,7 @@ export class Training {
     }
     if (t.self && this.clock > t.until) { this.dismiss(n); return false; }
     let p = t.post;
-    if (p && !p.dummy.standing) {
+    if (p?.dummy && !p.dummy.standing) {
       p.down ??= this.clock; // (its dummy burst: another, unless it stands again soon)
       if (this.clock - p.down > 1.2) p = null;
     }
@@ -695,6 +698,7 @@ export class Training {
       return false;
     }
     n.body.facing = p.face;
+    if (p.rocks) return false;
     t.cd -= dt;
     t.ultIn -= dt;
     if (!p.dummy.standing) return false;
@@ -709,13 +713,19 @@ export class Training {
     return false;
   }
 
-  // Where n trains next: a caster, off to one side of a dummy; a blade, beside a straw dummy, or
+  // Where n trains next: now and then in the rune rocks' ring, while there's room in it
+  // (runerocks.js); else a caster, off to one side of a dummy; a blade, beside a straw dummy, or
   // behind the great one at its cracked ankle; never where another trains, nor off the floor; the
   // nearer, mostly, with a little chance in it, so that they spread over the yard.
   post(n) {
     const { nav, world } = this.ctx;
     const others = this.trainees().filter((m) => m !== n && m.trainee.post && !m.fighter).map((m) => m.trainee.post);
     const free = (x, z) => world.yard.isWalk(x, z) && nav.walkable(x, z) && others.every((o) => Math.hypot(o.x - x, o.z - z) > 1.3);
+    if (this.ring.open && others.filter((o) => o.rocks).length < AT_ROCKS.most && Math.random() < TRAIN.rocks) {
+      const open = this.ring.posts().filter((o) => free(o.x, o.z));
+      const at = open[Math.floor(Math.random() * open.length)];
+      if (at) return { ...at, rocks: true, tries: 0 };
+    }
     const caster = casts(n) && (styleOf(n).range === 'far' || Math.random() < 0.5);
     const far = reachOf(n);
     const options = [];

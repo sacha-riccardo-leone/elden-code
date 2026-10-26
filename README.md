@@ -57,23 +57,24 @@ again by itself (`?tutorial` in the address shows it anyway).
   1. *Walking*, at the Hold: "Move around with W A S D or the arrows · Hold Shift to sprint".
      Each way lights up once it's been tried, and Shift once you've sprinted with it; once all
      have, on.
-  2. *Blows*, on the training yard, emptied of its dummies (and anyone training) but for three
-     straw ones before you at its west end: "Destroy the three dummies · Attack with" a
+  2. *Blows*, on the training yard, emptied of its dummies (and anyone training): you stand
+     where its great dummy will (in the middle of its sawdust ring, at its west end), three straw
+     ones round you in a triangle pointing east: "Destroy the three dummies · Attack with" a
      left click (or a left or right click, for whoever casts). Two hits break each, blows or spells
      (the training yard's own take four blows); broken, they stay in pieces.
   3. *Dodging*, over at the yard's east end, in the ring of its rune rocks (see the Training Yard
      below), shut till now: step in, and they take their turns. "Dodge with Space to not get hit":
-     a dodge as a crest comes counts, on the counter over the words (0 / 3); a crest that reaches
-     you strikes but takes no health, and the count starts again. Three in a row, and on (the
-     rocks rest again till the tutorial is over). Step out of the ring meanwhile, and they rest
-     and the arrow shows the way back in.
+     a dodge as a crest comes counts, on a counter over the words (0 / 3, shown only in the
+     tutorial); a crest that reaches you strikes but takes no health, and the count starts again.
+     Three in a row, and on (the rocks rest again till the tutorial is over). Step out of the ring
+     meanwhile, and they rest and the arrow shows the way back in.
   4. *The ultimate*, back at the west end: come into the sawdust ring and the great dummy comes in
-     a puff of dust. "Strike its cracked ankle", a gold arrow over it, and the hint for Q, the
-     camera's focus on it (it no longer shows in a fight). Blows on the ankle hurt it no more but
-     fill your ultimate's bar, a fifth each; full, "Use your ultimate attack with R", and the
-     ultimate breaks it at a stroke,
-     with its last blow (Maren's great bolt, after the twelve of her storm; each ultimate marks its
-     last, `client/js/ults.js`).
+     a puff of dust where you began, the straw ones' pieces swept away in it. "Strike its cracked
+     ankle", a gold arrow over it, and the hint for Q, the camera's focus on it (it no longer shows
+     in a fight). Blows on the ankle hurt it no more but fill your ultimate's bar, a fifth each;
+     full, "Use your ultimate attack with R", and the ultimate breaks it at a stroke, with its last
+     blow (Maren's great bolt, after the twelve of her storm; each ultimate marks its last,
+     `client/js/ults.js`).
   5. *Gestures*, back at the Hold: "Open your gestures with B", then "Choose a gesture with" a
      click on one, or its number, 1 to 8.
   6. *Becoming someone*, straight on: a hero of the Round Table (one of those with a single form,
@@ -146,18 +147,21 @@ or from afar. Dummies never strike back. On the yard your ultimate is always ful
 one still freezes the world for its moment, but you needn't wait between them. Leave the yard and
 it's empty again; a fight in the arena always begins with it empty, and it fills as your blows land.
 
-At the yard's east end three **rune rocks** stand round a ring of cyan light, the light of their
-runes (`client/js/runerocks.js`; the user's drawings, `client/assets/fx/rune-rock-1..3.json`, dark
-and with the rune alight, recoloured to the yard's slabs). Step into the ring and they take their
-turns, one after another: each one's rune lights, it's lifted in blue magic (its own light, and
-motes), held up a second and dropped, cracking the floor in its rune's cyan, and its shockwave
-ripples out over the yard's floor as the Golem's do over the arena's, though slower
-(`client/js/ripple.js`, which bends the arena's round floor or the yard's pill-shaped one); each is
-heard too (see Sound). The ring burns brighter meanwhile and the camera pulls back to keep the rock
-lifted in view. A dodge as a crest comes counts, on a counter at the foot of the screen (0 / 3, a
-pip for each); a crest that reaches you strikes as a great enemy's blow does (red, thrown back) but
-takes no health, and the count starts again. Three in a row, a moment's rest, and the count begins
-again from nothing. Step out of the ring and they rest once the one up has come down.
+At the yard's east end three **rune rocks** stand on a ring of thin black cracks in its floor
+(`client/js/runerocks.js`; the user's drawings, `client/assets/fx/rune-rock-1..3.json`, dark and
+with the rune alight, recoloured to the yard's slabs). Step into the ring and a small light kindles
+in the cracks and runs round them from rock to rock, the way their turns go (the north rock, then
+the south-west, then the south-east), a cyan tail fading behind it. As it passes under a rock, that
+rock's rune lights, and it's lifted in blue magic (its own light, and motes), held up a second and
+dropped, cracking the floor in its rune's cyan, and its shockwave ripples out over the yard's floor
+as the Golem's do over the arena's, though slower (`client/js/ripple.js`: each ripple bends only
+the floor it's on, the arena's round one or the yard's pill-shaped one); each is heard too (see
+Sound). The light runs at the pace of their turns, so that it reaches each rock just as its turn
+begins, about a third of the way round every four seconds. The camera pulls back while you're in
+the ring to keep the rock lifted in view. A crest that reaches you strikes as a great enemy's blow
+does (red, thrown back) but takes no health; dodge (Space) through it. With nobody in the ring the
+light goes out and the cracks lie dark (the rock up still comes down). Those training go there too
+(below), and the rocks take their turns for them as for you.
 
 In the middle of the yard burns a little **Site of Grace**. Press E there ("The
 yard's grace") for its menu: **Tutorial** walks the tutorial again (after asking "Use grace to do
@@ -172,7 +176,11 @@ and nothing of its work shows meanwhile (no signs over its head, no
 gestures, no trips to its stations, no spirit ashes), as in a fight. It takes a post (beside a
 straw dummy, behind the great one at its cracked ankle, a spear its farther reach the farther off,
 or, a caster, off to one side) and strikes
-or casts there every so often, now and then going over to another dummy. Rarely (a minute or more
+or casts there every so often, now and then going over to another dummy. Now and then (three times
+in ten, each time it chooses where to go next) it goes to the rune rocks instead, two at most at
+once: it stands in their ring, either side of its middle, and hops each shockwave as it comes, as
+fighters hop the Golem's, but one time in five it hops too soon and is down again as the crest
+passes, thrown back and staggering (nothing taken). Rarely (a minute or more
 into its training, then every few minutes, and never two within twenty seconds on the yard) it
 looses its ultimate at its dummy, quietly: it gathers in its pose with its aura round it, as long as
 ever, but the world doesn't stand still for it or go grey, and the camera neither closes on it nor

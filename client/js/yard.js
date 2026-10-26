@@ -2,8 +2,8 @@
 // ends round) on a rock of its own, south of the Hold and lower than it; a stair of stone comes down
 // to the middle of its north side from the Hold's rim. Its west end is for blows: a sawdust ring, a
 // great wooden dummy in its middle and straw ones scattered round it to strike (training.js); its
-// east end for dodging: three rune rocks round a ring of cyan light, lifted and dropped in turn
-// while one stands inside it (runerocks.js); between them, in its middle, a little Site of Grace
+// east end for dodging: three rune rocks round a ring of cracks in its floor, lifted and dropped in
+// turn while one stands inside it (runerocks.js); between them, in its middle, a little Site of Grace
 // where the Tarnished are called to train and come by grace. Racks of the Round Table's weapons
 // (weapons.js) either side of the stair's foot, barrels and crates, an archery butt, rope lanterns
 // about its edge. Always there.
@@ -17,7 +17,7 @@ import { Builder, seedOf } from './build.js';
 import { GraceFigure } from './grace.js';
 import { addLevel } from './ground.js';
 import { FLOOR } from './arena.js';
-import { rippling } from './ripple.js';
+import { rippling, rippleBounds } from './ripple.js';
 import { weapon } from './weapons.js';
 
 // The yard's half-width (the radius of each of its round ends) and half the length of its straight
@@ -61,9 +61,10 @@ export const BOSS_DUMMY = { x: -L, z: 0, radius: 1.8, clear: 7.2, ring: 9.4 };
 // where they arrive, is kept clear of dummies.
 export const TRAIN_GRACE = { x: 0, z: -1, k: 0.7, clear: 3.2 };
 const DUMMIES = { count: 8, edge: 3, apart: 3.4, clear: 1.4, east: -4 };
-// Its rune rocks (runerocks.js), at its east end: the middle of their ring (from the yard's middle),
-// how far out from it they stand, on it (degrees from the east, round by the south), and how much of
-// the floor round each is kept from those walking (a rock's drawing is about 3 wide).
+// Its rune rocks (runerocks.js), at its east end: the middle of their ring of cracks (from the
+// yard's middle), how far out from it they stand, on it (degrees from the east, round by the south,
+// in the order of their turns), and how much of the floor round each is kept from those walking (a
+// rock's drawing is about 3 wide).
 export const ROCK_RING = { x: L, z: 0, r: 7.6, spots: [-90, 150, 30], block: 1.05 };
 
 // (how far a point lies from the line down the yard's middle, from the middle of one end to the
@@ -190,6 +191,7 @@ export class Yard extends Builder {
     floor.receiveShadow = true;
     floor.userData.dynamic = true; // (never merged with anything: its material bends it)
     this.add(floor);
+    rippleBounds('yard', this.cx, this.cz, R, L);
     const lip = (geo, x, z) => {
       const m = new THREE.Mesh(geo, stoneMoss);
       m.rotation.x = Math.PI / 2;
@@ -219,20 +221,6 @@ export class Yard extends Builder {
     ring.position.set(BOSS_DUMMY.x, y + 0.012, BOSS_DUMMY.z);
     ring.userData.dynamic = true;
     this.add(ring);
-    // and the ring of cyan light at its east end, through the rune rocks, the light of their runes: a
-    // thin line and a faint glow about it, brighter while they take their turns (runerocks.js: glow)
-    const runeRing = (r0, r1, opacity) => {
-      const m = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 128), rippling(new THREE.MeshBasicMaterial({
-        color: '#0afaf5', transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending,
-      })));
-      m.rotation.x = -Math.PI / 2;
-      m.position.set(ROCK_RING.x, y + 0.014, ROCK_RING.z);
-      m.userData.dynamic = true;
-      this.add(m);
-      return m;
-    };
-    this.runeRing = { line: runeRing(ROCK_RING.r - 0.14, ROCK_RING.r + 0.14, 0.4), halo: runeRing(ROCK_RING.r - 0.7, ROCK_RING.r + 0.7, 0.1) };
-    this.glow = 0; // (how bright it burns: 0 at rest, 1 while the rocks take their turns)
 
     // the stair of stone down from the Hold's rim: its head over the cliff's edge, its steps on a
     // slab with a keel of mossy stone under it and a pier down into the mist, low stones along its
@@ -478,11 +466,6 @@ export class Yard extends Builder {
   }
 
   update(dt, t) {
-    // its rune rocks' ring, glowing as they take their turns (runerocks.js sets how much)
-    const rg = this.runeRing;
-    const pulse = 0.85 + 0.15 * Math.sin(t * 2.4);
-    rg.line.material.opacity = (0.32 + 0.5 * this.glow) * pulse;
-    rg.halo.material.opacity = (0.07 + 0.2 * this.glow) * pulse;
     // the lanterns' flames stir
     for (const l of this.lanterns) {
       const k = 0.85 + 0.15 * Math.sin(t * 7 + l.phase) * Math.sin(t * 3.1 + l.phase * 2);

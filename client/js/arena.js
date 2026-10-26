@@ -164,7 +164,7 @@ export class Arena extends Builder {
     floor.receiveShadow = true;
     floor.userData.dynamic = true; // (never merged with anything: its material bends it)
     this.add(floor);
-    rippleBounds(this.cx, this.cz, R);
+    rippleBounds('arena', this.cx, this.cz, R);
     const rock = this.mat.rockTex.clone();
     rock.repeat.set(34, 13);
     rock.needsUpdate = true;

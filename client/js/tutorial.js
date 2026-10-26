@@ -4,15 +4,16 @@
 // enemy coming: main.js). Step by step:
 //   move     at the Hold: walking, W A S D or the arrows, till every way has been tried, and with
 //            Shift held, sprinting;
-//   dummies  through black, on the training yard, emptied of all but three straw dummies at its
-//            west end (training.js, lessonStart): break them, with a left click (or a right one too,
-//            for whoever casts: combat.js, canCast);
+//   dummies  through black, on the training yard where its great dummy will stand, emptied of all
+//            but three straw dummies round thee in a triangle (training.js, lessonStart): break them,
+//            with a left click (or a right one too, for whoever casts: combat.js, canCast);
 //   rocks    over to its east end, into the ring of its rune rocks (runerocks.js): in turn each one's
 //            rune lights, it's lifted in blue magic, held up a second and dropped, and its shockwave
 //            ripples out over the floor (ripple.js); a dodge (Space) through it, three in a row (one
 //            that lands strikes as a great enemy's blow would, red and all, but takes no health);
-//   boss     back to its west end, into the great dummy's sawdust ring: it comes, and blows on its
-//            cracked ankle fill thine ultimate and hurt it no more, and once it's full, R breaks it
+//   boss     back into the sawdust ring where thou began: the great dummy comes (the straw ones'
+//            pieces swept away), and blows on its cracked ankle fill thine ultimate and hurt it no
+//            more, and once it's full, R breaks it
 //            at a stroke (training.js, lesson); here too the hint for Q, the camera's focus on it (no
 //            longer in a fight);
 //   gesture  through black, back at the Hold: thy fan of gestures (B), and one of them, a click on
@@ -39,12 +40,13 @@ import { DODGES } from './runerocks.js';
 const DONE = 'elden-code:tutorial'; // (localStorage: 'done', once walked or skipped)
 // The black between steps: how long it takes to fall, and how long it holds before lifting.
 const FADE = { out: 0.6, hold: 0.35 };
-// Where thou standest: by the Hold's grace (as thou risest there), or on the training yard (from its
-// middle) before its three straw dummies, which stand round `dummies` at its west end (clear of the
-// great one's halberd: yard.js, BOSS_DUMMY); and how many of thy hits (blows or spells) break each
-// (the training yard's own take four blows, or five spells: training.js).
-const SPOT = { hold: [1.6, 1.8], dummies: [-7, -1], stand: [0, 5.5] };
-const DUMMIES = [[-3.6, 1], [0, 0], [3.6, 1]];
+// Where thou standest by the Hold's grace (as thou risest there). On the training yard, where its
+// great dummy will stand (yard.js, BOSS_DUMMY), the three straw dummies round thee in a triangle,
+// pointing east to the rune rocks, none behind thee as the camera sees thee (degrees from the east,
+// round by the south, and how far out); and how many of thy hits (blows or spells) break each (the
+// training yard's own take four blows, or five spells: training.js).
+const SPOT = { hold: [1.6, 1.8] };
+const DUMMIES = { at: [0, 120, -120], out: 4.5 };
 const DUMMY_HITS = 2;
 // The island Maren sets out for (its project's name), and how much more than it the camera takes in.
 const ISLAND = { project: 'your-project', margin: 4 };
@@ -292,17 +294,20 @@ export class Tutorial {
     for (const k of this.el.prompt.querySelectorAll(`[data-way="${way}"]`)) k.classList.add('on');
   }
 
-  // dummies: in the black, the training yard set out: three straw dummies before thee at its west
-  // end, broken ones staying in pieces, and the great dummy, put away till thou comest to it.
+  // dummies: in the black, the training yard set out: thou where the great dummy will stand (put
+  // away till thou comest back to it), three straw dummies round thee, broken ones staying in pieces.
   setDummies() {
     const { training } = this.ctx;
-    const [cx, cz] = SPOT.dummies;
-    const z0 = YARD.cz + cz;
+    const x0 = BOSS_DUMMY.x;
+    const z0 = YARD.cz + BOSS_DUMMY.z;
     this.show('yard');
-    this.place(cx + SPOT.stand[0], z0 + SPOT.stand[1]);
-    this.dummies = DUMMIES.map(([x, z]) => training.addDummy(cx + x, z0 + z, { hits: DUMMY_HITS }));
-    this.great = training.addDummy(BOSS_DUMMY.x, YARD.cz + BOSS_DUMMY.z, { great: true });
+    this.great = training.addDummy(x0, z0, { great: true });
     this.great.putAway(true);
+    this.place(x0, z0);
+    this.dummies = DUMMIES.at.map((deg) => {
+      const a = (deg * Math.PI) / 180;
+      return training.addDummy(x0 + Math.cos(a) * DUMMIES.out, z0 + Math.sin(a) * DUMMIES.out, { hits: DUMMY_HITS });
+    });
   }
 
   stepDummies() {
@@ -351,17 +356,18 @@ export class Tutorial {
     training.ring.reset();
   }
 
-  // rocks: over to their ring; in it, they take their turns, one after another (runerocks.js), till
-  // three are dodged in a row; out of it again, they rest once the one up has come down, and the
-  // arrow shows the way back.
+  // rocks: over to their ring; in it, they take their turns, one after another (runerocks.js), thy
+  // dodges in a row counted, till three are; out of it again, they rest once the one up has come
+  // down, and the arrow shows the way back.
   stepRocks() {
     const { ring } = this.ctx.training;
     if (!this.phase) {
       this.phase = 'walk';
       ring.open = true;
+      ring.counting = true;
     }
     if (this.phase === 'walk' || this.phase === 'dodge') {
-      const phase = ring.on ? 'dodge' : 'walk';
+      const phase = ring.mine ? 'dodge' : 'walk';
       if (phase !== this.phase) {
         this.phase = phase;
         if (phase === 'dodge') this.say(['Dodge with', key('Space', null, true), 'to not get hit']);
@@ -375,13 +381,15 @@ export class Tutorial {
       this.phase = 'over';
       this.doneAt = this.t;
       this.hush();
+      ring.counting = false;
     } else if (this.phase === 'over' && this.t - this.doneAt > 1.2) {
       this.onTo('boss');
     }
   }
 
   // boss: back to the great dummy's sawdust ring; come into it, and a moment after it comes, in a
-  // puff of dust, and thine ultimate's bar with it, empty.
+  // puff of dust (the straw ones' pieces, where it would stand among them, swept away in it), and
+  // thine ultimate's bar with it, empty.
   stepBoss() {
     const { training, pilot, ults, rig } = this.ctx;
     const g = this.great;
@@ -395,6 +403,11 @@ export class Tutorial {
     }
     if (this.phase === 'come') {
       if (this.t - this.cameAt < 0.7) return;
+      for (const d of this.dummies || []) {
+        training.dust(d);
+        training.removeDummy(d);
+      }
+      this.dummies = null;
       g.putAway(false);
       training.dust(g);
       rig.shake?.(0.25);

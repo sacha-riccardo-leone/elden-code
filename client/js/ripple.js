@@ -3,9 +3,9 @@
 // ones following with troughs between, the whole ripple flattening as it spreads and dying out
 // at its reach. The floor (arena.js) and whatever lies flat on it (bossfx.js's decals) bend with
 // it on the graphics card (`rippling` patches their materials); characters ride it (npc.js,
-// fight.js), the same formula evaluated here (`rippleAt`). Only on the arena floor (or the training
-// yard's, under its rune rocks: runerocks.js), never at its rim (it meets the lip and the cliff
-// there).
+// fight.js), the same formula evaluated here (`rippleAt`). Each only on the floor it was struck on,
+// the arena's (or the training yard's, under its rune rocks: runerocks.js), never at its rim (it
+// meets the lip and the cliff there).
 //
 // One ripple, a distance d from where it began, its front having run out to F:
 //   s = F - d (how far behind the front), u = s / length (in wavelengths)
@@ -17,13 +17,16 @@ import * as THREE from 'three';
 
 const MAX = 12; // ripples at once (more, and the faintest goes)
 
-const list = []; // { x, z, amp, length, crests, speed, reach, t, front, minor }
+// The floors that ripple: the arena's (arena.js) and the training yard's (yard.js).
+const FLOORS = ['arena', 'yard'];
+
+const list = []; // { x, z, amp, length, crests, speed, reach, t, front, minor, floor }
 
 export const RIPPLES = {
   uRipA: { value: Array.from({ length: MAX }, () => new THREE.Vector4()) }, // x, z, front, amp now
-  uRipB: { value: Array.from({ length: MAX }, () => new THREE.Vector4()) }, // length, crests
+  uRipB: { value: Array.from({ length: MAX }, () => new THREE.Vector4()) }, // length, crests, its floor
   uRipN: { value: 0 },
-  uRipArena: { value: new THREE.Vector4(0, 0, -1, 0) }, // its middle (x, z), radius, and `along` (rippleBounds)
+  uRipFloor: { value: FLOORS.map(() => new THREE.Vector4(0, 0, -1, 0)) }, // each floor's middle (x, z), radius, and `along` (rippleBounds)
   uRipTint: { value: new THREE.Color(0.1, 0.085, 0.06) }, // a hint of dusty light on a crest
 };
 
@@ -32,21 +35,22 @@ const smoothstep = (e0, e1, x) => {
   return t * t * (3 - 2 * t);
 };
 
-// Where the arena floor is (arena.js), or the training yard's (yard.js, a pill: `along`, half the
-// length of the line down its middle, west to east, its every edge `radius` from that line):
-// ripples bend nothing else.
-export function rippleBounds(cx, cz, radius, along = 0) {
-  RIPPLES.uRipArena.value.set(cx, cz, radius, along);
+// Where a floor is: the arena's (arena.js), round, or the training yard's (yard.js), a pill
+// (`along`: half the length of the line down its middle, west to east, its every edge `radius` from
+// that line). A ripple bends nothing off its own.
+export function rippleBounds(floor, cx, cz, radius, along = 0) {
+  RIPPLES.uRipFloor.value[FLOORS.indexOf(floor)].set(cx, cz, radius, along);
 }
 
-// A ripple from (x, z): its first crest's height, the distance between crests, how many, how fast
-// its front runs and how far before it has died away. `minor` ones (a meteor's) give way first.
-export function addRipple(x, z, { amp, length = 2.2, crests = 3, speed = 15, reach, minor = false }) {
+// A ripple from (x, z) on `floor`: its first crest's height, the distance between crests, how many,
+// how fast its front runs and how far before it has died away. `minor` ones (a meteor's) give way
+// first.
+export function addRipple(x, z, { amp, length = 2.2, crests = 3, speed = 15, reach, minor = false, floor = 'arena' }) {
   if (list.length >= MAX) {
     const i = list.findIndex((r) => r.minor);
     list.splice(i >= 0 ? i : 0, 1);
   }
-  const r = { x, z, amp, length, crests, speed, reach, minor, t: 0, front: 0 };
+  const r = { x, z, amp, length, crests, speed, reach, minor, t: 0, front: 0, floor: FLOORS.indexOf(floor) };
   list.push(r);
   return r;
 }
@@ -64,33 +68,35 @@ export function stepRipples(dt) {
   const { uRipA, uRipB, uRipN } = RIPPLES;
   list.forEach((r, i) => {
     uRipA.value[i].set(r.x, r.z, r.front, ampOf(r));
-    uRipB.value[i].set(r.length, r.crests, 0, 0);
+    uRipB.value[i].set(r.length, r.crests, r.floor, 0);
   });
   uRipN.value = list.length;
 }
 
-export function clearRipples() {
-  list.length = 0;
-  RIPPLES.uRipN.value = 0;
+// Every ripple on `floor` stilled (or on every floor).
+export function clearRipples(floor = null) {
+  const k = FLOORS.indexOf(floor);
+  for (let i = list.length - 1; i >= 0; i--) if (floor == null || list[i].floor === k) list.splice(i, 1);
+  RIPPLES.uRipN.value = list.length;
 }
 
 const ampOf = (r) => r.amp * (1 - smoothstep(0.55 * r.reach, r.reach, r.front));
 
-// The ground's height at (x, z): every ripple under way, none at the floor's rim or off it.
+// The ground's height at (x, z): every ripple under way, each on its own floor alone and none at
+// that floor's rim.
 export function rippleAt(x, z) {
-  if (!list.length) return 0;
-  const [cx, cz, R, along] = RIPPLES.uRipArena.value.toArray();
-  const rim = Math.hypot(Math.max(0, Math.abs(x - cx) - along), z - cz);
-  if (rim > R) return 0;
   let h = 0;
   for (const r of list) {
+    const [cx, cz, R, along] = RIPPLES.uRipFloor.value[r.floor].toArray();
+    const rim = Math.hypot(Math.max(0, Math.abs(x - cx) - along), z - cz);
+    if (rim > R) continue;
     const d = Math.hypot(x - r.x, z - r.z);
     const s = r.front - d;
     if (s <= 0 || s >= r.length * r.crests) continue;
     const u = s / r.length;
-    h += ampOf(r) * (1 - u / r.crests) * Math.sin(2 * Math.PI * u) / Math.sqrt(1 + d / 8);
+    h += ampOf(r) * (1 - u / r.crests) * Math.sin(2 * Math.PI * u) / Math.sqrt(1 + d / 8) * (1 - smoothstep(R - 1.6, R - 0.2, rim));
   }
-  return h * (1 - smoothstep(R - 1.6, R - 0.2, rim));
+  return h;
 }
 
 // The same, on the graphics card.
@@ -98,13 +104,17 @@ const GLSL = /* glsl */ `
 uniform vec4 uRipA[${MAX}];
 uniform vec4 uRipB[${MAX}];
 uniform int uRipN;
-uniform vec4 uRipArena;
+uniform vec4 uRipFloor[${FLOORS.length}];
 float ripOne(vec2 p, vec4 a, vec4 b) {
+  vec4 f = b.z > 0.5 ? uRipFloor[1] : uRipFloor[0];
+  vec2 rq = p - f.xy;
+  float rim = length(vec2(max(0.0, abs(rq.x) - f.w), rq.y));
+  if (rim > f.z) return 0.0;
   float d = distance(p, a.xy);
   float s = a.z - d;
   if (s <= 0.0 || s >= b.x * b.y) return 0.0;
   float u = s / b.x;
-  return a.w * (1.0 - u / b.y) * sin(6.2831853 * u) * inversesqrt(1.0 + d / 8.0);
+  return a.w * (1.0 - u / b.y) * sin(6.2831853 * u) * inversesqrt(1.0 + d / 8.0) * (1.0 - smoothstep(f.z - 1.6, f.z - 0.2, rim));
 }
 float ripAt(vec2 p) {
   float h = 0.0;
@@ -112,9 +122,7 @@ float ripAt(vec2 p) {
     if (i >= uRipN) break;
     h += ripOne(p, uRipA[i], uRipB[i]);
   }
-  vec2 rq = p - uRipArena.xy;
-  float rim = length(vec2(max(0.0, abs(rq.x) - uRipArena.w), rq.y));
-  return h * (1.0 - smoothstep(uRipArena.z - 1.6, uRipArena.z - 0.2, rim));
+  return h;
 }
 `;
 

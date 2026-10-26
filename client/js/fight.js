@@ -2124,7 +2124,7 @@ export class Fight {
           f.hop = null;
           this.ctx.sound?.play('step-land', { at: [n.pos.x, n.pos.y], volume: 0.7 });
         }
-      } else if (n.hopLift) n.hopLift = 0;
+      } else if (n.hopLift && !n.trainee?.hop) n.hopLift = 0; // (one training hops the rune rocks' shockwaves of its own: runerocks.js)
     }
 
     // one that came of its own accord waits no longer for thee to choose than it would on the arena
@@ -2360,7 +2360,7 @@ export class Fight {
   }
 
   end() {
-    clearRipples();
+    clearRipples('arena');
     this.ctx.ults?.finish(); // (an ultimate under way ends with it)
     this.release();
     this.state = 'ending';
