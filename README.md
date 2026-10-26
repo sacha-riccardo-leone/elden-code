@@ -1028,12 +1028,14 @@ ground under you instead, so it flies at your hand's height there too.
       and fang dropping to the floor: "GREAT ENEMY FELLED".
     - **His arena**, from the moment he's revealed (it comes while the screen is black): the world
       beyond it goes black, by day or by night (no sky, no horizon, no sea of cloud below); a ring of
-      frenzied flame burns all round its edge, about three-quarters of the pillars' height, lower and
-      fainter on your side so that it hides nobody, and the fog sealing the way out burns as that
-      fire too; its light falls on the arena from all round; the picture shimmers with the heat; and
-      burning ash drifts up through the air, small glinting orange pixels. It all dies away as he
-      falls. (`Inferno` in `client/js/frenzyfx.js`; the flames are drawn by the game, in his head of
-      flame's colours, till Sacha draws them.)
+      frenzied flame burns all round its edge, black inside like his head of flame, about
+      three-quarters of the pillars' height, lower and fainter on your side so that it hides nobody,
+      and the fog sealing the way out burns as that fire too; its light falls on the arena from all
+      round; the picture shimmers with the heat; and burning ash drifts up through the air, small
+      glinting orange pixels. It all dies away as he falls. (`Inferno` in `client/js/frenzyfx.js`:
+      Sacha's band of flame, stood in copies all round, each bent to the round, every other one
+      mirrored and each at its own moment of the band's four drawings, overlapping so that their
+      dying ends meet; a second row behind them, darker, between them, except on your side.)
   - **His drawings:** standing, fleeing (four frames) and out of breath (two) are each also drawn
     facing left. They're not mirrors (one of his eyes is covered in dead skin and keeps its side), so
     he plays them whenever he faces left (an animation's `left` frames, `client/js/npc.js`). The
@@ -1054,7 +1056,9 @@ ground under you instead, so it flies at your hand's height there too.
     not mirrored: his hands never swap (the sword always in his right hand, the fang in his left).
     He swoops low to lunge and to fly, so that his blade and his body pass through the heroes, not
     over them. His effects are Sacha's drawings too (`art/bosses/Morvane`, `client/js/frenzyfx.js`):
-    the frenzied flame flying and bursting, the Eye, his fang.
+    the frenzied flame flying and bursting, the Eye, his fang, and the band of flame round his arena
+    (`fx-frenzy-band`, four frames sampled at 3 px, its drawing having no even grid to find; its
+    bottom row's grid set 2 px lower, so that all four frames' black base lies on one line).
   - Tuning (health, speed, how long he runs and pants, the change's timings, how much he grows) is
     `MORVANE`, `CHANGE` and `GROW` in `client/js/morvane.js`; his second form's (how fast and how
     often, how far each blow reaches, what each takes, the Eye) is `FLAME_FIGHT`, `EYE` and

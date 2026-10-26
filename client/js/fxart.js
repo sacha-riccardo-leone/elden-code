@@ -41,12 +41,13 @@ const ART = {
   'fenrath-sword': '/assets/fx/fenrath-sword.json',
   'fenrath-eruption': '/assets/fx/fenrath-eruption.json',
   // Morvane's (frenzyfx.js): his frenzied flame, flying and bursting; the Frenzied Eye; his fang, thrown,
-  // and his sword and fang, dropped as he falls
+  // and his sword and fang, dropped as he falls; the band of his flame burning round his arena
   'morvane-flame-ball': '/assets/fx/morvane-flame-ball.json',
   'morvane-flame-burst': '/assets/fx/morvane-flame-burst.json',
   'morvane-eye': '/assets/fx/morvane-eye.json',
   'morvane-fang': '/assets/fx/morvane-fang.json',
   'morvane-sword': '/assets/fx/morvane-sword.json',
+  'morvane-frenzy-band': '/assets/fx/morvane-frenzy-band.json',
   // the tutorial's rune rocks, dark and their rune alight (tutorial.js)
   'rune-rock-1': '/assets/fx/rune-rock-1.json',
   'rune-rock-2': '/assets/fx/rune-rock-2.json',

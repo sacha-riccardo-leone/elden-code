@@ -16,7 +16,7 @@
 // (the particles and the light about it are still there).
 
 import * as THREE from 'three';
-import { glowing, canvasOf, texture } from './bossfx.js';
+import { glowing } from './bossfx.js';
 import { fxArt } from './fxart.js';
 import { flash, carry } from './lights.js';
 import { rng } from './pixel.js';
@@ -286,26 +286,30 @@ export class Dropped {
 // ---------------------------------------------------------------------------------------------
 // his arena, once he's revealed
 
-// The ring of frenzied flame round it: how many tongues of it, how far out from the arena's middle
-// (its floor ends at 19; its round, as its pillars stand, a little narrower front to back), each
-// tongue's size (world units: its tips about three-quarters of the pillars' height) and its drawing's
-// pixels, how many kinds of tongue and how many drawings each loops through, how fast, and how bright
-// (the colour its drawing is multiplied by: past 1, the bloom catches it); toward thee (+z: the sine of
-// its angle, from `from` to `to`) each lower and fainter, down to `low` and `faint`, so that it hides
-// nobody. Its light: so many fires' worth round it, each so strong, reaching so far, so high, so far
-// in from the flames. The burning ash drifting up over the arena: so many a second, living so long.
-// And how long it all takes to come, and to go.
+// The ring of frenzied flame round it, Sacha's band of it (fxart.js: four drawings of one wall of
+// flame, black inside, its fire round the black) stood in copies all round, each bent to the round:
+// how far out from the arena's middle (its floor ends at 19; its round, as its pillars stand, a
+// little narrower front to back), how tall a copy stands (world units: its tallest tongues about
+// three-quarters of the pillars' height; each a little taller or shorter, up to `vary` either way),
+// how far along from one copy the next stands (a share of its width: they overlap, so that one's
+// dying ends meet the next one's middle), and how bright (the colour its drawing is multiplied by:
+// past 1, the bloom catches it); a second row behind, so far further out, taller, darker, standing
+// between the first's copies, and only where it's seen over the first (its angle's sine below
+// `upTo`: not toward thee); how fast a copy flips through its drawings (each at its own moment of
+// them, a little quicker or slower than the next); toward thee (+z: the sine of its angle, from `from`
+// to `to`) each lower and fainter, down to `low` and `faint`, so that it hides nobody. Its light: so
+// many fires' worth round it, each so strong, reaching so far, so high, so far in from the flames. The
+// burning ash drifting up over the arena: so many a second, living so long. And how long it all takes
+// to come, and to go.
 const INFERNO = {
-  count: 72,
-  radius: 19.7,
+  radius: 19.9,
   squash: 0.94,
-  width: 2.8,
   height: 5.6,
-  px: [52, 112],
-  kinds: 4,
-  frames: 10,
-  fps: 11,
-  bright: [1.0, 0.9, 0.82],
+  vary: 0.1,
+  spacing: 0.55,
+  bright: [1.15, 1.0, 0.9],
+  back: { out: 1.2, size: 1.05, tint: 0.7, upTo: 0.35 },
+  fps: 6,
   near: { from: -0.1, to: 0.6, low: 0.16, faint: 0.4 },
   lights: { count: 6, power: 46, reach: 30, y: 2.6, inset: 1.8 },
   ash: { rate: 60, life: [2.2, 3.8] },
@@ -313,56 +317,15 @@ const INFERNO = {
   fadeOut: 3,
 };
 
-// Value noise on a grid `gw` by `gh` cells, wrapping both ways (so that what scrolls through it loops).
-function noiseOf(r, gw, gh) {
-  const g = Array.from({ length: gw * gh }, () => r());
-  const at = (i, j) => g[(((j % gh) + gh) % gh) * gw + (((i % gw) + gw) % gw)];
-  return (x, y) => {
-    const i = Math.floor(x);
-    const j = Math.floor(y);
-    const fx = x - i;
-    const fy = y - j;
-    const sx = fx * fx * (3 - 2 * fx);
-    const sy = fy * fy * (3 - 2 * fy);
-    const a = at(i, j);
-    const b = at(i + 1, j);
-    const c = at(i, j + 1);
-    const d = at(i + 1, j + 1);
-    return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
-  };
-}
-
-// A tongue of frenzied flame, the `n` drawings of its loop, `w` by `h` pixels: a column of fire
-// swaying in a wave that climbs it, ragged at its edges, breaking into licks toward its tip, its
-// fire rising through it; white-hot at its root, then yellow, amber, orange, and deep red-orange at
-// its edges and tips (FRENZY: his head of flame's colours). (The game draws it till Sacha does.)
-function tongueFrames(seed, n, w, h) {
-  const r = rng(seed);
-  const big = noiseOf(r, Math.ceil(w / 8) + 1, h / 8);
-  const fine = noiseOf(r, Math.ceil(w / 4) + 1, h / 4);
-  const ph = [r() * Math.PI * 2, r() * Math.PI * 2, r() * Math.PI * 2];
-  const P = FRENZY;
-  return Array.from({ length: n }, (_, f) => {
-    const t = f / n;
-    return texture(canvasOf(w, h, (put) => {
-      for (let y = 0; y < h; y++) {
-        const u = (h - 1 - y) / (h - 1); // (0 at its root, 1 at its tip)
-        const wave = Math.sin((t - u * 1.2) * Math.PI * 2 + ph[0]) * w * 0.16 * u ** 1.1
-          + Math.sin((t * 2 - u * 2.6) * Math.PI * 2 + ph[1]) * w * 0.06 * u;
-        const mid = w / 2 - 0.5 + wave;
-        const half = w * 0.44 * (1 - u) ** 0.7 * (0.88 + 0.12 * Math.sin((t - u * 2) * Math.PI * 2 + ph[2])) + 0.6;
-        for (let x = 0; x < w; x++) {
-          const a = big(x / 8, (y + t * h) / 8);
-          const b = fine(x / 4, (y + t * h * 2) / 4);
-          const d = Math.abs(x - mid) / half + (a - 0.5) * 0.9 * u + (b - 0.5) * 0.25;
-          if (d > 1) continue;
-          if (u > 0.55 && a < (u - 0.55) * 1.6) continue; // (its tip broken into licks)
-          const heat = (1 - d) * (1 - u * 0.75) + (b - 0.5) * 0.15;
-          put(x, y, heat > 0.88 && u < 0.25 ? P.core : heat > 0.72 ? P.hot : heat > 0.52 ? P.red : heat > 0.3 ? P.deep : P.dark);
-        }
-      }
-    }));
-  });
+// A stretch of the round `r` out, `h` tall, `w` along it, bent to it: its middle at its foot is its
+// origin, the round's middle `r` behind it (-z), its drawing as drawn when seen from within.
+function bent(r, h, w) {
+  const arc = w / r;
+  const g = new THREE.CylinderGeometry(r, r, h, Math.max(4, Math.ceil(arc * 24)), 1, true, -arc / 2, arc);
+  g.translate(0, h / 2, -r);
+  const uv = g.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setX(i, 1 - uv.getX(i));
+  return g;
 }
 
 export class Inferno {
@@ -373,25 +336,46 @@ export class Inferno {
   constructor({ scene, particles, cx, cz, daylight, post }) {
     const I = INFERNO;
     const L = I.lights;
-    this.frames = Array.from({ length: I.kinds }, (_, k) => tongueFrames(7100 + k * 37, I.frames, I.px[0], I.px[1]));
-    this.geo = new THREE.PlaneGeometry(I.width, I.height);
-    this.geo.translate(0, I.height / 2, 0);
-    const r = rng(907);
-    this.tongues = [];
-    for (let i = 0; i < I.count; i++) {
-      const a = (i / I.count) * Math.PI * 2 + r() * 0.04;
-      const s = Math.min(1, Math.max(0, (Math.sin(a) - I.near.from) / (I.near.to - I.near.from)));
-      const near = s * s * (3 - 2 * s);
-      const mat = glowing(this.frames[0][0], 0);
-      mat.color.setRGB(...I.bright);
-      mat.fog = false; // (its light, against the black: never dimmed by the fog)
-      const m = new THREE.Mesh(this.geo, mat);
-      m.position.set(cx + Math.cos(a) * I.radius, 0, cz + Math.sin(a) * I.radius * I.squash);
-      m.scale.set((r() < 0.5 ? -1 : 1) * (0.9 + r() * 0.25), (0.85 + r() * 0.3) * (1 - near * (1 - I.near.low)), 1);
-      m.renderOrder = 4;
-      m.visible = false;
-      scene.add(m);
-      this.tongues.push({ m, kind: i % I.kinds, phase: r() * I.frames, speed: 0.85 + r() * 0.3, faint: 1 - near * (1 - I.near.faint) });
+    this.art = fxArt('morvane-frenzy-band');
+    // (the round squashed front to back as a whole, each copy stood on it facing its middle)
+    this.round = new THREE.Group();
+    this.round.position.set(cx, 0, cz);
+    this.round.scale.z = I.squash;
+    scene.add(this.round);
+    this.copies = [];
+    this.geos = [];
+    const art = this.art;
+    if (art) {
+      const r = rng(907);
+      const rows = [
+        { radius: I.radius, size: 1, tint: 1, order: 4, shift: 0, upTo: 2 },
+        { radius: I.radius + I.back.out, size: I.back.size, tint: I.back.tint, order: 3, shift: 0.5, upTo: I.back.upTo },
+      ];
+      for (const row of rows) {
+        const h = I.height * row.size;
+        const w = (h * art.w) / art.h;
+        const geo = bent(row.radius, h, w);
+        this.geos.push(geo);
+        const n = Math.round((Math.PI * 2 * row.radius) / (w * I.spacing));
+        for (let i = 0; i < n; i++) {
+          const a = ((i + row.shift) / n) * Math.PI * 2 + (r() - 0.5) * 0.06;
+          if (Math.sin(a) > row.upTo) continue;
+          const s = Math.min(1, Math.max(0, (Math.sin(a) - I.near.from) / (I.near.to - I.near.from)));
+          const near = s * s * (3 - 2 * s);
+          const mat = glowing(art.frames[0], 0);
+          mat.color.setRGB(...I.bright.map((c) => c * row.tint));
+          mat.fog = false; // (its light, against the black: never dimmed by the fog)
+          mat.side = THREE.DoubleSide;
+          const m = new THREE.Mesh(geo, mat);
+          m.position.set(Math.cos(a) * row.radius, 0, Math.sin(a) * row.radius);
+          m.rotation.y = Math.PI / 2 - a; // (facing the arena's middle)
+          m.scale.set(r() < 0.5 ? -1 : 1, (1 + (r() * 2 - 1) * I.vary) * (1 - near * (1 - I.near.low)), 1);
+          m.renderOrder = row.order;
+          m.visible = false;
+          this.round.add(m);
+          this.copies.push({ m, phase: r() * art.frames.length, speed: 0.8 + r() * 0.4, faint: 1 - near * (1 - I.near.faint) });
+        }
+      }
     }
     this.lights = Array.from({ length: L.count }, (_, k) => {
       const a = ((k + 0.5) / L.count) * Math.PI * 2;
@@ -410,10 +394,10 @@ export class Inferno {
     const k = this.level;
     this.daylight.frenzy = k;
     this.post.heat = k;
-    for (const g of this.tongues) {
-      g.m.visible = k > 0.01;
-      g.m.material.map = this.frames[g.kind][Math.floor(this.t * I.fps * g.speed + g.phase) % I.frames];
-      g.m.material.opacity = k * g.faint;
+    for (const c of this.copies) {
+      c.m.visible = k > 0.01;
+      c.m.material.map = this.art.frames[Math.floor(this.t * I.fps * c.speed + c.phase) % this.art.frames.length];
+      c.m.material.opacity = k * c.faint;
     }
     for (const L of this.lights) L.level = k;
     // burning ash, drifting up over the arena: small bright orange pixels, glinting
@@ -434,12 +418,9 @@ export class Inferno {
   dispose() {
     this.daylight.frenzy = 0;
     this.post.heat = 0;
-    for (const g of this.tongues) {
-      this.scene.remove(g.m);
-      g.m.material.dispose();
-    }
-    this.geo.dispose();
-    for (const list of this.frames) for (const t of list) t.dispose();
+    this.scene.remove(this.round);
+    for (const c of this.copies) c.m.material.dispose();
+    for (const g of this.geos) g.dispose();
     for (const L of this.lights) L.end(0.3);
   }
 }
