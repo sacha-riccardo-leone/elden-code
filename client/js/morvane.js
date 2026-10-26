@@ -59,8 +59,8 @@ import { FRENZY, FRENZY_LIGHT, FlameBall, FlameBurst, Fang, BareFang, Eye, Dropp
 import { holeOf } from './heroes/morvane-flame.js';
 
 export const MORVANE = {
-  hp: 1500, // his first bar
-  flameHp: 9000, // his second, filling as he's revealed
+  hp: 1000, // his first bar
+  flameHp: 6000, // his second, filling as he's revealed
   speed: 5.6, // fleeing (a little slower than thou runnest)
   run: [3.5, 6], // seconds he runs before he must stop
   pant: [2.6, 3.4], // seconds out of breath: the only time he can be struck
@@ -68,9 +68,9 @@ export const MORVANE = {
   shy: 2.6, // a foe this near, he runs elsewhere
   last: 0.15, // this much of his bar left, he makes one last run, to the middle of the arena, and stays there out of breath
   wheeze: 5.6, // (and wheezes on and on there: his panting heard again every so often)
-  // what his first form's wounds fill thine ultimate with: a twentieth of what they would (all of his
-  // first bar, a quarter of it: the annoying part of him)
-  ultFill: 20,
+  // how many of thy blows (or spells) landing on him fill thine ultimate, whatever each takes, in
+  // either form (fight.js, charge)
+  ultHits: 6,
   hover: 0, // how high his second form floats over where it's drawn floating (heroes/morvane-flame.js), bobbing
 };
 
@@ -106,8 +106,9 @@ const AHEAD = { hand: 122, catch: 118 };
 // and to fly (his lift: coiled, thrusting, flying), how far a lunge carries him, how fast he flies,
 // how far either side of his lane his blade and his body sweep, his slash's crescent (from where
 // before him, how high, how big, how fast, how long, how wide what it strikes), his fang's flight in
-// flame and bare (the circle it bursts in, or stabs, how long it flies out, how high its arc, how long it
-// stays, how long it takes to come back; bare, how many times as big as in his hand); and what each
+// flame (the circle it bursts in, how long it flies out, how high its arc, how long it stays, how
+// long it takes to come back) and bare (the circle it stabs, how fast it flies, straight there and
+// straight back, how long it stays, how many times as big as in his hand); and what each
 // blow takes from thee (of 100; the fighters as much), the Eye's the most beside him, the least at the
 // arena's edge.
 const FLAME_FIGHT = {
@@ -125,7 +126,7 @@ const FLAME_FIGHT = {
   half: { slash: 1.6, lunge: 1.4, fly: 1.4, fang: 0.9 },
   crescent: { from: 2.4, y: 2.4, size: 5.2, speed: 17, life: 0.5, half: 1.7 },
   flame: { r: 2.3, out: 0.55, arc: 2.2, stay: 0.35, back: 0.5 },
-  fang: { r: 1.3, out: 0.38, arc: 0.8, stay: 0.4, back: 0.45, size: 1.6 },
+  fang: { r: 0.9, speed: 45, stay: 0.4, size: 1.6 },
   hurt: { slash: 24, crescent: 18, lunge: 22, fly: 26, flame: 20, stab: 18, back: 12, rain: 14, eye: 46, eyeEdge: 28 },
 };
 // The Frenzied Eye: how high he rises over the middle of the arena, how big it grows (across, its
@@ -231,7 +232,7 @@ export class MorvaneMind {
     return !this.open() && !(this.through && b.state === 'ready');
   }
   // (how hard his wounds fill an ultimate: his first form's barely, combat.js)
-  ultFill() { return this.form === 1 ? MORVANE.ultFill : 1; }
+  ultHits() { return MORVANE.ultHits; }
   // His health over his head, in his first form and his change, till he's named the Lord of Frenzied
   // Flame (fight.updateUi): where it goes.
   ownBar() { return !this.titled; }
@@ -652,7 +653,7 @@ export class MorvaneMind {
     this.light?.end(0.1);
     this.light = carry(this.floor.scene, [b.pos.x, 1.4, b.pos.y + 2.6], { color: FRENZY_LIGHT, power: 16, reach: 14, waver: 0.6 });
     // (his head of flame alight, and his arena his, coming while the screen is still black: frenzyfx.js)
-    this.head = new Head(this.floor.scene, () => this.holeAt());
+    this.head = new Head(body.scene, () => this.holeAt()); // (in the world his body's in, not the arena floor's raised group)
     this.fight.fx.push(this.head);
     const { daylight, post, world } = this.ctx;
     if (daylight && post) {
@@ -703,8 +704,9 @@ export class MorvaneMind {
     if (lift) b.lift = Math.abs(b.lift - this.bob) < 0.05 ? this.bob : b.lift + (this.bob - b.lift) * Math.min(1, dt * 5);
     const at = this.holeAt();
     if (at && Math.random() < dt * 16) {
+      const y = b.lift + at.y - b.body.mesh.position.y; // (from the floor, as what's loosed on it is placed)
       this.floor.particles.emit({
-        pos: [at.x, at.y + at.d * 0.9, at.z + 0.04], spread: [at.d * 1.3, at.d, 0.3], vel: [0, 1.6, 0], velSpread: [0.5, 0.6, 0.3],
+        pos: [at.x, y + at.d * 0.9, at.z + 0.04], spread: [at.d * 1.3, at.d, 0.3], vel: [0, 1.6, 0], velSpread: [0.5, 0.6, 0.3],
         color: FLAME, size: 0.06, life: 1.1, count: 3, drag: 0.7, intensity: 2.6,
       });
     }
@@ -1141,11 +1143,11 @@ export class MorvaneMind {
   }
 
   // The fang flung from his hand (throw-2's, before him) at the marked spot: in flame, in a high arc,
-  // bursting there and burning in the floor a moment; bare, fast and flat, spinning, stabbing point-
-  // first into the floor. Either way it flies back to his hand (held out: throw-3's), cutting or
-  // burning all in its way again; caught, the throw is over (stepMove). As it goes, its flame's tongues
-  // trail behind it, whichever way it's going (or gold sparks off it, bare). He gone meanwhile, it
-  // burns out where it is.
+  // bursting there and burning in the floor a moment; bare, straight there and very fast, point first,
+  // never turning, stabbing into the floor at the slant it came in at. Either way it flies back to his
+  // hand (held out: throw-3's), cutting or burning all in its way again (bare, as straight and as fast,
+  // grip first); caught, the throw is over (stepMove). As it goes, its flame's tongues trail behind it,
+  // whichever way it's going (or gold sparks off it, bare). He gone meanwhile, it burns out where it is.
   fling(a) {
     const b = this.b;
     const fight = this.fight;
@@ -1158,6 +1160,8 @@ export class MorvaneMind {
     const scene = this.floor.scene;
     const fang = bare ? new BareFang(scene, from[0], from[1], from[2] + 0.3, F.size) : new Fang(scene, from[0], from[1], from[2] + 0.3);
     const camera = this.ctx.rig?.camera;
+    if (bare) fang.aim(this.screenAngle(from, to), camera); // (pointing at the mark, and so it stays)
+    const out = bare ? Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]) / F.speed : F.out;
     this.sound('woosh', false, { volume: 0.8 });
     let phase = 'out';
     let t = 0;
@@ -1167,7 +1171,7 @@ export class MorvaneMind {
     // (there, turned the way it goes on the screen, streaming what comes off it)
     const move = (p, dt) => {
       fang.at(p[0], p[1], p[2] + 0.3);
-      if (bare) fang.step(dt, Math.sign(p[0] - last[0]) || 1);
+      if (bare) fang.step(dt);
       else fang.step(dt, this.screenAngle(last, p), camera);
       this.streak(p, last, bare, dt);
       last = p;
@@ -1181,8 +1185,9 @@ export class MorvaneMind {
           return gone < 0.4;
         }
         if (phase === 'out') {
-          const k = Math.min(1, t / F.out);
-          move([from[0] + (to[0] - from[0]) * k, from[1] + (to[1] - from[1]) * k + F.arc * 4 * k * (1 - k), from[2] + (to[2] - from[2]) * k], dt);
+          const k = Math.min(1, t / out);
+          const arc = bare ? 0 : F.arc * 4 * k * (1 - k);
+          move([from[0] + (to[0] - from[0]) * k, from[1] + (to[1] - from[1]) * k + arc, from[2] + (to[2] - from[2]) * k], dt);
           if (k >= 1) {
             phase = 'stuck';
             t = 0;
@@ -1205,7 +1210,8 @@ export class MorvaneMind {
         }
         // back to his hand, wherever it is now
         const goal = reach('catch');
-        const k = Math.min(1, t / F.back);
+        const back = bare ? Math.hypot(goal[0] - to[0], goal[1] - to[1], goal[2] - to[2]) / F.speed : F.back;
+        const k = Math.min(1, t / back);
         const p = [to[0] + (goal[0] - to[0]) * k, to[1] + (goal[1] - to[1]) * k, to[2] + (goal[2] - to[2]) * k];
         move(p, dt);
         fight.strike((qx, qz) => Math.abs(qx - p[0]) <= 0.9 && Math.abs(qz - p[2]) <= FLAME_FIGHT.half.fang, FLAME_FIGHT.hurt.back, seen);

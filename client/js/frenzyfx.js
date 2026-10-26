@@ -5,9 +5,10 @@
 //   FlameBall    – a ball of it in flight, a little copy of his head of flame, its tongues trailing
 //                  behind it whichever way it goes;
 //   FlameBurst   – a ball of it bursting where it lands: the flash, the full burst, the broken tongues;
-//   Fang         – his gold fang thrown, spinning, wreathed in a ball of it (his flame throw);
-//   BareFang     – his gold fang thrown bare, spinning, bigger than in his hand so that it's seen,
-//                  stuck point-first in the floor where it lands (his fang throw);
+//   Fang         – his gold fang thrown, pointing the way it flies, wreathed in a ball of it (his
+//                  flame throw);
+//   BareFang     – his gold fang thrown bare, point first and never turning, bigger than in his hand
+//                  so that it's seen, stuck in the floor where it lands (his fang throw);
 //   Eye          – the Frenzied Eye, his head of flame grown huge, its tongues swirling;
 //   Head         – his head of flame alight, its tongues swirling, over the one in his drawings;
 //   Dropped      – his sword or his fang, let fall as he's felled, lying on the floor;
@@ -135,14 +136,14 @@ export class FlameBurst {
 }
 
 export class Fang {
-  // His fang in the air at (x, y, z), spinning, a ball of frenzied flame round it; or stuck in the
-  // floor, point down.
+  // His fang in the air at (x, y, z), pointing the way it flies, a ball of frenzied flame round it; or
+  // stuck in the floor, point down.
   constructor(scene, x, y, z) {
     const art = fxArt('morvane-fang');
     this.mesh = plane(art, 2.31 / 91, 7); // (as big as in his hand: heroes/morvane-flame.js)
     if (this.mesh) scene.add(this.mesh);
     this.ball = new FlameBall(scene, x, y, z, { size: 2.1 });
-    Object.assign(this, { scene, spin: 0, stuck: false });
+    Object.assign(this, { scene, stuck: false });
     this.at(x, y, z);
   }
 
@@ -151,15 +152,16 @@ export class Fang {
     this.ball.at(x, y, z);
   }
 
-  // flying `angle` on the screen (spinning, its flame's tongues trailing behind it: FlameBall.point),
-  // or stuck in the floor (still, point down)
+  // flying `angle` on the screen (its point that way, its flame's tongues trailing behind it:
+  // FlameBall.point), or stuck in the floor (still, point down)
   step(dt, angle = 0, camera = null) {
     this.ball.step(dt);
-    if (this.stuck) { if (this.mesh) this.mesh.rotation.z = 0; return; }
-    if (camera) this.ball.point(angle, camera);
+    if (this.stuck) { if (this.mesh) this.mesh.rotation.set(0, 0, 0); return; }
+    if (!camera) return;
+    this.ball.point(angle, camera);
     if (!this.mesh) return;
-    this.spin += dt * 18 * (Math.cos(angle) < 0 ? -1 : 1);
-    this.mesh.rotation.z = -this.spin;
+    this.mesh.quaternion.copy(camera.quaternion);
+    this.mesh.rotateZ(angle + Math.PI / 2); // (its point, drawn at the bottom, that way)
   }
 
   set opacity(v) {
@@ -174,8 +176,9 @@ export class Fang {
 }
 
 export class BareFang {
-  // His fang alone in the air at (x, y, z), `scale` times as big as in his hand, spinning; or stuck
-  // in the floor point-first (`stuck`: its point on the floor, where it's set).
+  // His fang alone in the air, its point at (x, y, z), `scale` times as big as in his hand, pointing
+  // where it's aimed (aim) and never turning, whichever way it goes; or stuck in the floor (`stuck`:
+  // its point a little way into it, where it's set).
   constructor(scene, x, y, z, scale = 1.6) {
     const art = fxArt('morvane-fang');
     this.mesh = plane(art, (2.31 / 91) * scale, 7);
@@ -183,21 +186,33 @@ export class BareFang {
     if (this.mesh) scene.add(this.mesh);
     // (its gold catching his fire's light)
     this.light = carry(scene, [x, y, z + 0.3], { color: '#ffd27a', power: 8, reach: 5 });
-    Object.assign(this, { scene, spin: 0, stuck: false });
+    this.point = new THREE.Vector3(0, -1, 0); // (the way its point is turned, in the world: its drawing's bottom)
+    Object.assign(this, { scene, stuck: false, angle: -Math.PI / 2, camera: null });
     this.at(x, y, z);
   }
 
+  // Its point turned toward `angle` on the screen, facing `camera`, and so it stays.
+  aim(angle, camera) {
+    Object.assign(this, { angle, camera });
+    this.face();
+  }
+
+  face() {
+    if (!this.mesh || !this.camera) return;
+    this.mesh.quaternion.copy(this.camera.quaternion);
+    this.mesh.rotateZ(this.angle + Math.PI / 2); // (its point, drawn at the bottom, that way)
+    this.point.set(0, -1, 0).applyQuaternion(this.mesh.quaternion);
+  }
+
   at(x, y, z) {
-    this.mesh?.position.set(x, this.stuck ? y + this.half * 0.8 : y, z);
+    const back = this.half * (this.stuck ? 0.8 : 1); // (its middle behind its point; stuck, its point sunk in a little)
+    this.mesh?.position.set(x - this.point.x * back, y - this.point.y * back, z - this.point.z * back);
     this.light.at(x, y, z + 0.3);
   }
 
-  // flying (spinning, the way it goes: `dir`), or stuck (still, point down)
-  step(dt, dir = 1) {
-    if (!this.mesh) return;
-    if (this.stuck) { this.mesh.rotation.z = 0; return; }
-    this.spin += dt * 24 * dir;
-    this.mesh.rotation.z = -this.spin;
+  // flying or stuck: it never turns (only kept facing the camera)
+  step() {
+    this.face();
   }
 
   set opacity(v) {
@@ -297,9 +312,10 @@ export class Dropped {
 const HEAD = { hole: [56.4, 58.5], d: 26.5, over: 1.15, fps: 10, beat: [0.04, 5.3, 0.02, 13.1], bright: 0.95 };
 
 export class Head {
-  // `where()`, each moment (after his body is set where it stands: fight.js): where the hole in his
-  // head of flame is ({ x, y, z } in the world), how wide (`d`, world units), how much of him is seen
-  // (`opacity`); or null while it isn't to be seen. On till ended (end).
+  // In `scene`, the world his body is drawn in (not the arena floor's raised group: what's placed there
+  // is placed from the floor). `where()`, each moment (after his body is set where it stands: fight.js):
+  // where the hole in his head of flame is ({ x, y, z } in the world), how wide (`d`, world units), how
+  // much of him is seen (`opacity`); or null while it isn't to be seen. On till ended (end).
   constructor(scene, where) {
     this.art = fxArt('morvane-head');
     Object.assign(this, { scene, where, t: 0, ending: false, mesh: null });

@@ -726,11 +726,13 @@ export class Fight {
   }
 
   // Fills src's ultimate by `amount` (what its blow took; or, where his stone takes little, what
-  // the blow was worth: golem.js).
+  // the blow was worth: golem.js); thine, where his mind says so many of thy blows fill it, by one of
+  // them, whatever it took (Morvane's, morvane.js).
   charge(src, amount) {
     if (!src || amount <= 0) return;
     const pilot = this.ctx.pilot;
-    if (src === pilot.npc) pilot.ult = Math.min(1, (pilot.ult || 0) + amount / ultFill(this.boss, true));
+    const hits = this.boss?.mind?.ultHits?.();
+    if (src === pilot.npc) pilot.ult = Math.min(1, (pilot.ult || 0) + (hits ? 1 / hits : amount / ultFill(this.boss, true)));
     else if (src.fighter && !src.fighter.dead) src.fighter.ult = Math.min(1, src.fighter.ult + amount / ultFill(this.boss));
   }
 

@@ -59,7 +59,7 @@ export const SPELL = { npc: 7, player: 22 };
 // half as hard again), and the least time between two loosed by the fighters (thine never waits).
 export const ULT = { fill: { npc: 0.04, player: 0.2 }, power: { npc: 0.0025, player: 0.00375 }, gap: 12 };
 // (an enemy may have them fill sooner: the Golem, whose stone takes little from blows, golem.js; or
-// barely at all, as his mind says: Morvane's first form, morvane.js)
+// thine by so many blows, whatever each takes, as his mind says: Morvane's, morvane.js, fight.js charge)
 export const ultFill = (b, player = false) => (b?.max || 8000) * (b?.mind?.ultFill?.() ?? b?.kind?.ultFill ?? 1) * ULT.fill[player ? 'player' : 'npc'];
 export const ultPower = (b, player = false) => (b?.max || 8000) * ULT.power[player ? 'player' : 'npc'];
 // Where the mages stand off from him, and how long they take between spells.

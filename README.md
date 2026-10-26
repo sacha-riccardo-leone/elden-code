@@ -976,11 +976,11 @@ ground under you instead, so it flies at your hand's height there too.
     Your blade (and an ultimate) reaches him only then: running, he slips away from it (the log says
     so once). What you loose from afar reaches him running too: a spell, Ulric's spear, Ruadan's
     thrown maul, Maren's thunderbolt. He's yours alone: your companions stay in their places in line
-    by the way in, watching him, and join only once he's in his second form. His health (1,500,
-    about a minute) is a small bar he wears over his head, as the training yard's dummies do; the
+    by the way in, watching him, and join only once he's in his second form. His health (1,000,
+    about forty seconds) is a small bar he wears over his head, as the training yard's dummies do; the
     great enemy's bar at the bottom of the screen shows only once he's the Lord of Frenzied Flame.
-    His wounds barely fill your ultimate (a twentieth of what they would: all of his first bar fills
-    a quarter of it). With 15% of his bar left, he makes one last run, to the middle of the arena,
+    Six of your blows or spells that land on him fill your ultimate, however much each takes (in
+    his second form too). With 15% of his bar left, he makes one last run, to the middle of the arena,
     and stays there out of breath, wheezing, till you finish him: his change and his reveal come
     there, where he stands, nobody moved for them.
   - **His change**, as that bar empties: everyone holds still (you can't move or strike) and the
@@ -995,7 +995,7 @@ ground under you instead, so it flies at your hand's height there too.
     - he turns round as **the Lord of Frenzied Flame**, three times as tall (7 units from his head of
       flame to his toes, a little taller than Fenrath): his head a ring of frenzied flame round a
       black hole, arms spread, the sword in one hand and a gold fang in the other. His title shows,
-      and his second bar (9,000) fills.
+      and his second bar (6,000) fills.
   - **His second form** then fights, and your companions are at him now too. He floats, and never
     stays where he is: he drifts about whoever he's after, into their lane a little off them, and
     comes at them quickly, every blow showing itself first (his flame flares as he draws back):
@@ -1010,12 +1010,14 @@ ground under you instead, so it flies at your hand's height there too.
     - **the fly-by:** drawn back, he streaks across the whole arena flat out, head first, burning
       everyone in his path;
     - **the fang:** he throws his gold fang at where you stand (marked on the floor as he draws back),
-      one way or the other each time. **Bare**, it flies fast and flat, spinning (drawn bigger than in
-      his hand, so that you see it, gold sparks streaming off it), and stabs point-first into a small
-      mark. **Wreathed in frenzied flame**, it flies in a high arc, the flame's tongues always
-      trailing behind it, and bursts over a bigger one. Either way it stays a moment, then flies back
-      to his hand, hurting anyone in its way again (the flame turning round as it comes back); one to
-      three throws in a row;
+      one way or the other each time. **Bare**, it flies straight at the mark, point first and never
+      turning, very fast (45 units a second; drawn bigger than in his hand, so that you see it, gold
+      sparks streaming off it), and stabs into the floor at the slant it came in at, in a small mark
+      (0.9 units round); it comes back as straight and as fast, grip first. **Wreathed in frenzied
+      flame**, it flies in a high arc, the fang in it pointing the way it goes and the flame's tongues
+      always trailing behind it, and bursts over a bigger mark. Either way it stays a moment, then
+      flies back to his hand, hurting anyone in its way again (the flame turning round as it comes
+      back); one to three throws in a row;
     - **the Frenzied Eye**, as his bar falls to two-thirds, and again at one-third: he vanishes, comes
       back over the middle of the arena facing you, arms spread, rises, and his head of flame swells
       into a huge burning eye (the camera pulls back to show the whole arena). It drags everyone
