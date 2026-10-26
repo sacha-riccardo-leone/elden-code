@@ -1,5 +1,6 @@
-// Training in the yard below the Hold (yard.js): straw dummies to strike, and a great one in the
-// middle, the Guardian Golem (golem.js) in wood, halberd and all. Each flashes white and wobbles as
+// Training in the yard below the Hold (yard.js): straw dummies to strike, and a great one among them
+// at its west end, the Guardian Golem (golem.js) in wood, halberd and all; and at its east end, rune
+// rocks whose shockwaves are dodged (runerocks.js: `ring`). Each dummy flashes white and wobbles as
 // a blow, a spell or an ultimate lands on it; once it has taken enough, it bursts into pieces, lies
 // in them a while, and stands whole again. As the Golem's stone does, the great one's wood turns
 // every blow but those on its cracked ankle, low on its back leg, and it breaks after half the
@@ -29,10 +30,9 @@
 // floor, so that a spell flies at the height it flies at on the arena.
 //
 // The tutorial (tutorial.js) empties it of all but what it sets out (lessonStart): three straw
-// dummies of its own, which stay in pieces once broken; and on the last of the yards it climbs to
-// (climb.js, each floor higher than the last: setFloor), a great one of its own, whose cracked
+// dummies of its own, which stay in pieces once broken, and a great one of its own, whose cracked
 // ankle fills thine ultimate instead of hurting it, and whom thine ultimate then breaks at a stroke
-// (with its last blow).
+// (with its last blow); and its rune rocks take no turns but in the tutorial's step for them.
 // By the great one, Q turns the camera on it (toggleFocus), as on a great enemy.
 
 import * as THREE from 'three';
@@ -43,6 +43,7 @@ import { styleOf, castSpell, muzzleOf, stepStatus, RANGED, blow, casts, heroKey,
 import { groundAt } from './ground.js';
 import { Spark } from './spellfx.js';
 import { GOLEM } from './golem.js';
+import { RockRing } from './runerocks.js';
 
 // A dummy: its health, what a blow and a spell of thine take of it (an ultimate's blows take what
 // they take, ults.js; a poison what it takes), how far in front of thee a blow finds it, its size
@@ -104,15 +105,13 @@ const meetAt = (n, d) => {
 };
 
 class Dummy {
-  // (`great`: the great one; `block`: what keeps others off its spot, on `on`, the place it stands
-  // in (yard.js; the tutorial's yards, climb.js), its floor `y` high; `hits`: a straw one broken by
-  // so many of thine, blows or spells, rather than by its own health)
-  constructor(training, x, z, great = false, block = null, { on = training.ctx.world.yard, y = YARD.y, hits = 0 } = {}) {
+  // (`great`: the great one; `block`: what keeps others off its spot on the yard's floor (yard.js);
+  // `hits`: a straw one broken by so many of thine, blows or spells, rather than by its own health)
+  constructor(training, x, z, great = false, block = null, { hits = 0 } = {}) {
     this.training = training;
     this.great = great;
     this.block = block;
-    this.on = on;
-    this.y = y;
+    this.y = YARD.y;
     this.away = false; // (put away for the tutorial: putAway)
     this.pos = new THREE.Vector2(x, z);
     this.lift = 0;
@@ -145,12 +144,12 @@ class Dummy {
     mesh.onBeforeRender = onDraw;
     // its foot (where its base meets the floor; the great one's, between its feet) on its place
     const foot = sheet ? (sheet.w / 2 - sheet.foot[0]) * px : 0;
-    mesh.position.set(x + foot, y + h / 2 - 0.02, z);
+    mesh.position.set(x + foot, this.y + h / 2 - 0.02, z);
     mesh.visible = !!sheet;
     const blob = new THREE.Mesh(new THREE.CircleGeometry(great ? GREAT.shadow : 0.62, 18), new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.32, depthWrite: false }));
     blob.rotation.x = -Math.PI / 2;
     blob.scale.y = 0.45;
-    blob.position.set(x, y + 0.015, z + 0.05);
+    blob.position.set(x, this.y + 0.015, z + 0.05);
     blob.renderOrder = 1;
     this.blob = blob;
     training.ctx.scene.add(mesh, blob);
@@ -185,7 +184,7 @@ class Dummy {
     this.blob.geometry.dispose();
     this.blob.material.dispose();
     this.bar?.el.remove();
-    if (this.block) this.on.unblock(this.block);
+    if (this.block) this.training.ctx.world.yard.unblock(this.block);
   }
 
   // The great one's cracked ankle: [x, height above the floor].
@@ -299,19 +298,18 @@ export class Training {
     this.fx = [];
     this.stop = 0;
     this.boss = null; // the dummy an ultimate was last loosed at (ults.js asks after it)
-    // what's loosed here, set on the yard's floor (its particles likewise; in the tutorial, on the
-    // floor of whichever of its yards thou'rt on: setFloor)
-    this.floorY = YARD.y;
+    // what's loosed here, set on the yard's floor (its particles likewise)
     this.group = new THREE.Group();
     this.group.position.y = YARD.y;
     this.group.userData.floor = true; // (not the world's: post.js)
     ctx.scene.add(this.group);
-    const lifted = (p) => [p[0], p[1] + this.floorY, p[2]];
+    const lifted = (p) => [p[0], p[1] + YARD.y, p[2]];
     const particles = {
-      emit: (o) => ctx.particles.emit({ ...o, pos: lifted(o.pos), attract: o.attract && { ...o.attract, y: o.attract.y + this.floorY } }),
+      emit: (o) => ctx.particles.emit({ ...o, pos: lifted(o.pos), attract: o.attract && { ...o.attract, y: o.attract.y + YARD.y } }),
     };
     this.fxCtx = { scene: this.group, particles, add: (e) => this.fx.push(e) };
     this.dummies = null; // (made once their drawing has loaded: start)
+    this.ring = new RockRing(this); // its rune rocks
     this.lesson = null; // the tutorial's: { ult } (lessonStart)
     this.extra = []; // its own dummies (addDummy)
     this.focus = false; // the camera between thee and the great one (Q), or on thee
@@ -326,7 +324,7 @@ export class Training {
     this.v = new THREE.Vector3();
   }
 
-  // The dummies, once the effects' art has loaded (main.js).
+  // The dummies and the rune rocks, once the effects' art has loaded (main.js).
   start() {
     if (this.dummies) return;
     const blocks = this.ctx.world.yard.blocks;
@@ -334,25 +332,24 @@ export class Training {
       new Dummy(this, BOSS_DUMMY.x, YARD.cz + BOSS_DUMMY.z, true, blocks?.great),
       ...DUMMY_SPOTS.map(([x, z], i) => new Dummy(this, x, YARD.cz + z, false, blocks?.dummies[i])),
     ];
+    this.ring.start();
   }
 
-  // Whether n is on the yard (its floor, not the stair; or, in the tutorial, on one of its yards
-  // above: climb.js).
+  // Whether n is on the yard (its floor, not the stair).
   has(n) {
-    const { world } = this.ctx;
-    return !!n && (!!world.yard?.inside(n.pos.x, n.pos.y) || !!world.climb?.inside(n.pos.x, n.pos.y));
+    return !!n && !!this.ctx.world.yard?.inside(n.pos.x, n.pos.y);
   }
 
-  // What's loosed here set on a floor `y` high (the tutorial's, as thou climbest its yards).
-  setFloor(y) {
-    this.floorY = y;
-    this.group.position.y = y;
-  }
-
-  // Where the camera looks (main.js), near the great one: from farther back and a little higher, as
-  // on the arena a great enemy is kept in view (fight.aim), and with the focus on it (Q), between
-  // thee and it; elsewhere it follows thee as ever.
+  // Where the camera looks (main.js): with the rune rocks while thou'rt in their ring (runerocks.js),
+  // else as near the great one.
   aim(me) {
+    return this.ring.aim(me) || this.greatAim(me);
+  }
+
+  // Near the great one: from farther back and a little higher, as on the arena a great enemy is kept
+  // in view (fight.aim), and with the focus on it (Q), between thee and it; elsewhere it follows thee
+  // as ever.
+  greatAim(me) {
     const g = this.dummies?.find((d) => d.great && !d.away);
     if (!g || !this.has(me) || Math.hypot(me.pos.x - g.pos.x, me.pos.y - g.pos.y) > GREAT_CAM.near) return null;
     if (this.focus) return { at: [me.pos.x + (g.pos.x - me.pos.x) * 0.45, g.y + GREAT_CAM.y, me.pos.y + (g.pos.y - me.pos.y) * 0.45], dist: GREAT_CAM.dist, mode: 'great-focus' };
@@ -362,7 +359,7 @@ export class Training {
   // Q by the great one: the camera's focus on it, or back on thee (as on the arena: fight.js).
   // Whether it was by it to turn.
   toggleFocus(me) {
-    if (!this.aim(me)) return false;
+    if (!this.greatAim(me)) return false;
     this.focus = !this.focus;
     this.focusUsed = true; // (the tutorial's hint, shown till then: tutorial.js)
     return true;
@@ -547,33 +544,35 @@ export class Training {
   // the tutorial's (tutorial.js)
 
   // The yard emptied for it: every dummy put away (and whoever trains sent back), the dummies its
-  // own (addDummy), and those broken staying in pieces. Its `lesson` says what it shows of the
-  // great one once that's back: thine ultimate's bar (`ult`, fight.js), filled by its cracked ankle
-  // alone (Dummy.struck, charge).
+  // own (addDummy), and those broken staying in pieces; its rune rocks shut (the tutorial opens them
+  // for its step: runerocks.js). Its `lesson` says what it shows of the great one once that's back:
+  // thine ultimate's bar (`ult`, fight.js), filled by its cracked ankle alone (Dummy.struck, charge).
   lessonStart() {
     this.start();
     this.lesson = { ult: false };
     this.focus = false;
+    this.ring.open = false;
     for (const n of this.trainees()) this.dismiss(n);
     for (const d of this.dummies) d.putAway(true);
   }
 
-  // The yard as it was: its own dummies back where they stood, whole.
+  // The yard as it was: its own dummies back where they stood, whole, and its rune rocks open.
   lessonEnd() {
     if (!this.lesson) return;
     for (const d of [...this.extra]) this.removeDummy(d);
     this.lesson = null;
     this.focus = false;
-    this.setFloor(YARD.y);
+    this.ring.reset();
+    this.ring.open = true;
     for (const d of this.dummies) d.putAway(false);
   }
 
   // A dummy of the tutorial's own, at (x, z): a straw one (broken by so many of thy `hits`, if it
-  // says), or the great one (`great`); on the training yard, or on `on`, one of its yards above
-  // (climb.js), whose floor is `y` high.
-  addDummy(x, z, { great = false, on = this.ctx.world.yard, y = YARD.y, hits = 0 } = {}) {
-    const block = on.blockCircle(x - on.cx, z - on.cz, great ? BOSS_DUMMY.radius : 0.5);
-    const d = new Dummy(this, x, z, great, block, { on, y, hits });
+  // says), or the great one (`great`).
+  addDummy(x, z, { great = false, hits = 0 } = {}) {
+    const { yard } = this.ctx.world;
+    const block = yard.blockCircle(x - yard.cx, z - yard.cz, great ? BOSS_DUMMY.radius : 0.5);
+    const d = new Dummy(this, x, z, great, block, { hits });
     this.dummies.push(d);
     this.extra.push(d);
     return d;
@@ -919,6 +918,7 @@ export class Training {
       // (a poison or a bleeding wobbles it as it ticks)
       stepStatus(d, this.clock, dt, { hit: (amount) => d.struck(amount, 1, false, 0, true), shift: () => {}, particles: this.fxCtx.particles });
     }
+    this.ring.update(dt); // (its rune rocks, while thou'rt in their ring)
     // the blows and spells of those training, at the turn of each
     for (const n of this.ctx.director.npcs.values()) {
       const a = n.action;

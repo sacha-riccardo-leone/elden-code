@@ -3,8 +3,8 @@
 // path there: along thine island and over the bridge first, then north across the Hold. It points
 // where the path goes on from just ahead (GUIDE.lookAhead), so it turns into each corner as it
 // comes, and it fades once thou art on the arena (and comes back if thou leavest it mid-fight).
-// In the tutorial it shows the way up the stair to its next yard, once a yard's step is done
-// (tutorial.js, route).
+// In the tutorial it shows the way across the training yard once a step there is done: to the rune
+// rocks' ring, then to the great dummy's (tutorial.js, route).
 
 import * as THREE from 'three';
 import { GUIDE } from './config.js';

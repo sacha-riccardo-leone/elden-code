@@ -1,68 +1,82 @@
-// The training yard below Roundtable Hold: a round floor of grey brick on a rock of its own, south
-// of the Hold and lower than it, as wide as the Arena of Trials (arena.js) but with no pillars; a
-// stair of stone comes down to it from the Hold's rim. A sawdust ring on its floor, a great wooden
-// dummy in its middle and straw ones scattered over it to strike (training.js), racks of the Round
-// Table's weapons (weapons.js), an archery butt, barrels and crates, rope lanterns about its edge,
-// and a little Site of Grace where the Tarnished are called to train and come by grace. Always
-// there.
+// The training yard below Roundtable Hold: a long floor of grey brick shaped like a pill (its two
+// ends round) on a rock of its own, south of the Hold and lower than it; a stair of stone comes down
+// to the middle of its north side from the Hold's rim. Its west end is for blows: a sawdust ring, a
+// great wooden dummy in its middle and straw ones scattered round it to strike (training.js); its
+// east end for dodging: three rune rocks round a ring of cyan light, lifted and dropped in turn
+// while one stands inside it (runerocks.js); between them, in its middle, a little Site of Grace
+// where the Tarnished are called to train and come by grace. Racks of the Round Table's weapons
+// (weapons.js) either side of the stair's foot, barrels and crates, an archery butt, rope lanterns
+// about its edge. Always there.
 // Its ground is lower than the Hold's (ground.js): on the stair it runs from the one to the other.
 
 import * as THREE from 'three';
-import { HUB, ARENA } from './config.js';
+import { HUB } from './config.js';
 import * as T from './textures.js';
 import { rng } from './pixel.js';
 import { Builder, seedOf } from './build.js';
 import { GraceFigure } from './grace.js';
 import { addLevel } from './ground.js';
-import { FLOOR, discGeometry } from './arena.js';
+import { FLOOR } from './arena.js';
 import { rippling } from './ripple.js';
 import { weapon } from './weapons.js';
 
-// The yard's radius (the arena's); the stair: half its width, its head (where it leaves the Hold's
-// ground, just past the cliff's edge), its length and its steps. `lag`: how far past a step's middle
-// the ground under a foot reaches the step's height, so that a foot sinks at most a hair into the
-// edge of the step below.
-const R = ARENA.radius;
+// The yard's half-width (the radius of each of its round ends) and half the length of its straight
+// middle (each end's middle from its own); the stair: half its width, its head (where it leaves the
+// Hold's ground, just past the cliff's edge), its length and its steps. `lag`: how far past a step's
+// middle the ground under a foot reaches the step's height, so that a foot sinks at most a hair into
+// the edge of the step below.
+const R = 12;
+const L = 18;
 const STAIR = { half: 1.4, top: HUB.radius + 0.5, run: 7.6, steps: 16, lag: 0.14 };
 const NORTH = STAIR.top + STAIR.run; // the yard's north edge, where the stair comes down
-// Its floor's height, its middle, half its width, its south edge, and half the stair's width (where
-// the Hold's rim opens for it, hub.js).
-export const YARD = { y: -3.2, cz: NORTH + R, halfW: R, south: NORTH + 2 * R, stairHalf: STAIR.half };
+// Its floor's height, its middle, half its width (north to south) and half its length (west to
+// east), its south edge, and half the stair's width (where the Hold's rim opens for it, hub.js).
+export const YARD = { y: -3.2, cz: NORTH + R, halfW: R, halfL: L + R, south: NORTH + 2 * R, stairHalf: STAIR.half };
 
 // What stands on its floor, from its middle (`n`: its north edge, where the stair comes down): either
 // side of the stair's foot a rack of the Round Table's weapons (weapons.js, the kinds in it), barrels
-// by the one and crates by the other; an archery butt to the west; lanterns about its edge (degrees
-// from the east, round by the south).
+// by the one and crates by the other; an archery butt on its south side, east of the grace (clear of
+// where the tutorial sets thee before its dummies: tutorial.js); lanterns about its edge, along its
+// straight sides (where they stand along them) and round its ends (degrees from the east, round by
+// the south, about each end's middle).
 const n = -R;
 const PROPS = {
   racks: [[5, n + 3.4, [0, 2, 5, 4, 3]], [-5, n + 3.4, [8, 1, 7, 9, 6]]],
   barrels: [[7.3, n + 4.4], [8, n + 5.4]],
   crates: [-8.2, n + 5.4],
-  butt: [-15.2, 2.6],
-  lanterns: [-112, -68, -24, 22, 66, 114, 158, -158],
+  butt: [6, 8.6],
+  lanterns: { north: [-14, -3.2, 3.2, 14], south: [-12, 0, 12], west: [135, 180, 225], east: [-45, 0, 45] },
 };
 // Its great dummy (training.js): the Guardian Golem in wood, halberd and all, a little smaller than
-// he, in the middle of its sawdust ring, never breaking; where it stands (from the yard's middle),
-// how much of the floor it takes up (nine tenths of his), and how far off the straw ones keep (its
-// halberd reaches far either side of it).
-export const BOSS_DUMMY = { x: 0, z: 0, radius: 1.8, clear: 7.2 };
-// Its straw dummies (training.js): `count` of them, scattered over its floor anew each time the
-// world is made, at least `edge` in from its edge and `apart` from one another, and clear of the
-// stair's foot and of what stands on it (by `clear`, past what each takes up).
-// Its little Site of Grace (training.js), in front of the right-hand rack: where thou callest the
-// Tarnished to train, and where they come by grace; how big it is (of an island's), and how much of
-// the floor round it, where they arrive, is kept clear of dummies.
-export const TRAIN_GRACE = { x: PROPS.racks[0][0], z: PROPS.racks[0][1] + 2.4, k: 0.7, clear: 3.2 };
-const DUMMIES = { count: 8, edge: 3, apart: 3.4, clear: 1.4 };
-export const DUMMY_SPOTS = scatter();
+// he, in the middle of the sawdust ring at the yard's west end, never breaking; where it stands (from
+// the yard's middle), how much of the floor it takes up (nine tenths of his), how far off the straw
+// ones keep (its halberd reaches far either side of it), and its ring's radius.
+export const BOSS_DUMMY = { x: -L, z: 0, radius: 1.8, clear: 7.2, ring: 9.4 };
+// Its straw dummies (training.js): `count` of them, scattered round the great one anew each time the
+// world is made, no further east than `east`, at least `edge` in from its edge and `apart` from one
+// another, and clear of the stair's foot and of what stands on it (by `clear`, past what each takes
+// up).
+// Its little Site of Grace (training.js), in its middle: where thou callest the Tarnished to train,
+// and where they come by grace; how big it is (of an island's), and how much of the floor round it,
+// where they arrive, is kept clear of dummies.
+export const TRAIN_GRACE = { x: 0, z: -1, k: 0.7, clear: 3.2 };
+const DUMMIES = { count: 8, edge: 3, apart: 3.4, clear: 1.4, east: -4 };
+// Its rune rocks (runerocks.js), at its east end: the middle of their ring (from the yard's middle),
+// how far out from it they stand, on it (degrees from the east, round by the south), and how much of
+// the floor round each is kept from those walking (a rock's drawing is about 3 wide).
+export const ROCK_RING = { x: L, z: 0, r: 7.6, spots: [-90, 150, 30], block: 1.05 };
 
-// (how far a point lies from the yard's middle)
-const away = (x, z) => Math.hypot(x, z - YARD.cz);
+// (how far a point lies from the line down the yard's middle, from the middle of one end to the
+// other's: within R of it, on the floor; `off` from the yard's middle, `away` in the world)
+const off = (x, z) => Math.hypot(Math.max(0, Math.abs(x) - L), z);
+const away = (x, z) => off(x, z - YARD.cz);
+
+export const DUMMY_SPOTS = scatter();
 
 // Where the dummies stand, from the yard's middle: chosen at random, over and again until each
 // stands where it may.
 function scatter() {
-  const { count, edge, apart, clear } = DUMMIES;
+  const { count, edge, apart, clear, east } = DUMMIES;
   const keep = [
     [0, n, 5], // (the stair's foot, and the way on from it)
     [BOSS_DUMMY.x, BOSS_DUMMY.z, BOSS_DUMMY.clear],
@@ -74,15 +88,37 @@ function scatter() {
   ];
   const spots = [];
   for (let tries = 0; spots.length < count && tries < 5000; tries++) {
-    const a = Math.random() * Math.PI * 2;
-    const d = Math.sqrt(Math.random()) * (R - edge); // (as likely anywhere on the floor)
-    const x = Math.cos(a) * d;
-    const z = Math.sin(a) * d;
+    const x = -(L + R) + Math.random() * (east + L + R);
+    const z = (Math.random() * 2 - 1) * R;
+    if (off(x, z) > R - edge) continue;
     if (keep.some(([kx, kz, kr]) => Math.hypot(x - kx, z - kz) < kr)) continue;
     if (spots.some(([sx, sz]) => Math.hypot(x - sx, z - sz) < apart)) continue;
     spots.push([x, z]);
   }
   return spots;
+}
+
+// The floor's shape, finely divided as the arena's disc is (arena.js, discGeometry) so that a
+// shockwave can ripple it: a grid as long and wide as the yard, its points beyond either round end
+// brought in onto it.
+function pillGeometry(step) {
+  const geo = new THREE.PlaneGeometry(2 * (L + R), 2 * R, Math.ceil((2 * (L + R)) / step), Math.ceil((2 * R) / step));
+  const pos = geo.attributes.position;
+  const uv = geo.attributes.uv;
+  for (let i = 0; i < pos.count; i++) {
+    let x = pos.getX(i);
+    let y = pos.getY(i);
+    const ex = Math.abs(x) - L;
+    const d = Math.hypot(ex, y);
+    if (ex > 0 && d > R) {
+      x = Math.sign(x) * (L + (ex * R) / d);
+      y *= R / d;
+    }
+    pos.setXY(i, x, y);
+    uv.setXY(i, (x / (L + R) + 1) / 2, (y / R + 1) / 2);
+  }
+  geo.computeVertexNormals();
+  return geo;
 }
 
 export class Yard extends Builder {
@@ -103,7 +139,8 @@ export class Yard extends Builder {
   }
 
   // Where its ground lies: the stair, and the yard with the air round it (an ultimate may carry
-  // someone off its edge for a moment: they stay at its height).
+  // someone off its edge for a moment: they stay at its height). (`away`: from the line down its
+  // middle, so that its round ends and its straight sides are all R from it.)
   isLevel(x, z) {
     return this.onStair(x, z, 0.4) || away(x, z) <= R + 6;
   }
@@ -123,6 +160,11 @@ export class Yard extends Builder {
     return away(x, z) <= R + 0.2;
   }
 
+  // On its floor, at least `inset` in from its edge (runerocks.js: the dust their shockwaves throw up).
+  onFloor(x, z, inset = 0) {
+    return away(x, z) <= R - inset;
+  }
+
   isWalk(x, z) {
     return away(x, z) <= R - 0.6
       || (Math.abs(x) <= STAIR.half - 0.25 && z >= HUB.walkRadius - 0.5 && z <= NORTH + 0.8);
@@ -139,40 +181,64 @@ export class Yard extends Builder {
 
     // its floor of grey brick, the arena's, worn to dirt and moss at the edge; a mossy lip round it
     // (open where the stair lands) and below it a rock of its own, down into the mist. (Finely
-    // divided, as the arena's, so that a shockwave can ripple it like water: the tutorial's rune
-    // rocks, tutorial.js, ripple.js.)
-    const tex = T.pixelTexture(T.floorCanvas(R * 2, R * 2, (cx, cz) => (Math.hypot(cx - R, cz - R) < R - 1.2 ? 1.1 : 0.35), FLOOR, 5150));
-    const floor = new THREE.Mesh(discGeometry(R, 0.25), rippling(new THREE.MeshLambertMaterial({ map: tex }), { lit: true }));
+    // divided, as the arena's, so that a shockwave can ripple it like water: its rune rocks,
+    // runerocks.js, ripple.js.)
+    const tex = T.pixelTexture(T.floorCanvas((L + R) * 2, R * 2, (cx, cz) => (off(cx - L - R, cz - R) < R - 1.2 ? 1.1 : 0.35), FLOOR, 5150));
+    const floor = new THREE.Mesh(pillGeometry(0.25), rippling(new THREE.MeshLambertMaterial({ map: tex }), { lit: true }));
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = y;
     floor.receiveShadow = true;
     floor.userData.dynamic = true; // (never merged with anything: its material bends it)
     this.add(floor);
-    const gap = Math.asin((STAIR.half + 0.4) / (R - 0.1));
-    const rim = new THREE.TorusGeometry(R - 0.1, 0.24, 4, 56, Math.PI * 2 - gap * 2);
-    rim.rotateZ(-Math.PI / 2 + gap); // (the gap to the north)
-    const lip = new THREE.Mesh(rim, stoneMoss);
-    lip.rotation.x = Math.PI / 2;
-    lip.position.y = y - 0.05;
-    this.add(lip);
-    const rock = this.mat.rockTex.clone();
-    rock.repeat.set(34, 13);
-    rock.needsUpdate = true;
-    const cliff = new THREE.Mesh(new THREE.CylinderGeometry(R, R - 2, 28, 44, 1, true), new THREE.MeshLambertMaterial({ map: rock }));
-    cliff.position.y = y - 14;
-    this.add(cliff);
-    // the sawdust ring on it, where blows are traded
-    const ring = new THREE.Mesh(new THREE.RingGeometry(10.2, 10.65, 96), rippling(new THREE.MeshBasicMaterial({ color: '#c9b38a', transparent: true, opacity: 0.5, depthWrite: false })));
+    const lip = (geo, x, z) => {
+      const m = new THREE.Mesh(geo, stoneMoss);
+      m.rotation.x = Math.PI / 2;
+      m.position.set(x, y - 0.05, z);
+      this.add(m);
+    };
+    // (round each end, and along each side: the north one open where the stair lands)
+    for (const s of [-1, 1]) lip(new THREE.TorusGeometry(R - 0.1, 0.24, 4, 28, Math.PI).rotateZ(-s * Math.PI / 2), s * L, 0);
+    const gap = STAIR.half + 0.4;
+    for (const [x0, x1, z] of [[-L, -gap, -(R - 0.1)], [gap, L, -(R - 0.1)], [-L, L, R - 0.1]]) {
+      lip(new THREE.CylinderGeometry(0.24, 0.24, x1 - x0, 4, 1, true).rotateZ(Math.PI / 2), (x0 + x1) / 2, z);
+    }
+    // (its rock: each round end a half of a cone, its sides slanting in as they do)
+    const rockTex = this.mat.rockTex.clone();
+    rockTex.repeat.set(11, 13);
+    rockTex.needsUpdate = true;
+    const rock = new THREE.MeshLambertMaterial({ map: rockTex });
+    for (const s of [-1, 1]) {
+      const end = new THREE.Mesh(new THREE.CylinderGeometry(R, R - 2, 28, 22, 1, true, s > 0 ? 0 : Math.PI, Math.PI), rock);
+      end.position.set(s * L, y - 14, 0);
+      this.add(end);
+      this.add(this.side(s, rock));
+    }
+    // the sawdust ring at its west end, round the great dummy, where blows are traded
+    const ring = new THREE.Mesh(new THREE.RingGeometry(BOSS_DUMMY.ring, BOSS_DUMMY.ring + 0.45, 96), rippling(new THREE.MeshBasicMaterial({ color: '#c9b38a', transparent: true, opacity: 0.5, depthWrite: false })));
     ring.rotation.x = -Math.PI / 2;
-    ring.position.set(0, y + 0.012, 0);
+    ring.position.set(BOSS_DUMMY.x, y + 0.012, BOSS_DUMMY.z);
     ring.userData.dynamic = true;
     this.add(ring);
+    // and the ring of cyan light at its east end, through the rune rocks, the light of their runes: a
+    // thin line and a faint glow about it, brighter while they take their turns (runerocks.js: glow)
+    const runeRing = (r0, r1, opacity) => {
+      const m = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 128), rippling(new THREE.MeshBasicMaterial({
+        color: '#0afaf5', transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending,
+      })));
+      m.rotation.x = -Math.PI / 2;
+      m.position.set(ROCK_RING.x, y + 0.014, ROCK_RING.z);
+      m.userData.dynamic = true;
+      this.add(m);
+      return m;
+    };
+    this.runeRing = { line: runeRing(ROCK_RING.r - 0.14, ROCK_RING.r + 0.14, 0.4), halo: runeRing(ROCK_RING.r - 0.7, ROCK_RING.r + 0.7, 0.1) };
+    this.glow = 0; // (how bright it burns: 0 at rest, 1 while the rocks take their turns)
 
     // the stair of stone down from the Hold's rim: its head over the cliff's edge, its steps on a
     // slab with a keel of mossy stone under it and a pier down into the mist, low stones along its
     // sides and a taller one either side of its head and its foot. (In a group of its own, merged
-    // apart from the rest: the tutorial puts it away while it climbs from the yard, the Hold out
-    // of sight: tutorial.js.)
+    // apart from the rest: the tutorial puts it away while thou'rt on the yard, the Hold out of
+    // sight: tutorial.js.)
     const yardGroup = this.group;
     this.group = new THREE.Group();
     const wide = STAIR.half * 2 + 0.5;
@@ -211,10 +277,17 @@ export class Yard extends Builder {
     this.crates(...PROPS.crates, wood, dark);
     this.butt(...PROPS.butt, dark);
 
-    // rope lanterns on posts about its edge: either side of the stair's foot, and on round it
-    for (const deg of PROPS.lanterns) {
-      const a = (deg * Math.PI) / 180;
-      this.lantern(Math.cos(a) * (R - 0.9), Math.sin(a) * (R - 0.9), dark, iron);
+    // rope lanterns on posts about its edge: along its sides (either side of the stair's foot among
+    // them), and round its ends
+    const e = R - 0.9;
+    const { north, south, west, east } = PROPS.lanterns;
+    for (const x of north) this.lantern(x, -e, dark, iron);
+    for (const x of south) this.lantern(x, e, dark, iron);
+    for (const [ex, degs] of [[-L, west], [L, east]]) {
+      for (const deg of degs) {
+        const a = (deg * Math.PI) / 180;
+        this.lantern(ex + Math.cos(a) * e, Math.sin(a) * e, dark, iron);
+      }
     }
 
     this.buildGrace();
@@ -225,6 +298,36 @@ export class Yard extends Builder {
       dummies: DUMMY_SPOTS.map(([x, z]) => this.blockCircle(x, z, 0.5)),
       great: this.blockCircle(BOSS_DUMMY.x, BOSS_DUMMY.z, BOSS_DUMMY.radius),
     };
+    // and where its rune rocks stand (runerocks.js)
+    for (const [x, z] of this.rockSpots()) this.blockCircle(x - this.cx, z - this.cz, ROCK_RING.block);
+  }
+
+  // Where its rune rocks stand, in the world, in their order (runerocks.js).
+  rockSpots() {
+    return ROCK_RING.spots.map((deg) => {
+      const a = (deg * Math.PI) / 180;
+      return [this.cx + ROCK_RING.x + Math.cos(a) * ROCK_RING.r, this.cz + ROCK_RING.z + Math.sin(a) * ROCK_RING.r];
+    });
+  }
+
+  // The middle of its rune rocks' ring, in the world, and its radius.
+  ring() {
+    return { x: this.cx + ROCK_RING.x, z: this.cz + ROCK_RING.z, r: ROCK_RING.r };
+  }
+
+  // One of its rock's straight sides, under one of its straight edges (`s`: -1 the north, 1 the
+  // south), slanting in from the floor's edge to its foot as its ends' rounds do (its stone as
+  // finely drawn as theirs: `u`, its length in a round end's).
+  side(s, mat) {
+    const geo = new THREE.BufferGeometry();
+    const u = (2 * L) / (Math.PI * R);
+    geo.setAttribute('position', new THREE.Float32BufferAttribute([-L, 0, s * R, L, 0, s * R, -L, -28, s * (R - 2), L, -28, s * (R - 2)], 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, u, 1, 0, 0, u, 0], 2));
+    geo.setIndex(s < 0 ? [0, 1, 2, 2, 1, 3] : [0, 2, 1, 1, 2, 3]); // (facing out)
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, mat);
+    m.position.y = YARD.y;
+    return m;
   }
 
   // A weapon rack: two posts with caps, a rail high and one low between them, a trough at their
@@ -304,12 +407,13 @@ export class Yard extends Builder {
     this.blockCircle(x + 0.45, z + 0.15, 1.05);
   }
 
-  // A lantern on a post, hung from an arm reaching in over the floor.
+  // A lantern on a post, hung from an arm reaching in over the floor (toward the line down its middle).
   lantern(x, z, dark, iron) {
     const y = YARD.y;
     this.box(0.18, 2.6, 0.18, dark, x, y + 1.3, z, { tile: 1 });
-    const d = Math.hypot(x, z) || 1;
-    const ax = (-x / d) * 0.45;
+    const mx = Math.max(-L, Math.min(L, x)) - x;
+    const d = Math.hypot(mx, z) || 1;
+    const ax = (mx / d) * 0.45;
     const az = (-z / d) * 0.45;
     this.box(0.55, 0.1, 0.1, dark, x + ax / 2, y + 2.5, z + az / 2, { tile: 1, ry: Math.atan2(-az, ax) });
     this.box(0.03, 0.35, 0.03, iron, x + ax, y + 2.3, z + az, { tile: 1 });
@@ -374,6 +478,11 @@ export class Yard extends Builder {
   }
 
   update(dt, t) {
+    // its rune rocks' ring, glowing as they take their turns (runerocks.js sets how much)
+    const rg = this.runeRing;
+    const pulse = 0.85 + 0.15 * Math.sin(t * 2.4);
+    rg.line.material.opacity = (0.32 + 0.5 * this.glow) * pulse;
+    rg.halo.material.opacity = (0.07 + 0.2 * this.glow) * pulse;
     // the lanterns' flames stir
     for (const l of this.lanterns) {
       const k = 0.85 + 0.15 * Math.sin(t * 7 + l.phase) * Math.sin(t * 3.1 + l.phase * 2);

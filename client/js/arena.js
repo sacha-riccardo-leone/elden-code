@@ -54,9 +54,9 @@ const sealFrag = (w, h) => /* glsl */ `
 `;
 
 // A wall of that fog, `w` wide and `h` tall, facing +z (set its middle h / 2 over the ground), out
-// of sight till its `uIntensity` (0..1) brings it up, its `uTime` swirling it: the arena's, across
-// its way in, and the tutorial's, at the feet and heads of its stairs (climb.js).
-export function fogWall(w, h) {
+// of sight till its `uIntensity` (0..1) brings it up, its `uTime` swirling it: across the arena's
+// way in.
+function fogWall(w, h) {
   const uniforms = { uTime: { value: 0 }, uIntensity: { value: 0 }, uFrenzy: { value: 0 } };
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.ShaderMaterial({
     vertexShader: UV_VERT, fragmentShader: sealFrag(w, h), uniforms,

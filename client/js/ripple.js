@@ -3,8 +3,9 @@
 // ones following with troughs between, the whole ripple flattening as it spreads and dying out
 // at its reach. The floor (arena.js) and whatever lies flat on it (bossfx.js's decals) bend with
 // it on the graphics card (`rippling` patches their materials); characters ride it (npc.js,
-// fight.js), the same formula evaluated here (`rippleAt`). Only on the arena floor, never at its
-// rim (it meets the lip and the cliff there).
+// fight.js), the same formula evaluated here (`rippleAt`). Only on the arena floor (or the training
+// yard's, under its rune rocks: runerocks.js), never at its rim (it meets the lip and the cliff
+// there).
 //
 // One ripple, a distance d from where it began, its front having run out to F:
 //   s = F - d (how far behind the front), u = s / length (in wavelengths)
@@ -22,7 +23,7 @@ export const RIPPLES = {
   uRipA: { value: Array.from({ length: MAX }, () => new THREE.Vector4()) }, // x, z, front, amp now
   uRipB: { value: Array.from({ length: MAX }, () => new THREE.Vector4()) }, // length, crests
   uRipN: { value: 0 },
-  uRipArena: { value: new THREE.Vector3(0, 0, -1) }, // its middle (x, z) and radius
+  uRipArena: { value: new THREE.Vector4(0, 0, -1, 0) }, // its middle (x, z), radius, and `along` (rippleBounds)
   uRipTint: { value: new THREE.Color(0.1, 0.085, 0.06) }, // a hint of dusty light on a crest
 };
 
@@ -31,9 +32,11 @@ const smoothstep = (e0, e1, x) => {
   return t * t * (3 - 2 * t);
 };
 
-// Where the arena floor is (arena.js): ripples bend nothing else.
-export function rippleBounds(cx, cz, radius) {
-  RIPPLES.uRipArena.value.set(cx, cz, radius);
+// Where the arena floor is (arena.js), or the training yard's (yard.js, a pill: `along`, half the
+// length of the line down its middle, west to east, its every edge `radius` from that line):
+// ripples bend nothing else.
+export function rippleBounds(cx, cz, radius, along = 0) {
+  RIPPLES.uRipArena.value.set(cx, cz, radius, along);
 }
 
 // A ripple from (x, z): its first crest's height, the distance between crests, how many, how fast
@@ -76,8 +79,8 @@ const ampOf = (r) => r.amp * (1 - smoothstep(0.55 * r.reach, r.reach, r.front));
 // The ground's height at (x, z): every ripple under way, none at the floor's rim or off it.
 export function rippleAt(x, z) {
   if (!list.length) return 0;
-  const [cx, cz, R] = RIPPLES.uRipArena.value.toArray();
-  const rim = Math.hypot(x - cx, z - cz);
+  const [cx, cz, R, along] = RIPPLES.uRipArena.value.toArray();
+  const rim = Math.hypot(Math.max(0, Math.abs(x - cx) - along), z - cz);
   if (rim > R) return 0;
   let h = 0;
   for (const r of list) {
@@ -95,7 +98,7 @@ const GLSL = /* glsl */ `
 uniform vec4 uRipA[${MAX}];
 uniform vec4 uRipB[${MAX}];
 uniform int uRipN;
-uniform vec3 uRipArena;
+uniform vec4 uRipArena;
 float ripOne(vec2 p, vec4 a, vec4 b) {
   float d = distance(p, a.xy);
   float s = a.z - d;
@@ -109,7 +112,8 @@ float ripAt(vec2 p) {
     if (i >= uRipN) break;
     h += ripOne(p, uRipA[i], uRipB[i]);
   }
-  float rim = distance(p, uRipArena.xy);
+  vec2 rq = p - uRipArena.xy;
+  float rim = length(vec2(max(0.0, abs(rq.x) - uRipArena.w), rq.y));
   return h * (1.0 - smoothstep(uRipArena.z - 1.6, uRipArena.z - 0.2, rim));
 }
 `;

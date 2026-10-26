@@ -55,11 +55,10 @@ export class Nav {
   }
 
   rebuild() {
-    const { minX, maxX } = this.world.extent();
-    // (from west to east: every island, and the training yard, wider than the Hold above it)
-    this.x0 = Math.min(minX, -YARD.halfW) - 1;
+    const { minX, maxX } = this.world.extent(); // (from west to east: every island, and the training yard)
+    this.x0 = minX - 1;
     this.z0 = MIN_Z;
-    this.w = Math.ceil((Math.max(maxX, YARD.halfW) + 1 - this.x0) / CELL) + 1;
+    this.w = Math.ceil((maxX + 1 - this.x0) / CELL) + 1;
     this.h = Math.ceil((MAX_Z - MIN_Z) / CELL) + 1;
     this.blocked = new Uint8Array(this.w * this.h);
     for (let j = 0; j < this.h; j++) {

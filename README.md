@@ -42,41 +42,36 @@ again by itself (`?tutorial` in the address shows it anyway).
   island, no heroes at the Round Table, the training yard out of sight. No session is taken up
   meanwhile (locally the bridge's stream is opened afresh once it's over, so its snapshot is the
   world as it stands then), the public demo's sessions wait, and no great enemy comes.
-- **How it's shown:** black falls between the Hold and the yards, there and back; the three yard
-  steps are climbed on foot (below). What to do is written at the foot of the screen, the keys to
-  press drawn as keys, in the gold of the hint a fight used to show: W A S D and the arrows laid out
-  as on a keyboard, Shift, Space, R, Q, and the mouse with the button to click lit. Each step lets
-  through only what it teaches and what came before, and keeps you to the place it's in.
-- **The climb** (`client/js/climb.js`): the training yard and two more yards east of it, there only
-  for the tutorial, each 3.2 higher than the last and bare (a floor of grey brick, a mossy lip, its
-  rock down into the mist, lanterns), joined by stone stairs like the Hold's. A wall of fog (the
-  arena's) stands across the foot of each stair, between its end stones, till its yard's step is
-  done, with soft mist banked in it (seen from the side, as the camera sees a wall across a stair,
-  it would otherwise be a thin line); then it thins away and the golden arrow that shows the way to
-  the arena in a fight points you up. Come up onto the next yard, the fog closes across the stair's
-  head behind you, and its step begins. The training yard's own stair up to the Hold is put away
-  meanwhile (the Hold is out of sight: it would lead nowhere).
+- **How it's shown:** black falls between the Hold and the training yard, there and back; on the
+  yard you walk from one step to the next (below). What to do is written at the foot of the
+  screen, the keys to press drawn as keys, in the gold of the hint a fight used to show: W A S D
+  and the arrows laid out as on a keyboard, Shift, Space, R, Q, and the mouse with the button to
+  click lit. Each step lets through only what it teaches and what came before, and keeps you to
+  the place it's in.
+- **On the yard:** the three middle steps all take place on the training yard (see below), the Hold
+  out of sight and the yard's own stair up to it put away meanwhile (it would lead nowhere); you
+  keep to its floor. Once a step is done, the golden arrow that shows the way to the arena in a
+  fight shows the way to the next: over to the ring of the rune rocks at the yard's east end, then
+  back to the great dummy's sawdust ring at its west end. Come into the ring, and its step begins.
 - **The steps:**
   1. *Walking*, at the Hold: "Move around with W A S D or the arrows · Hold Shift to sprint".
      Each way lights up once it's been tried, and Shift once you've sprinted with it; once all
      have, on.
   2. *Blows*, on the training yard, emptied of its dummies (and anyone training) but for three
-     straw ones before you, the Hold out of sight: "Destroy the three dummies · Attack with" a
+     straw ones before you at its west end: "Destroy the three dummies · Attack with" a
      left click (or a left or right click, for whoever casts). Two hits break each, blows or spells
      (the training yard's own take four blows); broken, they stay in pieces.
-  3. *Dodging*, up the stair on the next yard, three rune rocks in a wide triangle round its
-     middle (the user's drawings, `client/assets/fx/rune-rock-1..3.json`, dark and with the rune
-     alight, recoloured to the yard's slabs). As soon as the fog has shut you in, each one's rune
-     lights in turn, it's lifted in blue magic (its own light, and motes), held up a second and
-     dropped, cracking the floor in its rune's cyan, and its shockwave ripples out over the whole
-     floor as the Golem's do, though slower (`client/js/ripple.js`); each is heard too (see Sound). "Dodge with Space to not get hit": a dodge as its crest comes counts,
-     on a counter over the words (0 / 3); a crest that reaches you strikes as a great enemy's blow
-     does (red, thrown back) but takes no health, and the count starts again. Three in a row, and
-     on.
-  4. *The ultimate*, up the last stair: the great dummy comes in a puff of dust. "Strike its
-     cracked ankle", a gold arrow over it, and the hint for Q, the camera's focus on it (it no
-     longer shows in a fight). Blows on the ankle hurt it no more but fill your ultimate's bar, a
-     fifth each; full, "Use your ultimate attack with R", and the ultimate breaks it at a stroke,
+  3. *Dodging*, over at the yard's east end, in the ring of its rune rocks (see the Training Yard
+     below), shut till now: step in, and they take their turns. "Dodge with Space to not get hit":
+     a dodge as a crest comes counts, on the counter over the words (0 / 3); a crest that reaches
+     you strikes but takes no health, and the count starts again. Three in a row, and on (the
+     rocks rest again till the tutorial is over). Step out of the ring meanwhile, and they rest
+     and the arrow shows the way back in.
+  4. *The ultimate*, back at the west end: come into the sawdust ring and the great dummy comes in
+     a puff of dust. "Strike its cracked ankle", a gold arrow over it, and the hint for Q, the
+     camera's focus on it (it no longer shows in a fight). Blows on the ankle hurt it no more but
+     fill your ultimate's bar, a fifth each; full, "Use your ultimate attack with R", and the
+     ultimate breaks it at a stroke,
      with its last blow (Maren's great bolt, after the twelve of her storm; each ultimate marks its
      last, `client/js/ults.js`).
   5. *Gestures*, back at the Hold: "Open your gestures with B", then "Choose a gesture with" a
@@ -119,11 +114,13 @@ far larger. When work calls and home is far, they fast travel: they dissolve int
 and reappear at their region's Site of Grace.
 
 South of the Hold, and lower, lies the **Training Yard** (`client/js/yard.js`), always there: a
-round floor of grey brick on a rock of its own, as wide as the arena's but without its pillars. A
-stone stair comes down to it from the rim, and whoever walks it goes down with it
-(`client/js/ground.js` gives the ground's height wherever it isn't level with the Hold). In the
-middle of its sawdust ring stands a great dummy: the Guardian Golem in wood, halberd and all, a
-little smaller than he (7.1 units tall to his 7.9). As with him, its only weakness is its cracked
+long floor of grey brick shaped like a pill, 60 long and 24 wide with its two ends round, on a rock
+of its own. Its west end is for blows, its east end for dodging, and a little Site of Grace burns
+in the middle. A stone stair comes down from the Hold's rim to the middle of its north side, and
+whoever walks it goes down with it (`client/js/ground.js` gives the ground's height wherever it
+isn't level with the Hold). At its west end, in the middle of a sawdust ring, stands a great
+dummy: the Guardian Golem in wood, halberd and all, a little smaller than he (7.1 units tall to his
+7.9). As with him, its only weakness is its cracked
 ankle, low on its back leg: a blow lands only there, struck from behind it, and its wood turns any
 other (splinters and a spark, the striker bouncing off, and the first time a word in the log on
 where to strike); spells fly at the ankle; ultimates land whole. It breaks after half the blows on
@@ -135,9 +132,10 @@ never feels one: a share of its health for every point the ultimate deals, a who
 (`boss-dummy-broken`), and stands whole again in a puff of dust. Near it the
 camera pulls back and looks a little higher to keep the whole of it in view, as it does for a great
 enemy on the arena, and Q turns its focus on it (between you and it) and back, as on him. Eight straw dummies stand scattered round it (`client/js/training.js`), in new
-places each time the page loads, clear of it, the stair's foot, the props and one another. Racks of
-the Round Table's weapons (`client/js/weapons.js`) flank the foot of the stair, with barrels and
-crates beside them; an archery butt stands to the west, and rope lanterns light the edge. Blows,
+places each time the page loads, over the west half of the yard, clear of it, the stair's foot, the
+props and one another. Racks of the Round Table's weapons (`client/js/weapons.js`) flank the foot
+of the stair, with barrels and crates beside them; an archery butt stands on the south side, east
+of the grace, and rope lanterns light the edge. Blows,
 spells and ultimates find the dummies as they find a great enemy. A dummy flashes white as each one
 lands, as a character struck does (as briefly, and pale by night, never a light going off), and
 wobbles away from it; once a straw one has taken enough it bursts into pieces, then stands whole
@@ -148,7 +146,20 @@ or from afar. Dummies never strike back. On the yard your ultimate is always ful
 one still freezes the world for its moment, but you needn't wait between them. Leave the yard and
 it's empty again; a fight in the arena always begins with it empty, and it fills as your blows land.
 
-In front of the right-hand weapon rack burns a little **Site of Grace**. Press E there ("The
+At the yard's east end three **rune rocks** stand round a ring of cyan light, the light of their
+runes (`client/js/runerocks.js`; the user's drawings, `client/assets/fx/rune-rock-1..3.json`, dark
+and with the rune alight, recoloured to the yard's slabs). Step into the ring and they take their
+turns, one after another: each one's rune lights, it's lifted in blue magic (its own light, and
+motes), held up a second and dropped, cracking the floor in its rune's cyan, and its shockwave
+ripples out over the yard's floor as the Golem's do over the arena's, though slower
+(`client/js/ripple.js`, which bends the arena's round floor or the yard's pill-shaped one); each is
+heard too (see Sound). The ring burns brighter meanwhile and the camera pulls back to keep the rock
+lifted in view. A dodge as a crest comes counts, on a counter at the foot of the screen (0 / 3, a
+pip for each); a crest that reaches you strikes as a great enemy's blow does (red, thrown back) but
+takes no health, and the count starts again. Three in a row, a moment's rest, and the count begins
+again from nothing. Step out of the ring and they rest once the one up has come down.
+
+In the middle of the yard burns a little **Site of Grace**. Press E there ("The
 yard's grace") for its menu: **Tutorial** walks the tutorial again (after asking "Use grace to do
 the tutorial?"), and **Call to training** chooses who trains, in the same window that chooses
 companions for a great enemy:
@@ -1345,7 +1356,7 @@ table says what each clip is cut from.
   together as one bursts (a straw one's each at a pitch of its own, anywhere from a little lower to
   a good deal higher; the great one's louder, and lower than any, struck as bursting); and
   `after_click_start_your_tarnished_journey` as you set out from the title.
-- **The tutorial's rune rocks** (`client/assets/sfx/IMPORT/Tutorial rocks`, cut into the `rocks` set),
+- **The training yard's rune rocks** (`client/assets/sfx/IMPORT/Tutorial rocks`, cut into the `rocks` set),
   each where the rock stands: `rock_rune_lighting` as its rune lights (from its first sound, so that
   it crests as the rune is alight); `rock_levitating` as it's lifted, humming on while it's held up,
   and `rock_levitating_very_quiet` under it, very quietly, as it's named (both hushed as it drops);
@@ -1541,8 +1552,8 @@ server/registry.js      per-session state for late joiners
 scripts/                install/uninstall hooks, simulator, the art and sound tools, and bake-sheets.mjs (the characters' sheets baked ahead of time)
 client/js/title.js      the title screen: the pixel-art wordmark, sigil and embers, the way in, loading
 client/js/gate.js       where the title and the world meet: set out, and ready (and the tutorial asked for again)
-client/js/tutorial.js   the tutorial on the first journey: its steps, the keys drawn as keys, the rune rocks and their shockwaves, the world held back meanwhile
-client/js/climb.js      the tutorial's climb: two yards above the training yard, the stone stairs up to them, the walls of fog
+client/js/tutorial.js   the tutorial on the first journey: its steps, the keys drawn as keys, the world held back meanwhile
+client/js/runerocks.js  the training yard's rune rocks: their turns round their ring of cyan light, their shockwaves, the dodges counted
 client/js/sprites.js    procedural pixel-art characters (base body + equipment layers)
 client/js/world.js      sky, far skyline, mist, islands, bridges, pooled lights
 client/js/lights.js     what lights the world besides its lamps: effects, and what glows on characters

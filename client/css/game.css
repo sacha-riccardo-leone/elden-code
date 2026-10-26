@@ -1048,6 +1048,8 @@ body.in-battle #dummy-bars { display: none; }
 }
 .tut-count {
   position: fixed;
+  z-index: 12;
+  pointer-events: none;
   left: 50%;
   bottom: calc(11% + 70px);
   transform: translateX(-50%);
