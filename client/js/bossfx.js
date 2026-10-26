@@ -293,8 +293,8 @@ function halfCanvas() {
 }
 
 // The ring about to erupt: everything between the safe circle in the middle (`inner`, its share of
-// the radius) and the edge, its light filling it, both edges bright.
-function annulusCanvas(inner = 0.3) {
+// the radius) and the edge, its light filling it, both edges bright (red light, or `P`'s).
+function annulusCanvas(inner = 0.3, P = RED) {
   const r = rng(31);
   return canvasOf(192, 192, (put, w, h) => {
     const c = w / 2 - 0.5;
@@ -307,8 +307,31 @@ function annulusCanvas(inner = 0.3) {
         const edge = R + Math.sin(a * 9) * 1.2 + Math.sin(a * 23 + 1) * 0.6;
         const inside = Ri + Math.sin(a * 7 + 3) * 0.8;
         if (d > edge || d < inside) continue;
-        if (d > edge - 4 || d < inside + 3) put(x, y, shade(0.55 + (r() - 0.5) * 0.25));
-        else put(x, y, RED.deep, Math.round(60 + 60 * ((d - inside) / (edge - inside))));
+        if (d > edge - 4 || d < inside + 3) put(x, y, shade(0.55 + (r() - 0.5) * 0.25, P));
+        else put(x, y, P.deep, Math.round(60 + 60 * ((d - inside) / (edge - inside))));
+      }
+    }
+  });
+}
+
+// A band across the arena about to burn, along its middle line (`half`: how far it reaches either side
+// of it, its share of the radius): its light filling it, its edges (the two long ones and its round
+// ends) bright and ragged (red light, or `P`'s).
+function bandCanvas(half = 0.66, P = RED) {
+  const r = rng(37);
+  return canvasOf(192, 192, (put, w, h) => {
+    const c = w / 2 - 0.5;
+    const R = 92;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const d = Math.hypot(x - c, y - c);
+        const a = Math.atan2(y - c, x - c);
+        const edge = R + Math.sin(a * 9 + 4) * 1.2 + Math.sin(a * 23 + 2) * 0.6;
+        const side = R * half + Math.sin(x * 0.37) * 0.7 + Math.sin(x * 0.11 + 1) * 0.5; // (ragged)
+        const off = Math.abs(y - c);
+        if (d > edge || off > side) continue;
+        if (d > edge - 4 || off > side - 3) put(x, y, shade(0.55 + (r() - 0.5) * 0.25, P));
+        else put(x, y, P.deep, Math.round(60 + 50 * (off / side)));
       }
     }
   });
@@ -317,14 +340,15 @@ function annulusCanvas(inner = 0.3) {
 const DECALS = {
   ring: () => ringCanvas(7, false), fill: () => ringCanvas(11, true), zone: zoneCanvas, crack: () => crackCanvas(Math.random() * 1000), heart: heartCanvas,
   goldCrack: () => crackCanvas(Math.random() * 1000, GOLD_CRACK), runeCrack: () => crackCanvas(Math.random() * 1000, RUNE_CRACK),
-  half: halfCanvas, annulus: annulusCanvas,
+  half: halfCanvas, annulus: annulusCanvas, band: bandCanvas,
 };
 
 export class Decal {
   // a mark on the floor at (x, z), `size` across (`arg`: what its drawing takes, the annulus its
-  // inner circle's share)
-  constructor(scene, kind, x, z, size, { glow = true, opacity = 1, arg } = {}) {
-    const map = texture(DECALS[kind](arg));
+  // inner circle's share, the band its half-width's; `palette`: the light it's drawn in, the annulus's
+  // and the band's, if not red)
+  constructor(scene, kind, x, z, size, { glow = true, opacity = 1, arg, palette } = {}) {
+    const map = texture(DECALS[kind](arg, palette));
     const mat = rippling(glow ? glowing(map, opacity) : new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, opacity, alphaTest: 0.05 }));
     // (divided finely enough to bend with the floor when it ripples, ripple.js)
     const seg = Math.max(1, Math.min(48, Math.ceil(size / 0.5)));

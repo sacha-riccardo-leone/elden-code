@@ -200,15 +200,17 @@ const TRIGGER = {
 const rand = (a, b) => a + Math.random() * (b - a);
 
 // Whether a blow (its shape, where it lands) covers a point, with some slack: a disc, a line
-// running `dir`-ward from (x, z), `from`..`len` along it and `half` either side, a scatter of
-// discs (`spots`, each of radius r), one half of the arena, its middle line through (x, z) (`side`:
-// -1 the left, 1 the right), or all of it but the circle round (x, z) (a ring: `safe`, its radius).
+// running `dir`-ward from (x, z), `from`..`len` along it and `half` either side, a band across the
+// whole arena (a line with no end: Morvane's pillar of flame), a scatter of discs (`spots`, each of
+// radius r), one half of the arena, its middle line through (x, z) (`side`: -1 the left, 1 the
+// right), or all of it but the circle round (x, z) (a ring: `safe`, its radius).
 function covers(shape, x, z, opt, px, pz, slack = 0.3) {
   // (the Golem's shockwaves: no running from them, they're hopped, golem.js; his roll: nothing to run from)
   if (shape === 'wave' || shape === 'none') return false;
   if (shape === 'spots') return opt.spots.some(([sx, sz]) => Math.hypot(px - sx, pz - sz) <= opt.r + slack);
   if (shape === 'half') return (px - x) * opt.side >= -slack;
   if (shape === 'ring') return Math.hypot(px - x, pz - z) >= opt.safe - slack;
+  if (shape === 'band') return (px - x) * opt.dir >= opt.from - slack && Math.abs(pz - z) <= opt.half + slack;
   if (shape === 'line') {
     const along = (px - x) * opt.dir;
     return along >= opt.from - slack && along <= opt.len + slack && Math.abs(pz - z) <= opt.half + slack;
@@ -2030,9 +2032,10 @@ export class Fight {
   }
 
   // Where to run to get out from under a blow, staying on the arena floor: out of a swing's or a
-  // lunge's lane (up or down, whichever is nearer and open), straight away from where a slam or a
-  // leap lands, past its edge, across the middle line from half the arena about to be cut, or in
-  // toward him, into the golden circle by him, from the ring about to erupt.
+  // lunge's lane (up or down, whichever is nearer and open), out of a band across the arena to the
+  // strip of floor beyond its nearer edge, straight away from where a slam or a leap lands, past its
+  // edge, across the middle line from half the arena about to be cut, or in toward him, into the
+  // golden circle by him, from the ring about to erupt.
   escape(a, n) {
     const { x, z, opt } = a;
     const { cx, cz } = this.ctx.world.arena;
@@ -2048,6 +2051,12 @@ export class Fight {
       const d = Math.hypot(dx, dz) || 1;
       const r = opt.safe - 1.6;
       return [x + (dx / d) * r, z + (dz / d) * r];
+    }
+    if (a.shape === 'band') {
+      const side = Math.sign(n.pos.y - z) || (Math.random() < 0.5 ? 1 : -1);
+      const ez = z + side * (opt.half + 1.4);
+      const room = Math.sqrt(Math.max(0, lim * lim - (ez - cz) ** 2));
+      return [Math.max(cx - room, Math.min(cx + room, n.pos.x)), ez];
     }
     if (a.shape === 'line') {
       const side = Math.sign(n.pos.y - z) || (Math.random() < 0.5 ? 1 : -1);

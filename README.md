@@ -891,7 +891,7 @@ ground under you instead, so it flies at your hand's height there too.
   second form, stands three seconds, falls as he does in the fight, and stands again where he fell
   just before he'd be gone, on and on, never felled for good (`client/js/felled-loop.js`). Or add
   `?morvane` to watch and hear one of his moves again and again without fighting him: the Frenzied
-  Eye, or the one named (`?morvane=slash`, `lunge`, `fly` or `throw`); the same way in, but he makes
+  Eye, or the one named (`?morvane=slash`, `lunge`, `fly`, `throw`, `pillar` or `clone`); the same way in, but he makes
   that move and no other, at you, a moment apart (`client/js/move-loop.js`). Both wait for his art
   to load before calling him. If one's art fails to load, the next in line comes instead. The Tarnished's battle lines fit
   whichever came (Ulric has his own jokes for Fenrath and the Golem).
@@ -1048,6 +1048,29 @@ ground under you instead, so it flies at your hand's height there too.
       toward him while flames rain down on marked spots; then, white-hot, it bursts over the whole
       arena, hardest near him (46 there, 28 at the edge). Only a dodge (Space) as it bursts escapes
       it; your companions hop it, mostly.
+    - **the pillar of flame**, every 28 to 40 seconds (the first 16 to 24 seconds into his second
+      form): he vanishes and comes back at one side of the arena, facing across it, and leans back,
+      drawing breath, while the band it will burn glows on the floor: the arena's whole length, and
+      two-thirds of its width through the middle (the camera pulls back to show the whole arena).
+      Then he breathes it out, a pillar of yellow flame pouring from his head of flame across the
+      arena: it burns everyone in the band once (32). A dodge only puts it off till the dodge is
+      over; the only way out is the strip of floor along the near or the far edge, and your
+      companions run for it. Then he's spent for five seconds, his arms hanging and his head bowed:
+      the moment to strike him. (Sacha's strip of it, `fx-frenzy-pillar`, laid end to end along
+      eleven ribbons one behind another across the band, each bent out of his head of flame and down
+      to the floor, the middle ones the tallest (4 units), as a column of flame lying across the
+      arena is, the outer ones low enough (1.8) not to hide anyone standing beyond them; each at its
+      own moment of the strip's four drawings and of its flow: `Pillar` in `client/js/frenzyfx.js`.)
+    - **the clone flame**, every 52 to 68 seconds (the first 38 to 50 seconds in): he lets his sword
+      and fang fall, vanishes, and comes back over the middle of the arena facing you, his empty hands
+      raised to the sky, begging, a golden circle (5 units round) lighting the floor about him. His
+      head of flame swells into a great eye; a clone of it as big parts from it and races round the
+      arena, a lap every 1.15 seconds for six seconds, while his own shrinks back. It burns everyone
+      it passes (18 each lap), anywhere but inside the golden circle: the only way to escape it is to
+      come in close to him (your companions do), where he can be struck. Then his sword and fang rise
+      off the floor and fly back into his raised hands. Neither the pillar nor the clone comes
+      within 12 seconds after one of his great attacks (the Eye, the pillar or the clone); the Eye
+      comes when his health says.
     - Every blade, spell and ultimate reaches him whenever he's there to be reached (not vanished,
       nor up over the arena). The camera follows you from farther back than for the others, so that
       you see him coming. Felled, he falls to his knees, his flame shrinking, and slumps, his sword
@@ -1083,15 +1106,24 @@ ground under you instead, so it flies at your hand's height there too.
     slash, the fang thrown, the fall) came at about two-thirds of the master's size, so they're
     sampled at 3.33 px (his height from the hole in his head of flame to his toes the master's); the
     two flights, drawn bigger, at 4.8 and 5.1; the lunge's, whose head of flame came out bigger
-    coiled and smaller thrusting, each at its own (3.55 to 2.65) so that he keeps his size through it. Each is set in the frame by the brooch on his belly, so
+    coiled and smaller thrusting, each at its own (3.55 to 2.65) so that he keeps his size through it.
+    The pillar's three (leaning back, breathing it out, spent) and the begging came at all sizes, so
+    each is sampled so that he's as long from his brooch to his toes as in the fang's throw (3.17 to
+    4.43 px); the spent one's dangling sword reaches below the frame, under the floor. Each is set in the frame by the brooch on his belly, so
     that his body stays put whatever he does; those that reach far out (a sword at full stretch, the
-    flights) are in frames of their own. All but the reveal and the fall are drawn facing left too,
-    not mirrored: his hands never swap (the sword always in his right hand, the fang in his left).
+    flights, the pillar's) are in frames of their own. All but the reveal, the begging and the fall
+    are drawn facing left too, not mirrored: his hands never swap (the sword always in his right
+    hand, the fang in his left).
     He swoops low to lunge and to fly, so that his blade and his body pass through the heroes, not
     over them. His effects are Sacha's drawings too (`art/bosses/Morvane`, `client/js/frenzyfx.js`):
     the frenzied flame flying and bursting, the Eye, his fang, and the band of flame round his arena
     (`fx-frenzy-band`, four frames sampled at 3 px, its drawing having no even grid to find; its
-    bottom row's grid set 2 px lower, so that all four frames' black base lies on one line). His head
+    bottom row's grid set 2 px lower, so that all four frames' black base lies on one line); the
+    pillar of flame (`fx-frenzy-pillar`, its four strips each cut round its own middle, made seamless
+    end to end by fading its last 48 px into its first, and sampled at 3 px on the band's palette).
+    Let fall for the clone flame, his sword and fang are his own drawings of them again, falling,
+    lying on the floor and flying back (`Loose` in `client/js/frenzyfx.js`; where his hands are in
+    the begging drawing is `HANDS` in `client/js/heroes/morvane-flame.js`). His head
     of flame alight is the Eye's drawing again (`morvane-head`), sampled at 5.4 px so that its
     pixels are his body's at the size his head is drawn, its last two frames moved down 5 rows so
     that its hole stays still (the Eye's own frames jump); where the hole is in each of his drawings
@@ -1100,8 +1132,8 @@ ground under you instead, so it flies at your hand's height there too.
     further from it than the Eye's.
   - Tuning (health, speed, how long he runs and pants, the change's timings, how much he grows) is
     `MORVANE`, `CHANGE` and `GROW` in `client/js/morvane.js`; his second form's (how fast and how
-    often, how far each blow reaches, what each takes, the Eye) is `FLAME_FIGHT`, `EYE` and
-    `MORVANE_MOVES` there. His size is `px` in `client/js/heroes/morvane.js`.
+    often, how far each blow reaches, what each takes, the Eye, the pillar, the clone) is `FLAME_FIGHT`,
+    `EYE`, `PILLAR`, `CLONE` and `MORVANE_MOVES` there. His size is `px` in `client/js/heroes/morvane.js`.
 - **The fight:**
   - Enough damage in quick succession breaks his stance: he reels and takes more from every blow.
   - As you step in and he enters, the camera shows him for a few seconds, then comes back to
@@ -1320,7 +1352,13 @@ table says what each clip is cut from.
   - for now, till he has his own: struck, your own `player_hurt`, higher for his first form and
     deeper for his second; the falling flames bursting, the Golem's
     `meteorite_hit`; the bare fang stabbing into the floor, Fenrath's ghost sword striking, higher;
-    the Eye bursting, the Golem's `Firespray 2`.
+    the Eye bursting, the Golem's `Firespray 2`; and his pillar and his clone flame borrow his other
+    moves' sounds: as he leans back, `morvane_sword_anticipation`; as he breathes the pillar out, the
+    Eye's burst and `morvane_flying_woosh` (all three); as his head swells for the clone,
+    `morvane_big_attack_eye_start`, the clone parting from it bursting as the falling flames do, and
+    `morvane_big_attack_eye_during` under it all the while it races round (one of
+    `morvane_sword_woosh` each time it passes you); his sword and fang heard falling as when he's
+    felled, and flying back with a sword whoosh.
 - **Maren's thunderbolt** (her right click): one of the sixteen zaps of `maren_atk1`, a different
   one each time, and with it the rush in `maren_atk2` (between 2 and 3 s, as its name says: from
   where it's heard, so that it peaks as the bolt is there).
@@ -1588,8 +1626,8 @@ client/js/fight.js      great enemies: what brings them, Fenrath's attacks, the 
 client/js/faces.js      a character's face for those frames: the head and shoulders of its idle drawing
 client/js/companions.js choosing thy companions as one comes: the slots, the catalogue of heroes
 client/js/golem.js      the Guardian Golem's fight: his weak points, his fall, shockwaves, fire
-client/js/morvane.js    Morvane's fight: fleeing and out of breath, his change and reveal, his second form's blows, the Frenzied Eye
-client/js/frenzyfx.js   Morvane's frenzied flame, drawn: flying and bursting, his thrown fang, the Eye, his dropped sword and fang, and his arena once he's revealed (black beyond, a ring of fire, heat haze, ash)
+client/js/morvane.js    Morvane's fight: fleeing and out of breath, his change and reveal, his second form's blows, the Frenzied Eye, the pillar of flame, the clone flame
+client/js/frenzyfx.js   Morvane's frenzied flame, drawn: flying and bursting, his thrown fang, the Eye, his dropped sword and fang (and let fall and flying back), the pillar of flame, and his arena once he's revealed (black beyond, a ring of fire, heat haze, ash)
 client/js/felled-loop.js  ?felled: Morvane felled again and again, to watch and hear his fall
 client/js/ripple.js     the arena floor rippling like water under the Golem's shockwaves (and the tutorial rocks' yard's, under theirs)
 client/js/bossfx.js     the enemies' effects: crescent, lance, floor marks, the ghost sword, the eruption, the air shock, meteors

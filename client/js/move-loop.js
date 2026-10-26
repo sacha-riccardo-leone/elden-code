@@ -1,12 +1,12 @@
 // ?morvane in the address (main.js): one of Morvane's moves again and again, to watch and hear it
-// without fighting him: the Frenzied Eye, or the one named (?morvane=slash, lunge, fly or throw). As
-// thou settest out, his fight is called and thou art set in his arena (where nothing can fell thee);
-// he comes straight in his second form (no first form, no change: MorvaneMind.flameNow) and makes
-// that move and no other, at thee, a moment apart, on and on (the fight never runs out of time). As
-// with ?felled (felled-loop.js), nothing of it is remembered.
+// without fighting him: the Frenzied Eye, or the one named (?morvane=slash, lunge, fly, throw, pillar
+// or clone). As thou settest out, his fight is called and thou art set in his arena (where nothing
+// can fell thee); he comes straight in his second form (no first form, no change:
+// MorvaneMind.flameNow) and makes that move and no other, at thee, a moment apart, on and on (the
+// fight never runs out of time). As with ?felled (felled-loop.js), nothing of it is remembered.
 // His moves to choose from; how long he waits before the first (his sounds are still being fetched
 // as he comes, fight.start) and between one and the next, once he's ready again (seconds).
-const MOVES = ['eye', 'slash', 'lunge', 'fly', 'throw'];
+const MOVES = ['eye', 'slash', 'lunge', 'fly', 'throw', 'pillar', 'clone'];
 const LOOP = { first: 2.5, gap: 1.5 };
 
 export function moveLoop({ fight, pilot, world }, name) {

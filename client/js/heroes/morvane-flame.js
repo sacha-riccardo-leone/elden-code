@@ -5,9 +5,12 @@
 // (morvane-flame-idle, the master), revealed, facing thee, arms spread (morvane-flame-reveal), and
 // his fight: flying (fly), the lunge (coiled, and thrust: lunge-1, -2), the slash (raised, the cut,
 // its follow-through: swing-1 to -3), the fang thrown (drawn back, flung, the hand held out for it to
-// come back: throw-1 to -3), and felled (on his knees, then slumped: death). Every one but the
-// reveal and the fall is drawn facing left too, not mirrored: drawn turned toward us, his hands would
-// swap in a mirror (the sword is always in the hand on the picture-left, the fang in the other).
+// come back: throw-1 to -3), the pillar of flame (leaning back, breathing it out, spent, his arms
+// hanging and his head bowed: lean, breathe, spent), the clone flame (facing thee, his arms raised to
+// the sky, his hands empty: beg), and felled (on his knees, then slumped: death). Every one but the
+// reveal, the begging and the fall is drawn facing left too, not mirrored: drawn turned toward us, his
+// hands would swap in a mirror (the sword is always in the hand on the picture-left, the fang in the
+// other).
 //
 // Source art: assets/morvane/morvane-flame.json (173x301, from morvane-flame-idle.png on its
 // 4.959 x 4.995 px grid) and morvane-flame-<drawing>.json, all on its palette. The reveal is sampled
@@ -15,7 +18,10 @@
 // height from the hole in his head of flame to his toes the master's); the two flights, drawn bigger,
 // at 4.8 and 5.1; the lunge's, its head of flame drawn bigger coiled and smaller thrusting, each so
 // that he keeps his size through it (coiled at 3.55 and 3.66, the thrust at 2.65 and 2.85: his sword
-// the longer for it). Each is set in the frame by the brooch on his belly (BROOCH: the frame's
+// the longer for it); the pillar's and the begging, which came at all sizes, each so that he's as long
+// from his brooch to his toes as in throw-1 (lean at 3.17 and 3.45 facing left, breathe at 3.57 and
+// 3.94, spent at 3.18 and 3.3, beg at 4.43; spent's sword, dangling, reaches down past the frame:
+// under the floor). Each is set in the frame by the brooch on his belly (BROOCH: the frame's
 // anchor column, and row BROOCH), so that whatever he does his body stays where it was; the fallen
 // ones by the ground they kneel on (the frame's last row). The drawings that reach far out (a sword
 // at full stretch, a flight) are in frames of their own (BIG).
@@ -51,6 +57,13 @@ const ART = {
   'throw-2-left': { mid: 145.7, row: 149.4, left: true },
   'throw-3': { mid: 121.1, row: 150 },
   'throw-3-left': { mid: 143.7, row: 148.4, left: true },
+  lean: { mid: 239.4, row: 144.4, big: true },
+  'lean-left': { mid: 161.9, row: 125.9, left: true, big: true },
+  breathe: { mid: 215.8, row: 139.6, big: true },
+  'breathe-left': { mid: 124.4, row: 122.7, left: true, big: true },
+  spent: { mid: 103.8, row: 127.7 },
+  'spent-left': { mid: 120.5, row: 102.1, left: true },
+  beg: { mid: 92.6, row: 149.6 },
   'death-1': { mid: 132.2, ground: 214 },
   'death-2': { mid: 110.5, ground: 127 },
 };
@@ -81,9 +94,21 @@ const HOLES = {
   'throw-2-left': [135.4, 52.5, 21.6],
   'throw-3': [125.6, 56.4, 23.6],
   'throw-3-left': [144, 53.9, 22.6],
+  lean: [171.3, 51.7, 23.6],
+  'lean-left': [213.7, 42.2, 23.1],
+  breathe: [308.8, 63.1, 27],
+  'breathe-left': [44.9, 53.4, 22.4],
+  spent: [157.9, 66.1, 28.3],
+  'spent-left': [76.2, 58.2, 25.4],
+  beg: [97.1, 55.9, 25.2],
   'death-1': [119, 41.5, 16.5],
   'death-2': [143.2, 24.9, 14.3],
 };
+
+// His hands where they're empty (column, row: the middle of each palm): raised to the sky, begging
+// (morvane.js, his clone flame: his sword and his fang fly back into them), the sword's (his right, on
+// the picture-left) and the fang's.
+export const HANDS = { beg: { sword: [18, 36], fang: [169, 36] } };
 
 // What burns: the head of flame, the burning edges of his drapes, the cracks in his chest and the
 // sword's gold, all of it glowing orange (none white-hot: that would bloom the head of flame into a
@@ -132,18 +157,26 @@ function compose(ctx, p) {
   return f;
 }
 
-// Where the hole in his head of flame is in pose `index`'s frame (columns and rows from the frame's
-// corner, as compose sets the drawing in it, a left one mirrored), how wide, and the frame (FRAME or
-// BIG); null for a pose it isn't known in.
-export function holeOf(index) {
+// Where a spot of pose `index`'s drawing ([column, row] in it) is in its frame (columns and rows from
+// the frame's corner, as compose sets the drawing in it, a left one mirrored), and the frame (FRAME or
+// BIG); null for a pose that isn't known.
+export function spotOf(index, [c, r]) {
   const p = poses[index];
   const a = p && ART[p.art];
-  const h = p && HOLES[p.art];
-  if (!a || !h) return null;
+  if (!a) return null;
   const frame = a.big ? BIG : FRAME;
-  const x = a.left ? Math.round(frame.anchor + 1 + a.mid) - h[0] : Math.round(frame.anchor - a.mid) + h[0];
-  const y = (a.ground != null ? frame.h - 1 - a.ground : Math.round(BROOCH - a.row)) + h[1];
-  return { x, y, d: h[2], frame };
+  const x = a.left ? Math.round(frame.anchor + 1 + a.mid) - c : Math.round(frame.anchor - a.mid) + c;
+  const y = (a.ground != null ? frame.h - 1 - a.ground : Math.round(BROOCH - a.row)) + r;
+  return { x, y, frame };
+}
+
+// Where the hole in his head of flame is in pose `index`'s frame (as spotOf), and how wide; null for a
+// pose it isn't known in.
+export function holeOf(index) {
+  const p = poses[index];
+  const h = p && HOLES[p.art];
+  const s = h && spotOf(index, h);
+  return s ? { ...s, d: h[2] } : null;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -156,7 +189,8 @@ function anim(name, list) {
 }
 for (const k of ['idle', 'idle-left']) anim(k, [1, 2, 1, 0, 1, 2].map((light) => ({ art: k, light })));
 anim('reveal', [1, 2, 1, 2].map((light) => ({ art: 'reveal', light })));
-const ONE = ['fly', 'lunge-1', 'lunge-2', 'swing-1', 'swing-2', 'swing-3', 'throw-1', 'throw-2', 'throw-3'];
+anim('beg', [{ art: 'beg', light: 2 }]);
+const ONE = ['fly', 'lunge-1', 'lunge-2', 'swing-1', 'swing-2', 'swing-3', 'throw-1', 'throw-2', 'throw-3', 'lean', 'breathe', 'spent'];
 for (const k of ONE) for (const s of [k, `${k}-left`]) anim(s, [{ art: s, light: 2, big: !!ART[s].big }]);
 anim('death', ['death-1', 'death-2'].map((k) => ({ art: k, light: 1 })));
 
@@ -187,6 +221,7 @@ export default {
     idle: { frames: G.idle, left: G['idle-left'], fps: 7 },
     stagger: { frames: G.idle, left: G['idle-left'], fps: 3 }, // (dazed by an ultimate: at rest, slowly)
     reveal: { frames: G.reveal, fps: 7 },
+    beg: { frames: G.beg, fps: 1 },
     ...Object.fromEntries(ONE.map((k) => [k, { frames: G[k], left: G[`${k}-left`], fps: 1 }])),
     collapse: { frames: G.death, fps: 0.9, once: true }, // (felled: fight.js)
   },

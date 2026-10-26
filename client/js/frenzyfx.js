@@ -10,6 +10,9 @@
 //   Eye          – the Frenzied Eye, his head of flame grown huge, its tongues swirling;
 //   Head         – his head of flame alight, its tongues swirling, over the one in his drawings;
 //   Dropped      – his sword or his fang, let fall as he's felled, lying on the floor;
+//   Loose        – his sword or his fang let go of (his clone flame): falling, lying on the floor,
+//                  rising off it and flying back to his hand;
+//   Pillar       – the pillar of flame he breathes across his arena;
 //   Inferno      – his arena once he's revealed: the world beyond it gone black, a ring of frenzied
 //                  flame all round it, its light, heat shimmering, burning ash drifting.
 // Each lights the world round it as it goes (lights.js). Without its drawing, each draws nothing
@@ -249,6 +252,248 @@ export class Dropped {
 
   dispose() {
     drop(this.scene, this.mesh);
+  }
+}
+
+// His sword or his fang let go of, as it goes (seconds): falling to the floor (tipping over as it
+// falls), rising off it (standing up again, so high) and flying back to his hand.
+const LOOSE = { fall: 0.42, rise: 0.4, up: 1.4, fly: 0.5 };
+
+export class Loose {
+  // His sword or his fang (`key`: its drawing, fxart.js, as big as in his hand, as drawn), let go of
+  // with its middle at `from` ([x, y, z], from the floor): it falls, tipping over, and lies flat on the
+  // floor at `land` ([x, z]), turned `angle` (radians) about the upright (`landed` once it's there);
+  // called back (call), it rises off the floor, standing up as drawn, and flies to wherever `to()`
+  // says (his hand, [x, y, z]: where its `grip` goes, [column, row] in its drawing, else its middle).
+  // Returns false from step once it's there (`home`), or, let go of for good (fade), faded out.
+  constructor(scene, key, from, land, { angle = 0, grip = null } = {}) {
+    const art = fxArt(key);
+    const px = 2.31 / 91;
+    // (its middle, from its grip)
+    this.grip = art && grip ? [(art.w / 2 - grip[0]) * px, (grip[1] - art.h / 2) * px] : [0, 0];
+    this.mesh = null;
+    if (art) {
+      this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(art.w * px, art.h * px), new THREE.MeshLambertMaterial({
+        map: art.frames[0], transparent: true, alphaTest: 0.5, depthWrite: false, side: THREE.DoubleSide,
+      }));
+      this.mesh.renderOrder = 3;
+      scene.add(this.mesh);
+    }
+    Object.assign(this, { scene, from, land, angle, phase: 'fall', t: 0, landed: false, to: null, risen: null, out: 1 });
+    this.place(from, 0, 0);
+  }
+
+  // its middle at (x, y, z), `over` of the way tipped over flat (0: standing as drawn), turned `turn`
+  place([x, y, z], over, turn) {
+    if (!this.mesh) return;
+    this.mesh.position.set(x, y, z);
+    this.mesh.rotation.set((-Math.PI / 2) * over, 0, turn);
+  }
+
+  call(to) {
+    Object.assign(this, { phase: 'rise', t: 0, to });
+  }
+
+  fade(secs = 0.4) {
+    Object.assign(this, { phase: 'fade', t: 0, out: secs });
+  }
+
+  step(dt) {
+    this.t += dt;
+    const L = LOOSE;
+    const [lx, lz] = this.land;
+    if (this.phase === 'fall') {
+      const k = Math.min(1, this.t / L.fall);
+      const [x0, y0, z0] = this.from;
+      this.place([x0 + (lx - x0) * k, y0 + (0.04 - y0) * k * k, z0 + (lz - z0) * k], k ** 1.6, this.angle * k);
+      if (k >= 1) Object.assign(this, { phase: 'lie', landed: true });
+      return true;
+    }
+    if (this.phase === 'lie') return true;
+    if (this.phase === 'rise') {
+      const e = 1 - (1 - Math.min(1, this.t / L.rise)) ** 2;
+      this.risen = [lx, 0.04 + (L.up - 0.04) * e, lz];
+      this.place(this.risen, 1 - e, this.angle * (1 - e));
+      if (e >= 1) Object.assign(this, { phase: 'fly', t: 0 });
+      return true;
+    }
+    if (this.phase === 'fly') {
+      const k = Math.min(1, this.t / L.fly);
+      const e = k * k * (3 - 2 * k);
+      const [x0, y0, z0] = this.risen;
+      const [x1, y1, z1] = this.to();
+      const [gx, gy] = this.grip;
+      this.place([x0 + (x1 + gx - x0) * e, y0 + (y1 + gy - y0) * e, z0 + (z1 - z0) * e], 0, 0);
+      this.home = k >= 1;
+      return !this.home;
+    }
+    // (fading where it is, as a whole: not gone at once at half)
+    const v = Math.max(0, 1 - this.t / this.out);
+    if (this.mesh) {
+      this.mesh.material.opacity = v;
+      this.mesh.material.alphaTest = Math.max(0.01, v * 0.5);
+    }
+    return v > 0;
+  }
+
+  dispose() {
+    drop(this.scene, this.mesh);
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
+// the pillar of flame he breathes across his arena
+
+// Sacha's drawing of a stretch of it (fxart.js: four drawings of one column of yellow flame flowing
+// toward the picture-right, each seamless end to end), laid end to end along ribbons, so many one
+// behind another across the band it burns, each bent to its place: out of his head of flame (the
+// column there as thick as his head of flame: `head`), spreading out across the band and sinking to
+// the floor (a third of the way there so far out, world units), then flat out along the floor to
+// the arena's edge, fading over its last stretch (`fade`); on the floor, the middle one as tall as
+// `thick` and the others the lower the farther out (as a column of flame lying across the arena is),
+// none lower than `edge` (low enough, seen from the camera's height, not to hide one standing beyond
+// it); how bright (the colour its drawing is multiplied by: its white-hot heart, layered so, would
+// bloom into a blot), its outer ribbons so much dimmer. Each at its own moment of the drawings and of
+// their flow, so that they never line up. Its front pours out so fast (world units a second), and
+// once he stops breathing it, its tail flows away after it as fast; its flame streams along it so
+// fast (each ribbon's a little faster or slower), flipping through its drawings so fast. Each ribbon
+// so many segments long. Its light: so many fires along it, each so strong, reaching so far.
+const PILLAR = {
+  layers: 11, head: 2, spread: 1.8, thick: 4, edge: 1.8, bright: [1, 0.9, 0.82], dim: 0.3, fade: 2.5, pour: 60, flow: 20, fps: 12, seg: 48,
+  lights: { count: 4, power: 50, reach: 16, y: 1.6 },
+};
+
+export class Pillar {
+  // In `scene` (the arena's floor), out of his head of flame at `from` ([x, y, z], from the floor),
+  // toward `dir` (±1), across the band `half` either side of the arena's middle line (z = cz), each
+  // ribbon running to the round `r` from (cx, cz). Burning till stopped (stop); returns false from
+  // step once its tail has flowed away.
+  constructor(scene, { from, dir, cx, cz, r, half }) {
+    const P = PILLAR;
+    const art = fxArt('morvane-frenzy-pillar');
+    // (its drawings repeat end to end along it: only the pillar uses them)
+    if (art && !art.repeats) {
+      for (const f of art.frames) {
+        f.wrapS = THREE.RepeatWrapping;
+        f.needsUpdate = true;
+      }
+      art.repeats = true;
+    }
+    Object.assign(this, { scene, art, from, dir, cz, half, t: 0, stopped: null, ribbons: [], long: 0 });
+    const n = (P.seg + 1) * 2;
+    for (let k = 0; k < P.layers; k++) {
+      const off = 0.9 * ((2 * k) / (P.layers - 1) - 1); // (its share of the band's half-width, -: the far side)
+      const z = cz + half * off;
+      const thick = Math.max(P.edge, P.thick * Math.sqrt(1 - off * off));
+      const len = Math.max(1, (cx + dir * Math.sqrt(Math.max(0, r * r - (z - cz) ** 2)) - from[0]) * dir);
+      this.long = Math.max(this.long, len);
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+      geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+      geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 4).fill(1), 4));
+      const index = [];
+      for (let i = 0; i < P.seg; i++) index.push(2 * i, 2 * i + 2, 2 * i + 1, 2 * i + 1, 2 * i + 2, 2 * i + 3);
+      geo.setIndex(index);
+      // (sorted among the rest by where its middle is: along the floor, at its own depth)
+      geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(from[0] + (dir * len) / 2, thick / 2, 0), len / 2 + 3);
+      let mesh = null;
+      if (art) {
+        const mat = glowing(art.frames[0]);
+        Object.assign(mat, { vertexColors: true, side: THREE.DoubleSide, fog: false });
+        mat.color.setRGB(...P.bright.map((c) => c * (1 - P.dim * Math.abs(off))));
+        mesh = new THREE.Mesh(geo, mat);
+        mesh.position.z = z;
+        mesh.frustumCulled = false;
+        mesh.renderOrder = 6;
+        mesh.visible = false;
+        scene.add(mesh);
+      }
+      // (its drawing's pixels square: its length repeating every `tile`)
+      const tile = art ? (thick * art.w) / art.h : 1;
+      this.ribbons.push({ z, len, geo, mesh, thick, tile, phase: Math.random(), flow: P.flow * (0.9 + Math.random() * 0.2), frame: k });
+    }
+    const L = P.lights;
+    this.lights = Array.from({ length: L.count }, (_, i) => {
+      const s = this.long * ((i + 0.5) / L.count);
+      return { s, light: carry(scene, [from[0] + dir * s, L.y, cz], { color: FRENZY_LIGHT, power: L.power, reach: L.reach, waver: 0.6, level: 0 }) };
+    });
+  }
+
+  // He stops breathing it out: its tail flows away after its front.
+  stop() {
+    if (this.stopped == null) this.stopped = this.t;
+  }
+
+  // How far along it its tail and its front are just now (world units from his head of flame).
+  span() {
+    const P = PILLAR;
+    return [this.stopped == null ? 0 : P.pour * (this.t - this.stopped), P.pour * this.t];
+  }
+
+  // Whether it burns at (x, z) on the floor just now.
+  covers(x, z) {
+    const P = PILLAR;
+    const [a, b] = this.span();
+    const s = (x - this.from[0]) * this.dir;
+    if (s < Math.max(-1, a - 0.5) || s > b) return false;
+    const e = 1 - Math.exp(-Math.max(0, s) / P.spread);
+    const mid = this.from[2] + (this.cz - this.from[2]) * e;
+    return Math.abs(z - mid) <= Math.max(P.head * 0.6, this.half * 0.9 * e + 1.2);
+  }
+
+  step(dt) {
+    const P = PILLAR;
+    this.t += dt;
+    const [a, b] = this.span();
+    const [fx, fy, fz] = this.from;
+    const frames = this.art?.frames;
+    const at = Math.floor(this.t * P.fps);
+    for (const rb of this.ribbons) {
+      if (!rb.mesh) continue;
+      const end = Math.min(rb.len, b);
+      rb.mesh.visible = end > a;
+      if (!rb.mesh.visible) continue;
+      rb.mesh.material.map = frames[(at + rb.frame) % frames.length];
+      const pos = rb.geo.attributes.position.array;
+      const uv = rb.geo.attributes.uv.array;
+      const col = rb.geo.attributes.color.array;
+      for (let i = 0; i <= P.seg; i++) {
+        const s = a + ((end - a) * i) / P.seg;
+        const e = 1 - Math.exp(-s / P.spread);
+        const th = P.head + (rb.thick - P.head) * e;
+        const y = fy + (rb.thick / 2 - 0.15 - fy) * e;
+        const x = fx + this.dir * s;
+        const z = fz + (rb.z - fz) * e - rb.z;
+        const u = (s - rb.flow * this.t) / rb.tile + rb.phase;
+        // (softly at its front as it pours, at its tail as it flows away, and over its last stretch)
+        const seen = Math.max(0, Math.min(1, (rb.len - s) / P.fade, (b - s) / 1.2, this.stopped == null ? 1 : (s - a) / 1.2));
+        for (const [j, yy, v] of [[2 * i, y - th / 2, 0], [2 * i + 1, y + th / 2, 1]]) {
+          pos.set([x, yy, z], j * 3);
+          uv.set([u, v], j * 2);
+          col[j * 4 + 3] = seen;
+        }
+      }
+      rb.geo.attributes.position.needsUpdate = true;
+      rb.geo.attributes.uv.needsUpdate = true;
+      rb.geo.attributes.color.needsUpdate = true;
+    }
+    // (each fire along it alight once its front has passed it, out once its tail has)
+    for (const L of this.lights) {
+      const on = L.s <= b && L.s >= a ? 1 : 0;
+      L.light.level += (on - L.light.level) * Math.min(1, dt * 12);
+    }
+    return a < this.long;
+  }
+
+  dispose() {
+    for (const rb of this.ribbons) {
+      if (rb.mesh) {
+        this.scene.remove(rb.mesh);
+        rb.mesh.material.dispose();
+      }
+      rb.geo.dispose();
+    }
+    for (const L of this.lights) L.light.end(0.2);
   }
 }
 
