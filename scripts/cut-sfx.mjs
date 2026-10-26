@@ -213,9 +213,9 @@ const SETS = {
       ['eye-1', 'morvane_big_attack_eye_growing.mp3', 0.1, 1.6, -3, 0, 0.4, { group: 'eye' }],
       ['eye-2', 'morvane_big_attack_eye_growing2.mp3', 0, 5.59, -3, 0, 2, { group: 'eye' }],
       ['eye-pull', 'morvane_phase_1/morvane_sword_removed_after.mp3', 0.05, 2.95, -3, 0.3, 0.8],
-      // (his cry, its body far under its sharpest peaks, made 9 dB louder, limited; the second 12 dB
-      // under its own peak, as Sacha asked: the cry heard over it)
-      ['felled-1', 'morvane_felled.wav', 0, 3.3, -3, 0, 0.5, { group: 'felled', loud: 9 }],
+      // (his cry, its body far under its sharpest peaks, made 16 dB louder, limited, as Sacha asked
+      // twice; the second 12 dB under its own peak: the cry heard over it)
+      ['felled-1', 'morvane_felled.wav', 0, 3.3, -1, 0, 0.5, { group: 'felled', loud: 16 }],
       ['felled-2', 'morvane_felled2.mp3', 0, 5.6, -15, 0, 0.8, { group: 'felled' }],
       ['drop-sword', 'morvane_felled3_sword_dropping.mp3', 0.03, 0.8, -3, 0, 0.15, { group: 'drop' }],
       ['drop-fang', 'morvane_felled3_fang_dropping.mp3', 0.03, 1.55, -3, 0, 0.2, { group: 'drop' }],
@@ -456,7 +456,7 @@ for (const [set, { from, clips }] of Object.entries(SETS)) {
     const src = path.join(SRC, file);
     const max = group ? loudest[group] : peaks[i];
     const gain = peak - max + loud;
-    const limit = loud ? `alimiter=limit=${(10 ** (peak / 20)).toFixed(3)}:attack=2:release=80:level=false` : null;
+    const limit = loud ? `alimiter=limit=${(10 ** (peak / 20)).toFixed(3)}:attack=2:release=30:level=false` : null;
     const fades = [fin ? `afade=t=in:st=0:d=${fin}` : null, `afade=t=out:st=${(len - fout).toFixed(3)}:d=${fout}`].filter(Boolean);
     const out = path.join(OUT, `${name}.mp3`);
     // (its sound only: a picture a recording carries is left behind)

@@ -115,7 +115,7 @@ export const SOUNDS = {
   'morvane-eye-pull': { set: 'frenzy', clips: ['eye-pull'], volume: 0.7, most: 1, loop: [0.4, 2.1] },
   'morvane-burst': { set: 'frenzy', clips: ['burst'], volume: 0.75, vary: 0.08, pitch: [0.9, 1.1], most: 5, half: 22 },
   'morvane-eye-burst': { set: 'frenzy', clips: ['eye-burst'], volume: 1, most: 1 },
-  'morvane-felled': { set: 'frenzy', clips: ['felled-1', 'felled-2'], layer: true, volume: 1.2, most: 1, half: 30, duck: 0.3 }, // (his cry over all else: cut-sfx.mjs)
+  'morvane-felled': { set: 'frenzy', clips: ['felled-1', 'felled-2'], layer: true, volume: 0.95, most: 1, half: 30, duck: 0.3 }, // (his cry over all else, as loud as it goes: cut-sfx.mjs)
   'morvane-drop-sword': { set: 'frenzy', clips: ['drop-sword'], volume: 0.6, most: 1, half: 24 },
   'morvane-drop-fang': { set: 'frenzy', clips: ['drop-fang'], volume: 0.6, most: 1, half: 24 },
   // the ultimates' (ults.js): Maren's bolts (one of six each) and her great bolt, the camera closing
