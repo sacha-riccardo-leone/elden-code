@@ -483,11 +483,12 @@ export class Tutorial {
     }
   }
 
-  // A rock comes down: dust and blue light, a crack, the view jolted, and its shockwave.
+  // A rock comes down: dust and blue light, a crack, the view jolted, and its shockwave; heard crashing.
   crash(rock) {
     const { training, rig } = this.ctx;
     const { scene, particles } = training.fxCtx;
     const { x, z } = rock;
+    this.ctx.sound?.play('rock-impact', { at: [x, z] });
     particles.emit({
       pos: [x, 0.3, z], spread: [1.3, 0.2, 0.8], vel: [0, 2.2, 0], velSpread: [3, 1.6, 2],
       color: ['#6a5a4e', '#3a2e28', '#8a7a6a'], size: 0.16, life: 1.1, count: 46, drag: 1.3, intensity: 0.8,
@@ -919,7 +920,8 @@ function glowCanvas(sheet, k) {
 // A rune rock of the tutorial's, standing at (x, z) on the floor of its yard `Y` (climb.js), drawn
 // as the dummies are (lit by the world's light, a shadow at its foot), solid; its turn (go): its
 // rune lit, its own blue light coming up round it, lifted, held up, dropped (Tutorial.crash), and
-// its light dying.
+// its light dying. Heard (audio.js, rock-…): its rune lighting, humming as it's lifted and held up
+// (the hum hushed as it drops), rushing down.
 class RuneRock {
   constructor(tutorial, key, x, z, Y) {
     const { ctx } = tutorial;
@@ -950,6 +952,7 @@ class RuneRock {
     this.lit = 0;
     this.light = null;
     this.mote = 0;
+    this.hum = []; // (what's heard of it while it's up: hushed as it drops)
     this.place();
   }
 
@@ -957,6 +960,17 @@ class RuneRock {
     this.then('light');
     if (this.sheet) this.mesh.material.map = this.sheet.frames[1];
     this.light = carry(null, this.lightAt(), { color: ROCKS.glow, power: 9, reach: 7, level: 0 });
+    this.sound('rock-rune');
+  }
+
+  // One of its sounds (audio.js), where it stands; what's sounding of it, or null.
+  sound(name) {
+    return this.tutorial.ctx.sound?.play(name, { at: [this.x, this.z] }) || null;
+  }
+
+  hush(fade) {
+    for (const v of this.hum) v.stop(fade);
+    this.hum = [];
   }
 
   then(state) {
@@ -977,7 +991,10 @@ class RuneRock {
     const k = (d) => Math.min(1, this.s / d);
     if (this.state === 'light') {
       this.lit = k(R.light);
-      if (this.s >= R.light) this.then('rise');
+      if (this.s >= R.light) {
+        this.then('rise');
+        this.hum = [this.sound('rock-levitate'), this.sound('rock-levitate-under')].filter(Boolean);
+      }
     } else if (this.state === 'rise') {
       this.lift = R.lift * (1 - (1 - k(R.rise)) ** 3);
       if (this.s >= R.rise) this.then('hold');
@@ -986,6 +1003,8 @@ class RuneRock {
       if (this.s >= R.hold) {
         this.from = this.lift;
         this.then('fall');
+        this.hush(0.2);
+        this.sound('rock-fall');
       }
     } else if (this.state === 'fall') {
       this.lift = this.from * (1 - k(R.fall) ** 2);
@@ -1035,6 +1054,7 @@ class RuneRock {
 
   dispose() {
     this.light?.end(0.1);
+    this.hush(0.1);
     this.tutorial.ctx.scene.remove(this.mesh, this.blob);
     this.mesh.geometry.dispose();
     this.mesh.material.dispose();

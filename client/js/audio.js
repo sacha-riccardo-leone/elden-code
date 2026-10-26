@@ -169,6 +169,13 @@ export const SOUNDS = {
   // (a straw dummy's each at a pitch of its own; the great one's lower than any: training.js)
   'yard-break': { set: 'yard', clips: ['break-1', 'break-2', 'break-3'], layer: true, volume: 0.85, vary: 0.05, pitch: [0.9, 1.18], most: 3, half: 20 },
   'yard-hit': { set: 'yard', clips: ['hit'], volume: 0.7, vary: 0.08, pitch: [0.92, 1.12], most: 4, half: 18 },
+  // the tutorial's rune rocks (tutorial.js): a rock's rune lighting, its levitating hum while it's up
+  // (and the other under it, very quietly, as named), its rush as it drops, and its crash
+  'rock-rune': { set: 'rocks', clips: ['rune'], volume: 0.8, vary: 0.05, most: 2, half: 22 },
+  'rock-levitate': { set: 'rocks', clips: ['levitate'], volume: 0.4, most: 2, half: 22 },
+  'rock-levitate-under': { set: 'rocks', clips: ['levitate-under'], volume: 0.3, most: 2, half: 22 },
+  'rock-fall': { set: 'rocks', clips: ['fall'], volume: 0.7, vary: 0.05, pitch: [0.95, 1.05], most: 2, half: 24 },
+  'rock-impact': { set: 'rocks', clips: ['impact'], volume: 1, vary: 0.05, most: 2, half: 30 },
   // a blow's swing, as it lands (combat.js): anyone's with a blade, a spear or a fist, but Wynn's
   // (his own, above) and Ruadan's (his maul's, above)
   'blade-swing': { set: 'blade', clips: takes('swing', 3), volume: 0.55, vary: 0.08, pitch: [0.95, 1.05], most: 4, half: 16 },

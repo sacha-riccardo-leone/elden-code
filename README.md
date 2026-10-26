@@ -68,7 +68,7 @@ again by itself (`?tutorial` in the address shows it anyway).
      alight, recoloured to the yard's slabs). As soon as the fog has shut you in, each one's rune
      lights in turn, it's lifted in blue magic (its own light, and motes), held up a second and
      dropped, and its shockwave ripples out over the whole floor as the Golem's do, though slower
-     (`client/js/ripple.js`). "Dodge with Space to not get hit": a dodge as its crest comes counts,
+     (`client/js/ripple.js`); each is heard too (see Sound). "Dodge with Space to not get hit": a dodge as its crest comes counts,
      on a counter over the words (0 / 3); a crest that reaches you strikes as a great enemy's blow
      does (red, thrown back) but takes no health, and the count starts again. Three in a row, and
      on.
@@ -1344,6 +1344,13 @@ table says what each clip is cut from.
   together as one bursts (a straw one's each at a pitch of its own, anywhere from a little lower to
   a good deal higher; the great one's louder, and lower than any, struck as bursting); and
   `after_click_start_your_tarnished_journey` as you set out from the title.
+- **The tutorial's rune rocks** (`client/assets/sfx/IMPORT/Tutorial rocks`, cut into the `rocks` set),
+  each where the rock stands: `rock_rune_lighting` as its rune lights (from its first sound, so that
+  it crests as the rune is alight); `rock_levitating` as it's lifted, humming on while it's held up,
+  and `rock_levitating_very_quiet` under it, very quietly, as it's named (both hushed as it drops);
+  `rock_falling` as it drops (its rush at its loudest as it lands); `rock_fall_impact` as it crashes
+  down and its shockwave goes out (from just before its blow, so that the blow falls on the frame
+  it lands; over full scale in its recording, and the fall's too: both levelled lower).
 - **Changing form**: `twofold_change` as the Twofold changes at dusk and dawn, and `sellen_mask1` and
   `sellen_mask2` together as Corisande's mask goes on or comes off, each at its loudest as the new
   form bursts out.

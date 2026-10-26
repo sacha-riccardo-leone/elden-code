@@ -19,6 +19,7 @@
 //   spectre      the Noble Sorcerers' spectres (npc.js), from "Noble sorcerers"
 //   work         the stations' (npc.js, interact.js), from "Working"
 //   yard         the training yard's straw dummies (training.js), from "dummy" (and IMPORT's)
+//   rocks        the tutorial's rune rocks (tutorial.js), from "Tutorial rocks"
 //   steps        everyone's footsteps, and a dodge or a hop coming down (npc.js, pilot.js, fight.js),
 //                from "Base movements"
 //   blade        the swing of a blow (combat.js), from "Base sword sounds"
@@ -357,6 +358,22 @@ const SETS = {
       // bell rung at the fog gate (struck, and ringing on)
       ['raven', 'raven.mp3', 0.1, 3.45, -4, 0, 1.2],
       ['bell', 'bell.mp3', 0.05, 3.6, -3, 0, 1.2],
+    ],
+  },
+  rocks: {
+    from: 'IMPORT/Tutorial rocks',
+    clips: [
+      // the tutorial's rune rocks (tutorial.js): a rock's rune lighting (from its first sound, so that
+      // its crest comes as the rune is alight); lifted and held up, its levitating hum (a stretch at its
+      // full level) and the other, played very quietly under it as it's named (a stretch, its fade-in
+      // left out); dropped (from its first sound, its rush at its loudest as the rock hits the floor);
+      // and its crash (from just before the blow, so that it falls on the frame the rock lands). The
+      // last two are over full scale in their recordings: levelled lower.
+      ['rune', 'rock_rune_lighting.mp3', 0.08, 3.2, -3, 0, 0.8],
+      ['levitate', 'rock_levitating.mp3', 2, 4, -3, 0.15, 0.6],
+      ['levitate-under', 'rock_levitating_very_quiet.mp3', 1, 4, -3, 0.15, 0.6],
+      ['fall', 'rock_falling.mp3', 0.08, 1.4, -6, 0, 0.4],
+      ['impact', 'rock_fall_impact.mp3', 0.11, 1.9, -7, 0, 0.5],
     ],
   },
   yard: {
