@@ -39,16 +39,15 @@ const TAU = Math.PI * 2;
 const SPEED = TAU / ROCK_RING.spots.length / TURN; // (round the ring, a second)
 // The cracks (CrackRing): drawn as finely as the floor (textures.js), a little way past the ring
 // either side (`margin`), wandering this far off it as a crack does (slowly, and jagging this many
-// of its pixels either way), short ones branching off it;
-// black, with a shadow along the long one; the light that runs in them (their hearts the runes'
-// cyan, the short ones the teal it tints their stone, a faint glow along the long one), its tail
-// (how far round the ring it trails behind it), how long it takes from where it kindles to the
-// first rock, how quickly it comes up and goes out; and its own light on the floor round it.
+// of its pixels either way), short ones branching off it; black, with a shadow along the long one;
+// the light that runs in them (their hearts the runes' cyan, the short ones the teal it tints their
+// stone, a faint glow along the long one), its tail (how far round the ring it trails behind it),
+// how long it takes from where it kindles to the first rock, and how quickly it comes up and goes
+// out (nothing of it but what lights the cracks).
 const CRACK = {
   px: TEXELS, margin: 0.9, wobble: 0.2, jag: 2.4, branches: 30,
   black: [14, 12, 12], shadow: [52, 46, 42], heart: [10, 250, 245], edge: [24, 176, 166],
   tail: 0.6, first: 1.4, up: 0.35, out: 0.6,
-  lamp: { power: 7, reach: 4.5 },
 };
 // A rock's shockwave (ripple.js, as the Golem's, golem.js): how fast it runs (slower than his, to be
 // learnt), how wide its crest strikes, between crests and how many, how high the first, and how far
@@ -354,7 +353,7 @@ export class RockRing {
 
 // The ring's cracks, as drawn (CrackRing): `black`, on the floor (the long one with a shadow along
 // it), and `light`, the same in the runes' light (the long one's heart and a faint glow along it,
-// the short ones paler); and `rho`, how far out the long one runs at each angle round the ring.
+// the short ones paler). (`rho`: how far out the long one runs at each angle round the ring.)
 function crackCanvases(seed) {
   const r = rng(seed);
   const P = CRACK.px;
@@ -405,20 +404,17 @@ function crackCanvases(seed) {
     for (const [x, y] of branch.values()) put(x, y, CRACK.edge, 230);
     for (const [x, y] of main.values()) put(x, y, CRACK.heart);
   });
-  return { black, light, rho };
+  return { black, light };
 }
 
 // The ring of cracks the rocks stand on, black in the floor (crackCanvases), and the light that runs
 // in them: their hearts lit cyan where it passes, a tail fading behind it (the cracks drawn again in
-// light, shown only there: a window on them, round the ring from `uHead`), a glow over it and its own
-// light on the floor round it. Both lie on the yard's floor in its group (out of sight with it),
-// bending as it ripples.
+// light, shown only there: a window on them, round the ring from `uHead`). Both lie on the yard's
+// floor in its group (out of sight with it), bending as it ripples.
 class CrackRing {
   constructor(ring) {
-    const { world } = ring.ctx;
-    this.yard = world.yard;
-    const { black, light, rho } = crackCanvases(71);
-    this.rho = rho;
+    this.yard = ring.ctx.world.yard;
+    const { black, light } = crackCanvases(71);
     const size = black.width / CRACK.px;
     const seg = Math.ceil(size / 0.5);
     const lay = (mat, up) => {
@@ -454,41 +450,14 @@ class CrackRing {
     };
     mat.customProgramCacheKey = () => 'ripple-crack-light';
     this.lit = lay(mat, 0.02);
-    this.spark = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: world.tex.glow, color: ROCKS.glow, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
-    }));
-    this.spark.scale.set(1.1, 1.1, 1);
-    this.spark.renderOrder = 5;
-    this.yard.group.add(this.spark);
-    this.lamp = null;
     this.set(0, 0);
-  }
-
-  // Where the light is at angle `a` round the ring: [x, z] in the world.
-  at(a) {
-    const { x, z } = this.yard.ring();
-    const d = this.rho(a);
-    return [x + Math.cos(a) * d, z + Math.sin(a) * d];
   }
 
   // The light at `head` round the ring, `level` bright (0: out, the cracks dark).
   set(head, level) {
-    const on = level > 0.001;
     this.uniforms.uHead.value = head;
     this.uniforms.uLit.value = level;
-    this.lit.visible = on;
-    this.spark.visible = on;
-    if (!on) {
-      this.lamp?.end(0.1);
-      this.lamp = null;
-      return;
-    }
-    const [x, z] = this.at(head);
-    this.spark.position.set(x - this.yard.cx, YARD.y + 0.2, z - this.yard.cz);
-    this.spark.material.opacity = 0.75 * level;
-    this.lamp ??= carry(null, [x, YARD.y + 0.5, z], { color: ROCKS.glow, power: CRACK.lamp.power, reach: CRACK.lamp.reach, level: 0 });
-    this.lamp.at(x, YARD.y + 0.5, z);
-    this.lamp.level = level;
+    this.lit.visible = level > 0.001;
   }
 }
 
