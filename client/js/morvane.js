@@ -712,12 +712,13 @@ export class MorvaneMind {
 
   // Where the hole in his head of flame is just now (whichever drawing he shows, his body where it
   // stands, facing, lifted, grown): { x, y, z } in the world, how wide, how much of him is seen; null
-  // while it isn't to be seen (vanished, or the Frenzied Eye open over it): frenzyfx.js, Head.
+  // while it isn't to be seen (vanished, or the Frenzied Eye open over it), and from the moment he's
+  // felled (his fall's drawings show their own head of flame, shrinking): frenzyfx.js, Head.
   holeAt() {
     const b = this.b;
     const body = b.body;
     const seen = Math.min(1, b.fade ?? 1);
-    if (this.form !== 2 || this.gone || b.attack?.eye || seen <= 0.01) return null;
+    if (this.form !== 2 || this.gone || !b.alive || b.attack?.eye || seen <= 0.01) return null;
     const h = holeOf(body.frame);
     if (!h) return null;
     const k = body.sheet.px * body.zoom;

@@ -1037,7 +1037,8 @@ ground under you instead, so it flies at your hand's height there too.
     - **His head of flame** burns all the while, whatever he does: its tongues swirl round the black
       hole, swelling and shrinking as it burns, embers rising off it (Sacha's drawing of it alone,
       the Frenzied Eye's, set over the head in each of his drawings, the hole on the hole: `Head` in
-      `client/js/frenzyfx.js`). It's hidden while he's vanished, and while the Eye itself is open.
+      `client/js/frenzyfx.js`). It's hidden while he's vanished, while the Eye itself is open, and from
+      the moment he's felled (his fall's drawings have their own head of flame, shrinking).
     - **His arena**, from the moment he's revealed (it comes while the screen is black): the world
       beyond it goes black, by day or by night (no sky, no horizon, no sea of cloud below); a wall of
       frenzied flame burns round the far half of its edge, black inside like his head of flame,
@@ -1291,8 +1292,9 @@ table says what each clip is cut from.
     to rise, so that it crests as he throws; recorded very quietly, so it's raised a lot);
     `morvane_big_attack_eye_growing` and `2` together as the Eye swells, and
     `morvane_sword_removed_after`, looped, as it drags everyone in; `morvane_felled` and `2` together
-    as he's felled, heard whole through his fall, and `morvane_felled3_sword_dropping` and
-    `_fang_dropping` with them, each where his sword and his fang fall;
+    as he's felled (the second 6 dB under the first), heard whole through his fall, and
+    `morvane_felled3_sword_dropping` and `_fang_dropping` with them, each where his sword and his
+    fang fall;
   - for now, till he has his own: struck, your own `player_hurt`, higher for his first form and
     deeper for his second; the fang in flame and the falling flames bursting, the Golem's
     `meteorite_hit`; the bare fang stabbing into the floor, Fenrath's ghost sword striking, higher;

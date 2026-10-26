@@ -211,7 +211,7 @@ const SETS = {
       ['eye-2', 'morvane_big_attack_eye_growing2.mp3', 0, 5.59, -3, 0, 2, { group: 'eye' }],
       ['eye-pull', 'morvane_phase_1/morvane_sword_removed_after.mp3', 0.05, 2.95, -3, 0.3, 0.8],
       ['felled-1', 'morvane_felled.wav', 0, 3.3, -3, 0, 0.5, { group: 'felled' }],
-      ['felled-2', 'morvane_felled2.mp3', 0, 5.6, -3, 0, 0.8, { group: 'felled' }],
+      ['felled-2', 'morvane_felled2.mp3', 0, 5.6, -9, 0, 0.8, { group: 'felled' }], // (6 dB under the first, as Sacha asked)
       ['drop-sword', 'morvane_felled3_sword_dropping.mp3', 0.03, 0.8, -3, 0, 0.15, { group: 'drop' }],
       ['drop-fang', 'morvane_felled3_fang_dropping.mp3', 0.03, 1.55, -3, 0, 0.2, { group: 'drop' }],
       ['burst', '../Golem Guardian/meteorite_hit.wav', 2.02, 1.6, -4, 0, 0.6],
