@@ -91,10 +91,10 @@ const DarkShader = {
         // (heat rising: fine waves climbing the picture, crossed by slower ones)
         float edge = smoothstep(0.2, 0.75, length((vUv - 0.5) * aspect));
         float foot = 1.0 - smoothstep(0.0, 0.55, vUv.y);
-        float m = uHeat * (0.35 + 0.65 * max(edge, foot));
+        float m = uHeat * (0.25 + 0.75 * max(edge, foot));
         vec2 w = vec2(sin(vUv.y * 95.0 - uTime * 7.0 + sin(vUv.x * 31.0 + uTime * 1.7) * 2.0),
                       cos(vUv.x * 73.0 + uTime * 5.0 + sin(vUv.y * 23.0 - uTime * 2.3) * 2.0));
-        uv += w * vec2(0.0018, 0.0026) * m;
+        uv += w * vec2(0.0008, 0.0012) * m;
       }
       vec3 c = texture2D(tDiffuse, uv).rgb;
       if (dot(push, push) > 1e-8) {

@@ -307,7 +307,7 @@ const INFERNO = {
   fps: 11,
   bright: [1.0, 0.9, 0.82],
   near: { from: -0.1, to: 0.6, low: 0.16, faint: 0.4 },
-  lights: { count: 6, power: 38, reach: 26, y: 2.6, inset: 1.8 },
+  lights: { count: 6, power: 46, reach: 30, y: 2.6, inset: 1.8 },
   ash: { rate: 60, life: [2.2, 3.8] },
   fadeIn: 1.2,
   fadeOut: 3,

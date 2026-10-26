@@ -48,7 +48,7 @@ const DUSK = { sun: '#ff8a4c', hemiSky: '#8c6c94', fog: '#6e5266' };
 // arena gone black (no sky, no horizon, no sea of cloud below, the fog black and thicker), the moon
 // or the sun all but out, and the light that's left the colour of his fire (his ring of it lights
 // the arena itself).
-const FRENZY = { fog: '#000000', background: '#000000', hemiSky: '#6a2c0c', hemiGround: '#140804', fill: '#ff8a3a', hemi: 0.45, sun: 0.15, fillIntensity: 0.35, fogDensity: 1.6 };
+const FRENZY = { fog: '#000000', background: '#000000', hemiSky: '#d07a3c', hemiGround: '#4a2610', fill: '#ffa050', hemi: 1.35, sun: 0.3, fillIntensity: 0.9, fogDensity: 1.6 };
 
 const ease = (x) => x * x * (3 - 2 * x);
 
