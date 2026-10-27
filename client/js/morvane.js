@@ -152,12 +152,15 @@ const EYE = { height: 3.4, size: [2.3, 17], pull: [0.6, 3.4], rain: [0.16, 0.3],
 // His second form's sounds, timed (seconds): how far into the teleport's recording its burst comes
 // (heard from where it falls as he's gone, a blink's second step), how far into the flight's three
 // wooshes their rush comes (begun that long before a lunge's thrust, so that the two come together),
-// and into the fang's whirr its crest (begun that long before he throws).
-const HEARD = { burst: 0.45, rush: 0.3, whirr: 0.145 };
+// into the fang's whirr its crest (begun that long before he throws), and into a falling flame's
+// burst its crest (begun so that it comes as the flame lands, EYE.fall on).
+const HEARD = { burst: 0.45, rush: 0.3, whirr: 0.145, flame: 0.71 };
 // The pillar of flame: how far out from the middle of the arena he breathes it from (on its middle
 // line), how far either side of that line it burns (two-thirds of the arena's width), how far out it
 // runs (to the fire round the arena, frenzyfx.js), and how low he sags, spent.
 const PILLAR = { out: 14.2, half: (ARENA.walkRadius * 2) / 3, reach: 19.4, sag: -0.15 };
+// Spent after it, his breaths, each so many seconds into the 5 s he's spent: in, out, in, out.
+const SPENT = [['in', 0], ['out', 1.5], ['in', 2.5], ['out', 4]];
 // The clone flame: the circle round him it can't reach, how far out it races round, how high, how big
 // (the Eye's drawing, across: as big as his head of flame swells), how far from its middle it burns
 // (to the arena's edge), and how long a lap takes (seconds).
@@ -228,6 +231,7 @@ export class MorvaneMind {
     this.veerAt = -9;
     this.told = new Set(); // (the hints in the log, each said once)
     this.voices = {}; // what's heard and must be cut short (his panting, the pull and tearing, the reveal, the Eye)
+    this.fire = null; // (his arena's fire, heard while it burns: blaze)
     this.form = 1;
     this.light = null; // the frenzied flame's light, from his head torn off to the end
     this.black = document.getElementById('black');
@@ -341,9 +345,7 @@ export class MorvaneMind {
     this.through = through;
     this.fight.hit(b, amount, null, n, hits, how);
     this.through = false;
-    // (heard: thine own cry as thou art struck, higher for the withered lord, deeper for the Lord of
-    // Frenzied Flame: the nearest there is to his own till he has one)
-    this.ctx.sound?.play('player-hurt', { at: [b.pos.x, b.pos.y], volume: 0.55, pitch: this.form === 1 ? 1.2 : 0.72 });
+    this.sound('hit'); // (heard: audio.js)
     const mid = this.form === 1 ? this.up('middle') : b.lift + this.up('flameMiddle');
     this.floor.particles.emit({
       pos: [b.pos.x, mid, b.pos.y + 0.2], spread: [0.3, 0.4, 0.2], vel: [0, 1, 0], velSpread: [1, 0.8, 0.6],
@@ -711,6 +713,14 @@ export class MorvaneMind {
     if (!daylight || !post) return;
     this.inferno = new Inferno({ scene: this.floor.scene, particles: this.floor.particles, cx: world.arena.cx, cz: world.arena.cz, daylight, post });
     this.fight.fx.push(this.inferno);
+    this.blaze();
+  }
+
+  // His arena's fire heard, on and on while it burns (audio.js: heard wherever thou art, it's all round
+  // thee), dying away as it does (dies, dispose).
+  blaze() {
+    this.fire?.stop(0.3);
+    this.fire = this.sound('fire', true);
   }
 
   // Straight to his second form, as if just revealed (no first form, no change): ?felled's loop
@@ -748,6 +758,7 @@ export class MorvaneMind {
     this.gone = false;
     if (this.inferno?.ending && this.inferno.level > 0) this.inferno.ending = false; // (flaring up again)
     else if (!this.inferno || this.inferno.ending) this.burn();
+    if (!this.fire || this.fire.done) this.blaze(); // (and heard again)
     this.light?.end(0.1);
     this.light = carry(this.floor.scene, [b.pos.x, 1.4, b.pos.y + 2.6], { color: FRENZY_LIGHT, power: 16, reach: 14, waver: 0.6 });
   }
@@ -1107,7 +1118,7 @@ export class MorvaneMind {
       this.fight.shift(b, a.x + (a.toX - a.x) * e - b.pos.x, 0);
       b.lift = L.thrust;
       const tip = b.pos.x + a.dir * FLAME_FIGHT.reach.lunge;
-      this.sweep(a, (px, pz) => Math.abs(pz - a.z) <= FLAME_FIGHT.half.lunge && (px - a.x) * a.dir >= -0.5 && (px - tip) * a.dir <= 0, FLAME_FIGHT.hurt.lunge);
+      if (this.sweep(a, (px, pz) => Math.abs(pz - a.z) <= FLAME_FIGHT.half.lunge && (px - a.x) * a.dir >= -0.5 && (px - tip) * a.dir <= 0, FLAME_FIGHT.hurt.lunge)) this.sound('sword-hit');
       this.trail(dt);
     } else {
       this.ease(this.bob, dt, 4);
@@ -1144,10 +1155,11 @@ export class MorvaneMind {
     else if (a.step === 2) this.b.fade = k;
   }
 
-  // All his body or his blade passes through just now (`inside`), each only once in the move.
+  // All his body or his blade passes through just now (`inside`), each only once in the move: how
+  // many it wounded.
   sweep(a, inside, dmg) {
     a.seen ??= new Set();
-    this.fight.strike(inside, dmg, a.seen);
+    return this.fight.strike(inside, dmg, a.seen);
   }
 
   // On to the move's next drawing, and what happens as it's struck.
@@ -1221,7 +1233,7 @@ export class MorvaneMind {
         this.markBand(a);
         break;
       case 'pillar:3':
-        this.sound('anticipation');
+        this.voices.inhale = this.sound('inhale');
         this.tell('pillar', 'Morvane will breathe a pillar of flame across the arena: get out of the band it will burn, to its near or its far edge', 'red');
         break;
       case 'pillar:4':
@@ -1247,7 +1259,6 @@ export class MorvaneMind {
         // (his own head of flame his own again)
         a.eye?.dispose();
         a.eye = null;
-        this.voices.during = this.sound('eye-during', true);
         break;
       case 'clone:6':
         this.hush('eye', 1.2);
@@ -1316,7 +1327,8 @@ export class MorvaneMind {
     const [x, z, dir] = [b.pos.x, b.pos.y, a.dir];
     this.sound('woosh');
     const c = new Crescent(scene, x + dir * C.from, C.y, z + 0.12, dir, { size: C.size, speed: C.speed, life: C.life, palette: FRENZY, light: FRENZY_LIGHT });
-    this.fight.strike((px, pz) => Math.abs(pz - z) <= H && (px - x) * dir >= -1 && (px - x) * dir <= FLAME_FIGHT.reach.slash, FLAME_FIGHT.hurt.slash, c.hit);
+    const cuts = (px, pz) => Math.abs(pz - z) <= H && (px - x) * dir >= -1 && (px - x) * dir <= FLAME_FIGHT.reach.slash;
+    if (this.fight.strike(cuts, FLAME_FIGHT.hurt.slash, c.hit)) this.sound('sword-hit'); // (his blade landing: audio.js)
     this.fight.fx.push({
       step: (dt) => {
         const on = c.step(dt);
@@ -1431,7 +1443,7 @@ export class MorvaneMind {
   }
 
   // The fang lands: point-first in the floor, all inside its mark suffer, the stone cracks, gold
-  // sparks fly (heard, for now, as Fenrath's ghost sword striking, higher, till the fang has its own).
+  // sparks fly (heard stabbing into it).
   fangLands(a, [x, , z]) {
     const b = this.b;
     const { scene, particles } = this.floor;
@@ -1450,7 +1462,7 @@ export class MorvaneMind {
       color: ['#fff2b0', '#ffd24a', '#e8a020', '#ffffff'], size: 0.06, life: 0.5, count: 26, gravity: 7, drag: 0.8, intensity: 3,
     });
     flash(scene, [x, 0.8, z + 0.3], { color: '#ffd27a', power: 35, reach: 8, life: 0.3 });
-    this.ctx.sound?.play('boss-sword', { at: [x, z], volume: 0.55, pitch: 1.4 });
+    this.ctx.sound?.play('morvane-fang-hit', { at: [x, z] });
     this.ctx.rig?.shake?.(0.08);
   }
 
@@ -1595,6 +1607,8 @@ export class MorvaneMind {
     const mark = new Decal(scene, 'zone', x, z, EYE.r * 2 * 32 / 31, { opacity: 0.55 });
     const drift = (Math.random() < 0.5 ? -1 : 1) * 3;
     const ball = new FlameBall(scene, x - drift, 15, z, { size: 1.9, turn: -Math.PI / 2 });
+    // (heard from the moment it falls, its burst's crest as it lands: HEARD)
+    this.ctx.sound?.play('morvane-burst', { at: [x, z], volume: 0.4, delay: Math.max(0, EYE.fall - HEARD.flame) });
     let t = 0;
     let landed = false;
     this.fight.fx.push({
@@ -1614,7 +1628,6 @@ export class MorvaneMind {
           if (i >= 0) a.opt.spots.splice(i, 1);
           this.fight.strike((px, pz) => Math.hypot(px - x, (pz - z) * 1.1) <= EYE.r, FLAME_FIGHT.hurt.rain);
           this.fight.fx.push(new FlameBurst(scene, x, 1.1, z + 0.3, { size: 3.4, life: 0.45, power: 45, reach: 10 }));
-          this.ctx.sound?.play('morvane-burst', { at: [x, z], volume: 0.45 });
           particles.emit({
             pos: [x, 0.4, z], spread: [0.5, 0.3, 0.4], vel: [0, 3, 0], velSpread: [2.4, 2, 2],
             color: FLAME, size: 0.1, life: 0.6, count: 18, gravity: 6, drag: 0.6, intensity: 2.6,
@@ -1633,7 +1646,7 @@ export class MorvaneMind {
   // As it goes on: gathering, he vanishes; back at one side of the arena, fading in; leaning back,
   // drawing breath, his flame flaring; breathing it out, all it covers suffering (each once; not thee
   // while dodging, only till the dodge is over: there's no dodging through it), embers flying off it;
-  // spent, sagging a little as its tail flows away; upright again.
+  // spent, sagging a little as its tail flows away, breathing in and out (SPENT); upright again.
   stepPillar(a, k, dt) {
     const b = this.b;
     if (a.step === 0) this.gather(dt);
@@ -1648,6 +1661,8 @@ export class MorvaneMind {
     }
     if (a.step === 4) this.flaring = 0.25;
     if (a.step !== 5) return true;
+    a.breaths ??= 0;
+    while (a.breaths < SPENT.length && a.t >= SPENT[a.breaths][1]) this.voices.spent = this.sound(`spent-${SPENT[a.breaths++][0]}`);
     this.ease(PILLAR.sag, dt, 3);
     return false;
   }
@@ -1663,7 +1678,7 @@ export class MorvaneMind {
   }
 
   // He breathes it out: the pillar pours out of his head of flame across the arena (frenzyfx.js), its
-  // mark gone under it; its flash, its roar and its rush heard, the ground shaking.
+  // mark gone under it; its flash, its roar heard (wherever thou art), the ground shaking.
   breathe(a) {
     const b = this.b;
     const { cx, cz } = this.ctx.world.arena;
@@ -1674,8 +1689,7 @@ export class MorvaneMind {
     a.pillar = new Pillar(this.floor.scene, { from: [x, y, z + 0.3], dir: a.dir, cx, cz, r: PILLAR.reach, half: PILLAR.half });
     this.fight.fx.push(a.pillar); // (flowing away on its own once he stops breathing it)
     flash(this.floor.scene, [x, y, z + 1], { color: FRENZY_LIGHT, power: 120, reach: 30, life: 0.6 });
-    this.sound('eye-burst', true);
-    this.sound('fly');
+    this.voices.breath = this.sound('breath', true);
     this.ctx.rig?.shake?.(0.35);
   }
 
@@ -1766,14 +1780,15 @@ export class MorvaneMind {
 
   // A clone of his swollen head of flame parts from it, racing out to its round (out behind him first,
   // away from thee, either way round), and his own shrinks back (a second Eye over it, till it's his
-  // own again: nextStep).
+  // own again: nextStep); heard bursting off, and racing round on and on till it dies away (nextStep).
   split(a) {
     const [x, y, z] = this.headIn('beg');
     a.clone = a.eye;
     a.eye = new Eye(this.floor.scene, x, y, z + 0.4, CLONE.size);
     Object.assign(a, { spin: Math.random() < 0.5 ? 1 : -1, turn: -Math.PI / 2, out: 0, lap: null, high: y, seen: new Set() });
     this.burst([x, y, z], 3, 90);
-    this.sound('burst');
+    this.sound('burst', false, { offset: HEARD.flame - 0.05 }); // (at its crest at once)
+    this.voices.during = this.sound('clone', true);
   }
 
   // The clone racing round (`speed`: its share of full speed; `seen`: how much of it is left): out from
@@ -1914,7 +1929,8 @@ export class MorvaneMind {
         if (light) light.level = level * b.fade;
         if (!faded && b.t >= hold) {
           faded = true;
-          this.inferno?.end(fade); // (his arena's fire dying with him)
+          this.inferno?.end(fade); // (his arena's fire dying with him, and its roar)
+          this.fire?.stop(fade);
         }
         return !faded || b.fade > 0;
       },
@@ -1931,6 +1947,8 @@ export class MorvaneMind {
     this.light = null;
     this.inferno?.end();
     this.inferno = null;
+    this.fire?.stop(0.5);
+    this.fire = null;
     this.head?.end();
     this.head = null;
     this.dark(false, 0.3);

@@ -102,6 +102,9 @@ const rand = (a, b) => a + Math.random() * (b - a);
 // so that it's at its loudest as the fire comes)
 const PASSING = 0.7;
 const ROAR_EARLY = 0.3;
+// (and how long after he begins to get up the sound of it begins: so that the thud it ends in comes
+// as he's on his feet, the rise's last drawing, 4/3 s in)
+const RISE_LATE = 0.35;
 // how long he travels as he rolls: through its middle five drawings
 const ROLL_TRAVEL = GOLEM_MOVES.roll.steps.slice(1, 6).reduce((t, [, d]) => t + d, 0);
 const FIRE = ['#fff6c8', '#ffd24a', '#ff8a14', '#e0380a'];
@@ -227,6 +230,7 @@ export class GolemMind {
         // from inside the circle: into the fire
         const [, hy] = this.spot(SPOTS.heart);
         this.fight.hit(b, heartDmg, [h.x, hy + 0.3, b.pos.y + 0.2], n, 1, 'blow');
+        this.sound('heart', h.x); // (into the fire: audio.js)
         this.floor.particles.emit({
           pos: [h.x, hy + 0.4, b.pos.y + 0.3], spread: [0.4, 0.3, 0.3], vel: [0, 2.6, 0], velSpread: [1.6, 1.4, 1],
           color: FIRE, size: 0.1, life: 0.7, count: 22, drag: 1.2, intensity: 2.8,
@@ -284,6 +288,7 @@ export class GolemMind {
     if (b.state === 'down' && this.heart) {
       const [, hy] = this.spot(SPOTS.heart);
       this.fight.hit(b, (player ? GOLEM.heart.player : GOLEM.heart.fighter) * 0.5 * share, [this.heart.x, hy + 0.3, b.pos.y + 0.2], n, share, 'spell');
+      this.sound('heart', this.heart.x);
       return true;
     }
     if (this.lying) { this.clang(b.pos.x, b.pos.y); return false; }
@@ -457,6 +462,7 @@ export class GolemMind {
         b.state = 'rising';
         b.t = 0;
         b.pose('rise', true);
+        this.sound('rise', b.pos.x, b.pos.y, 1, RISE_LATE);
         this.closeHeart();
       }
     } else if (b.state === 'rising') {

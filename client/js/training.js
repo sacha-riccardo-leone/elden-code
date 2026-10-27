@@ -926,7 +926,10 @@ export class Training {
     for (const d of this.dummies) {
       d.step(dt);
       // (a poison or a bleeding wobbles it as it ticks)
-      stepStatus(d, this.clock, dt, { hit: (amount) => d.struck(amount, 1, false, 0, true), shift: () => {}, particles: this.fxCtx.particles });
+      stepStatus(d, this.clock, dt, {
+        hit: (amount) => d.struck(amount, 1, false, 0, true), shift: () => {}, particles: this.fxCtx.particles,
+        heard: (name) => this.ctx.sound?.play(name, { at: [d.pos.x, d.pos.y] }),
+      });
     }
     this.ring.update(dt); // (its rune rocks, while thou'rt in their ring)
     // the blows and spells of those training, at the turn of each

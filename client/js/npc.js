@@ -844,6 +844,7 @@ export class Npc {
     this.path = [];
     this.arrived = false;
     this.goldBurst();
+    this.ctx.sound?.play('grace-travel', { at: [this.pos.x, this.pos.y] }); // (dissolving into golden light: audio.js)
   }
 
   goldBurst() {

@@ -125,6 +125,7 @@ export const ULTS = {
           to: () => fight.bossPoint(up), speed: 8.5, turn: 4, rise: 2.5, delay: i * 0.11, life: 5, trail: motesOf('rune'), light: shine('rune', 8, 7),
           onHit: (at) => {
             hit(3.2, at, i === 6);
+            fight.ctx.sound?.play('runelord-book-hit', { at: [at.x, at.z] }); // (striking: audio.js)
             fx.add(new Burst(fx, { school: 'rune', at: [at.x, at.y, at.z], size: 1.7, ring: false, sparks: 16 }));
             fx.particles.emit({
               pos: [at.x, at.y, at.z], spread: [0.2, 0.2, 0.2], vel: [0, 1, 0], velSpread: [1.6, 1.4, 1],
@@ -138,6 +139,9 @@ export const ULTS = {
   sorceress: {
     // (her drawn pose is masked, as she fights; bare-faced she raises the staff as she casts)
     name: 'Glintstone Arrow', pose: ['ult'], fallback: ['cast'],
+    // (as it begins, and the arrow loosed: its sound begun a moment before, so that it's at its
+    // loudest, 0.13 s into its clip, as the arrow leaves her: cut-sfx.mjs)
+    heard: { start: 'sorceress-ult-start', loose: 'sorceress-ult-loose' }, lead: 0.13,
     run({ fight, fx, n, hit }) {
       // (the arrow drawn at her own pixel size, laid along the staff she aims like a bow, its head
       // at the crystal, and loosed; it keeps upright, its light on top)
@@ -157,16 +161,18 @@ export const ULTS = {
   },
   bloodbender: {
     name: 'Crimson Mire', pose: ['ult'],
+    heard: { start: 'bloodbender-ult-start' }, // (her heart beating as she gathers it: audio.js)
     run({ fight, fx, n, b }) {
       const now = fight.clock;
       const r = 3.2;
       fx.add(new Pool(fx, { x: b.pos.x, z: b.pos.y, r, life: 7, art: 'vael-pool' }));
+      fight.ctx.sound?.play('bloodbender-ult-pool', { at: [b.pos.x, b.pos.y] }); // (bubbling as long as it lasts)
       const s = statusOf(b);
       s.slowUntil = now + 7;
       s.slow = 0.35;
       s.rootUntil = now + 7;
       s.root = { x: b.pos.x, z: b.pos.y, r: r - 0.9 };
-      addDot(b, { kind: 'bleed', dps: 14, until: now + 11, src: n });
+      addDot(b, { kind: 'bleed', dps: 14, until: now + 11, src: n, heard: 'bloodbender-ult-hit' }); // (a wound of it heard about once a second)
       fx.particles.emit({
         pos: [b.pos.x, 0.3, b.pos.y], spread: [1.6, 0.1, 1.2], vel: [0, 2.2, 0], velSpread: [1.2, 1.2, 1],
         color: motesOf('blood'), size: 0.09, life: 0.8, count: 50, drag: 1.2, gravity: 3, intensity: 2,
@@ -177,10 +183,13 @@ export const ULTS = {
     // (wound up, the light gathered between her palms, and loosed, thrust out: drawn; else she
     // raises her ring)
     name: 'Wall of Dawn', pose: ['ult'], fallback: ['send'], release: 'loose', aim: true,
+    heard: { start: 'holy-ult-start' }, // (as it begins: audio.js)
     run({ fight, fx, n, b, dir, hit }) {
       // it strikes him if it reaches him in its lane (any way it goes); drawn, it leaves her palms
+      // (heard rushing out, and striking him: audio.js)
       const lane = 2.4;
       const [ahead] = n.body.sheet.rig.muzzles?.ult || [0.8];
+      fight.ctx.sound?.play('holy-ult-wall', { at: [n.pos.x + dir[0] * ahead, n.pos.y + dir[1] * ahead] });
       fx.add(new Wall(fx, {
         x: n.pos.x + dir[0] * ahead, z: n.pos.y + dir[1] * ahead, dir, art: 'solenne-wall', height: 4.2,
         hits: (x, z) => {
@@ -191,6 +200,7 @@ export const ULTS = {
         },
         onHit: (at) => {
           hit(26, at);
+          fight.ctx.sound?.play('holy-ult-hit', { at: [b.pos.x, b.pos.y] });
           fx.add(new Burst(fx, { school: 'holy', at: [b.pos.x, 2, b.pos.y], size: 4, sparks: 50 }));
           if (!b.mind?.lying) {
             interrupt(fight, b);
@@ -417,6 +427,7 @@ export const ULTS = {
           land: 0.9, // (onto his drawing, its point in him: spellfx.js, pinOn)
           onHit: (at, struck, pin) => {
             hit(0.8, new THREE.Vector3(at.x, at.y, at.z), i === 9);
+            fight.ctx.sound?.play('bandit-hit', { at: [at.x, at.z] }); // (biting: audio.js)
             addDot(b, { kind: 'poison', dps: 3, until: fight.clock + 4, src: n });
             // (stuck in his drawing, moving and turning with it; else where it bit, moving with him)
             if (pin) fx.add(new StuckSpear(fx, { pin, dir: facing, until: 4, look }));
@@ -428,6 +439,7 @@ export const ULTS = {
   },
   fortuna: {
     name: 'Frostfall', pose: ['ult'],
+    heard: { start: 'frost-ult-start' }, // (swelling as she gathers it, at its loudest as she looses it: audio.js)
     run({ fight, fx, n, b, hit }) {
       // (her great icicles, drawn as tall as she is at her own pixel size, shattering at twice it;
       // and, a beat after them, a mass of ice HUGE times that, taller than him, coming down slower

@@ -6,15 +6,15 @@
 //   golem        the Guardian Golem's (golem.js), from "Golem Guardian"
 //   boss         Fenrath's (fight.js), from "Fenrath"
 //   frenzy       Morvane's (morvane.js), from "Morvane"
-//   runelord     Jorvik's Flight of Tomes (ults.js), from "Jorvik"
+//   runelord     Jorvik's spells and Flight of Tomes (combat.js, ults.js), from "Jorvik"
 //   ronin        Wynn's (heroes/ronin.js, ults.js), from "Wynn"
 //   knight       Maren's thunderbolt and Red Storm (combat.js, ults.js), from "Marren"
 //   paladin      Aurelion's Radiant Verdict and its giant (ults.js), from "Aurelion"
 //   champion     Ruadan's Hammerfall (ults.js) and his maul (combat.js), from "Ruadan"
 //   frost        Fortuna's spells and Frostfall (combat.js, ults.js), from "Fortuna"
 //   sorceress    Corisande's spells and Glintstone Arrow (combat.js, ults.js), from "Sellen"
-//   bloodbender  Vael's gout of blood (combat.js), from "Vael"
-//   holy         Solenne's spells (combat.js), from "Holy magic"
+//   bloodbender  Vael's spells and Crimson Mire (combat.js, ults.js), from "Vael"
+//   holy         Solenne's spells and Wall of Dawn (combat.js, ults.js), from "Holy magic"
 //   bandit       Ulric's spears (combat.js, ults.js), from "Ulric"
 //   spectre      the Noble Sorcerers' spectres (npc.js), from "Noble sorcerers"
 //   work         the stations' (npc.js, interact.js), from "Working"
@@ -24,7 +24,8 @@
 //                from "Base movements"
 //   blade        the swing of a blow (combat.js), from "Base sword sounds"
 //   player       thou, struck (fight.js), from those loose in IMPORT
-//   cine         the world standing still as an ultimate is loosed (ults.js), from "During everyones
+//   grace        anyone travelling by grace (npc.js), from those loose in IMPORT too
+//   cine        the world standing still as an ultimate is loosed (ults.js), from "During everyones
 //                ult camera focus"
 //   ui           the banners' and setting out's (ui.js, main.js), from those loose in client/assets/sfx
 import { spawnSync } from 'node:child_process';
@@ -78,6 +79,12 @@ const SETS = {
       // air his lunge throws on past the axe (its whoosh, from its first sound)
       ['roll', 'golem_roll.mp3', 4.9, 1.05, -3, 0.05, 0.3],
       ['air-shock', 'golem_air_shock.mp3', 0.05, 1.25, -3, 0, 0.3],
+      // getting up, felled (its grinding from its first sound, and the thud it ends in, as he's on his
+      // feet: golem.js), and a blow or a spell in the fire in his chest as he lies (from just before
+      // its crest, 1.22 s in: the swell into it left out, so that it's heard as the blow lands; over
+      // full scale in its recording: levelled lower)
+      ['rise', 'golem_getting_up.mp3', 0.04, 1.23, -3, 0, 0.12],
+      ['heart', 'golem_heart_hit.mp3', 1.16, 1.34, -5.7, 0, 0.5],
     ],
   },
   ronin: {
@@ -201,9 +208,9 @@ const SETS = {
       // and the cue to dodge as it's about to burst (each from its first sound; the opening and the roar
       // over full scale in their recordings, levelled lower); his
       // fall (the two together, whole: his end seen through, morvane.js) and his sword and fang falling
-      // to the floor (each from its first sound, levelled as one, heard where each lies); and for now,
-      // till he has his own, the falling flames bursting as the Golem's meteors land, and
-      // the Eye as his fire bursts
+      // to the floor (each from its first sound, levelled as one, heard where each lies); a flame of
+      // the Eye's falling and bursting (from its first sound: its crest 0.71 s on, as it lands,
+      // morvane.js); and for now, till he has his own, the Eye as the Golem's fire bursts
       ['teleport', 'morvane_teleport.mp3', 0.05, 3.4, -3, 0, 1.5],
       ['fly-1', 'morvane_flying_woosh.mp3', 0.14, 3.2, -3, 0, 1.4, { group: 'fly' }],
       ['fly-2', 'morvane_flying_woosh2.mp3', 0.09, 3.2, -3, 0, 1.4, { group: 'fly' }],
@@ -223,8 +230,27 @@ const SETS = {
       ['felled-2', 'morvane_felled2.mp3', 0, 5.6, -15, 0, 0.8, { group: 'felled' }],
       ['drop-sword', 'morvane_felled3_sword_dropping.mp3', 0.03, 0.8, -3, 0, 0.15, { group: 'drop' }],
       ['drop-fang', 'morvane_felled3_fang_dropping.mp3', 0.03, 1.55, -3, 0, 0.2, { group: 'drop' }],
-      ['burst', '../Golem Guardian/meteorite_hit.wav', 2.02, 1.6, -4, 0, 0.6],
+      ['burst', 'morvane_flame_burst.mp3', 0.04, 1.5, -3.7, 0, 0.4],
       ['eye-burst', '../Golem Guardian/freeexplosionspitfire/Firespray 2.ogg', 0.035, 2.03, -2, 0, 0.6],
+      // struck (from its first sound), his blade landing on someone, and his fang stabbed into the
+      // floor (each from its first sound); the ring of fire round his arena, a steady stretch of its
+      // burning (4.6 s on: its lull before left out), coming in as the ring does and looped (audio.js)
+      ['hit', 'morvane_hit.mp3', 0.255, 0.65, -6.5, 0, 0.25],
+      ['sword-hit', 'morvane_sword_hit.mp3', 0.12, 0.75, -3, 0, 0.3],
+      ['fang-hit', 'morvane_fang_hit.mp3', 0.055, 2.6, -6.4, 0, 0.8],
+      ['fire', 'morvane_arena_fire.mp3', 4.6, 12, -6.2, 1.2, 0.5],
+      // his pillar of flame: drawing breath as he leans back (from its first sound, as long as he
+      // leans; its body far under its sharpest peaks: made 6 dB louder, limited), breathing it out
+      // (from its first sound, its roar dying away as the pillar's tail flows off), and spent,
+      // breathing in and out (each from its first sound, levelled as one: morvane.js has them in turn,
+      // twice); his clone flame racing round (from its first sound, as it parts from him: its steady
+      // middle looped, audio.js). (The breath, the spent breaths and the clone over full scale in
+      // their recordings: levelled lower.)
+      ['inhale', 'morvane_pillar_inhale.wav', 0.06, 1.3, -3, 0, 0.35, { loud: 6 }],
+      ['breath', 'morvane_pillar_breath.mp3', 0.14, 3.0, -5.5, 0, 1.0],
+      ['spent-in', 'morvane_pillar_spent_1_breath_in.mp3', 0.07, 1.45, -4.7, 0, 0.3, { group: 'spent' }],
+      ['spent-out', 'morvane_pillar_spent_2_breath_out.mp3', 0.06, 0.7, -4.7, 0, 0.2, { group: 'spent' }],
+      ['clone', 'morvane_clone_loop.mp3', 0.18, 4.7, -5.2, 0, 0.6],
     ],
   },
   knight: {
@@ -299,6 +325,9 @@ const SETS = {
       // mass of ice bursting (from its first sound, 1.78 s in)
       ['icicle', 'new_ice_rock_shattering.ogg', 0.015, 0.8, -3, 0, 0.3],
       ['ult-end', 'Fortuna_ult_debris_explosion_end.wav', 1.76, 1.5, -2, 0, 0.5],
+      // and Frostfall begun, swelling as she gathers it (from where it rises, 0.1 s in: its crest
+      // 1.84 s on, as she looses it; over full scale in its recording: levelled lower)
+      ['ult-start', 'fortuna_ult_start.mp3', 0.1, 3.3, -6.2, 0, 0.8],
     ],
   },
   sorceress: {
@@ -312,15 +341,40 @@ const SETS = {
       // her mask going on or coming off (the two together, as Sacha wants: in Ruadan's folder)
       ['mask-1', '../Ruadan/sellen_mask1.mp3', 0, 1.3, -3, 0, 0.3, { group: 'mask' }],
       ['mask-2', '../Ruadan/sellen_mask2.mp3', 0, 2.0, -3, 0, 0.6, { group: 'mask' }],
+      // a spell of hers landing (from its first sound; levelled lower: at -3 its peaks came out over
+      // full scale)
+      ['lands', 'sellen_spell_lands.mp3', 0.065, 0.95, -4.5, 0, 0.3],
+      // her Glintstone Arrow begun (the two together, as Sacha wants, each from its first sound: the
+      // first's glimmer a stretch of its 25 s, the second swelling to its loudest 1.3 to 1.6 s on,
+      // just before she looses it), and the arrow loosed (from where it swells, 0.2 s in: its crest 0.13 s on, as
+      // it leaves her: ults.js)
+      ['ult-start-1', 'sellen_ult_start.mp3', 0.02, 2.6, -3, 0, 0.8, { group: 'ult-start' }],
+      ['ult-start-2', 'sellen_ult_start2.mp3', 0.05, 3.4, -3, 0, 1.0, { group: 'ult-start' }],
+      ['ult-loose', 'sellen_ult_loose.mp3', 0.2, 1.7, -3, 0, 0.6],
     ],
   },
   bloodbender: {
     from: 'IMPORT/Vael',
     clips: [
-      // her gout of blood, loosed (from where it swells, 0.22 s in), and landing on what it struck
-      // (from just before its burst, 0.16 s in: the quiet rise before it left out)
-      ['blob', 'Vael_blood_blob_projectile.m4a', 0.22, 1.4, -3, 0, 0.3],
+      // her gout of blood, loosed (Sacha's newer recording, from its first sound: its swell, over as
+      // it leaves her), and landing on what it struck (from just before its burst, 0.16 s in: the
+      // quiet rise before it left out)
+      ['blob', 'vael_blood_blob_projectile.mp3', 0.24, 0.38, -3, 0, 0.03],
       ['impact', 'atk_impact.ogg', 0.15, 0.73, -3, 0, 0.3],
+      // her spikes of blood out of the floor (from its first sound: its burst 0.33 s on, as they rise,
+      // combat.js) and her lash (the three together, as Sacha wants, each from its first sound;
+      // levelled as one, lower: the first over full scale in its recording)
+      ['spikes', 'vael_spikes.mp3', 0.15, 1.9, -3, 0, 0.6],
+      ['lash-1', 'vael_lash1.mp3', 0.075, 0.75, -4.2, 0, 0.25, { group: 'lash' }],
+      ['lash-2', 'vael_lash2.mp3', 0.2, 1.0, -4.2, 0, 0.3, { group: 'lash' }],
+      ['lash-3', 'vael_lash3.mp3', 0.025, 0.7, -4.2, 0, 0.2, { group: 'lash' }],
+      // her Crimson Mire: begun (its heart beating, three times, from its first sound: the last as she
+      // looses it; over full scale in its recording: levelled lower), the pool under him (7 s of its
+      // bubbling, as long as the pool lasts, dying away as it dries), and his bleeding (a wound of it
+      // about once a second: combat.js)
+      ['ult-start', 'vael_ult_start.mp3', 0.02, 2.1, -5.9, 0, 0.25],
+      ['ult-pool', 'vael_ult_pool.mp3', 0.02, 7.3, -3, 0.3, 1.5],
+      ['ult-hit', 'vael_ult_hit.mp3', 0.02, 0.4, -3, 0, 0.15],
     ],
   },
   holy: {
@@ -330,6 +384,15 @@ const SETS = {
       ['spell', 'magic-spell.wav', 0.15, 2.2, -3, 0, 0.6],
       // light falling on him
       ['light', '853303__tommasomotteran__magic-healing-spell-sfx-fantasy-rpg-restore-effect.wav', 0.1, 2.2, -3, 0, 0.5],
+      // her Wall of Dawn: begun (from its first sound, swelling as she gathers it), the wall rushing
+      // out (from where it surges, 0.7 s in: at its loudest as it flies, dying away a second after it's
+      // gone), and striking him (the two together, as Sacha wants: the second's crack from its first
+      // sound, the first from where its bloom is heard, 0.28 s in; over full scale in their recordings:
+      // levelled lower)
+      ['ult-start', 'solenne_ult_start.mp3', 0.02, 2.9, -3, 0, 0.4],
+      ['ult-wall', 'solenne_ult_wall.mp3', 0.7, 2.5, -4.7, 0, 1.0],
+      ['ult-hit-1', 'solenne_ult_hit.mp3', 0.28, 1.12, -5.9, 0, 0.4, { group: 'ult-hit' }],
+      ['ult-hit-2', 'solenne_ult_hit2.mp3', 0.05, 1.0, -5.9, 0, 0.4, { group: 'ult-hit' }],
     ],
   },
   bandit: {
@@ -339,6 +402,9 @@ const SETS = {
       ['woosh-1', 'spear_woosh_1.wav', 0, 0.09, -4, 0, 0.02, { group: 'woosh' }],
       ['woosh-2', 'spear_woosh_2.wav', 0, 0.08, -4, 0, 0.02, { group: 'woosh' }],
       ['woosh-3', 'spear_woosh_3.wav', 0, 0.1, -4, 0, 0.02, { group: 'woosh' }],
+      // and biting into what it struck (from its first sound; over full scale in its recording:
+      // levelled lower)
+      ['hit', 'spear_hit.wav', 0.04, 0.45, -4.8, 0, 0.2],
     ],
   },
   spectre: {
@@ -428,6 +494,15 @@ const SETS = {
       ['book-1', 'jorvik_ult_book1.mp3', 0.03, 2.0, -3, 0, 0.8],
       ['book-2', 'jorvik_ult_book2.mp3', 0, 2.0, -3, 0, 0.8],
       ['book-3', 'jorvik_ult_book3.mp3', 0.15, 2.0, -3, 0, 0.8],
+      // and each striking him (from its first sound)
+      ['book-hit', 'jorvik_ult_book_hit.mp3', 0.025, 0.6, -3, 0, 0.25],
+      // his spells: a rune or a volley flung (from its first sound, its rush on as they fly), his
+      // circle of runes and its pillar (from its first sound: its crest 0.38 s on, about as the pillar
+      // rises, combat.js), and any of them landing (from its first sound); the last two over full
+      // scale in their recordings: levelled lower
+      ['cast', 'jorvik_rune_cast.mp3', 0.02, 2.0, -3, 0, 0.6],
+      ['pillar', 'jorvik_pillar.mp3', 0.02, 1.0, -4.7, 0, 0.3],
+      ['lands', 'jorvik_spell_lands.wav', 0.04, 2.4, -6.2, 0, 0.8],
     ],
   },
   player: {
@@ -436,6 +511,17 @@ const SETS = {
       // thou, struck (from its first sound, half a second in; over full scale in the recording:
       // levelled lower)
       ['hurt', 'player_hurt.mp3', 0.48, 0.7, -5, 0, 0.3],
+    ],
+  },
+  grace: {
+    from: 'IMPORT',
+    clips: [
+      // dissolving into golden light, travelling by grace (the three together, as Sacha wants, each
+      // from its first sound, levelled as one: the third, far quieter, a glimmer under the others, cut
+      // short with them as the journey's over)
+      ['travel-1', 'grace_travel.mp3', 0.035, 1.45, -3, 0, 0.4, { group: 'travel' }],
+      ['travel-2', 'grace_travel2.mp3', 0.095, 2.2, -3, 0, 0.8, { group: 'travel' }],
+      ['travel-3', 'grace_travel3.mp3', 0.015, 2.6, -3, 0, 1.2, { group: 'travel' }],
     ],
   },
   blade: {

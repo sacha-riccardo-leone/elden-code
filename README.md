@@ -706,11 +706,12 @@ ground under you instead, so it flies at your hand's height there too.
     it.
     - A blow strikes what stands on that line within its reach, in any direction (straight up or
       down the screen too), the Golem's and the great dummy's ankles included.
-    - **Spears reach farther:** Maren's and Ulric's blows land on whatever the tip of their drawn
-      spear touches, 1.2 and 1.7 units farther than a blade's (their tips drawn 3.1 and 3.6 units
-      ahead of them as the blow lands, against 1.7 to 2.7 for the swords and the maul:
-      `combat.js`, `reachOf`). As fighters they strike from that much farther off, and stand that
-      much farther back from the Golem's ankle; training, from a dummy.
+    - **Spears and Wynn's blade reach farther:** Maren's and Ulric's blows land on whatever the tip
+      of their drawn spear touches, 1.2 and 1.7 units farther than a blade's (their tips drawn 3.1
+      and 3.6 units ahead of them as the blow lands, against 1.7 to 2.7 for the swords and the maul:
+      `combat.js`, `reachOf`), and Wynn's long blade reaches as far as Maren's spear. As fighters
+      they strike from that much farther off, and stand that much farther back from the Golem's
+      ankle; training, from a dummy.
     - A spell or a spear flies straight along it, homing on nothing: it leaves from the line (as
       far out as the drawn pose holds it, nearer as the line turns into the view or out of it) and
       strikes the first thing it comes up to. A volley set off to the sides comes back onto the
@@ -1223,10 +1224,10 @@ comes up, so nothing blinks.
 ## Sound
 
 The Lands Between are heard (`client/js/audio.js`, Web Audio): the great enemies, everyone's
-footsteps and blows, every hero's ultimate and spells, the stations, the spectres, the training
-yard's dummies, the banners and setting out. The sounds are cut from Sacha's recordings (`client/assets/sfx/IMPORT/<their folder>`,
+footsteps and blows, every hero's ultimate and spells, travelling by grace, the stations, the
+spectres, the training yard's dummies, the banners and setting out. The sounds are cut from Sacha's recordings (`client/assets/sfx/IMPORT/<their folder>`,
 one per hero or kind, and a few loose in `client/assets/sfx`, kept as they are and never deployed) into a set
-each (`client/assets/sfx/<set>`): small MP3 clips, about 6 MB in all (the Golem's and Morvane's
+each (`client/assets/sfx/<set>`): small MP3 clips, about 8 MB in all (the Golem's and Morvane's
 fetched only as their fight begins). A recording that holds many
 of one sound (footsteps, landings, lightning) is cut into each of them, every other sound from where
 it starts, each levelled to one peak; a recording's 1 and 2 (and 3) are heard together, levelled as
@@ -1257,7 +1258,11 @@ table says what each clip is cut from.
   - each meteor as it's flung up out of him (`Rock Meteor Throw 1` or `2`, `freemeteor`) and as it
     lands, and the swarm of them (`Rock Meteor Swarm 1` or `2`) as the first is flung;
   - `golem_roll` as he rolls out of the crowd (a second of its rumbling), and `golem_air_shock` as
-    his lunge throws its shock of air on past the axe.
+    his lunge throws its shock of air on past the axe;
+  - `golem_heart_hit` as a blow or a spell lands in the fire in his chest as he lies felled (from
+    just before its crest, 1.22 s in, so that it's heard as the blow lands), and `golem_getting_up`
+    as he gets up again (begun a moment after he starts to, so that the thud it ends in comes as
+    he's on his feet).
 - **Footsteps** (everyone's, `client/js/npc.js`): each foot as it's set down, on the walk's first
   and fourth drawings (where every rig's walk has a foot land), one of its kind's at random and a
   little different each time, its pitch and loudness: Maren, Aurelion, Ulric and Jorvik in armour,
@@ -1348,16 +1353,24 @@ table says what each clip is cut from.
     levelled lower); `morvane_felled` and `2` together as he's felled (his cry raised, held under full scale, to be heard over all else; the second well
     under it), heard whole through his fall, and `morvane_felled3_sword_dropping` and
     `_fang_dropping` with them, a little quieter, each where his sword and his fang fall;
-  - for now, till he has his own: struck, your own `player_hurt`, higher for his first form and
-    deeper for his second; the falling flames bursting, the Golem's
-    `meteorite_hit`; the bare fang stabbing into the floor, Fenrath's ghost sword striking, higher;
-    the Eye bursting, the Golem's `Firespray 2`; and his pillar and his clone flame borrow his other
-    moves' sounds: as he leans back, `morvane_sword_anticipation`; as he breathes the pillar out, the
-    Eye's burst and `morvane_flying_woosh` (all three); as his head swells for the clone,
-    `morvane_big_attack_eye_start`, the clone parting from it bursting as the falling flames do, and
-    `morvane_big_attack_eye_during` under it all the while it races round (one of
-    `morvane_sword_woosh` each time it passes you); his sword and fang heard falling as when he's
-    felled, and flying back with a sword whoosh.
+  - `morvane_hit` each time he's struck, either form; `morvane_sword_hit` as his slash or his lunge
+    lands on someone; `morvane_fang_hit` as the bare fang stabs into the floor; `morvane_flame_burst`
+    with each of the Eye's falling flames, from the moment it falls (its crest comes 0.71 s on, as
+    it lands: it falls for 0.75 s); `morvane_arena_fire` all the while the ring of fire burns round
+    his arena (from where its burning is steady, 4.6 s in, coming in as the ring does, its stretch
+    looped, heard wherever you are, and dying away with the ring as he fades);
+  - his pillar of flame: `morvane_pillar_inhale` as he leans back drawing breath (recorded very
+    quietly: raised, its peaks held under full scale), `morvane_pillar_breath` as he breathes the
+    pillar out (heard wherever you are, dying away as its tail flows off), and, spent,
+    `morvane_pillar_spent_1_breath_in` and `_2_breath_out` in turn, as Sacha wants: in, out, in,
+    out over the five seconds;
+  - his clone flame: `morvane_clone_loop` as the clone bursts off his head and races round, heard
+    wherever you are (its steady middle looped, the music held down meanwhile), dying away as it
+    does;
+  - for now, till he has his own: the Eye bursting, the Golem's `Firespray 2`; as his head swells
+    for the clone, `morvane_big_attack_eye_start`, and the clone parting from it `morvane_flame_burst`
+    (from its crest); one of `morvane_sword_woosh` each time the clone passes you; his sword and fang
+    heard falling as when he's felled, and flying back with a sword whoosh.
 - **Maren's thunderbolt** (her right click): one of the sixteen zaps of `maren_atk1`, a different
   one each time, and with it the rush in `maren_atk2` (between 2 and 3 s, as its name says: from
   where it's heard, so that it peaks as the bolt is there).
@@ -1373,7 +1386,7 @@ table says what each clip is cut from.
     `maren_ult_small_lightning`, and the great bolt that ends it, `maren_ult_big_lightning` (from its
     strike, 4.36 s in, its thunder rolling on);
   - Jorvik's Flight of Tomes: one of `jorvik_ult_book1`, `2` and `3` as each of its seven tomes
-    springs up;
+    springs up, and `jorvik_ult_book_hit` as each strikes him;
   - Aurelion's Radiant Verdict: `aurelion_ult_start1_at4.5s` as it's loosed (its third, from 4.82 s,
     as its name says), `aurelion_stand_appear` as the giant of his light rises behind him, and one
     of the fifteen blows of `aurelion_stand_hit` as the giant strikes; and all through it his own
@@ -1383,17 +1396,33 @@ table says what each clip is cut from.
   - Ruadan's Hammerfall: `ruadan_ult_jump` as he leaps (from 1.2 s, begun 0.22 s before he springs
     so that it's at its loudest, 1.42 s, as he does; over as he lands), and
     `radahn_ult_landing_explosion` as the maul strikes and the gold explodes;
-  - Fortuna's Frostfall: `new_ice_rock_shattering` as each of its three great icicles shatters,
-    and `Fortuna_ult_debris_explosion_end` as its mass of ice bursts;
-  - Corisande's Glintstone Arrow: `ult_hit` as it strikes home;
+  - Fortuna's Frostfall: `fortuna_ult_start` as it begins (from where it rises, 0.1 s in, so that
+    its crest comes as she looses it), `new_ice_rock_shattering` as each of its three great icicles
+    shatters, and `Fortuna_ult_debris_explosion_end` as its mass of ice bursts;
+  - Corisande's Glintstone Arrow: `sellen_ult_start` (2.6 s of its 25) and `sellen_ult_start2`
+    together as it begins, `sellen_ult_loose` as the arrow leaves her (begun a moment before, so
+    that it's at its loudest then), and `ult_hit` as it strikes home;
+  - Vael's Crimson Mire: `vael_ult_start` as it begins (its heart beating three times, the last as
+    she looses it), `vael_ult_pool` bubbling as long as the pool lasts (7 s, dying away as it
+    dries), and `vael_ult_hit` about once a second while he bleeds, the first at once;
+  - Solenne's Wall of Dawn: `solenne_ult_start` as it begins, `solenne_ult_wall` as the wall rushes
+    out (from where it surges, 0.7 s in, dying away a second after the wall is gone), and
+    `solenne_ult_hit` and `solenne_ult_hit2` together as it strikes him;
   - Ulric's Tenfold Spears: `spear_woosh_1`, `_2` and `_3` together as each spear leaves his hand
-    (and as he throws his one spear, right click).
-- **The spells**: Corisande's `Sellen_projectile` and `_2` together as she looses one; Vael's
-  `Vael_blood_blob_projectile` as she looses her gout of blood, and `atk_impact` as it lands on what
-  it struck; Solenne's `magic-spell` with a lance or a halo of light, and the healing light as light
-  falls on him; Fortuna's `Ice Throw 1` or `2` as she looses one, and `Fortuna_spell_atk_lands` and
-  `_2` together as it lands on what it struck.
-- **The world**: `anvil-hit-1` and `-2` together with every hammer blow at a forge;
+    (and as he throws his one spear, right click), and `spear_hit` as each bites.
+- **The spells**: Jorvik's `jorvik_rune_cast` as he flings a rune or a volley, `jorvik_pillar`
+  with his circle of runes and its pillar (begun so that its crest comes as the pillar rises), and
+  `jorvik_spell_lands` as any of them lands on what it struck; Corisande's `Sellen_projectile` and
+  `_2` together as she looses one, and `sellen_spell_lands` as it lands; Vael's
+  `vael_blood_blob_projectile` (Sacha's newer recording) as she looses her gout of blood, and
+  `atk_impact` as it lands on what it struck, `vael_spikes` with her spikes of blood (begun so that
+  their burst comes as they rise out of the floor), and `vael_lash1`, `2` and `3` together with her
+  lash; Solenne's `magic-spell` with a lance or a halo of light, and the healing light as light falls
+  on him; Fortuna's `Ice Throw 1` or `2` as she looses one, and `Fortuna_spell_atk_lands` and `_2`
+  together as it lands on what it struck; Ulric's `spear_hit` as his thrown spear bites.
+- **The world**: `grace_travel`, `2` and `3` together as anyone travels by grace, dissolving into
+  golden light (yours always heard, the others' only near where the camera looks);
+  `anvil-hit-1` and `-2` together with every hammer blow at a forge;
   `summoning-magic-spell` each time you invoke a ritual circle (E) and as a spirit ash (a
   subagent) is summoned; `raven` as a raven takes wing from its tower (its wings beating, dying away
   as it flies off); `bell` each time the bell at a fog gate rings; `noble_sorcerer` and `_2`

@@ -835,11 +835,11 @@ export class Fight {
   }
 
   // A blow lands on thee (`from`: where it came from, [x, z], if not from him; the tutorial's
-  // shockwaves, which take no health: tutorial.js).
+  // shockwaves, which take no health: tutorial.js). Returns whether it did.
   hurtPlayer(dmg, from = null) {
     const pilot = this.ctx.pilot;
     const n = pilot.npc;
-    if (!n || pilot.dead || n.travel || n.action?.kind === 'dodge') return; // nothing touches thee mid-dodge, or travelling by grace
+    if (!n || pilot.dead || n.travel || n.action?.kind === 'dodge') return false; // nothing touches thee mid-dodge, or travelling by grace
     pilot.hp = Math.max(0, pilot.hp - dmg);
     this.ctx.sound?.play('player-hurt', { at: [n.pos.x, n.pos.y] }); // (struck: audio.js)
     this.ui.hurt.classList.remove('flash');
@@ -869,11 +869,13 @@ export class Fight {
       n.action = { kind: 'hurt', anim: 'stagger', t: 0, dur: 0.45 };
       n.body.play('stagger', true);
     }
+    return true;
   }
 
+  // (and on a fighter: returns whether it did)
   hurtFighter(n, dmg) {
     const f = n.fighter;
-    if (!f || f.dead || n.travel) return;
+    if (!f || f.dead || n.travel) return false;
     f.hp -= dmg;
     // (its drawing white a moment and knocked back)
     n.body.flash();
@@ -891,11 +893,12 @@ export class Fight {
     } else {
       n.stagger();
     }
+    return true;
   }
 
   // Everyone a blow covers (inside(x, z)): thee, and the fighters. `seen`: those it already struck
   // (a crescent strikes each only once on its way). `ground`: it runs along the floor (a
-  // shockwave), passing under whoever is in the air.
+  // shockwave), passing under whoever is in the air. Returns how many it wounded.
   strike(inside, dmg, seen = null, ground = false) {
     const { pilot, director } = this.ctx;
     const take = (n) => {
@@ -905,8 +908,10 @@ export class Fight {
       return true;
     };
     const me = pilot.npc;
-    if (me && !pilot.dead && this.inArena(me) && take(me)) this.hurtPlayer(dmg);
-    for (const n of director.npcs.values()) if (n.fighter && !n.piloted && take(n)) this.hurtFighter(n, dmg);
+    let wounded = 0;
+    if (me && !pilot.dead && this.inArena(me) && take(me) && this.hurtPlayer(dmg)) wounded += 1;
+    for (const n of director.npcs.values()) if (n.fighter && !n.piloted && take(n) && this.hurtFighter(n, dmg)) wounded += 1;
+    return wounded;
   }
 
   inArena(n) {
@@ -1047,7 +1052,10 @@ export class Fight {
     // what the ultimates do to him (combat.js): bleeding, poisoned, knocked back, kept in a pool;
     // held still or dazed, he does nothing; slowed, everything he does is slow
     const now = this.clock;
-    stepStatus(b, now, dt, { hit: (amount, src) => this.hit(b, amount, null, src, false), shift: (dx, dz) => this.shift(b, dx, dz), particles: this.floor.particles });
+    stepStatus(b, now, dt, {
+      hit: (amount, src) => this.hit(b, amount, null, src, false), shift: (dx, dz) => this.shift(b, dx, dz), particles: this.floor.particles,
+      heard: (name) => { if (b.alive) this.ctx.sound?.play(name, { at: [b.pos.x, b.pos.y] }); },
+    });
     const held = heldAt(b, now) && b.alive;
     const dazed = held && now < b.status.stunUntil;
     const pace = paceAt(b, now);

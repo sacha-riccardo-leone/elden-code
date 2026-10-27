@@ -53,6 +53,9 @@ export const SOUNDS = {
   // (rolling out of the crowd, and the shock of air his lunge throws)
   'golem-roll': { set: 'golem', clips: ['roll'], volume: 0.8, most: 1, half: 26 },
   'golem-air-shock': { set: 'golem', clips: ['air-shock'], volume: 1, most: 2, half: 26 },
+  // (getting up again, felled, and a blow or a spell in the fire in his chest as he lies)
+  'golem-rise': { set: 'golem', clips: ['rise'], volume: 0.85, most: 1, half: 26 },
+  'golem-heart': { set: 'golem', clips: ['heart'], volume: 0.85, vary: 0.06, pitch: [0.94, 1.06], most: 3, half: 24 },
   // Wynn's, and nobody else's (heroes/ronin.js: on the drawings where they happen; ults.js)
   'ronin-slash': { set: 'ronin', clips: ['slash'], volume: 0.75, vary: 0.06, most: 3, half: 18 },
   'ronin-ult': { set: 'ronin', clips: ['ult'], volume: 0.9, most: 1, half: 22 },
@@ -104,8 +107,9 @@ export const SOUNDS = {
   // to slash, his blade (its three in turn), the fang thrown, the Frenzied Eye (heard wherever thou
   // art): his rising into place, its opening, its roar all the while it swells (on and on till it
   // bursts, the music held down meanwhile) and the cue to dodge it; his fall (the two together, the
-  // music held down meanwhile), his sword and his fang falling to the floor, and, for now, what
-  // bursts: the falling flames (the Golem's meteor), the Eye (his fire)
+  // music held down meanwhile), his sword and his fang falling to the floor, what bursts: each
+  // falling flame (heard from the moment it falls: morvane.js), and, for now, the Eye (the Golem's
+  // fire)
   'morvane-teleport': { set: 'frenzy', clips: ['teleport'], volume: 0.75, vary: 0.05, pitch: [0.95, 1.06], most: 2, half: 26 },
   'morvane-fly': { set: 'frenzy', clips: ['fly-1', 'fly-2', 'fly-3'], layer: true, volume: 0.85, most: 2, half: 30 },
   'morvane-anticipation': { set: 'frenzy', clips: ['anticipation'], volume: 0.8, vary: 0.05, most: 1, half: 22 },
@@ -120,15 +124,31 @@ export const SOUNDS = {
   'morvane-felled': { set: 'frenzy', clips: ['felled-1', 'felled-2'], layer: true, volume: 0.95, most: 1, half: 30, duck: 0.3 }, // (his cry over all else, as loud as it goes: cut-sfx.mjs)
   'morvane-drop-sword': { set: 'frenzy', clips: ['drop-sword'], volume: 0.6, most: 1, half: 24 },
   'morvane-drop-fang': { set: 'frenzy', clips: ['drop-fang'], volume: 0.6, most: 1, half: 24 },
+  // (struck, either form; his blade landing on someone; his fang stabbed into the floor; the ring of
+  // fire round his arena, on and on while it burns, heard wherever thou art; his pillar of flame:
+  // drawing breath, breathing it out, heard wherever thou art, and spent, breathing in and out; and
+  // his clone flame racing round, heard wherever thou art, on and on till it dies away, the music
+  // held down meanwhile)
+  'morvane-hit': { set: 'frenzy', clips: ['hit'], volume: 0.9, vary: 0.08, pitch: [0.94, 1.06], most: 2, half: 22 },
+  'morvane-sword-hit': { set: 'frenzy', clips: ['sword-hit'], volume: 0.75, vary: 0.06, pitch: [0.95, 1.05], most: 2, half: 22 },
+  'morvane-fang-hit': { set: 'frenzy', clips: ['fang-hit'], volume: 0.85, vary: 0.04, most: 1, half: 24 },
+  'morvane-fire': { set: 'frenzy', clips: ['fire'], volume: 0.8, most: 1, loop: [1.4, 11.4] },
+  'morvane-inhale': { set: 'frenzy', clips: ['inhale'], volume: 0.9, most: 1, half: 22 },
+  'morvane-breath': { set: 'frenzy', clips: ['breath'], volume: 1, most: 1 },
+  'morvane-spent-in': { set: 'frenzy', clips: ['spent-in'], volume: 0.7, vary: 0.05, pitch: [0.96, 1.04], most: 1, half: 20 },
+  'morvane-spent-out': { set: 'frenzy', clips: ['spent-out'], volume: 0.7, vary: 0.05, pitch: [0.96, 1.04], most: 1, half: 20 },
+  'morvane-clone': { set: 'frenzy', clips: ['clone'], volume: 0.75, most: 1, loop: [1.2, 3.2], duck: 0.3 },
   // the ultimates' (ults.js): Maren's bolts (one of six each) and her great bolt, the camera closing
   // on her, Aurelion's verdict and his giant (rising, and striking: one of fifteen blows), Ruadan's
-  // leap and landing, Fortuna's mass of ice bursting, Corisande's arrow, Ulric's spears
+  // leap and landing, Fortuna's mass of ice bursting, Corisande's arrow, Ulric's spears; and, as
+  // theirs begin, Fortuna's, Corisande's (the two together), Vael's and Solenne's
   'knight-bolt': { set: 'knight', clips: ['bolt-1', 'bolt-2', 'bolt-3', 'bolt-4', 'bolt-5', 'bolt-6'], volume: 0.75, vary: 0.08, most: 5, half: 26 },
   'knight-great': { set: 'knight', clips: ['great'], volume: 1, most: 1, half: 34 },
   'knight-ult-zoom': { set: 'knight', clips: ['ult-zoom'], volume: 0.8, most: 1, half: 24 },
   'paladin-ult': { set: 'paladin', clips: ['ult'], volume: 0.85, most: 1, half: 22 },
-  // (Jorvik's tomes, each as it springs up)
+  // (Jorvik's tomes, each as it springs up, and as it strikes him)
   'runelord-book': { set: 'runelord', clips: takes('book', 3), volume: 0.5, vary: 0.1, pitch: [0.94, 1.08], most: 4, half: 22 },
+  'runelord-book-hit': { set: 'runelord', clips: ['book-hit'], volume: 1, vary: 0.08, pitch: [0.94, 1.08], most: 4, half: 22 },
   'paladin-stand': { set: 'paladin', clips: ['stand'], volume: 0.8, most: 1, half: 22 },
   'paladin-stand-hit': { set: 'paladin', clips: takes('stand-hit', 15), volume: 0.9, vary: 0.05, most: 1, half: 24 },
   // (and his own music, from the moment it's loosed till a moment after it strikes: ults.js)
@@ -148,10 +168,29 @@ export const SOUNDS = {
   'frost-icicle': { set: 'frost', clips: ['icicle'], volume: 0.9, vary: 0.05, pitch: [0.92, 1.08], most: 3, half: 26 },
   'sorceress-ult-hit': { set: 'sorceress', clips: ['ult-hit'], volume: 1, most: 1, half: 26 },
   'bandit-woosh': { set: 'bandit', clips: ['woosh-1', 'woosh-2', 'woosh-3'], layer: true, volume: 0.8, vary: 0.08, most: 10, half: 18 },
-  // the spells (combat.js): loosed, or landing
+  'frost-ult-start': { set: 'frost', clips: ['ult-start'], volume: 0.85, most: 1, half: 22 },
+  // (Corisande's arrow loosed; Vael's pool under him and his bleeding, about once a second; Solenne's
+  // wall rushing out, and striking him: the two together)
+  'sorceress-ult-start': { set: 'sorceress', clips: ['ult-start-1', 'ult-start-2'], layer: true, volume: 0.7, most: 1, half: 22 },
+  'sorceress-ult-loose': { set: 'sorceress', clips: ['ult-loose'], volume: 1, most: 1, half: 24 },
+  'bloodbender-ult-start': { set: 'bloodbender', clips: ['ult-start'], volume: 1, most: 1, half: 22 },
+  'bloodbender-ult-pool': { set: 'bloodbender', clips: ['ult-pool'], volume: 0.6, most: 1, half: 24 },
+  'bloodbender-ult-hit': { set: 'bloodbender', clips: ['ult-hit'], volume: 0.6, vary: 0.1, pitch: [0.9, 1.1], most: 2, half: 20 },
+  'holy-ult-start': { set: 'holy', clips: ['ult-start'], volume: 0.75, most: 1, half: 22 },
+  'holy-ult-wall': { set: 'holy', clips: ['ult-wall'], volume: 0.85, most: 1, half: 26 },
+  'holy-ult-hit': { set: 'holy', clips: ['ult-hit-1', 'ult-hit-2'], layer: true, volume: 1, most: 1, half: 26 },
+  // the spells (combat.js): loosed (Vael's lash the three together), or landing; and Ulric's spear
+  // biting (thrown, or one of his Tenfold Spears: ults.js)
+  'runelord-cast': { set: 'runelord', clips: ['cast'], volume: 0.6, vary: 0.05, most: 2, half: 20 },
+  'runelord-pillar': { set: 'runelord', clips: ['pillar'], volume: 0.7, vary: 0.04, most: 2, half: 20 },
+  'runelord-lands': { set: 'runelord', clips: ['lands'], volume: 0.8, vary: 0.06, most: 3, half: 20 },
   'sorceress-projectile': { set: 'sorceress', clips: ['projectile-1', 'projectile-2'], layer: true, volume: 0.7, vary: 0.05, most: 3, half: 20 },
+  'sorceress-lands': { set: 'sorceress', clips: ['lands'], volume: 0.8, vary: 0.06, most: 3, half: 20 },
   'bloodbender-blob': { set: 'bloodbender', clips: ['blob'], volume: 0.75, vary: 0.06, most: 3, half: 20 },
   'bloodbender-impact': { set: 'bloodbender', clips: ['impact'], volume: 0.75, vary: 0.06, most: 3, half: 20 },
+  'bloodbender-spikes': { set: 'bloodbender', clips: ['spikes'], volume: 0.7, vary: 0.06, most: 2, half: 20 },
+  'bloodbender-lash': { set: 'bloodbender', clips: ['lash-1', 'lash-2', 'lash-3'], layer: true, volume: 0.5, vary: 0.06, most: 2, half: 20 },
+  'bandit-hit': { set: 'bandit', clips: ['hit'], volume: 0.6, vary: 0.08, pitch: [0.93, 1.07], most: 4, half: 20 },
   'holy-spell': { set: 'holy', clips: ['spell'], volume: 0.7, vary: 0.05, most: 2, half: 20 },
   'holy-light': { set: 'holy', clips: ['light'], volume: 0.8, most: 2, half: 20 },
   'frost-throw': { set: 'frost', clips: ['throw-1', 'throw-2'], volume: 0.7, vary: 0.06, most: 3, half: 20 },
@@ -168,6 +207,9 @@ export const SOUNDS = {
   'work-bell': { set: 'work', clips: ['bell'], volume: 0.5, vary: 0.05, pitch: [0.96, 1.04], most: 2, half: 18 },
   // thou, struck (fight.js: by a great enemy, or the tutorial's shockwaves)
   'player-hurt': { set: 'player', clips: ['hurt'], volume: 0.8, vary: 0.08, pitch: [0.94, 1.06], most: 2, half: 20 },
+  // anyone travelling by grace (npc.js), as they dissolve into golden light: the three together
+  // (thine always heard, the others' only near where the camera looks)
+  'grace-travel': { set: 'grace', clips: ['travel-1', 'travel-2', 'travel-3'], layer: true, volume: 0.5, most: 2, half: 12, far: 36 },
   // (a straw dummy's each at a pitch of its own; the great one's lower than any: training.js)
   'yard-break': { set: 'yard', clips: ['break-1', 'break-2', 'break-3'], layer: true, volume: 0.85, vary: 0.05, pitch: [0.9, 1.18], most: 3, half: 20 },
   'yard-hit': { set: 'yard', clips: ['hit'], volume: 0.7, vary: 0.08, pitch: [0.92, 1.12], most: 4, half: 18 },

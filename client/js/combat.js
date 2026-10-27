@@ -25,7 +25,7 @@ import { groundAt } from './ground.js';
 // leave from, [ahead, up] of its feet in world units (the orb, the crystal, the fist, the ring),
 // unless its rig says where its drawn poses hold it (muzzleOf). `throws`: one who fights up close
 // but throws his weapon for a spell, played by thee: his spear (throwSpear), his maul (throwMaul).
-// `reach`: how much farther than a blade's its blow reaches (reachOf).
+// `reach`: how much farther than an ordinary blade's its blow reaches (reachOf).
 export const STYLES = {
   runelord: { range: 'far', school: 'rune', color: '#ffc94a', muzzle: [2.0, 0.75] }, // (the orb, thrust out: heroes/runelord.js)
   sorceress: { range: 'far', school: 'glintstone', color: '#6fc3ff', muzzle: [0.72, 2.68] }, // (bare-faced; masked: heroes/sorceress.js)
@@ -35,7 +35,7 @@ export const STYLES = {
   champion: { range: 'near', color: '#ffb84a', throws: 'maul' },
   knight: { range: 'near', school: 'storm', color: '#ff4038', muzzle: [3.0, 1.52], reach: 1.2 }, // (her blows up close; played, a thunderbolt from her spear's tip too, right click: a little inside it, the bolt's line a little below its middle)
   paladin: { range: 'near', color: '#ffe9a0' },
-  ronin: { range: 'near', color: '#d8ecff' },
+  ronin: { range: 'near', color: '#d8ecff', reach: 1.2 }, // (his long blade: as far as Maren's spear, as Sacha wants)
   bandit: { range: 'near', color: '#9fdc5a', throws: 'spear', reach: 1.7 },
 };
 const NEAR = { range: 'near', color: '#ffd27a' };
@@ -44,7 +44,8 @@ export const styleOf = (n) => STYLES[heroKey(n)] || NEAR;
 export const casts = (n) => styleOf(n).range !== 'near';
 // How much farther than a blade's a blow of n's reaches, world units: a spear's (Maren's, Ulric's)
 // finds whatever its drawn tip touches as it lands (3.1 and 3.6 units ahead of them, and the
-// lunge's third of a unit with it: npc.js), where a sword's goes into what it finds.
+// lunge's third of a unit with it: npc.js), where a sword's goes into what it finds; and Wynn's
+// long blade reaches as far as Maren's spear.
 export const reachOf = (n) => styleOf(n).reach || 0;
 // Whether n has a spell for thy right click at all (pilot.js): a mage's, Fortuna's frost, Ulric's
 // spear, Ruadan's maul.
@@ -286,18 +287,27 @@ const SPELLS = {
 };
 
 // What a spell is heard as (audio.js), by school and by which of its spells (in the order listed
-// above): `cast` as it's loosed (Corisande's, Vael's gout of blood, Solenne's, Fortuna's), `land` as
-// it lands on what it struck (Fortuna's, Vael's).
+// above): `cast` as it's loosed (`wait` seconds after, for what comes up out of the floor once its
+// mark has warned of it, spellfx.js, Rise: so that the crest of Jorvik's pillar and the burst of
+// Vael's spikes come as they rise), `land` as it lands on what it struck (Solenne's have none yet).
 const HEARD = {
-  glintstone: [{ cast: 'sorceress-projectile' }, { cast: 'sorceress-projectile' }, { cast: 'sorceress-projectile' }],
-  blood: [{ cast: 'bloodbender-blob', land: 'bloodbender-impact' }],
+  rune: [
+    { cast: 'runelord-cast', land: 'runelord-lands' }, { cast: 'runelord-cast', land: 'runelord-lands' },
+    { cast: 'runelord-pillar', wait: 0.07, land: 'runelord-lands' },
+  ],
+  glintstone: [
+    { cast: 'sorceress-projectile', land: 'sorceress-lands' }, { cast: 'sorceress-projectile', land: 'sorceress-lands' },
+    { cast: 'sorceress-projectile', land: 'sorceress-lands' },
+  ],
+  blood: [{ cast: 'bloodbender-blob', land: 'bloodbender-impact' }, { cast: 'bloodbender-spikes', wait: 0.12 }, { cast: 'bloodbender-lash' }],
   holy: [{ cast: 'holy-spell' }, { cast: 'holy-spell' }, { cast: 'holy-light' }],
   storm: [{ cast: ['knight-thunder', 'knight-thunder-rise'] }], // (one of her zaps, and the rush with it)
   frost: [{ cast: 'frost-throw', land: 'frost-lands' }, { cast: 'frost-throw', land: 'frost-lands' }],
 };
-// A sound of n's (audio.js: one, or several together), heard where n stands (or at x, z).
-const heard = (n, name, x = n.pos.x, z = n.pos.y) => {
-  for (const one of [name].flat()) if (one) n.ctx?.sound?.play(one, { at: [x, z] });
+// A sound of n's (audio.js: one, or several together), heard where n stands (or at x, z), `delay`
+// seconds from now.
+const heard = (n, name, x = n.pos.x, z = n.pos.y, delay = 0) => {
+  for (const one of [name].flat()) if (one) n.ctx?.sound?.play(one, { at: [x, z], delay });
 };
 
 // n casts one of its spells. `target()`: the point it's cast at (followed, homing: a fighter's at
@@ -374,7 +384,7 @@ export function castSpell(fx, n, { target = null, dir = null, aim = null, hit })
       fx.add(new Beam(fx, { school, from, to, width, art, tile, ...look, onHit: target ? (at) => land(at, share) : null }));
     },
   };
-  heard(n, sounds.cast);
+  heard(n, sounds.cast, n.pos.x, n.pos.y, sounds.wait);
   spell.cast(c);
 }
 
@@ -398,6 +408,7 @@ function throwSpear(fx, n, { aim = null, dir = null, hit }) {
       const p = pin?.now();
       const tip = p ? inSpace(fx.scene, p.tip) : [at.x + way[0] * SPEAR.back, at.y, at.z + way[1] * SPEAR.back];
       fx.add(new Spark(fx, { color: styleOf(n).color, at: [tip[0], tip[1], tip[2] + 0.2], dir: Math.sign(p ? p.way[0] : way[0]) || facing, size: 1.3 }));
+      heard(n, 'bandit-hit', tip[0], tip[2]); // (biting: audio.js)
       if (pin) fx.add(new StuckSpear(fx, { pin, dir: facing, until: SPEAR.stuck, look, motes: null }));
       else if (struck) {
         const [bx, by, bz] = struck.at();
@@ -504,20 +515,28 @@ export const paceAt = (b, now) => (b.status && now < b.status.slowUntil ? b.stat
 // Rooted: he may not leap or roll off elsewhere (and keeps to the pool).
 export const rootedAt = (b, now) => !!b.status && now < b.status.rootUntil;
 
-// Damage over time (`kind`: 'bleed' or 'poison'), `dps` from now till `until`, `src` its owner.
-export function addDot(b, { kind, dps, until, src }) {
-  statusOf(b).dots.push({ kind, dps, until, src, acc: 0 });
+// Damage over time (`kind`: 'bleed' or 'poison'), `dps` from now till `until`, `src` its owner;
+// `heard`, a sound of it (audio.js), heard every `DOT_HEARD` seconds while it lasts, the first at once
+// (the bleeding of Vael's Crimson Mire, ults.js).
+const DOT_HEARD = 1;
+export function addDot(b, { kind, dps, until, src, heard = null }) {
+  statusOf(b).dots.push({ kind, dps, until, src, heard, heardAt: -Infinity, acc: 0 });
 }
 
 // One frame of his statuses (fight.stepBoss): his bleeding and poison, his knocking back, and
-// the pool keeping him in. `hit(amount, src)` wounds him; `shift(dx, dz)` moves him.
-export function stepStatus(b, now, dt, { hit, shift, particles }) {
+// the pool keeping him in. `hit(amount, src)` wounds him; `shift(dx, dz)` moves him; `heard(name)`
+// plays a sound where he is.
+export function stepStatus(b, now, dt, { hit, shift, particles, heard = null }) {
   const s = b.status;
   if (!s) return;
   s.dots = s.dots.filter((d) => {
     if (now >= d.until) return false;
     d.acc += d.dps * dt;
     if (d.acc >= 4) { hit(d.acc, d.src); d.acc = 0; }
+    if (d.heard && now - d.heardAt >= DOT_HEARD) {
+      d.heardAt = now;
+      heard?.(d.heard);
+    }
     return true;
   });
   for (const kind of ['bleed', 'poison']) {
