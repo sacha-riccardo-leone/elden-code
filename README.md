@@ -1070,7 +1070,8 @@ ground under you instead, so it flies at your hand's height there too.
       come in close to him (your companions do), where he can be struck. Then his sword and fang rise
       off the floor and fly back into his raised hands. Neither the pillar nor the clone comes
       within 12 seconds after one of his great attacks (the Eye, the pillar or the clone); the Eye
-      comes when his health says.
+      comes when his health says. Their seconds are the fight's, through his other moves as between
+      them, but not while he's held or stunned, nor through his great attacks.
     - Every blade, spell and ultimate reaches him whenever he's there to be reached (not vanished,
       nor up over the arena). The camera follows you from farther back than for the others, so that
       you see him coming. Felled, he falls to his knees, his flame shrinking, and slumps, his sword

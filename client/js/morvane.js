@@ -120,9 +120,11 @@ const AHEAD = { hand: 122, catch: 118 };
 // before him, how high, how big, how fast, how long, how wide what it strikes), his fang's flight
 // (the circle it stabs, how fast it flies, straight there and straight back, how long it stays, how
 // many times as big as in his hand); how often his pillar of flame and his clone flame come (seconds
-// between one and the next, the first so long into his second form's fight), and how long at least
-// after the Eye or each other; and what each blow takes from thee (of 100; the fighters as much), the
-// Eye's the most beside him, the least at the arena's edge (the clone's each time it passes).
+// between one and the next, the first so long into his second form's fight: seconds of his fight,
+// through his other moves as between them, but not while he's held nor through his great moves: due),
+// and how long at least after the Eye or each other; and what each blow takes from thee (of 100; the
+// fighters as much), the Eye's the most beside him, the least at the arena's edge (the clone's each
+// time it passes).
 const FLAME_FIGHT = {
   drift: 4.2,
   keep: [5.5, 7],
@@ -172,6 +174,8 @@ const GRIP = { sword: [14, 20], fang: [8, 6] };
 const FLOOR = ARENA.walkRadius + 0.6; // (the round of the arena's floor, as its marks are drawn: fight.js)
 // The camera from far back, the whole arena seen, through these steps of these moves (aim).
 const WIDE = { eye: [2, 6], pillar: [2, 4], clone: [2, 6] };
+// His great moves (none comes too soon after another: begin).
+const GREAT = ['eye', 'pillar', 'clone'];
 
 // His second form's moves: each one's drawings and how long each is held (seconds; `true`: fixed,
 // else quicker when he's wounded: fight.js), a move's own (`dur`) where it says; `danger`: the last
@@ -918,8 +922,7 @@ export class MorvaneMind {
     const tgt = this.tgt;
     if (!tgt) { b.pose('idle'); return false; }
     // his pillar of flame and his clone flame, each in its time, once he's ready
-    this.pillarIn -= dt;
-    this.cloneIn -= dt;
+    this.due(dt);
     if (b.cd <= 0 && ((this.cloneIn <= 0 && this.begin('clone')) || (this.pillarIn <= 0 && this.begin('pillar')))) return false;
     const dx = tgt.pos.x - b.pos.x;
     const dz = tgt.pos.y - b.pos.y;
@@ -941,6 +944,14 @@ export class MorvaneMind {
     const step = Math.min(d, FLAME_FIGHT.drift * fast * dt);
     f.shift(b, ((gx - b.pos.x) / d) * step, ((gz - b.pos.y) / d) * step);
     return true;
+  }
+
+  // His pillar of flame and his clone flame drawing nearer: all the while he fights, between his moves
+  // (hunt) and through them (stepMove), but not while he's held (neither is called then), nor through
+  // his great moves.
+  due(dt) {
+    this.pillarIn -= dt;
+    this.cloneIn -= dt;
   }
 
   // A move against his foe, if there's one to make from where he is (begun): whether one was.
@@ -1045,7 +1056,7 @@ export class MorvaneMind {
     }
     // (none of his great moves comes too soon after another)
     const F = FLAME_FIGHT;
-    if (kind === 'eye' || kind === 'pillar' || kind === 'clone') {
+    if (GREAT.includes(kind)) {
       this.pillarIn = kind === 'pillar' ? rand(...F.every.pillar) : Math.max(this.pillarIn, F.apart);
       this.cloneIn = kind === 'clone' ? rand(...F.every.clone) : Math.max(this.cloneIn, F.apart);
     }
@@ -1068,6 +1079,7 @@ export class MorvaneMind {
     a.t += dt;
     this.t += dt;
     this.flaring = Math.max(0, this.flaring - dt);
+    if (!GREAT.includes(a.kind)) this.due(dt);
     const span = fixed ? dur : dur / fast;
     let k = Math.min(1, a.t / span);
     let lift = true; // (bobbing as he floats, unless the move has him lower or higher)
