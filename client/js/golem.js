@@ -226,7 +226,7 @@ export class GolemMind {
       if (Math.hypot(n.pos.x - h.x, n.pos.y - h.z) <= h.r) {
         // from inside the circle: into the fire
         const [, hy] = this.spot(SPOTS.heart);
-        this.fight.hit(b, heartDmg, [h.x, hy + 0.3, b.pos.y + 0.2], n, true, 'blow');
+        this.fight.hit(b, heartDmg, [h.x, hy + 0.3, b.pos.y + 0.2], n, 1, 'blow');
         this.floor.particles.emit({
           pos: [h.x, hy + 0.4, b.pos.y + 0.3], spread: [0.4, 0.3, 0.3], vel: [0, 2.6, 0], velSpread: [1.6, 1.4, 1],
           color: FIRE, size: 0.1, life: 0.7, count: 22, drag: 1.2, intensity: 2.8,
@@ -243,10 +243,8 @@ export class GolemMind {
     if (onAim(n.pos.x, n.pos.y, way, ax, b.pos.y, GOLEM.ankle.r, GOLEM.ankle.r + 0.4, 1.5 + far, margin, 0.4) != null) {
       const was = this.weak;
       this.ankle += weight;
-      this.fight.hit(b, ankleDmg, [ax, ay, b.pos.y + 0.2], n, true, 'blow');
+      this.fight.hit(b, ankleDmg, [ax, ay, b.pos.y + 0.2], n, 1, 'blow'); // (it takes little, but it's a hit toward the striker's ultimate)
       this.sound('ankle', ax); // (the crack struck: audio.js)
-      // (it takes little, but the blow counts in full toward the striker's ultimate)
-      this.fight.charge(n, this.fight.blowWorth(n) - ankleDmg);
       this.floor.particles.emit({
         pos: [ax, ay, b.pos.y + 0.3], spread: [0.2, 0.2, 0.2], vel: [0, 1.6, 0], velSpread: [1.6, 1.2, 0.8],
         color: FIRE, size: 0.07, life: 0.5, count: 14, drag: 1.4, intensity: 2.6,
@@ -285,7 +283,7 @@ export class GolemMind {
     if (!b.alive || b.state === 'enter' || b.lift > 2 || b.attack?.kind === 'roll') return false;
     if (b.state === 'down' && this.heart) {
       const [, hy] = this.spot(SPOTS.heart);
-      this.fight.hit(b, (player ? GOLEM.heart.player : GOLEM.heart.fighter) * 0.5 * share, [this.heart.x, hy + 0.3, b.pos.y + 0.2], n, true, 'spell');
+      this.fight.hit(b, (player ? GOLEM.heart.player : GOLEM.heart.fighter) * 0.5 * share, [this.heart.x, hy + 0.3, b.pos.y + 0.2], n, share, 'spell');
       return true;
     }
     if (this.lying) { this.clang(b.pos.x, b.pos.y); return false; }
@@ -293,9 +291,8 @@ export class GolemMind {
     const was = this.weak;
     this.ankle += (player ? 1 : GOLEM.ankle.weight) * 0.7 * share;
     const dmg = (player ? GOLEM.ankle.player : GOLEM.ankle.fighter) * share;
-    this.fight.hit(b, dmg, [ax, ay, b.pos.y + 0.2], n, true, 'spell');
+    this.fight.hit(b, dmg, [ax, ay, b.pos.y + 0.2], n, share, 'spell');
     this.sound('ankle', ax);
-    this.fight.charge(n, this.fight.blowWorth(n, true) * share - dmg);
     if (!was && this.weak) this.tell('weak', 'The Golem\'s cracked ankle buckles: one more walk on it and it gives way', 'red');
     return true;
   }

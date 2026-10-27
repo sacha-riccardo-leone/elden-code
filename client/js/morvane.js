@@ -5,7 +5,7 @@
 // His first form, the withered lord, won't fight: he flees all round the arena, away from whoever's
 // near, and every so often stops, out of breath. Thy blade reaches him only then (as an ultimate
 // does); what thou loosest from afar (a spell, a thrown spear, Ruadan's maul) reaches him running
-// too. His wounds barely fill thine ultimate. Nearly done for, he makes one last run, to the middle
+// too. Nearly done for, he makes one last run, to the middle
 // of the arena, and stays there out of breath till thou finishest him: so his change, and his reveal,
 // come there. He's thine alone: thy companions wait in their places by the way in, watching, for his second
 // form (waits). His health he wears over his head, as the training yard's dummies do theirs
@@ -79,9 +79,6 @@ export const MORVANE = {
   shy: 2.6, // a foe this near, he runs elsewhere
   last: 0.15, // this much of his bar left, he makes one last run, to the middle of the arena, and stays there out of breath
   wheeze: 5.6, // (and wheezes on and on there: his panting heard again every so often)
-  // how many of thy blows (or spells) landing on him fill thine ultimate, whatever each takes, in
-  // either form (fight.js, charge)
-  ultHits: 6,
   hover: 0, // how high his second form floats over where it's drawn floating (heroes/morvane-flame.js), bobbing
   // felled: his fall seen whole so long (on his knees, then slumped), then all of him (body, head of
   // flame, sword and fang, his light, his arena's fire) fading out together over so long (fight.js)
@@ -279,8 +276,6 @@ export class MorvaneMind {
     if (this.form === 2) return b.state === 'change' || this.gone;
     return !this.open() && !(this.through && b.state === 'ready');
   }
-  // (how hard his wounds fill an ultimate: his first form's barely, combat.js)
-  ultHits() { return MORVANE.ultHits; }
   felled() { return MORVANE.felled; }
   // His health over his head, in his first form and his change, till he's named the Lord of Frenzied
   // Flame (fight.updateUi): where it goes.
@@ -336,14 +331,15 @@ export class MorvaneMind {
   spellBlow(n, share, player) {
     if (this.form === 1 && !this.open() && !player) return false;
     if (this.form === 2 && (this.immune() || this.b.lift > 2)) return false;
-    this.struck(n, this.fight.blowWorth(n, true) * share, 'spell', player);
+    this.struck(n, this.fight.blowWorth(n, true) * share, 'spell', player, share);
     return true;
   }
 
-  struck(n, amount, how, through = false) {
+  // (`hits`: what it counts toward n's ultimate, fight.charge)
+  struck(n, amount, how, through = false, hits = 1) {
     const b = this.b;
     this.through = through;
-    this.fight.hit(b, amount, null, n, true, how);
+    this.fight.hit(b, amount, null, n, hits, how);
     this.through = false;
     // (heard: thine own cry as thou art struck, higher for the withered lord, deeper for the Lord of
     // Frenzied Flame: the nearest there is to his own till he has one)

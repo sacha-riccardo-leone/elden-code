@@ -53,14 +53,12 @@ export const canCast = (n) => !!(SPELLS[styleOf(n).school] || styleOf(n).throws)
 // How hard a spell hits (`share` 1: an ordinary one): a fighter's, and thine. Less than a blade's
 // blow, for being safe from afar (and Fenrath goes after whoever keeps it up: fight.js, HUNT).
 export const SPELL = { npc: 7, player: 22 };
-// Ultimates, measured against the enemy's own health (so that one comes about as often, and hits
-// about as hard, whoever he is): the share of it whose worth in blows fills one (a fighter's;
-// thine: a few in a fight, not one every few blows), how hard one hits per share of it (thine
-// half as hard again), and the least time between two loosed by the fighters (thine never waits).
-export const ULT = { fill: { npc: 0.04, player: 0.2 }, power: { npc: 0.0025, player: 0.00375 }, gap: 12 };
-// (an enemy may have them fill sooner: the Golem, whose stone takes little from blows, golem.js; or
-// thine by so many blows, whatever each takes, as his mind says: Morvane's, morvane.js, fight.js charge)
-export const ultFill = (b, player = false) => (b?.max || 8000) * (b?.mind?.ultFill?.() ?? b?.kind?.ultFill ?? 1) * ULT.fill[player ? 'player' : 'npc'];
+// Ultimates: how many hits fill one, thine and a fighter's alike, whoever the enemy (a blow that
+// lands counts one, however much it takes; a spell, as much of one as it is: its share; fight.js,
+// charge); how hard one hits, per share of the enemy's own health (so that it hits about as hard
+// whoever he is; thine half as hard again); and the least time between two loosed by the fighters
+// (thine never waits).
+export const ULT = { hits: 10, power: { npc: 0.0025, player: 0.00375 }, gap: 12 };
 export const ultPower = (b, player = false) => (b?.max || 8000) * ULT.power[player ? 'player' : 'npc'];
 // Where the mages stand off from him, and how long they take between spells.
 export const RANGED = { ring: [6.5, 9.5], reach: 13, cd: [2.2, 3.8] };

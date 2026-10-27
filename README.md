@@ -754,12 +754,12 @@ ground under you instead, so it flies at your hand's height there too.
     toward felling him than a blow there). While he lies felled they hit the fire in his chest, for
     half what a blow from inside the golden circle does.
 - **Ultimates** (`client/js/ults.js`):
-  - **The meter:** each fighter's blows fill it, measured against the enemy's health: a fifth of
-    it for you (1,600 against Fenrath), a twenty-fifth for the others, so that a fight brings a few
-    ultimates, not one every few blows. An ultimate hits about as hard against either enemy, for
-    its share of his health. A blow on the Golem's ankle counts in full, though it barely wounds
-    him, and against the Golem, whose fight leans on ultimates, meters fill sooner. Your meter is
-    under your health; the others' are thin gold lines under theirs.
+  - **The meter:** ten hits fill it, yours and the others' alike, against any enemy: each blow that
+    lands counts one, however much it takes, and each spell as much of one as it is (a shard of a
+    volley a little under half, a great bolt more than one). On the Golem only what lands on his
+    cracked ankle or the fire in his chest counts (the stone turns the rest), however little it
+    wounds him. An ultimate hits about as hard against any enemy, for its share of his health. Your
+    meter is under your health; the others' are thin gold lines under theirs.
   - **Loosing one:** you press **R** once your meter is full. The others loose theirs when ready,
     at least 12 seconds apart, never two at once.
   - **The freeze:** the world stops and turns black and white, except whoever looses it. The camera
@@ -1006,8 +1006,7 @@ ground under you instead, so it flies at your hand's height there too.
     by the way in, watching him, and join only once he's in his second form. His health (1,000,
     about forty seconds) is a small bar he wears over his head, as the training yard's dummies do; the
     great enemy's bar at the bottom of the screen shows only once he's the Lord of Frenzied Flame.
-    Six of your blows or spells that land on him fill your ultimate, however much each takes (in
-    his second form too). With 15% of his bar left, he makes one last run, to the middle of the arena,
+    With 15% of his bar left, he makes one last run, to the middle of the arena,
     and stays there out of breath, wheezing, till you finish him: his change and his reveal come
     there, where he stands, nobody moved for them.
   - **His change**, as that bar empties: everyone holds still (you can't move or strike) and the

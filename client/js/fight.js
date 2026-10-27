@@ -49,7 +49,7 @@ import { setFoe } from './voices.js';
 import { clearRipples, rippleAt, stepRipples } from './ripple.js';
 import { groundAt } from './ground.js';
 import { drawFace } from './faces.js';
-import { styleOf, blow, castSpell, muzzleOf, SPELL, RANGED, ultFill, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot, struckOf, reachOf } from './combat.js';
+import { styleOf, blow, castSpell, muzzleOf, SPELL, RANGED, ULT, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot, struckOf, reachOf } from './combat.js';
 
 // reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
 // lane: how far out of his line (in depth) a swing or a lunge still catches someone
@@ -175,7 +175,6 @@ const KINDS = {
     crowd: CROWD.golemRadius, shadow: [4.4, 3.0], cam: { far: BOSS_CAM.far * 1.3, y: 3.6 }, moves: GOLEM_MOVES, says: {},
     Mind: GolemMind,
     sounds: 'golem',
-    ultFill: 0.6, // (his stone takes little from blows: ultimates, which wound him whole, fill sooner)
   },
   morvane: {
     sheet: 'morvaneSheet', form: 'morvaneFlameSheet', hp: MORVANE.hp, speed: MORVANE.speed, reach: 1.5, radius: 0.7,
@@ -644,14 +643,15 @@ export class Fight {
     if (!b || !b.alive || b.lift > 2) return false;
     if (b.mind) return b.mind.playerBlow(p); // (the Golem: only his weak points, golem.js)
     if (onAim(p.pos.x, p.pos.y, wayOf(p), b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, b.kind.reach + reachOf(p), AIM.blow) == null) return false;
-    this.hit(b, DAMAGE.player, null, p, true, 'blow');
+    this.hit(b, DAMAGE.player, null, p, 1, 'blow');
     return true;
   }
 
   // A blow wounds him (`at`: where it shows, if not his middle); `src`, whoever struck it, has
-  // its ultimate filled by what it took (`charge`: not by an ultimate's own wounds, nor a poison's).
-  // `how` it was dealt ('blow', 'spell', 'ult'; none for a bleeding or a poison) shows on him (impact).
-  hit(b, n, at = null, src = null, charge = true, how = null) {
+  // its ultimate filled by `charge` hits (a blow 1, a spell its share; none by an ultimate's own
+  // wounds, nor a poison's). `how` it was dealt ('blow', 'spell', 'ult'; none for a bleeding or a
+  // poison) shows on him (impact).
+  hit(b, n, at = null, src = null, charge = 1, how = null) {
     const steady = b.state !== 'staggered';
     if (this.lagHp - b.hp < 0.5) this.chunkSince = this.clock; // (a new chunk on his bar begins)
     const dealt = b.damage(n);
@@ -672,7 +672,7 @@ export class Fight {
       pos: at || [b.pos.x, 2.2, b.pos.y], spread: [0.5, 0.8, 0.3], vel: [0, 1.4, 0], velSpread: [1.4, 1, 0.8],
       color: ['#ff6a4a', '#ffd2a8', '#a01818'], size: 0.07, life: 0.6, count: 10, drag: 1.2, intensity: 2.2,
     });
-    if (charge) this.charge(src, dealt);
+    if (charge) this.charge(src, charge);
     if (charge && src && !b.mind) this.pelted(b, src, dealt);
   }
 
@@ -727,15 +727,13 @@ export class Fight {
     b.pelt.set(n, { v: this.peltOf(b, n) + dealt, at: this.clock });
   }
 
-  // Fills src's ultimate by `amount` (what its blow took; or, where his stone takes little, what
-  // the blow was worth: golem.js); thine, where his mind says so many of thy blows fill it, by one of
-  // them, whatever it took (Morvane's, morvane.js).
-  charge(src, amount) {
-    if (!src || amount <= 0) return;
+  // Fills src's ultimate by `hits` of the ULT.hits that fill it (a blow that lands, one, however
+  // much it took; a spell, its share of an ordinary one): thine and a fighter's alike.
+  charge(src, hits = 1) {
+    if (!src || hits <= 0) return;
     const pilot = this.ctx.pilot;
-    const hits = this.boss?.mind?.ultHits?.();
-    if (src === pilot.npc) pilot.ult = Math.min(1, (pilot.ult || 0) + (hits ? 1 / hits : amount / ultFill(this.boss, true)));
-    else if (src.fighter && !src.fighter.dead) src.fighter.ult = Math.min(1, src.fighter.ult + amount / ultFill(this.boss));
+    if (src === pilot.npc) pilot.ult = Math.min(1, (pilot.ult || 0) + hits / ULT.hits);
+    else if (src.fighter && !src.fighter.dead) src.fighter.ult = Math.min(1, src.fighter.ult + hits / ULT.hits);
   }
 
   // What an ordinary blow (or spell) of n's is worth, toward its ultimate.
@@ -763,7 +761,7 @@ export class Fight {
     const b = this.boss;
     if (!b || !b.alive) return;
     if (b.mind) b.mind.spellBlow(n, share, player);
-    else this.hit(b, share * (player ? SPELL.player : SPELL.npc), at ? [at.x, at.y, at.z] : null, n, true, 'spell');
+    else this.hit(b, share * (player ? SPELL.player : SPELL.npc), at ? [at.x, at.y, at.z] : null, n, share, 'spell');
   }
 
   // An ultimate wounds him, wherever he stands and whatever he is (but spitting fire, untouchable).
@@ -2207,7 +2205,7 @@ export class Fight {
           if (a?.kind === 'fightAttack' && !a.hit && a.t >= a.hitAt) {
             a.hit = true;
             if (b.mind) b.mind.fighterBlow(n);
-            else if (b.lift < 2 && Math.hypot(b.pos.x - n.pos.x, b.pos.y - n.pos.y) < b.kind.reach + b.kind.radius + 0.4 + reachOf(n)) this.hit(b, DAMAGE.fighter, null, n, true, 'blow');
+            else if (b.lift < 2 && Math.hypot(b.pos.x - n.pos.x, b.pos.y - n.pos.y) < b.kind.reach + b.kind.radius + 0.4 + reachOf(n)) this.hit(b, DAMAGE.fighter, null, n, 1, 'blow');
           } else if (a?.kind === 'fightCast' && !a.hit && a.t >= a.hitAt) {
             a.hit = true;
             this.castFrom(n);
