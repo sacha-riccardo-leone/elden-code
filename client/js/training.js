@@ -472,8 +472,9 @@ export class Training {
 
   // Thy spell (pilot.js), the way thou pointest (combat.js, aimSpell): straight along thy line,
   // striking the first dummy it comes up to on it (or a little off it), else on into nothing. (The
-  // great one it strikes on its cracked ankle, as a spell does the Golem: what rises, rises there.)
-  playerCast(n, at) {
+  // great one it strikes on its cracked ankle, as a spell does the Golem: what rises, rises there.
+  // `click`: the one that cast it, castSpell.)
+  playerCast(n, at, click = null) {
     const aim = aimSpell(n, at);
     const standing = () => (this.dummies || []).filter((d) => d.standing);
     aim.meets = (x, z, way = aim.dir, early = AIM.early) => {
@@ -491,6 +492,7 @@ export class Training {
     };
     castSpell(this.fxCtx, n, {
       aim,
+      click,
       hit: (p, share, struck) => {
         const d = struck?.target;
         if (!d?.standing) return;

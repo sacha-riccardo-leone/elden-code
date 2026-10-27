@@ -310,6 +310,46 @@ function slashCanvas(pal, seed) {
   });
 }
 
+// A blade's crescent of light (Wynn's, sent off his cut: combat.js), `tall` pixels tall, bowed to the
+// right: white along its outer edge inside a thin rim of the school's light, paler toward its inner
+// edge, which frays into strands running along the curve as the light streams off it (as Aurelion's
+// drawn wave does).
+function arcCanvas(pal, tall, seed) {
+  const g = rng(seed);
+  return canvasOf(Math.round(tall * 0.42), tall, (put, w, h) => {
+    const cy = (h - 1) / 2;
+    const half = (h - 3) / 2; // (its tips a pixel short of the top and the bottom)
+    const x0 = w - 2; // (its outer edge at the middle)
+    const sag = w * 0.62; // (how far its middle bows out past its tips)
+    const R = (half * half + sag * sag) / (2 * sag);
+    const cx = x0 - R;
+    const T = h * 0.12; // (how thick it is at the middle)
+    const edge = (y, r) => cx + Math.sqrt(Math.max(0, r * r - (y - cy) ** 2));
+    // the strands, from near its middle out toward one tip or the other in turn (under the band,
+    // which hides them where it's thick enough)
+    for (let i = 0; i < 8; i++) {
+      const r = R - T * (0.75 + g());
+      const from = 0.05 + g() * 0.35;
+      const to = Math.min(0.92, from + 0.3 + g() * 0.5);
+      const c = g() < 0.5 ? pal[2] : pal[3];
+      const [a, b] = i % 2 ? [from, to] : [-to, -from];
+      for (let y = Math.round(cy + a * half); y <= cy + b * half; y++) {
+        if (Math.abs(y - cy) < r && g() > 0.12) put(edge(y, r), y, c);
+      }
+    }
+    for (let y = 0; y < h; y++) {
+      const t = (y - cy) / half;
+      if (Math.abs(t) > 1) continue;
+      const thick = T * (1 - t * t) + 1;
+      const outer = edge(y, R);
+      for (let x = Math.floor(outer - thick); x <= Math.round(outer); x++) {
+        const k = (x - (outer - thick)) / thick; // 0 its inner edge → 1 its outer edge
+        put(x, y, x === Math.round(outer) ? pal[2] : k > 0.5 ? pal[0] : k > 0.22 ? pal[1] : pal[2]);
+      }
+    }
+  });
+}
+
 // A tome in flight, seen from the side: golden covers about white pages; frame 0 covers up,
 // 1 open flat, 2 covers down (it beats them like wings).
 function tomeCanvas(frame) {
@@ -454,6 +494,7 @@ const TEX = {
   bolt: (school, k, wide = false) => once(`bolt:${school}:${k % 5}:${wide}`, () => texture(boltCanvas(LIGHT[school], 31 + (k % 5) * 13, wide))),
   wall: () => once('wall', () => texture(wallCanvas(LIGHT.holy, 8))),
   slash: (school) => once(`slash:${school}`, () => texture(slashCanvas(LIGHT[school], 6))),
+  arc: (school, tall) => once(`arc:${school}:${tall}`, () => texture(arcCanvas(LIGHT[school], tall, 9))),
   tome: (frame) => once(`tome:${frame}`, () => texture(tomeCanvas(frame))),
   spear: () => once('spear', () => texture(spearCanvas())),
   burst: (school) => once(`burst:${school}`, () => texture(burstCanvas(LIGHT[school], 2))),
@@ -1190,26 +1231,33 @@ export class Pool {
 }
 
 // A crescent of light flying at its mark (to()), striking it once (onHit), fading out past it; its
-// light carried along with it.
+// light carried along with it. Or, with no mark (Wynn's, sent off his blade: combat.js), flying
+// straight on the way `dir` goes ([dx, dz] on the floor) for `reach`, cutting through all it comes up
+// to on the way (`strike(x, z)`: what it has met there, if anything, as a Missile's; onHit(at, struck),
+// each once), then fading out.
 export class Slash {
   // drawn (`art`, fxart.js; `px` world units to its pixel), it stands on the floor and plays its
-  // frames: forming as it leaves, full as it flies, stretching as it strikes, then fading
-  constructor(fx, { school, from, to, size = 4, speed = 16, art = null, px = 0.03, onHit = null }) {
+  // frames: forming as it leaves, full as it flies, stretching as it strikes, then fading; else its
+  // crescent drawn here (`map`, or the great enemy's in the school's light), `size` tall. `light`: the
+  // light it carries (shine).
+  constructor(fx, { school, from, to = null, dir = null, reach = 0, strike = null, size = 4, speed = 16, art = null, px = 0.03, map = null, light = null, onHit = null }) {
     const sheet = art && fxArt(art);
     this.frames = sheet?.frames || null;
+    const look = sheet ? null : map || TEX.slash(school);
     this.mesh = sheet
       ? plane(fx.scene, sheet.frames[0], sheet.w * px, sheet.h * px, { order: 7 })
-      : plane(fx.scene, TEX.slash(school), size * 40 / 72, size, { order: 7 });
+      : plane(fx.scene, look, (size * look.image.width) / look.image.height, size, { order: 7 });
     this.pos = new THREE.Vector3(...from);
     if (sheet) this.pos.y = (sheet.h * px) / 2;
-    Object.assign(this, { fx, to, speed, onHit, school, t: 0, struck: false, fade: 0, fadeFor: sheet ? 0.32 : 0.25 });
-    this.light = carry(fx.scene, [this.pos.x, this.pos.y, this.pos.z + 0.4], shine(school, 45, 14));
+    Object.assign(this, { fx, to, strike, reach, speed, onHit, school, t: 0, struck: false, fade: 0, fadeFor: sheet ? 0.32 : 0.25, flown: 0, cut: new Set() });
+    if (!to) this.going = dir || [1, 0];
+    this.light = carry(fx.scene, [this.pos.x, this.pos.y, this.pos.z + 0.4], light || shine(school, 45, 14));
     this.place();
   }
 
   // (pointing the way it goes, as it shows on the screen, upright: mirrored going leftward)
   place() {
-    if (!this.struck) {
+    if (!this.struck && this.to) {
       const [tx, , tz] = this.to();
       const d = Math.hypot(tx - this.pos.x, tz - this.pos.z);
       if (d > 0.05) this.going = [(tx - this.pos.x) / d, (tz - this.pos.z) / d];
@@ -1222,8 +1270,20 @@ export class Slash {
 
   step(dt) {
     this.t += dt;
-    const [tx, ty, tz] = this.to();
-    if (!this.struck) {
+    if (!this.struck && !this.to) {
+      // (straight on, cutting through what it comes up to, till it has flown its reach)
+      const step = this.speed * dt;
+      this.pos.x += this.going[0] * step;
+      this.pos.z += this.going[1] * step;
+      this.flown += step;
+      const met = this.strike?.(this.pos.x, this.pos.z);
+      if (met && !this.cut.has(met.target)) {
+        this.cut.add(met.target);
+        this.onHit?.(this.pos.clone(), met);
+      }
+      if (this.flown >= this.reach) this.struck = true;
+    } else if (!this.struck) {
+      const [tx, ty, tz] = this.to();
       const d = Math.hypot(tx - this.pos.x, tz - this.pos.z);
       if (d < 0.6 + this.speed * dt) {
         this.struck = true;

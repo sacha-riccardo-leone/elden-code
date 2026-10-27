@@ -183,7 +183,7 @@ export class Pilot {
   // it within reach (they stagger), or a little off it. A mage casts instead (cast).
   attack(at = null) {
     const n = this.npc;
-    if (styleOf(n).range === 'far') { this.cast(at); return; }
+    if (styleOf(n).range === 'far') { this.cast(at, 'left'); return; }
     if (this.busy(n) || n.maulOut || !this.paced(n)) return; // (Ruadan's maul thrown: nothing to strike with)
     const aim = aimOf(n, at, middleOf(n));
     if (Math.abs(aim[0]) > 0.05) n.body.facing = aim[0] > 0 ? 1 : -1;
@@ -201,16 +201,17 @@ export class Pilot {
     return true;
   }
 
-  // A spell toward where the click landed (right click; a mage's left click too): for those who
-  // cast (combat.js), Fortuna among them, and Ulric, who throws his spear. It's loosed at the turn
-  // of the character's blow (drive).
-  cast(at = null) {
+  // A spell toward where the click landed (right click; a mage's left click too, `click`: Vael's
+  // lash is his left click's, combat.js): for those who cast (combat.js), Fortuna among them, and
+  // Ulric, who throws his spear, and Wynn, whose cut sends a crescent of light. It's loosed at the
+  // turn of the character's blow (drive).
+  cast(at = null, click = 'right') {
     const n = this.npc;
     if (this.busy(n) || n.maulOut || !canCast(n) || !this.paced(n)) return;
     // (turned the way it goes: along the line to the pointer, at the height it flies at)
     const aim = aimOf(n, at, muzzleSpot(n)[1] + (n.lift || 0));
     if (Math.abs(aim[0]) > 0.05) n.body.facing = aim[0] > 0 ? 1 : -1;
-    blow(n, 'cast', { spell: true, at });
+    blow(n, 'cast', { spell: true, at, click });
   }
 
   // Kneel down (C), and get up again (C, or setting off).
@@ -313,7 +314,7 @@ export class Pilot {
         a.hit = true;
         // (on the training yard, at its dummies: training.js)
         const place = this.ctx.training?.has(n) ? this.ctx.training : this.ctx.fight;
-        place?.playerCast(n, a.at);
+        place?.playerCast(n, a.at, a.click);
       }
       if (a.t >= a.dur) {
         if (a.kind === 'dodge') this.ctx.sound?.play('step-land', { at: [n.pos.x, n.pos.y] }); // (coming down: audio.js)

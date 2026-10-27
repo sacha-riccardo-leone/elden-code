@@ -222,9 +222,10 @@ can **become any character**: click one and choose **Become …** in the fan ove
   - **W A S D** or the arrow keys to walk, **Shift** to run; cross the bridges to other islands.
     The camera stays on you.
   - **Left click** strikes with the character's own attack (a Tarnished in its way staggers;
-    it's all for show); a mage casts a spell instead. **Right click** casts as Fortuna or a mage,
-    throws a spear as Ulric, and a thunderbolt as Maren. Every attack goes the way you point (see
-    **Aiming**, under great enemies).
+    it's all for show); a mage casts a spell instead (Vael always his lash of blood). **Right
+    click** casts as Fortuna or a mage (Vael his gout of blood or his spikes), throws a spear as
+    Ulric, a thunderbolt as Maren, and a white arc off Wynn's blade. Every attack goes the way you
+    point (see **Aiming**, under great enemies).
     **Space** dodges. **C** crouches. **Q**, in a fight against a great enemy, turns the camera's
     focus on it and back on you. **R** looses your ultimate once its bar is full. **V** turns the
     sound off and on.
@@ -652,7 +653,8 @@ ground under you instead, so it flies at your hand's height there too.
       crystal as her thrust drives it out (the rig's `muzzles`).
     - Vael: a gout of blood, blood spikes out of the floor, or a lash of blood that reaches the enemy
       at once, all drawn (`vael-orb.json`, `vael-spikes.json`, `vael-lash.json`; the lash stretched
-      evenly from his palm to wherever it strikes).
+      evenly from his palm to wherever it strikes). Played, his left click is always the lash, and
+      his right click the gout or the spikes, as Sacha wants (`left` in `SPELLS`, `combat.js`).
     - Solenne: a lance of holy light, a spinning halo, or light falling on the enemy, all drawn
       (`solenne-lance.json`, its drawing repeated along its length, flickering and flowing on;
       `solenne-halo.json`, turning and keeping level as it flies; `solenne-light.json`, falling,
@@ -680,7 +682,13 @@ ground under you instead, so it flies at your hand's height there too.
     itself out of the floor he stops where he stands, turns to it and holds his hand out for it
     (the drawing he threw it in) till it's in his hand. Being struck meanwhile doesn't throw him
     off it; if anything takes him first (travel by grace, a fall), the maul is back in his hand
-    at once.
+    at once. Wynn's style matters when you play him too: right click is his own cut, and off his
+    blade as it cuts, a crescent of white light flies the way you point (20 units a second, 12
+    units out, then fading), about his height and drawn at his own pixel size: white along its
+    outer edge inside a thin rim of steel blue, its inner edge fraying into strands that trail
+    toward its tips (`arcCanvas` and `Slash`, `client/js/spellfx.js`). It cuts through everything
+    it comes up to, each once, as hard as a spell (22, against his blade's 55), a white burst where
+    it cuts, lighting the floor as it goes. Fought beside, he keeps to his blade.
   - **Fortuna** does both, switching between her frost blade and frost cast from afar (a shard, or
     ice out of the floor), both drawn (`fortuna-shard.json`, `fortuna-spikes.json`) at her own
     pixel size.
@@ -699,7 +707,7 @@ ground under you instead, so it flies at your hand's height there too.
     spear goes with his drawing as he's knocked back, turns as he turns, and drops as soon as his
     pose has moved away from it. So too on the training yard's dummies.
   - **Playing them:** as a mage, a left click casts; as Fortuna, left click swings her blade and
-    right click casts.
+    right click casts; as Vael, left click lashes and right click casts the rest.
   - **Aiming** (`combat.js`, `aimOf`): every attack of yours, a blow, a spell, a thrown spear, an
     aimed ultimate, goes along the line on the screen from your character to the pointer, at any
     angle. The pointer is taken at the height the attack goes at, so what flies passes right under
@@ -1375,6 +1383,8 @@ table says what each clip is cut from.
 - **Maren's thunderbolt** (her right click): one of the sixteen zaps of `maren_atk1`, a different
   one each time, and with it the rush in `maren_atk2` (between 2 and 3 s, as its name says: from
   where it's heard, so that it peaks as the bolt is there).
+- **Wynn's arc** (his right click): his blade's `slash` as he cuts, as with any blow of his, and one
+  of his Iaijutsu's cuts (`ult_slash`) as it cuts through something.
 - **The ultimates**:
   - anyone's, the world standing still as the camera closes on them: `effect_on_click` (`During
     everyones ult camera focus`) the moment it's loosed, from about 2 s in, as Sacha wants (from

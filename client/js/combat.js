@@ -5,7 +5,8 @@
 // lands fills the striker's ultimate (ults.js).
 //
 // Ulric has no sorcery, but played by thee he throws his spear as a mage casts (throwSpear); and
-// Ruadan his maul, which comes back to his hand (throwMaul).
+// Ruadan his maul, which comes back to his hand (throwMaul). Wynn's cut, played, sends a crescent of
+// white light flying off his blade (SPELLS.steel).
 //
 // Thine (whoever thou art) go the way thou pointest: every blow, spell and thrown spear along the
 // line on the screen from thee to the pointer (aimOf), finding what stands on it, or a little off it.
@@ -16,7 +17,7 @@
 // and knock him back.
 
 import * as THREE from 'three';
-import { Missile, Boomerang, Beam, Rise, Burst, Spark, StuckSpear, TEX, motesOf, shine, inSpace } from './spellfx.js';
+import { Missile, Boomerang, Beam, Rise, Slash, Burst, Spark, StuckSpear, TEX, motesOf, shine, inSpace } from './spellfx.js';
 import { lookOf } from './fxart.js';
 import { Decal } from './bossfx.js';
 import { groundAt } from './ground.js';
@@ -35,7 +36,7 @@ export const STYLES = {
   champion: { range: 'near', color: '#ffb84a', throws: 'maul' },
   knight: { range: 'near', school: 'storm', color: '#ff4038', muzzle: [3.0, 1.52], reach: 1.2 }, // (her blows up close; played, a thunderbolt from her spear's tip too, right click: a little inside it, the bolt's line a little below its middle)
   paladin: { range: 'near', color: '#ffe9a0' },
-  ronin: { range: 'near', color: '#d8ecff', reach: 1.2 }, // (his long blade: as far as Maren's spear, as Sacha wants)
+  ronin: { range: 'near', school: 'steel', color: '#d8ecff', muzzle: [1.5, 1.35], reach: 1.2 }, // (his long blade: as far as Maren's spear, as Sacha wants; played, his cut sends a crescent of white light off it too, right click: from the middle of his cut)
   bandit: { range: 'near', color: '#9fdc5a', throws: 'spear', reach: 1.7 },
 };
 const NEAR = { range: 'near', color: '#ffd27a' };
@@ -48,7 +49,7 @@ export const casts = (n) => styleOf(n).range !== 'near';
 // long blade reaches as far as Maren's spear.
 export const reachOf = (n) => styleOf(n).reach || 0;
 // Whether n has a spell for thy right click at all (pilot.js): a mage's, Fortuna's frost, Ulric's
-// spear, Ruadan's maul.
+// spear, Ruadan's maul, Maren's thunderbolt, Wynn's crescent of light.
 export const canCast = (n) => !!(SPELLS[styleOf(n).school] || styleOf(n).throws);
 
 // How hard a spell hits (`share` 1: an ordinary one): a fighter's, and thine. Less than a blade's
@@ -199,6 +200,12 @@ export function aimSpell(n, at) {
 // ---------------------------------------------------------------------------------------------
 // the spells (c: the cast, castSpell)
 
+// Wynn's crescent of light (his right click, a spell to him: SPELLS.steel): how tall it stands (world
+// units: near his height), how fast it flies, how far (short of a spell's reach: his blade's light,
+// not sorcery), and its light (power, reach: lights.js). It hurts as a spell does (SPELL, share 1):
+// less than his blade's blow, as Sacha wants.
+const ARC = { size: 2.6, speed: 20, reach: 12, glow: [18, 9] };
+
 const SPELLS = {
   // the Rune Lord: a rune flung spinning, a volley of three that fan out and come round onto him,
   // or a circle of runes under him and a pillar of gold out of it
@@ -246,14 +253,15 @@ const SPELLS = {
     },
   ],
   // Vael: a gout of blood, spikes of blood out of the floor under him, or a lash of blood reaching
-  // him at once
+  // him at once (played, the lash is his left click, always, and the others his right, as Sacha
+  // wants: `left`)
   blood: [
     { weight: 3, cast: (c) => c.missile({ ...lookOf('vael-orb', c.px * 0.8, { map: TEX.orb('blood', 6), w: 0.5, h: 0.5 }, { fps: 10 }), speed: 11, wobble: 0.06 }) },
     {
       weight: 2,
       cast: (c) => c.rise({ art: 'vael-spikes', px: c.px, map: TEX.spikes('blood', Math.floor(Math.random() * 3)), w: 2.2, h: 1.85, share: 1.2 }),
     },
-    { weight: 1.5, cast: (c) => c.beam({ width: 0.3, share: 0.9, art: 'vael-lash' }) },
+    { weight: 1.5, left: true, cast: (c) => c.beam({ width: 0.3, share: 0.9, art: 'vael-lash' }) },
   ],
   // the Eternal Queen: a lance of holy light, a halo thrown spinning, or light falling on him (all
   // drawn: the lance repeated along its length; the halo turning, keeping level as it flies; the
@@ -284,6 +292,12 @@ const SPELLS = {
       cast: (c) => c.rise({ art: 'fortuna-spikes', px: c.px, map: TEX.spikes('frost', Math.floor(Math.random() * 3)), w: 2.2, h: 1.9, share: 1.2 }),
     },
   ],
+  // Wynn, played (his right click: he fights up close, else): his own cut, and off his blade as it
+  // cuts, a crescent of white light (ARC) flying on along his line, cutting through all it comes up
+  // to (drawn here, at his own pixel size: spellfx.js, Slash)
+  steel: [
+    { weight: 1, cast: (c) => c.slash(ARC) },
+  ],
 };
 
 // What a spell is heard as (audio.js), by school and by which of its spells (in the order listed
@@ -303,6 +317,7 @@ const HEARD = {
   holy: [{ cast: 'holy-spell' }, { cast: 'holy-spell' }, { cast: 'holy-light' }],
   storm: [{ cast: ['knight-thunder', 'knight-thunder-rise'] }], // (one of her zaps, and the rush with it)
   frost: [{ cast: 'frost-throw', land: 'frost-lands' }, { cast: 'frost-throw', land: 'frost-lands' }],
+  steel: [{ land: 'ronin-cut' }], // (his cut heard as it's drawn, heroes/ronin.js; and one of his Iaijutsu's cuts as it cuts something)
 };
 // A sound of n's (audio.js: one, or several together), heard where n stands (or at x, z), `delay`
 // seconds from now.
@@ -313,17 +328,20 @@ const heard = (n, name, x = n.pos.x, z = n.pos.y, delay = 0) => {
 // n casts one of its spells. `target()`: the point it's cast at (followed, homing: a fighter's at
 // him); thine, `aim` (aimSpell), straight along thy line, striking what it meets; or neither, straight
 // on `dir` ([dx, dz]) into nothing. `hit(at, share, struck)`: it lands, `share` of an ordinary
-// spell's strength (aimed, on what it struck).
-export function castSpell(fx, n, { target = null, dir = null, aim = null, hit }) {
+// spell's strength (aimed, on what it struck). `click`: thine, the click that cast it ('left' or
+// 'right', pilot.js): of a school that keeps spells for the left click (`left`), those, and the
+// others for the right; of any other, any of them.
+export function castSpell(fx, n, { target = null, dir = null, aim = null, click = null, hit }) {
   if (styleOf(n).throws === 'maul') { throwMaul(fx, n, { aim, dir, hit }); return; }
   if (styleOf(n).throws) { throwSpear(fx, n, { aim, dir, hit }); return; }
   const school = styleOf(n).school;
-  const list = SPELLS[school];
-  if (!list) return;
+  const all = SPELLS[school];
+  if (!all) return;
+  const list = click && all.some((s) => s.left) ? all.filter((s) => !!s.left === (click === 'left')) : all;
   const from = aim ? aim.from : muzzleOf(n);
   const trail = motesOf(school);
   const spell = pick(list);
-  const sounds = HEARD[school]?.[list.indexOf(spell)] || {};
+  const sounds = HEARD[school]?.[all.indexOf(spell)] || {};
   const land = (at, share, size = 1, struck = null) => {
     fx.add(new Burst(fx, { school, at: [at.x, at.y, at.z], size: 1.3 * size, ring: false, sparks: Math.round(14 * size) }));
     heard(n, sounds.land, at.x, at.z);
@@ -382,6 +400,18 @@ export function castSpell(fx, n, { target = null, dir = null, aim = null, hit })
       }
       const to = target ? target() : [from[0] + dir[0] * 9, from[1], from[2] + dir[1] * 9];
       fx.add(new Beam(fx, { school, from, to, width, art, tile, ...look, onHit: target ? (at) => land(at, share) : null }));
+    },
+    slash: ({ share = 1, size, glow: [power, far], ...o }) => {
+      // (drawn at the caster's own pixel size)
+      const look = { school, size, map: TEX.arc(school, Math.round(size / c.px)), light: shine(school, power, far), ...o };
+      if (aim) {
+        // along thy line, cutting through all it comes up to on it (on reaching its body, not a
+        // spell's reach short of it), on to its reach
+        fx.add(new Slash(fx, { ...look, from, dir: aim.dir, strike: (x, z) => aim.meets(x, z, aim.dir, 0), onHit: (at, struck) => land(at, share, 1, struck) }));
+        return;
+      }
+      // (else at its mark, or straight on into nothing)
+      fx.add(new Slash(fx, { ...look, from, to: target, dir: dir || [n.body.facing, 0], onHit: target ? (at) => land(at, share) : null }));
     },
   };
   heard(n, sounds.cast, n.pos.x, n.pos.y, sounds.wait);

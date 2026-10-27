@@ -786,8 +786,9 @@ export class Fight {
   }
 
   // Thy spell (pilot.js), the way thou pointest (combat.js, aimSpell): straight along thy line,
-  // striking him if he stands on it (or a little off it), else on into nothing.
-  playerCast(n, at) {
+  // striking him if he stands on it (or a little off it), else on into nothing. (`click`: the one
+  // that cast it, castSpell.)
+  playerCast(n, at, click = null) {
     const b = this.boss;
     const aim = aimSpell(n, at);
     const live = () => !!b && b.alive && b.state !== 'enter' && this.state === 'fighting' && this.inArena(n) && (b.lift || 0) <= 2;
@@ -800,7 +801,7 @@ export class Fight {
       const [px, , pz] = this.spellPoint(); // (what rises, rises under where a spell strikes him)
       return { along: Math.max(0.5, along), x: px, z: pz, struck };
     };
-    castSpell(this.fxFor(n), n, { aim, hit: (p, share) => this.spellHit(n, share, p, true) });
+    castSpell(this.fxFor(n), n, { aim, click, hit: (p, share) => this.spellHit(n, share, p, true) });
   }
 
   // Where a spell of thine is set (spellfx.js places all of it from the floor): on the arena's floor,
