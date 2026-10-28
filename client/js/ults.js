@@ -5,7 +5,9 @@
 // then they strike, and the world moves and colours again (about two seconds in all).
 //
 // Some are aimed: loosed the way thou pointest (anyone else's, straight at him), they find him
-// only if he stands on their line, or near it; the rest find him wherever he is.
+// only if he stands on their line, or near it; the rest find him wherever he is. (The Guardian
+// Golem lying felled, they all go to the fire in his chest (fight.bossPoint); loosed at him as he
+// stands, one hurts him no more than a blow on his ankle: golem.js.)
 // Those training on the yard loose theirs now and then at their dummies, quietly (startQuiet): in
 // their pose, their aura round them, as long as ever, but the world goes on, in its colours, and
 // the camera stays where it is, not even jolted.
@@ -32,7 +34,7 @@
 import * as THREE from 'three';
 import { Particles } from './particles.js';
 import { Aura, Stand, Missile, Wall, Pool, Slash, Cut, Drop, Bolt, Burst, StuckSpear, Splash, TEX, motesOf, shine } from './spellfx.js';
-import { ULT, ultPower, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt, meets, AIM, struckOf } from './combat.js';
+import { ULT, ultPower, heroKey, styleOf, muzzleOf, statusOf, addDot, interrupt, meets, AIM, struckOf, bodyOf } from './combat.js';
 import { lookOf, fxArt } from './fxart.js';
 import { groundAt } from './ground.js';
 
@@ -192,16 +194,18 @@ export const ULTS = {
       fight.ctx.sound?.play('holy-ult-wall', { at: [n.pos.x + dir[0] * ahead, n.pos.y + dir[1] * ahead] });
       fx.add(new Wall(fx, {
         x: n.pos.x + dir[0] * ahead, z: n.pos.y + dir[1] * ahead, dir, art: 'solenne-wall', height: 4.2,
+        // (the felled Golem: at his chest, fight.bossPoint)
         hits: (x, z) => {
           if (!b.alive) return false;
-          const dx = b.pos.x - x;
+          const dx = fight.bossPoint()[0] - x;
           const dz = b.pos.y - z;
           return Math.abs(dx * dir[1] - dz * dir[0]) < lane && dx * dir[0] + dz * dir[1] < 0.6;
         },
         onHit: (at) => {
           hit(26, at);
-          fight.ctx.sound?.play('holy-ult-hit', { at: [b.pos.x, b.pos.y] });
-          fx.add(new Burst(fx, { school: 'holy', at: [b.pos.x, 2, b.pos.y], size: 4, sparks: 50 }));
+          const [mx, my] = fight.bossPoint(2);
+          fight.ctx.sound?.play('holy-ult-hit', { at: [mx, b.pos.y] });
+          fx.add(new Burst(fx, { school: 'holy', at: [mx, my, b.pos.y], size: 4, sparks: 50 }));
           if (!b.mind?.lying) {
             interrupt(fight, b);
             statusOf(b).knock = { dx: dir[0], dz: dir[1], left: 4, speed: 12 };
@@ -219,10 +223,12 @@ export const ULTS = {
     // into its clip, as he does: cut-sfx.mjs)
     heard: { loose: 'champion-jump' }, lead: 0.22,
     run({ fight, fx, n, b, hit }) {
-      // up, and down onto his feet: a leap the fight's own effects carry him through
+      // up, and down onto his feet: a leap the fight's own effects carry him through (beside the
+      // felled Golem's chest, fight.bossPoint)
       const from = n.pos.clone();
-      const side = Math.sign(n.pos.x - b.pos.x) || 1;
-      const to = new THREE.Vector2(b.pos.x + side * (b.kind.radius * 0.6 + 0.6), b.pos.y + 0.2);
+      const [mx] = fight.bossPoint();
+      const side = Math.sign(n.pos.x - mx) || 1;
+      const to = new THREE.Vector2(mx + side * (b.kind.radius * 0.6 + 0.6), b.pos.y + 0.2);
       const dur = 0.9;
       const H = 4.2;
       let t = 0;
@@ -278,19 +284,21 @@ export const ULTS = {
       const times = Array.from({ length: 12 }, (_, i) => 0.05 + i * 0.14 + rand(0, 0.05));
       fx.add(effect((dt) => {
         t += dt;
+        // (round the felled Golem's chest, fight.bossPoint)
+        const [mx] = fight.bossPoint();
         while (k < times.length && t >= times[k]) {
           const a = Math.random() * Math.PI * 2;
           const r = Math.sqrt(Math.random()) * 2.6;
           // (her bolts, drawn at twice her own pixel size: tall enough to fall from out of sight)
-          fx.add(new Bolt(fx, { x: b.pos.x + Math.cos(a) * r, z: b.pos.y + Math.sin(a) * r * 0.7, k, life: 0.3, art: 'maren-bolt', px: 0.06, light: RED_STORM.bolt, onHit: (at) => hit(1, at, false) }));
-          fight.ctx.sound?.play('knight-bolt', { at: [b.pos.x, b.pos.y] });
+          fx.add(new Bolt(fx, { x: mx + Math.cos(a) * r, z: b.pos.y + Math.sin(a) * r * 0.7, k, life: 0.3, art: 'maren-bolt', px: 0.06, light: RED_STORM.bolt, onHit: (at) => hit(1, at, false) }));
+          fight.ctx.sound?.play('knight-bolt', { at: [mx, b.pos.y] });
           fight.ctx.rig?.shake?.(0.12);
           k += 1;
         }
         if (t < 2) return true;
-        fx.add(new Bolt(fx, { x: b.pos.x, z: b.pos.y + 0.1, wide: true, height: 18, life: 0.5, art: 'maren-great-bolt', px: 0.075, light: RED_STORM.great, onHit: (at) => hit(14, at) }));
-        fight.ctx.sound?.play('knight-great', { at: [b.pos.x, b.pos.y] });
-        fx.add(new Burst(fx, { school: 'storm', at: [b.pos.x, 1.5, b.pos.y], size: 4.4, sparks: 70, light: false })); // (the great bolt's own light is there)
+        fx.add(new Bolt(fx, { x: mx, z: b.pos.y + 0.1, wide: true, height: 18, life: 0.5, art: 'maren-great-bolt', px: 0.075, light: RED_STORM.great, onHit: (at) => hit(14, at) }));
+        fight.ctx.sound?.play('knight-great', { at: [mx, b.pos.y] });
+        fx.add(new Burst(fx, { school: 'storm', at: [mx, 1.5, b.pos.y], size: 4.4, sparks: 70, light: false })); // (the great bolt's own light is there)
         fight.ctx.rig?.shake?.(0.75);
         return false;
       }));
@@ -307,7 +315,7 @@ export const ULTS = {
       // drawn, the wave leaves the giant's blade swept low ahead of him (never from past the enemy)
       const drawn = !!n.body.sheet.anims.sweep;
       const [ahead] = (drawn && n.body.sheet.rig.muzzles?.ult) || [1.2];
-      const lead = Math.max(0.6, Math.min(ahead * (drawn ? this.stand.scale : 1), Math.abs(b.pos.x - n.pos.x) - 0.8));
+      const lead = Math.max(0.6, Math.min(ahead * (drawn ? this.stand.scale : 1), Math.abs(fight.bossPoint()[0] - n.pos.x) - 0.8));
       fx.add(new Slash(fx, {
         school: 'holy', size: 6.5, art: drawn ? 'aurelion-wave' : null, px: 0.031,
         from: [n.pos.x + n.body.facing * lead, 2.2, n.pos.y + 0.1], to: () => fight.bossPoint(2.2), speed: 15,
@@ -338,7 +346,7 @@ export const ULTS = {
       interrupt(fight, b);
       const home = n.pos.clone();
       const facing = n.body.facing; // (the way he faced as he drew; he ends turned from it)
-      const c = new THREE.Vector2(b.pos.x, b.pos.y);
+      const c = new THREE.Vector2(fight.bossPoint()[0], b.pos.y); // (the felled Golem: about his chest)
       const R = 3;
       const ways = [0, Math.PI, Math.PI / 2, -Math.PI / 2, Math.PI / 4, (5 * Math.PI) / 4, (3 * Math.PI) / 4, -Math.PI / 4];
       const PASS = 0.08; // (each pass through him, and the breath before the next: eight in 0.9 s)
@@ -423,7 +431,11 @@ export const ULTS = {
         fight.ctx.sound?.play('bandit-woosh', { at: [from[0], from[2]], delay: i * 0.07 }); // (as it leaves his hand)
         fx.add(new Missile(fx, {
           ...look, from, dir, guide: { from: [from[0], oy, from[2]], dir }, speed: 20, delay: i * 0.07, life: 0.8, turn: 6,
-          strike: (x, z) => (b.alive && meets(x, z, dir, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, AIM.spell, AIM.early) ? struckOf(b) : null),
+          strike: (x, z) => {
+            if (!b.alive) return null;
+            const o = bodyOf(b); // (the felled Golem: about his chest, and they go there)
+            return meets(x, z, dir, o.x, o.z, o.rx, o.rz, AIM.spell, AIM.early) ? struckOf(b) : null;
+          },
           land: 0.9, // (onto his drawing, its point in him: spellfx.js, pinOn)
           onHit: (at, struck, pin) => {
             hit(0.8, new THREE.Vector3(at.x, at.y, at.z), i === 9);
@@ -447,10 +459,11 @@ export const ULTS = {
       const px = n.body.sheet.px;
       const icicle = TEX.shard('frost', 34, 6);
       const HUGE = 3.2;
+      const [mx] = fight.bossPoint(); // (onto the felled Golem's chest)
       [0, 0.35, 0.7, 1.3].forEach((delay, i) => {
         const huge = i === 3;
         const s = huge ? HUGE : 1;
-        const x = huge ? b.pos.x : b.pos.x + (i - 1) * 0.7;
+        const x = huge ? mx : mx + (i - 1) * 0.7;
         const z = b.pos.y + (huge ? 0.25 : i % 2 ? 0.3 : -0.2);
         const d = new Drop(fx, {
           school: 'frost', x, z, art: 'fortuna-icicle', px: px * s, shatter: 'fortuna-shatter', shatterPx: px * (huge ? 4.5 : 2),
@@ -539,6 +552,7 @@ export class Ults {
     if (!player && !fight.facing(this.ctx.pilot.npc)) {
       if (n.fighter) n.fighter.ult = 0;
       this.heard(n, u.heard?.loose);
+      fight.loosed?.(n); // (the Golem minds how he lies as it's loosed: golem.js)
       u.run({ fight, fx: fight.fxCtx, n, b, dir, hit: (share, at, last = true) => fight.ultHit(n, share * ultPower(b), at, { last }) });
       this.lastEnd = this.clock;
       return true;
@@ -731,6 +745,7 @@ export class Ults {
     if (a.stand) this.heard(n, a.u.heard?.strike);
     if (!b || !b.alive) { a.theme?.stop(0.4); return; }
     const power = ultPower(b, a.player);
+    fight.loosed?.(n); // (the Golem minds how he lies as it's loosed: golem.js)
     a.u.run({ fight, fx: fight.fxCtx, n, b, dir: a.dir, theme: a.theme, hit: (share, at, last = true) => fight.ultHit(n, share * power, at, { last }) });
     rig.shake?.(0.15);
   }

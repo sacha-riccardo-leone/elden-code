@@ -828,16 +828,20 @@ ground under you instead, so it flies at your hand's height there too.
       knocked back.
   - **Against the Golem,** spells hit his cracked ankle while he stands (counting a little less
     toward felling him than a blow there). While he lies felled they hit the fire in his chest, for
-    half what a blow from inside the golden circle does.
+    half what a blow from inside the golden circle does. From the moment he falls, everything aimed
+    at him from afar goes to that fire, not to his feet, as Sacha wants: a spell lands in it, a
+    thunderbolt or a lance ends on it, a thrown spear sticks in it, and every ultimate strikes it
+    (`chestPoint`, `client/js/golem.js`).
 - **Ultimates** (`client/js/ults.js`):
   - **The meter:** ten hits fill it, yours and the others' alike, against any enemy: each blow that
     lands counts one, however much it takes, and each spell as much of one as it is (a shard of a
     volley a little under half, a great bolt more than one). On the Golem only what lands on his
     cracked ankle or the fire in his chest counts (the stone turns the rest), however little it
-    wounds him. An ultimate hits about as hard against any enemy, for its share of his health. Your
-    meter is under your health; the others' are thin gold lines under theirs.
+    wounds him. An ultimate hits about as hard against any enemy, for its share of his health (but
+    the Golem standing: see him below). Your meter is under your health; the others' are thin gold
+    lines under theirs.
   - **Loosing one:** you press **R** once your meter is full. The others loose theirs when ready,
-    at least 12 seconds apart, never two at once.
+    at least 12 seconds apart, never two at once (against the Golem, only while he lies felled).
   - **The freeze:** the world stops and turns black and white, except whoever looses it. The camera
     closes in (far enough back to show a tall pose whole, Maren's spear raised to the sky), its name
     shows, and an aura of their own light shines round them (a glowing outline, a light behind,
@@ -1034,6 +1038,16 @@ ground under you instead, so it flies at your hand's height there too.
     appears on the floor by the fire in his chest. For 6 seconds, blows struck from inside the
     circle deal 110 (a fighter's 22); from anywhere else, nothing. Then he gets up (the fall played
     backwards), the ankle whole again. A line in the log explains each step the first time.
+  - **What fells him** is how many times the ankle is struck, never how much the strikes deal: each
+    of your blows on it counts one, a fighter's a half; an ordinary spell on it 0.7 of a blow, a
+    bigger or smaller one in proportion (each of a volley's three shards about a third of a blow, a
+    great shard 1.3; a fighter's, half that again). Ultimates, bleeding and poison don't count.
+  - **Ultimates against him:** loosed while he stands, an ultimate hurts him no more than one blow on
+    his ankle, all of it together (12 yours, 3 a fighter's, its bleeding or poison included), as
+    Sacha wants. Loosed while he's passed out (falling, or lying felled), it wounds him in full, as
+    it would any great enemy, even if he gets up before all of it has struck: what counts is how he
+    lay as it was loosed. Your companions keep a full one for then: they loose it only while he lies
+    felled, with time left for it to strike (`loosed`, `ultWound`, `ultOpen`, `client/js/golem.js`).
   - **Turning:** he's slow to change his mind. He keeps to one foe for a few seconds, turns round
     only once it has stayed behind him a moment (never twice within a second and a half), and his
     swing and lunge go only where he faces. Getting at his ankle, on his back leg, means getting

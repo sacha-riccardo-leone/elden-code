@@ -169,12 +169,19 @@ export function meets(x, z, dir, tx, tz, rx, rz, margin, early = 0) {
 }
 
 // Something struck (by what flies along thy line): itself, where it stands (its feet), and its
-// drawing as it shows now (npc.js, SpriteBody.drawing; a dummy's), what sticks in it pinned to that.
+// drawing as it shows now (npc.js, SpriteBody.drawing; a dummy's), what sticks in it pinned to that;
+// or, if it has one just now, the point of it (in the world) what flies at it goes to instead: the
+// fire in the felled Golem's chest (golem.js, chestPoint).
 export const struckOf = (t) => ({
   target: t,
   at: () => [t.pos.x, t.lift || 0, t.pos.y],
   drawing: () => (t.drawing ? t.drawing() : t.body?.drawing?.() ?? null),
+  point: () => t.mind?.chestPoint?.(true) ?? null,
 });
+
+// Where something stands for what flies at it along a line (meets, onAim): { x, z } and half its
+// body across and deep (`rx`, `rz`); the felled Golem, about his chest (golem.js, body).
+export const bodyOf = (t) => t.mind?.body?.() ?? { x: t.pos.x, z: t.pos.y, rx: t.kind.radius, rz: t.kind.depth };
 
 // Thy spell's line: the way to the pointer at the height it flies at (aimOf); where it leaves from,
 // on that line (out to where thy pose holds it, ahead of thee, nearer thee as the line turns into

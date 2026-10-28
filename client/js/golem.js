@@ -5,7 +5,11 @@
 // next time he walks the ankle gives way: he passes out and falls on his face, and for a few
 // seconds the fire in his ribcage lies open, a golden circle on the floor beside it. Blows struck
 // from inside the circle wound him deeply, from anywhere else not at all. Then he gets up (his fall
-// played backwards), the ankle whole again.
+// played backwards), the ankle whole again. Falling and lying felled, all that's aimed at him from
+// afar goes to that fire (a spell, a thrown spear or maul, a thunderbolt, an ultimate), not to his
+// feet.
+// An ultimate loosed at him as he lies passed out wounds him in full, as it would anyone; loosed as
+// he stands, all of it together hurts him no more than a blow on his ankle, as Sacha wants.
 //
 // His blows are slow, and what hurts most is what they shake loose: the stone floor rippling like
 // water where the axe or the pole strikes it (ripple.js), far wider than the axe, its first crest
@@ -107,6 +111,8 @@ const ROAR_EARLY = 0.3;
 const RISE_LATE = 0.35;
 // how long he travels as he rolls: through its middle five drawings
 const ROLL_TRAVEL = GOLEM_MOVES.roll.steps.slice(1, 6).reduce((t, [, d]) => t + d, 0);
+// (about how long an ultimate takes to strike once it's loosed, all its blows: ults.js)
+const ULT_TIME = 2.5;
 const FIRE = ['#fff6c8', '#ffd24a', '#ff8a14', '#e0380a'];
 const STONE = ['#7a7068', '#4a423c', '#a49a8e'];
 const STONE_SPARK = '#cfc6b8'; // (a blow turned by the stone: its spark, grey)
@@ -128,6 +134,7 @@ export class GolemMind {
     this.lastSlam = -99; // (fight clock) when he last slammed
     this.rollIn = 0; // till he may roll again
     this.heart = null; // felled: the circle by his chest { x, z, r, decal }
+    this.ults = new Map(); // (each one's ultimate last loosed at him: { left } to wound him, if he stood; null, in full)
     this.axe = null; // his axe, planted in the ground (the fire)
     this.slamIn = rand(12, 16);
     this.fireIn = rand(20, 28);
@@ -187,6 +194,7 @@ export class GolemMind {
 
   get weak() { return this.ankle >= GOLEM.ankle.need; }
   get lying() { return this.b.state === 'falling' || this.b.state === 'down' || this.b.state === 'rising'; }
+  get passedOut() { return this.b.state === 'falling' || this.b.state === 'down'; } // (not yet getting up)
 
   // Spitting fire, nothing hurts him.
   immune() {
@@ -266,16 +274,32 @@ export class GolemMind {
   }
 
   // Where a spell flies at him (fight.spellPoint): his cracked ankle while he stands, the fire in
-  // his chest as he lies felled, his middle as he falls or rises.
+  // his chest as he falls and lies felled, his middle as he rises.
   spellPoint() {
     const b = this.b;
-    if (b.state === 'down' && this.heart) {
-      const [, hy] = this.spot(SPOTS.heart);
-      return [this.heart.x, hy + 0.3, b.pos.y + 0.2];
-    }
+    const chest = this.chestPoint();
+    if (chest) return chest;
     if (this.lying) return [b.pos.x, 1.2, b.pos.y + 0.2];
     const [ax, ay] = this.spot(SPOTS.ankle);
     return [ax, ay, b.pos.y + 0.2];
+  }
+
+  // Passed out, the fire in his chest, laid open where he lies felled (or where it will be, as he
+  // falls): where all that's aimed at him from afar goes (fight.js: spellPoint, bossPoint), over the
+  // arena's floor; `world`, in the world (combat.js, struckOf). Else none: what's loosed at him goes
+  // where it would at anyone.
+  chestPoint(world = false) {
+    const b = this.b;
+    if (!this.passedOut) return null;
+    const [hx, hy] = this.spot(SPOTS.heart);
+    return [hx, hy + 0.3 + (world ? ARENA.y : 0), b.pos.y + 0.2];
+  }
+
+  // His body, for what flies at him along a line (combat.js, bodyOf): passed out, about the fire in
+  // his chest (rather than where his feet are); else where he stands.
+  body() {
+    const b = this.b;
+    return { x: this.chestPoint()?.[0] ?? b.pos.x, z: b.pos.y, rx: b.kind.radius, rz: b.kind.depth };
   }
 
   // A spell lands (fight.spellHit), `share` of an ordinary one (`player`: thine): on the cracked
@@ -291,7 +315,7 @@ export class GolemMind {
       this.sound('heart', this.heart.x);
       return true;
     }
-    if (this.lying) { this.clang(b.pos.x, b.pos.y); return false; }
+    if (this.lying) { this.clang(this.chestPoint()?.[0] ?? b.pos.x, b.pos.y); return false; } // (where it struck)
     const [ax, ay] = this.spot(SPOTS.ankle);
     const was = this.weak;
     this.ankle += (player ? 1 : GOLEM.ankle.weight) * 0.7 * share;
@@ -301,6 +325,29 @@ export class GolemMind {
     if (!was && this.weak) this.tell('weak', 'The Golem\'s cracked ankle buckles: one more walk on it and it gives way', 'red');
     return true;
   }
+
+  // n looses its ultimate at him (fight.loosed, as it strikes): as he lies passed out, it wounds him
+  // in full; as he stands (or gets up), all of it together (its blows, and the bleeding or poison it
+  // leaves in him) no more than a blow of n's on his cracked ankle would. What counts is how he lay
+  // as it was loosed, not as each of its blows lands.
+  loosed(n) {
+    const left = n === this.ctx.pilot.npc ? GOLEM.ankle.player : GOLEM.ankle.fighter;
+    this.ults.set(n, this.passedOut ? null : { left });
+  }
+
+  // What he takes of a wound of n's ultimate (`amount`; or of its bleeding or poison, as it ticks).
+  ultWound(n, amount) {
+    const cap = this.ults.get(n);
+    if (!cap) return amount;
+    const dealt = Math.min(amount, cap.left);
+    cap.left -= dealt;
+    return dealt;
+  }
+
+  // Whether a fighter looses its ultimate at him now (fight.js): only as he lies felled, the fire in
+  // his chest open, and time enough left for it to strike before he gets up (`ULT_TIME`), when it
+  // wounds him in full; it keeps it till then.
+  ultOpen() { return this.b.state === 'down' && this.b.t < GOLEM.heart.down - ULT_TIME; }
 
   // A blow turned by the stone: grey chips and a spark, and nothing more: no flash, no holding
   // still. The striker (`n`) bounces off it: its drawing thrown back the way it came, past the

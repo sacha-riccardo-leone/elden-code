@@ -49,7 +49,7 @@ import { setFoe } from './voices.js';
 import { clearRipples, rippleAt, stepRipples } from './ripple.js';
 import { groundAt } from './ground.js';
 import { drawFace } from './faces.js';
-import { styleOf, blow, castSpell, muzzleOf, SPELL, RANGED, ULT, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot, struckOf, reachOf } from './combat.js';
+import { styleOf, blow, castSpell, muzzleOf, SPELL, RANGED, ULT, heldAt, paceAt, rootedAt, stepStatus, standOff, castPause, AIM, aimOf, aimSpell, onAim, meets, wayOf, muzzleSpot, struckOf, bodyOf, reachOf } from './combat.js';
 
 // reach/radius: how far a blow may land from his middle (his long body runs from tail to snout);
 // lane: how far out of his line (in depth) a swing or a lunge still catches someone
@@ -744,7 +744,8 @@ export class Fight {
   }
 
   // The point of him a spell flies at: his middle (the Golem: his cracked ankle while he stands,
-  // the fire in his chest as he lies felled), and his middle at a height, for the ultimates.
+  // the fire in his chest as he lies felled), and his middle at a height, for the ultimates (the
+  // Golem passed out: that fire, golem.js).
   spellPoint() {
     const b = this.boss;
     if (!b) return [0, 0, 0];
@@ -753,7 +754,8 @@ export class Fight {
 
   bossPoint(up = 2) {
     const b = this.boss;
-    return b ? [b.pos.x, b.lift + up, b.pos.y + 0.2] : [0, 0, 0];
+    if (!b) return [0, 0, 0];
+    return b.mind?.chestPoint?.() ?? [b.pos.x, b.lift + up, b.pos.y + 0.2];
   }
 
   // A spell lands on him: as a blow, but from afar (the Golem: on his ankle, or the fire in his
@@ -765,11 +767,18 @@ export class Fight {
     else this.hit(b, share * (player ? SPELL.player : SPELL.npc), at ? [at.x, at.y, at.z] : null, n, share, 'spell');
   }
 
-  // An ultimate wounds him, wherever he stands and whatever he is (but spitting fire, untouchable).
+  // An ultimate wounds him, wherever he stands and whatever he is (but spitting fire, untouchable;
+  // the Golem in full only as he lies passed out, golem.js).
   ultHit(n, amount, at = null) {
     const b = this.boss;
     if (!b || !b.alive) return;
-    this.hit(b, amount, at ? [at.x, at.y, at.z] : null, n, false, 'ult');
+    const dealt = b.mind?.ultWound ? b.mind.ultWound(n, amount) : amount;
+    if (dealt > 0) this.hit(b, dealt, at ? [at.x, at.y, at.z] : null, n, false, 'ult');
+  }
+
+  // n's ultimate is loosed at him, as it strikes (ults.js): the Golem minds how he lay then.
+  loosed(n) {
+    this.boss?.mind?.loosed?.(n);
   }
 
   // A fighter mage's spell: its own blow played (the staff swung, the fist clenched), the spell
@@ -794,10 +803,16 @@ export class Fight {
     const aim = aimSpell(n, at);
     const live = () => !!b && b.alive && b.state !== 'enter' && this.state === 'fighting' && this.inArena(n) && (b.lift || 0) <= 2;
     const struck = b && struckOf(b);
-    aim.meets = (x, z, way = aim.dir, early = AIM.early) => (live() && meets(x, z, way, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, AIM.spell, early) ? struck : null);
+    // (where his body is for it: the felled Golem's, about his chest, golem.js)
+    aim.meets = (x, z, way = aim.dir, early = AIM.early) => {
+      if (!live()) return null;
+      const o = bodyOf(b);
+      return meets(x, z, way, o.x, o.z, o.rx, o.rz, AIM.spell, early) ? struck : null;
+    };
     aim.first = (reach) => {
       if (!live()) return null;
-      const along = onAim(aim.from[0], aim.from[2], aim.dir, b.pos.x, b.pos.y, b.kind.radius, b.kind.depth, reach, AIM.spell);
+      const o = bodyOf(b);
+      const along = onAim(aim.from[0], aim.from[2], aim.dir, o.x, o.z, o.rx, o.rz, reach, AIM.spell);
       if (along == null) return null;
       const [px, , pz] = this.spellPoint(); // (what rises, rises under where a spell strikes him)
       return { along: Math.max(0.5, along), x: px, z: pz, struck };
@@ -1054,8 +1069,13 @@ export class Fight {
     // what the ultimates do to him (combat.js): bleeding, poisoned, knocked back, kept in a pool;
     // held still or dazed, he does nothing; slowed, everything he does is slow
     const now = this.clock;
+    // (a bleeding or a poison is an ultimate's: the Golem takes it as he takes its blows, golem.js)
+    const wound = (amount, src) => {
+      const dealt = b.mind?.ultWound ? b.mind.ultWound(src, amount) : amount;
+      if (dealt > 0) this.hit(b, dealt, null, src, false);
+    };
     stepStatus(b, now, dt, {
-      hit: (amount, src) => this.hit(b, amount, null, src, false), shift: (dx, dz) => this.shift(b, dx, dz), particles: this.floor.particles,
+      hit: wound, shift: (dx, dz) => this.shift(b, dx, dz), particles: this.floor.particles,
       heard: (name) => { if (b.alive) this.ctx.sound?.play(name, { at: [b.pos.x, b.pos.y] }); },
     });
     const held = heldAt(b, now) && b.alive;
@@ -1877,15 +1897,17 @@ export class Fight {
           f.whine = near ? rand(3, 5) : rand(4.5, 8);
           this.ctx.director.remark(n, near ? 'flee' : Math.random() < 0.6 ? 'cower' : 'taunt');
         }
-      } else if (f.ult >= 1 && this.ctx.ults?.ready(n)) {
-        // its ultimate full: loosed (ults.js); an aimed one only from his line, level with him,
-        // so it walks into that first
+      } else if (f.ult >= 1 && this.ctx.ults?.ready(n) && (b.mind?.ultOpen?.() ?? true)) {
+        // its ultimate full: loosed (ults.js; at the Golem only as he lies passed out, when it
+        // wounds him in full, golem.js); an aimed one only from his line, level with him (with
+        // the felled Golem's chest), so it walks into that first
         const ults = this.ctx.ults;
         if (!ults.of(n).aim) { ults.start(n); return false; }
-        const side = Math.sign(n.pos.x - b.pos.x) || 1;
-        goal = [b.pos.x + side * 6.5, b.pos.y];
+        const cx = bodyOf(b).x;
+        const side = Math.sign(n.pos.x - cx) || 1;
+        goal = [cx + side * 6.5, b.pos.y];
         speed = 4.6;
-        const ax = Math.abs(n.pos.x - b.pos.x);
+        const ax = Math.abs(n.pos.x - cx);
         if (Math.abs(n.pos.y - b.pos.y) < 0.6 && ax > 3 && ax < 11) {
           ults.start(n, { dir: [-side, 0] });
           return false;

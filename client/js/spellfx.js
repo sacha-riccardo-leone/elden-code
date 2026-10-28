@@ -697,11 +697,26 @@ export class Missile {
   }
 
   // On course for something (`met`): onto the point of its drawing it's pinned to, the last of the
-  // way, homing there as it moves (and only so far off its line as it was forgiven).
+  // way, homing there as it moves (and only so far off its line as it was forgiven); or, if it has
+  // a point of its own to be struck on just now (`met.point()`, in the world: combat.js, struckOf),
+  // onto that, its middle `land` short of it, homing there as long as there's one.
   landOn(met) {
     const g = this.guide?.dir;
     const v = Math.hypot(this.vel.x, this.vel.z) || 1;
     const way = g || [this.vel.x / v, this.vel.z / v];
+    if (met.point?.()) {
+      const space = this.mesh.parent;
+      const back = this.land;
+      Object.assign(this, { guide: null, turn: 40, near: 0.12, life: this.t + 1 });
+      this.to = () => {
+        const p = met.point();
+        if (!p) return [this.pos.x, this.pos.y, this.pos.z];
+        P0.set(p[0] - way[0] * back, p[1], p[2] - way[1] * back);
+        space?.worldToLocal?.(P0);
+        return [P0.x, P0.y, P0.z];
+      };
+      return true;
+    }
     P0.copy(this.pos);
     this.mesh.parent?.localToWorld(P0);
     const pin = pinOn(met, P0, way);
