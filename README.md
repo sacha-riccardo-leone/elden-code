@@ -210,12 +210,13 @@ east:
 
 At the foot of each cage lie the pieces of a slab of stone that was thrown down there and broke: a
 summoning sign, red as the summoning signs are (Sacha's references), its white runes still to be read
-across its pieces. Each piece is a chunk of its own with rounded edges, its own thickness, leaning
-back against the plinth with its top toward you, a gap between it and the next; the runes were cut
-across the whole slab before it broke, so each piece holds its part of them. Drawn here
-(`breakSlab`, `runeCanvases`): no art of Sacha's yet. An awake sign glows (its stone a deep red, its
-runes white), breathes slowly, hazes the air red over it, throws its red light on the cage and the
-floor, and red motes rise off it. Press **E** by it ("Summon the Guardian Golem") to summon the great
+across its pieces. Each piece is a small stone of the isle's own grey (its floor's), with rounded
+edges and its own thickness, leaning back against the plinth with its top toward you, a gap between
+it and the next; the runes were cut across the whole slab before it broke, so each piece holds its
+part of them. Drawn here (`breakSlab`, `runeCanvases`): no art of Sacha's yet. An awake sign glows
+red from under: a pool of red light on the floor round its stones and a brighter one between them,
+their feet lit red, a low red haze, its light thrown from low among them on the cage and the floor,
+red motes rising; its runes shine white on the stones' tops, and it all breathes slowly. Press **E** by it ("Summon the Guardian Golem") to summon the great
 enemy who holds its cage: the sign flares, you raise your hand to it, and the fight is called as from
 the Round Table (your companions first; the banner says "Summoned from his broken sign on the Isle of
 the Caged"). Beat him and his prisoners go free: the cage's door swings in on its hinge with a clank
