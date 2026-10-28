@@ -5,9 +5,10 @@
 // out); and at each cage's feet the pieces of a slab of stone that was thrown down there and broke,
 // still glowing the red of a summoning sign, its white runes still to be read across its pieces.
 // Touched (E), a sign summons the great enemy who holds that cage (fight.js, call: thy companions
-// first); beaten from it, he lets them go (free): the cage's door swings open and its two vanish from
-// it in golden light, to rise at Roundtable Hold among the Tarnished, anyone's to become, to take into
-// a fight, to take up a session. The signs wake one after another, as Sacha wants: the Guardian
+// first); beaten from it, he lets them go (free): the cage's door swings open and its two walk out of
+// it and away over the isle's bridge to the Round Table, as Sacha wants (no grace for them), and once
+// there they're Tarnished like the rest, anyone's to become, to take into a fight, to take up a
+// session. The signs wake one after another, as Sacha wants: the Guardian
 // Golem's first, Fenrath's once the Golem's cage is open, Morvane's once Fenrath's is; one not yet
 // awake lies dormant, an ember, and one whose cage is open is spent, dark. Freed is freed for good, in
 // this browser (FREED). A little Site of Grace near the bridge's foot, a brazier either side of the
@@ -50,6 +51,12 @@ const CAGE = { w: 5, d: 2.6, h: 3.7, plinth: 0.3, bar: 0.34, door: 1.5, swing: 1
 // world unit, where it lies (`z`, at the foot of its cage's plinth), and its light (lights.js: power,
 // reach).
 const SIGN = { w: 2.4, d: 1.3, thick: [0.16, 0.32], across: 4, gap: 0.07, scatter: 0.22, lean: 0.34, tilt: 0.22, round: 0.05, ppu: 20, z: -2.95, light: [6, 7] };
+// Freed (free): how long after the door begins to swing the first of its two walks out (seconds; the
+// other so long after), how fast (world units a second), and their way out from the cage's middle,
+// [across (toward the side each stood on), out, how high it stands]: to the door, through it to the
+// edge of the plinth, down onto the sign's stones and over them, and down onto clear floor, where it's
+// a Tarnished again (handOver), walking on to the Round Table.
+const OUT = { after: 0.9, apart: 0.7, speed: 1.7, way: [[1.15, 0, 0.3], [0.35, 0.8, 0.3], [0.35, 1.5, 0.3], [0.4, 1.9, 0.22], [0.45, 2.7, 0.2], [0.8, 3.6, 0]] };
 // Its little Site of Grace (from its middle), and how big it is (of an island's).
 const GRACE = { x: 4.6, z: 4.6, k: 0.7 };
 // Its braziers, either side of the middle cage.
@@ -233,6 +240,7 @@ export class Isle extends Builder {
     this.cages = [];
     this.signs = [];
     this.braziers = [];
+    this.walkers = []; // (those freed, on their way to the Round Table: handOver)
     this.build();
     this.mergeStatic();
     this.buildBridge();
@@ -685,9 +693,9 @@ export class Isle extends Builder {
   }
 
   // A great enemy beaten from a sign (fight.js, win): his cage's door swings open (update) with a clank
-  // of iron, its two vanish from it in golden light and rise at Roundtable Hold among the Tarnished
-  // (director.js, start: theirs now to take up sessions, to be become, to go into a fight), and it's
-  // remembered; its sign is spent, and the next wakes.
+  // of iron, and its two walk out of it, one after the other, over its sign's stones and away on foot
+  // across the isle and its bridge to the Round Table (walkOut, handOver); it's remembered, its sign
+  // is spent, and the next wakes.
   free(boss) {
     const i = CAGES.findIndex((c) => c.boss === boss);
     if (i < 0 || this.freed.has(boss)) return;
@@ -695,27 +703,69 @@ export class Isle extends Builder {
     try { localStorage.setItem(FREED, JSON.stringify([...this.freed])); } catch {}
     const cage = this.cages[i];
     cage.opening = 0;
-    const at = [this.wx(cage.x), this.wz(cage.z)];
-    this.world.sound?.play('work-anvil', { at, pitch: 0.6 });
-    for (const f of cage.figures) {
-      flash(null, [f.x, CAGE.plinth + 1.2, f.z + 0.3], { color: '#ffc860', power: 20, reach: 8, life: 1, rise: 0.15 });
-      this.world.particles.emit({
-        pos: [f.x, CAGE.plinth + 0.4, f.z], spread: [0.3, 0.6, 0.2], vel: [0, 2.4, 0], velSpread: [0.5, 1, 0.5],
-        color: ['#ffd27a', '#fff1b8', '#ffb347'], size: 0.08, life: 1.3, count: 34, drag: 0.8, intensity: 2.4,
-      });
-      f.shift?.light.end(0.2);
-      f.body.dispose();
+    this.world.sound?.play('work-anvil', { at: [this.wx(cage.x), this.wz(cage.z)], pitch: 0.6 });
+    cage.figures.forEach((f, k) => {
+      // (the Twofold in its form for the hour, should it have been changing just then)
+      if (f.shift) {
+        f.shift.light.end(0.2);
+        f.shift = null;
+        f.form = this.ctx.director.formNow();
+        this.dress(f, f.forms[f.form]);
+      }
+      const s = Math.sign(f.x - this.wx(cage.x)) || 1;
+      f.out = { t: -(OUT.after + k * OUT.apart), d: 0, way: OUT.way.map(([x, z, y]) => [this.wx(cage.x + s * x), this.wz(cage.z + z), y]) };
+    });
+    // (one not drawn in it, its art missing: on foot to the table from before the cage all the same)
+    for (const id of CAGES[i].heroes) {
+      if (!cage.figures.some((f) => f.id === id)) this.handOver({ id, x: this.wx(cage.x), z: this.wz(cage.z + OUT.way[OUT.way.length - 1][1]), facing: 1 });
     }
-    if (cage.figures.length) this.world.sound?.play('grace-travel', { at });
-    cage.figures = [];
-    const { director, ui } = this.ctx;
-    director.start((id) => CAGES[i].heroes.includes(id));
-    const out = CAGES[i].heroes.map((id) => director.heroes.get(id)).filter(Boolean);
-    for (const n of out) n.spawn(true);
-    const names = out.map((n) => n.name.first).join(' and ');
+    const names = cage.figures.map((f) => f.body.sheet.rig?.firstName).filter(Boolean).join(' and ');
     if (!names) return;
-    ui.log(`${names}, freed from ${NAMES[boss]}'s cage, rise at Roundtable Hold`, 'gold', out[0]);
-    ui.banner('Prisoners Freed', `${names} rise at Roundtable Hold`, 'gold');
+    this.ctx.ui.log(`${names}, freed from ${NAMES[boss]}'s cage, walk to Roundtable Hold`, 'gold', { region: this });
+    this.ctx.ui.banner('Prisoners Freed', `${names} walk to Roundtable Hold`, 'gold');
+  }
+
+  // One freed walking out of its cage along its way (free), at its turn: to the door, through it, down
+  // off the plinth and over its sign's stones, onto clear floor. Whether it's out.
+  walkOut(f, dt) {
+    const o = f.out;
+    o.t += dt;
+    if (o.t < 0) return false; // (waiting its turn)
+    f.body.play('walk');
+    o.d += OUT.speed * dt;
+    let d = o.d;
+    for (let k = 1; k < o.way.length; k++) {
+      const [ax, az, ay] = o.way[k - 1];
+      const [bx, bz, by] = o.way[k];
+      const len = Math.hypot(bx - ax, bz - az);
+      if (d <= len) {
+        const u = d / len;
+        f.x = ax + (bx - ax) * u;
+        f.z = az + (bz - az) * u;
+        f.y = ay + (by - ay) * u;
+        if (Math.abs(bx - ax) > 0.05) f.facing = f.body.facing = Math.sign(bx - ax);
+        return false;
+      }
+      d -= len;
+    }
+    return true;
+  }
+
+  // Out of its cage: the drawing gives way to the hero itself (director.js, start), there, walking on
+  // over the bridge to a seat at the Round Table (npc.js, journey: on foot all the way, never by
+  // grace), and taking up nothing (no session, no fight, no training) till it's there (`freeing`:
+  // director.js, freeHero; companions.js; and update, below, lets it go).
+  handOver(f) {
+    const { director } = this.ctx;
+    f.body?.dispose();
+    director.start((id) => id === f.id);
+    const n = director.heroes.get(f.id);
+    if (!n) return;
+    n.pos.set(f.x, f.z);
+    n.body.facing = f.facing;
+    n.freeing = true;
+    n.setIntent({ kind: 'journey', dest: 'hub' });
+    this.walkers.push(n);
   }
 
   update(dt, t) {
@@ -760,7 +810,8 @@ export class Isle extends Builder {
       s.core.material.opacity = 0.95 * Math.min(1.6, k);
       s.light.intensity = SIGN.light[0] * k;
     }
-    // a cage's door swinging open, and the prisoners standing idle (the Twofold changing with the hour)
+    // a cage's door swinging open, and the prisoners standing idle (the Twofold changing with the
+    // hour), or, freed, walking out of it and away, Tarnished again
     for (const c of this.cages) {
       if (c.opening >= 0 && c.opening < CAGE.opening) {
         c.opening = Math.min(CAGE.opening, c.opening + dt);
@@ -768,10 +819,20 @@ export class Isle extends Builder {
         c.door.rotation.y = CAGE.swing * (1 - (1 - k) ** 3);
       }
       for (const f of c.figures) {
-        if (f.id === 'twofold' && this.ctx) this.turn(f, dt);
+        if (f.out) {
+          if (this.walkOut(f, dt)) { this.handOver(f); f.gone = true; continue; }
+        } else if (f.id === 'twofold' && this.ctx) this.turn(f, dt);
         f.body.tick(dt);
-        f.body.place(f.x, CAGE.plinth, f.z);
+        f.body.place(f.x, f.y ?? CAGE.plinth, f.z);
       }
+      c.figures = c.figures.filter((f) => !f.gone);
     }
+    // the freed on their way to the Round Table: free of it all once there (npc.js, journeyDone: a seat
+    // at the table), or once anything else takes them (thou, becoming one)
+    this.walkers = this.walkers.filter((n) => {
+      if (!n.dead && !n.piloted && n.intent.kind === 'journey' && n.intent.dest === 'hub') return true;
+      n.freeing = false;
+      return false;
+    });
   }
 }

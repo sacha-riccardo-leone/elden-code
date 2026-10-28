@@ -219,9 +219,12 @@ their feet lit red, a low red haze, its light thrown from low among them on the 
 red motes rising; its runes shine white on the stones' tops, and it all breathes slowly. Press **E** by it ("Summon the Guardian Golem") to summon the great
 enemy who holds its cage: the sign flares, you raise your hand to it, and the fight is called as from
 the Round Table (your companions first; the banner says "Summoned from his broken sign on the Isle of
-the Caged"). Beat him and his prisoners go free: the cage's door swings in on its hinge with a clank
-of iron, and the two vanish from it in golden light and rise at the Round Table's grace ("Prisoners
-Freed", and a line in the log), from then on Tarnished like the rest. The signs wake one after
+the Caged"). Beat him and his prisoners go free ("Prisoners Freed", and a line in the log): the
+cage's door swings in on its hinge with a clank of iron, and a moment later the two walk out of it,
+one after the other, down off its plinth and over the stones of its sign, and on across the isle and
+its bridge to a seat at the Round Table, on foot all the way, never by grace (half a minute or so),
+as Sacha wants. Clear of the stones each is a Tarnished again (you can become them), but takes up no
+session, fight or training until they're at the table; from then on they're Tarnished like the rest. The signs wake one after
 another, as Sacha wants: the Golem's first, Fenrath's once the Golem's cage is open, Morvane's once
 Fenrath's is. One not yet awake lies dormant, a dim ember ("A dormant sign", E says what wakes it);
 one whose cage is open is spent, dark, its runes grooves in the stone. Only a fight called from a
@@ -1489,8 +1492,8 @@ table says what each clip is cut from.
   a good deal higher; the great one's louder, and lower than any, struck as bursting); and
   `after_click_start_your_tarnished_journey` as you set out from the title.
 - **The Isle of the Caged**, for now, till it has its own: `summoning-magic-spell` as you touch an
-  awake sign; as a cage opens, the anvil's hit pitched well down for the clank of its door, and
-  `grace_travel` as its two vanish from it; the caged Twofold's `twofold_change` as it changes.
+  awake sign; as a cage opens, the anvil's hit pitched well down for the clank of its door; the caged
+  Twofold's `twofold_change` as it changes.
 - **The training yard's rune rocks** (`client/assets/sfx/IMPORT/Tutorial rocks`, cut into the `rocks` set),
   each where the rock stands: `rock_rune_lighting` as its rune lights (from its first sound, so that
   it crests as the rune is alight); `rock_levitating` as it's lifted, humming on while it's held up,

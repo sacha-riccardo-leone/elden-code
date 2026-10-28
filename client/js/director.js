@@ -233,12 +233,13 @@ export class Director {
     return npc;
   }
 
-  // The first hero (in roster order) not out on a quest, nor held by the player; one training on the
-  // yard (training.js) only if every other is out.
+  // The first hero (in roster order) not out on a quest, nor held by the player, nor just freed from
+  // a cage and still on its way to the Round Table (isle.js); one training on the yard (training.js)
+  // only if every other is out.
   freeHero() {
     let training = null;
     for (const n of this.heroes.values()) {
-      if (!n.unbound || n.dead || n.piloted) continue;
+      if (!n.unbound || n.dead || n.piloted || n.freeing) continue;
       if (!n.trainee) return n;
       training ??= n;
     }

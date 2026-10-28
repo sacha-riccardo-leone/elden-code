@@ -189,8 +189,9 @@ export class Companions {
     const { director, pilot } = this.ctx;
     pilot.keys?.clear(); // (thou stoppest where thou stand'st: no keys reach the world meanwhile)
     // the heroes there are to take: every one but whoever thou art (thou fightest anyway), and Maren
-    // when thou art someone else
-    this.roster = [...director.heroes.values(), director.maren].filter((n) => n && !n.dead && n !== pilot.npc && n.hero);
+    // when thou art someone else; not one just freed from a cage and still on its way to the Round
+    // Table (isle.js)
+    this.roster = [...director.heroes.values(), director.maren].filter((n) => n && !n.dead && n !== pilot.npc && n.hero && !n.freeing);
     let remembered = party ? party.filter((n) => this.roster.includes(n)) : null;
     if (!remembered) {
       let last = [];
