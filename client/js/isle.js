@@ -17,7 +17,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { HUB, BRIDGE } from './config.js';
 import * as T from './textures.js';
-import { rng } from './pixel.js';
+import { rng, hexToRgb } from './pixel.js';
 import { Builder, BRICK_TILE, scaleBoxUV, seedOf } from './build.js';
 import { GraceFigure } from './grace.js';
 import { FLOOR } from './arena.js';
@@ -47,9 +47,9 @@ const CAGE = { w: 5, d: 2.6, h: 3.7, plinth: 0.3, bar: 0.34, door: 1.5, swing: 1
 // times it cracked across (breakSlab), the gap between its pieces, how far they lie scattered from
 // where they were, how far they lean back against the cage's plinth (their tops toward thee: radians)
 // and how far tilted besides, at random; how round their edges, how many of its runes' pixels to a
-// world unit (the world's own), where it lies (`z`, at the foot of its cage's plinth), and its light
-// (lights.js: power, reach).
-const SIGN = { w: 3, d: 1.6, thick: [0.3, 0.62], across: 3, gap: 0.08, scatter: 0.3, lean: 0.38, tilt: 0.22, round: 0.08, ppu: 16, z: -2.85, light: [6, 8] };
+// world unit, where it lies (`z`, at the foot of its cage's plinth), and its light (lights.js: power,
+// reach).
+const SIGN = { w: 2.4, d: 1.3, thick: [0.16, 0.32], across: 4, gap: 0.07, scatter: 0.22, lean: 0.34, tilt: 0.22, round: 0.05, ppu: 20, z: -2.95, light: [6, 7] };
 // Its little Site of Grace (from its middle), and how big it is (of an island's).
 const GRACE = { x: 4.6, z: 4.6, k: 0.7 };
 // Its braziers, either side of the middle cage.
@@ -125,9 +125,9 @@ function part(geo, k) {
 }
 
 // A sign's runes, as its slab bore them before it broke, `w` by `d` world units at `ppu` pixels to
-// one: strokes, each a stem and its branches (as the summoning signs' runes are), carved in dark red
-// stone, a worn edge round each. Two drawings: its colours, and what of it glows (the stone a dull
-// red, the runes white, their edges red).
+// one: strokes, each a stem and its branches (as the summoning signs' runes are), carved dark in the
+// isle's own grey stone (its floor's), a worn edge round each. Two drawings: its colours, and what of
+// it glows (the runes white, their edges red, the stone not at all: the red comes from under it).
 function runeCanvases(w, d, ppu, seed) {
   const W = Math.round(w * ppu);
   const H = Math.round(d * ppu);
@@ -166,7 +166,7 @@ function runeCanvases(w, d, ppu, seed) {
   color.height = glow.height = H;
   const ci = color.getContext('2d').createImageData(W, H);
   const gi = glow.getContext('2d').createImageData(W, H);
-  const STONE = [[59, 36, 32], [69, 41, 36], [51, 33, 28], [74, 46, 40]];
+  const STONE = FLOOR.stone.map(hexToRgb);
   const at = (x, y) => x >= 0 && x < W && y >= 0 && y < H && stroke[y * W + x];
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
@@ -175,11 +175,10 @@ function runeCanvases(w, d, ppu, seed) {
       let c;
       let g;
       // (the runes carved, dark in the stone, but for the light that fills them while the sign is awake)
-      if (stroke[i]) { c = [34, 19, 17]; g = [255, 255, 255]; } else if (near) { c = [96, 56, 48]; g = [255, 106, 80]; } else {
-        const base = STONE[Math.floor(r() * STONE.length)];
-        const k = r() < 0.1 ? 0.75 : 1;
-        c = base.map((v) => Math.round(v * k));
-        g = [190, 38, 22].map((v) => Math.round(v * k));
+      if (stroke[i]) { c = [29, 27, 32]; g = [255, 255, 255]; } else if (near) { c = [92, 86, 80]; g = [255, 70, 50]; } else {
+        const k = r() < 0.12 ? 0.8 : 1;
+        c = STONE[Math.floor(r() * STONE.length)].map((v) => Math.round(v * k));
+        g = [0, 0, 0];
       }
       ci.data.set([...c, 255], i * 4);
       gi.data.set([...g, 255], i * 4);
@@ -190,19 +189,36 @@ function runeCanvases(w, d, ppu, seed) {
   return { color, glow };
 }
 
-// The red stone of a sign's sides, a world unit of it (the world's 16 pixels): mottled, a darker
-// pixel here and there, seamless.
+// The stone of a sign's sides, a world unit of it (the world's 16 pixels): the isle's floor's grey,
+// mottled, a darker pixel here and there, seamless.
 function stoneCanvas(seed) {
   const r = rng(seed);
   const c = document.createElement('canvas');
   c.width = c.height = 16;
   const img = c.getContext('2d').createImageData(16, 16);
-  const BASE = [[80, 46, 40], [92, 54, 46], [68, 38, 33], [100, 62, 50]];
+  const BASE = FLOOR.stone.map(hexToRgb);
   for (let i = 0; i < 256; i++) {
-    const k = r() < 0.12 ? 0.7 : 1;
+    const k = r() < 0.12 ? 0.75 : 1;
     img.data.set([...BASE[Math.floor(r() * BASE.length)].map((v) => Math.round(v * k)), 255], i * 4);
   }
   c.getContext('2d').putImageData(img, 0, 0);
+  return c;
+}
+
+// The red light from under a sign, as it falls on its stones' sides: brightest at each one's foot and
+// gone a little way up (an extrusion's sides map its height to v, 1 at its foot falling as it rises:
+// three.js, ExtrudeGeometry; clamped, all below its foot as bright as at it).
+function underGlowCanvas() {
+  const c = document.createElement('canvas');
+  c.width = 1;
+  c.height = 64;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, 64);
+  grad.addColorStop(0, '#ffffff');
+  grad.addColorStop(0.05, '#ffffff');
+  grad.addColorStop(0.2, '#000000');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 1, 64);
   return c;
 }
 
@@ -347,10 +363,12 @@ export class Isle extends Builder {
     return { x, z, door, figures: [], opening: open ? CAGE.opening : -1 };
   }
 
-  // A broken sign before its cage: the slab's pieces, lying where they fell a little apart, tilted
-  // this way and that, each its own thickness, with rounded edges (in two meshes: their tops, the
-  // runes as they ran across the slab before it broke, and their sides, red stone); a red haze over
-  // them and their light (dark while the sign sleeps: update); nobody walks over them.
+  // A broken sign before its cage: the slab's pieces, small stones of the isle's own grey, lying where
+  // they fell a little apart, tilted this way and that, each its own thickness, with rounded edges (in
+  // two meshes: their tops, the runes as they ran across the slab before it broke, and their sides);
+  // and the red light welling up from under them, on the floor round them and between them, at the
+  // feet of their sides, and a low haze (all dark while the sign sleeps: update); nobody walks over
+  // them.
   sign(i, x, z) {
     const r = rng(9100 + i * 37);
     const { w, d, ppu } = SIGN;
@@ -363,7 +381,7 @@ export class Isle extends Builder {
     };
     const top = new THREE.MeshLambertMaterial({ map: map(runes.color), emissive: '#ffffff', emissiveMap: map(runes.glow), emissiveIntensity: 0 });
     const rock = T.pixelTexture(stoneCanvas(61 + i), { repeat: [1, 1] });
-    const side = new THREE.MeshLambertMaterial({ map: rock, emissive: '#ff2a16', emissiveMap: rock, emissiveIntensity: 0 });
+    const side = new THREE.MeshLambertMaterial({ map: rock, emissive: '#ff2a16', emissiveMap: new THREE.CanvasTexture(underGlowCanvas()), emissiveIntensity: 0 });
     const caps = [];
     const sides = [];
     const m = new THREE.Matrix4();
@@ -404,30 +422,39 @@ export class Isle extends Builder {
       geos.forEach((g) => g.dispose());
     }
     // a few chips of it, flung farther
+    const chips = new THREE.MeshLambertMaterial({ map: rock });
     for (let k = 0; k < 5; k++) {
       const a = r() * Math.PI * 2;
-      const chip = new THREE.Mesh(new THREE.DodecahedronGeometry(0.07 + r() * 0.06, 0), side);
-      chip.position.set(Math.cos(a) * (w / 2 + 0.3 + r() * 0.5), 0.04, Math.sin(a) * (d / 2 + 0.25 + r() * 0.4));
+      const chip = new THREE.Mesh(new THREE.DodecahedronGeometry(0.05 + r() * 0.04, 0), chips);
+      chip.position.set(Math.cos(a) * (w / 2 + 0.25 + r() * 0.4), 0.03, Math.sin(a) * (d / 2 + 0.2 + r() * 0.3));
       chip.rotation.set(r() * 3, r() * 3, r() * 3);
       group.add(chip);
     }
-    // its haze, and its light on the floor and round it
-    const haze = this.additiveSprite('#ff3a24', 5.2, 0);
-    haze.position.set(0, 0.5, 0);
-    const pool = new THREE.Mesh(new THREE.PlaneGeometry(w + 2.6, d + 2.4), new THREE.MeshBasicMaterial({
-      map: this.world.tex.glow, color: '#ff2a18', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
-    }));
-    pool.rotation.x = -Math.PI / 2;
-    pool.position.y = 0.02;
-    pool.renderOrder = 4;
-    group.add(haze, pool);
+    // the red light from under it: a pool of it on the floor, spreading out round the stones, and a
+    // brighter one right under them, showing between them; a low haze over it; its light, from low
+    // among them (lights.js), on the floor, the cage and whoever stands by
+    const glowOn = (pw, pd, color) => {
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(pw, pd), new THREE.MeshBasicMaterial({
+        map: this.world.tex.glow, color, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
+      }));
+      p.rotation.x = -Math.PI / 2;
+      p.position.y = 0.02;
+      p.renderOrder = 4;
+      group.add(p);
+      return p;
+    };
+    const pool = glowOn(w + 2.8, d + 2.6, '#ff2a18');
+    const core = glowOn(w + 0.6, d + 0.7, '#ff5a30');
+    const haze = this.additiveSprite('#ff3a24', 3.4, 0);
+    haze.position.set(0, 0.2, 0.2);
+    group.add(haze);
     group.userData.dynamic = true;
     this.add(group);
     this.block(x - w / 2 - 0.2, z - d / 2 - 0.2, x + w / 2 + 0.2, z + d / 2 + 0.2);
-    const s = { i, x, z, top, side, haze, pool, glow: this.state(i) === 'awake' ? 1 : 0, flare: 0, light: this.light(x, 0.9, z, '#ff3a26', SIGN.light[1], 1.5) };
-    // (red motes rising off it while it's awake)
+    const s = { i, x, z, top, side, haze, pool, core, glow: this.state(i) === 'awake' ? 1 : 0, flare: 0, light: this.light(x, 0.3, z + 0.2, '#ff3a26', SIGN.light[1], 1.5) };
+    // (red motes rising from under it while it's awake)
     this.ambient(4, () => (s.glow < 0.5 ? null : {
-      pos: [this.wx(x), 0.35, this.wz(z)], spread: [w / 2, 0.15, d / 2], vel: [0, 0.5, 0], velSpread: [0.1, 0.2, 0.1],
+      pos: [this.wx(x), 0.15, this.wz(z)], spread: [w / 2, 0.1, d / 2], vel: [0, 0.5, 0], velSpread: [0.1, 0.2, 0.1],
       color: ['#ff4a32', '#ffd0c4', '#ff2a18'], size: 0.05, life: 2.2, drag: 0.3, intensity: 2,
     }));
     return s;
@@ -727,9 +754,10 @@ export class Isle extends Builder {
       s.flare = Math.max(0, s.flare - dt * 0.8);
       const k = s.glow * (0.86 + 0.14 * Math.sin(t * 1.6 + s.i * 2.1)) + s.flare * 1.4;
       s.top.emissiveIntensity = 0.95 * k; // (white enough to shine, not so bright the bloom blurs the runes away)
-      s.side.emissiveIntensity = 3 * k; // (its stone's own red, dark as it is: its emissive map)
-      s.haze.material.opacity = 0.26 * Math.min(1.6, k);
-      s.pool.material.opacity = 0.55 * Math.min(1.6, k);
+      s.side.emissiveIntensity = 2.2 * k; // (the red from under, at the stones' feet: underGlowCanvas)
+      s.haze.material.opacity = 0.16 * Math.min(1.6, k);
+      s.pool.material.opacity = 0.75 * Math.min(1.6, k);
+      s.core.material.opacity = 0.95 * Math.min(1.6, k);
       s.light.intensity = SIGN.light[0] * k;
     }
     // a cage's door swinging open, and the prisoners standing idle (the Twofold changing with the hour)
