@@ -2328,10 +2328,11 @@ export class Fight {
   }
 
   // Fallen mid-fight: the fighters still standing, any of whom thou mayst carry on as (the panel
-  // over the fight, rebuilt only when the list or their health changes).
+  // over the fight, rebuilt only when the list, their names or their health change: the Twofold's
+  // name changes with its form).
   offerCarry() {
     const list = [...this.ctx.director.npcs.values()].filter((n) => n.fighter && !n.fighter.dead && !n.piloted && !n.dead);
-    const key = list.map((n) => `${n.sid}:${Math.ceil(n.fighter.hp / 10)}`).join(',');
+    const key = list.map((n) => `${n.sid}:${n.name.first}:${Math.ceil(n.fighter.hp / 10)}`).join(',');
     if (key === this.carryKey) return;
     this.carryKey = key;
     const el = this.ui;
@@ -2492,7 +2493,7 @@ export class Fight {
 
   // Under thy health, the others in the fight: each one's face, name and health, in the order they
   // lined up (one thou'st carried on from at the foot), the fallen greyed and struck through (out
-  // for good).
+  // for good). (Its face and name as they are now: the Twofold's change with its form.)
   updateParty() {
     const el = this.ui.party;
     const allies = [...this.ctx.director.npcs.values()].filter((n) => n.fighter && !n.piloted).sort((a, b) => a.fighter.line - b.fighter.line);
@@ -2512,7 +2513,6 @@ export class Fight {
         info.className = 'ally-info';
         const name = document.createElement('span');
         name.className = 'ally-name';
-        name.textContent = n.name.first;
         const bars = document.createElement('div');
         bars.className = 'ally-bars';
         const bar = document.createElement('div');
@@ -2527,10 +2527,11 @@ export class Fight {
         bars.append(bar, ult);
         info.append(name, bars);
         div.append(face, info);
-        row = { el: div, fill, ult, charge, face: this.frameOf(face) };
+        row = { el: div, name, fill, ult, charge, face: this.frameOf(face) };
         this.partyRows.set(n, row);
       }
       if (el.children[i] !== row.el) el.insertBefore(row.el, el.children[i] || null);
+      if (row.name.textContent !== n.name.first) row.name.textContent = n.name.first;
       const f = n.fighter;
       row.el.classList.toggle('fallen', !!f.dead);
       row.fill.style.width = `${Math.max(0, f.hp)}%`;
