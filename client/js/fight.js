@@ -151,6 +151,7 @@ const FLOOR_R = ARENA.walkRadius + 0.6;
 // Why one came, as the banner and the window choosing companions say it.
 const WHY = {
   summon: () => 'Summoned at the Round Table',
+  slab: () => 'Summoned from his broken sign on the Isle of the Caged',
   invasion: () => 'It came of its own accord',
   errors: (c) => (c.npc ? `Drawn by ${c.npc.name.first}'s failing rites` : 'Drawn by failing rites'),
   failure: (c) => (c.npc ? `Drawn by ${c.npc.name.first}'s fall` : 'Drawn by a fall'),
@@ -480,7 +481,7 @@ export class Fight {
     // only the user's own great enemies ever come: without their art (it failed to load), none do
     const kinds = this.kinds();
     if (this.active || this.calling || !kinds.length) return false;
-    const kind = this.next(kinds);
+    const kind = kinds.includes(cause.boss) ? cause.boss : this.next(kinds); // (the one a broken sign calls: isle.js)
     const rig = this.ctx[KINDS[kind].sheet]?.rig;
     const foe = rig ? [rig.firstName, rig.epithet].filter(Boolean).join(', ') : 'A great enemy';
     const call = { cause, kind, at: this.clock };
@@ -489,7 +490,7 @@ export class Fight {
       if (this.calling !== call) return;
       this.calling = null;
       if (party) this.start(cause, party, kind);
-      else if (cause.kind !== 'summon') this.turnAway();
+      else if (cause.kind !== 'summon' && cause.kind !== 'slab') this.turnAway();
     });
     return true;
   }
@@ -2272,6 +2273,8 @@ export class Fight {
     try { localStorage.setItem(FELLED, JSON.stringify([...felled])); } catch {}
     ui.banner('Great Enemy Felled', '', 'gold');
     ui.log('The great enemy is felled', 'gold', { region: this.ctx.world.arena });
+    // (beaten from his sign on the Isle of the Caged: those he held there go free, isle.js)
+    if (this.cause?.kind === 'slab') this.ctx.world.isle.free(this.kind);
     for (const n of director.npcs.values()) {
       if (!n.fighter || n.piloted || n.fighter.dead) continue;
       n.action = null;

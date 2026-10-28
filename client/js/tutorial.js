@@ -517,11 +517,12 @@ export class Tutorial {
     }
   }
 
-  // A hero of the Round Table (one not two in one: the Twofold, the Witch), at random: rising from
-  // grace beside thee (npc.js, spawn), and waiting there for thee (npc.js, 'stand').
+  // A hero of the Round Table (one not two in one: the Twofold, the Witch; nor one still caged on the
+  // Isle of the Caged, isle.js), at random: rising from grace beside thee (npc.js, spawn), and waiting
+  // there for thee (npc.js, 'stand').
   raiseHero() {
-    const { director, nav, pilot } = this.ctx;
-    const ids = (this.ctx.heroSheets || []).filter((s) => !s.rig.pair).map((s) => s.hero);
+    const { director, nav, pilot, world } = this.ctx;
+    const ids = (this.ctx.heroSheets || []).filter((s) => !s.rig.pair && !world.isle.caged(s.hero)).map((s) => s.hero);
     const me = pilot.npc;
     if (!ids.length || !me) return null;
     const id = ids[Math.floor(Math.random() * ids.length)];

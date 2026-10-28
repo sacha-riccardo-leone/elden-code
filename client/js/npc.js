@@ -831,8 +831,9 @@ export class Npc {
     const world = this.ctx.world;
     let area = world.areaAt(x, z) || this.region;
     // (never onto an island under the mist, sinking into it or gone: that would leave it standing
-    // on thin air; to the Hold instead. The training yard is always there: by its little grace)
-    const island = area !== world.hub && area !== world.arena && area !== world.yard;
+    // on thin air; to the Hold instead. The training yard and the Isle of the Caged are always
+    // there: by their little graces)
+    const island = area !== world.hub && area !== world.arena && area !== world.yard && area !== world.isle;
     if (island && (world.regions.get(area.project) !== area || !area.risen || area.sinking)) {
       area = world.hub;
       this.goal = null;

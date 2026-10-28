@@ -4,7 +4,7 @@
 // with pixel-art fire (fire.js), a broken colonnade, and a banner for each project's region.
 
 import * as THREE from 'three';
-import { HUB, HUB_LAYOUT, ARENA } from './config.js';
+import { HUB, HUB_LAYOUT, ARENA, BRIDGE } from './config.js';
 import * as T from './textures.js';
 import { rng, ramp, hashStr } from './pixel.js';
 import { Builder, BRICK_TILE, scaleCylUV, seedOf } from './build.js';
@@ -12,6 +12,7 @@ import { Flame } from './fire.js';
 import { plantedWeapons } from './weapons.js';
 import { GraceFigure } from './grace.js';
 import { YARD } from './yard.js';
+import { WAY } from './isle.js';
 
 // The project banners at the Round Table: how far below the floor a new one's pole starts, and
 // how long it takes to rise and then for its flag to unfurl (seconds).
@@ -63,10 +64,13 @@ export class Hub extends Builder {
     cliff.position.y = -13;
     this.add(cliff);
     // (open where the stairs leave it: south, down to the training yard, yard.js, and north, up to
-    // the Arena of Trials, arena.js)
+    // the Arena of Trials, arena.js; and north-east, where the bridge to the Isle of the Caged leaves
+    // it, isle.js)
     const south = Math.asin((YARD.stairHalf + 0.4) / (R - 0.1));
     const north = Math.asin((ARENA.bridgeHalf + 0.4) / (R - 0.1));
-    for (const [from, to] of [[Math.PI / 2 + south, Math.PI * 1.5 - north], [Math.PI * 1.5 + north, Math.PI * 2.5 - south]]) {
+    const isle = Math.asin((BRIDGE.halfWidth + 0.4) / (R - 0.1));
+    const ne = WAY.angle + Math.PI * 2; // (between north and south, round by the east)
+    for (const [from, to] of [[Math.PI / 2 + south, Math.PI * 1.5 - north], [Math.PI * 1.5 + north, ne - isle], [ne + isle, Math.PI * 2.5 - south]]) {
       const rim = new THREE.TorusGeometry(R - 0.1, 0.22, 4, 23, to - from);
       rim.rotateZ(from);
       const lip = new THREE.Mesh(rim, this.mat.stoneMoss);
@@ -151,13 +155,17 @@ export class Hub extends Builder {
       const z = Math.sin(a) * (R - 1.2) * 0.92;
       const broken = r() < 0.35;
       const h = broken ? 1.2 + r() * 1.6 : 5.2 + r() * 1.2;
+      const ry = broken ? r() * 3 : 0;
+      // (and open where the bridge to the Isle of the Caged leaves: that column's draws still taken,
+      // so that the others stand as they always have)
+      if (Math.abs(Math.atan2(Math.sin(a - WAY.angle), Math.cos(a - WAY.angle))) < 0.22) continue;
       const col = new THREE.Mesh(scaleCylUV(new THREE.CylinderGeometry(0.42, 0.5, h, 8), 0.45, h, BRICK_TILE), this.mat.stoneMoss);
       col.position.set(x, h / 2, z);
       col.castShadow = true;
       col.receiveShadow = true;
       this.add(col);
       if (!broken) this.box(1.2, 0.35, 1.2, this.mat.stone, x, h + 0.17, z, { tile: 1 });
-      else this.box(0.6, 0.3, 0.5, this.mat.stone, x + 0.6, 0.15, z + 0.3, { ry: r() * 3, tile: 1 });
+      else this.box(0.6, 0.3, 0.5, this.mat.stone, x + 0.6, 0.15, z + 0.3, { ry, tile: 1 });
       this.blockCircle(x, z, 0.65);
     }
 

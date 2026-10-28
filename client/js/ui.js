@@ -233,8 +233,9 @@ export class UI {
         btn.append(name, el('b', 'map-tick'));
         btn.addEventListener('click', () => this.onFocus && this.onFocus({ region: r.area }));
         if (r.under) btn.classList.add('under'); // (the training yard, under the Hold's name: game.css)
+        else if (r.north) btn.classList.add('north'); // (the Isle of the Caged, up with the Hold's name)
         else if (!r.area.biome) btn.classList.add('hub');
-        b = { btn, meta, name, area: r.area, under: !!r.under };
+        b = { btn, meta, name, area: r.area, under: !!r.under, north: !!r.north };
         this.regionButtons.set(r.area, b);
         this.mapMarks.append(btn);
       }
@@ -252,9 +253,10 @@ export class UI {
       if (!seen.has(area)) { b.btn.remove(); this.regionButtons.delete(area); }
     }
     // names never run into one another: the Hold's always whole, the others each as wide as the
-    // room to their neighbours allows (half the gap to an island's, all but the Hold's own half)
+    // room to their neighbours allows (half the gap to an island's, all but the Hold's own half;
+    // the Isle of the Caged's up with the Hold's, out of their way)
     const width = this.regionsEl.clientWidth || 600;
-    const marks = [...this.regionButtons.values()].sort((a, b) => a.area.cx - b.area.cx);
+    const marks = [...this.regionButtons.values()].filter((b) => !b.north).sort((a, b) => a.area.cx - b.area.cx);
     const hub = marks.find((b) => !b.area.biome && !b.under);
     if (hub) hub.name.style.maxWidth = 'none';
     const hubHalf = hub ? hub.name.offsetWidth / 2 + 10 : 0;

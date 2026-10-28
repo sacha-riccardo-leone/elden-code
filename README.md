@@ -77,8 +77,8 @@ again by itself (`?tutorial` in the address shows it anyway).
      `client/js/ults.js`).
   5. *Gestures*, back at the Hold: "Open your gestures with B", then "Choose a gesture with" a
      click on one, or its number, 1 to 8.
-  6. *Becoming someone*, straight on: a hero of the Round Table (one of those with a single form,
-     at random) rises from grace beside you and waits. "Click on them to become them", then
+  6. *Becoming someone*, straight on: a hero of the Round Table (one of those with a single form and
+     not caged on the Isle of the Caged, at random) rises from grace beside you and waits. "Click on them to become them", then
      "Become" in their fan.
   7. *Islands*: straight on, Maren, let go, waits as an island rises for her (*your-project*),
      then sets out and works at its forge, the camera on it. A card says why they go there, and
@@ -192,6 +192,44 @@ as its session has work for it, or after a minute or two, and then waits a few m
 coming again. Sent back, a Tarnished takes up what its session wants now, or else goes home (a hero
 without a quest walks back up the stair to the Round Table).
 
+North-east of the Hold, beside the Arena of Trials, lies the **Isle of the Caged**
+(`client/js/isle.js`), always there: an oval of the arena's grey brick, 30 long and 20 wide, on a
+rock of its own, joined to the Hold's rim by a long bridge of stone on three piers (the Hold's rim and
+its colonnade open where the bridge leaves). It lies as far north as the arena's middle, so that the
+islands' backs never stand between it and the camera. Along its back stand three iron cages on stone
+plinths, and in each two heroes held there by a great enemy, standing idle and facing one another:
+drawn, not living. They can't be clicked or become, take up no session, train or go into a fight, and
+the sessions they would have taken up call up spectres instead (`client/js/director.js`). West to
+east:
+
+| Cage | Held by | Its prisoners |
+|---|---|---|
+| 1 | the Guardian Golem | Wynn and Ulric |
+| 2 | Fenrath | Fortuna and Corisande (bare-faced) |
+| 3 | Morvane | the Twofold (Ruadan by night, Solenne by day: it still changes at dusk and dawn in its cage, golden light and all) and Aurelion |
+
+At the foot of each cage lie the pieces of a slab of stone that was thrown down there and broke: a
+summoning sign, red as the summoning signs are (Sacha's references), its white runes still to be read
+across its pieces. Each piece is a chunk of its own with rounded edges, its own thickness, leaning
+back against the plinth with its top toward you, a gap between it and the next; the runes were cut
+across the whole slab before it broke, so each piece holds its part of them. Drawn here
+(`breakSlab`, `runeCanvases`): no art of Sacha's yet. An awake sign glows (its stone a deep red, its
+runes white), breathes slowly, hazes the air red over it, throws its red light on the cage and the
+floor, and red motes rise off it. Press **E** by it ("Summon the Guardian Golem") to summon the great
+enemy who holds its cage: the sign flares, you raise your hand to it, and the fight is called as from
+the Round Table (your companions first; the banner says "Summoned from his broken sign on the Isle of
+the Caged"). Beat him and his prisoners go free: the cage's door swings in on its hinge with a clank
+of iron, and the two vanish from it in golden light and rise at the Round Table's grace ("Prisoners
+Freed", and a line in the log), from then on Tarnished like the rest. The signs wake one after
+another, as Sacha wants: the Golem's first, Fenrath's once the Golem's cage is open, Morvane's once
+Fenrath's is. One not yet awake lies dormant, a dim ember ("A dormant sign", E says what wakes it);
+one whose cage is open is spent, dark, its runes grooves in the stone. Only a fight called from a
+sign frees anyone: beating the same enemy when he comes of his own accord, or from the Round Table,
+doesn't. Losing, or the enemy turning away, leaves the sign awake to be tried again. What's freed is
+remembered in the browser (`elden-code:freed`), so every cage starts shut. A little Site of Grace
+stands near the bridge's foot (rest at it with E; travel by grace arrives in front of it), and an
+iron brazier burns either side of the middle cage.
+
 | In Claude Code | In the world |
 |---|---|
 | Session starts | A Tarnished rises at the Site of Grace |
@@ -216,7 +254,8 @@ Cloth colour = project. Plume / eye / feather colour = model (Opus gold, Sonnet 
 Haiku jade, Fable violet).
 
 You start as **Maren the Stormbound** (the Stormbound Knight), not one of the sessions, but you
-can **become any character**: click one and choose **Become …** in the fan over its head.
+can **become any character** (but those still caged on the Isle of the Caged): click one and choose
+**Become …** in the fan over its head.
 
 - **Controls** (whoever you are):
   - **W A S D** or the arrow keys to walk, **Shift** to run; cross the bridges to other islands.
@@ -237,17 +276,19 @@ can **become any character**: click one and choose **Become …** in the fan ove
     ritual circle, the raven tower, the fog gate, a site of grace, and the Round Table. Each
     works as it does for the sessions' characters (the forge glows and throws sparks, a raven
     takes wing…).
-  - **M** shows the map of every island, and the training yard below the Hold, each named. **Z / X**
-    travel by grace to the previous / next area, **H** to Roundtable Hold.
+  - **M** shows the map of every island, the training yard below the Hold and the Isle of the Caged,
+    each named. **Z / X** travel by grace to the previous / next area, **H** to Roundtable Hold.
   - **The map strip** (along the bottom of the screen) is one line as wide as the whole world,
     with Roundtable Hold always in the very middle, and the training yard (which lies below the Hold)
     under the Hold's name. Each area's name sits over its own place on it, and clicking a name takes
-    you there by grace (the training yard always, like the Hold). A golden dot under
-    the line shows where you are, moving with you even between islands. An island only appears on
-    it, and can only be reached by grace, once it has fully risen from the mist.
+    you there by grace (the training yard and the Isle of the Caged always, like the Hold; the isle's
+    name stands up level with the Hold's, on a long tick, as it lies north of the islands). A golden
+    dot under the line shows where you are, moving with you even between islands. An island only
+    appears on it, and can only be reached by grace, once it has fully risen from the mist.
   - While a great enemy is abroad, the **Arena of Trials** shows over Roundtable Hold in shining
-    red, under a skull whose horns curve down. Every island but the Hold is greyed out: the Hold is
-    the only place you can travel to by grace, and the way on to the arena is on foot. Once you're
+    red, under a skull whose horns curve down. Every island but the Hold is greyed out: the Hold (and
+    the yard and the Isle of the Caged) are the only places you can travel to by grace, and the way
+    on to the arena is on foot. Once you're
     sealed in the arena with it, the strip gives way to its health bar until the fight is over.
   - The **settings** wheel (top right, beside the **?**) lists all of this under **Controls**.
 - **Settings** (the wheel at the top right; `#settings` in `client/index.html`, wired in
@@ -334,6 +375,8 @@ that appeared longest ago (`pickBiome` in `client/js/world.js`).
 
 Hand-drawn characters replace the procedural look. The Stormbound Knight is Maren (you); the
 other heroes live at Roundtable Hold and each takes up one session at a time (see above). There is no procedural sorcerer: Vael is the sorcerer.
+Six of them start caged on the Isle of the Caged and join the rest only once freed (see above): Wynn
+and Ulric, Fortuna and Corisande, the Twofold and Aurelion.
 
 - **The Stormbound Knight** — `client/assets/hero/knight.json` (+ `knight-kneel.json`), rigged in
   `client/js/heroes/knight.js`. Her Red Storm pose (`knight-ult.json`) and her spear thrust
@@ -612,7 +655,8 @@ a spell or spear you loose off it (in the Hold, on a bridge, on the stair) is pl
 ground under you instead, so it flies at your hand's height there too.
 
 - **What brings one:**
-  - **Summoned:** at the Round Table (**E**).
+  - **Summoned:** at the Round Table (**E**), or from an awake broken sign on the Isle of the Caged
+    (**E** by it: that sign's own enemy, the one holding its cage, whatever `ORDER` says).
   - **Invasions:** by itself every 20–40 minutes.
   - However it comes, you choose your companions first (below).
   - **A struggling session:** three failed tool calls within two minutes, a session ending in
@@ -1443,6 +1487,9 @@ table says what each clip is cut from.
   together as one bursts (a straw one's each at a pitch of its own, anywhere from a little lower to
   a good deal higher; the great one's louder, and lower than any, struck as bursting); and
   `after_click_start_your_tarnished_journey` as you set out from the title.
+- **The Isle of the Caged**, for now, till it has its own: `summoning-magic-spell` as you touch an
+  awake sign; as a cage opens, the anvil's hit pitched well down for the clank of its door, and
+  `grace_travel` as its two vanish from it; the caged Twofold's `twofold_change` as it changes.
 - **The training yard's rune rocks** (`client/assets/sfx/IMPORT/Tutorial rocks`, cut into the `rocks` set),
   each where the rock stands: `rock_rune_lighting` as its rune lights (from its first sound, so that
   it crests as the rune is alight); `rock_levitating` as it's lifted, humming on while it's held up,

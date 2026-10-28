@@ -3,7 +3,8 @@
 // site of grace) on every island, in Roundtable Hold the Round Table, with its great grace at its
 // heart (taking a seat there rests at grace; it can also summon a great enemy to the arena), and
 // on the training yard its little grace, where thou callest the Tarnished to train (training.js),
-// or walkest the tutorial again (tutorial.js).
+// or walkest the tutorial again (tutorial.js); on the Isle of the Caged its little grace (rested at),
+// and the broken signs before its cages, each summoning the great enemy who holds its cage (isle.js).
 // A prompt shows over the nearest one in reach.
 // Using a station works it as the characters do: the forge glows and throws sparks at each blow,
 // the ritual circle spins up (heard as it's invoked, each time), a raven takes wing, the bell rings
@@ -44,6 +45,10 @@ export class Interact {
     if (area === world.yard) {
       const [gx, gz] = world.yard.graceSpot();
       return [{ x: gx, z: gz, reach: 2.6, label: 'The yard\'s grace', use: () => this.ctx.ui.openGrace() }];
+    }
+    if (area === world.isle) {
+      const [gx, gz] = world.isle.graceSpot();
+      return [{ x: gx, z: gz, reach: USES.grace.reach, label: USES.grace.label, use: (n) => this.work(n, null, 'grace', gx) }, ...world.isle.spots()];
     }
     if (!area.point || area.isArena) return [];
     return Object.keys(USES).map((station) => {

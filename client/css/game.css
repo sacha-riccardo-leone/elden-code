@@ -254,6 +254,10 @@ body.day #area h2 {
    tick (ui.js, setRegions) */
 .map-mark.hub { bottom: 48px; }
 .map-mark.hub .map-tick { display: none; }
+/* the Isle of the Caged, beside the arena north of the Hold: up with the Hold's name, its tick
+   reaching down to the line (ui.js, setRegions) */
+.map-mark.north { bottom: 16px; }
+.map-mark.north .map-tick { height: 27px; }
 .map-mark:hover .map-name, .map-mark:focus-visible .map-name { color: var(--gold-hi); }
 .map-mark:focus-visible { outline: none; }
 .map-mark[data-active='1'] .map-name { color: var(--gold-hi); }

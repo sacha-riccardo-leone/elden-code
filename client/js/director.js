@@ -50,7 +50,7 @@ const LEAVE_AFTER = 2.5; // a newcomer sits at the Round Table at least this lon
 // the new form bursts out, then it's free to move again.
 // (and what's heard of it, begun `lead` before the new form bursts out, so that it's at its loudest
 // then: audio.js)
-const SHIFT = { change: 0.8, reveal: 3.4, end: 4.0, sound: 'twofold-change', lead: 0.35 };
+export const SHIFT = { change: 0.8, reveal: 3.4, end: 4.0, sound: 'twofold-change', lead: 0.35 }; // (and in its cage: isle.js)
 // The Glintstone Witch's mask going on or coming off (seconds), the same way, only quicker. She
 // wears it to work her sorcery and to fight, takes it off once she has been idle `keep` seconds,
 // and changes no oftener than every `gap` seconds.
@@ -93,7 +93,8 @@ export class Director {
   // A hero with more than one form (the Twofold: night, day and the two drawings of the change; the
   // Glintstone Witch: masked, bare-faced and the drawing of her lifting the mask) is one actor
   // wearing them in turn, starting with the form it wants (wantForm). (`only`: just the heroes it
-  // lets by, by id: the tutorial's one, tutorial.js; those already here stay as they are.)
+  // lets by, by id: the tutorial's one, tutorial.js; two freed from a cage, isle.js; those already
+  // here stay as they are.) Those still caged on the Isle of the Caged aren't among them (isle.js).
   start(only = null) {
     const [gx, gz] = HUB_LAYOUT.grace;
     const sheets = this.ctx.heroSheets || [];
@@ -106,7 +107,7 @@ export class Director {
       const id = sheet.rig.pair || sheet.hero;
       const own = forms.get(id);
       // (both of its forms, or not at all)
-      if (this.heroes.has(id) || (only && !only(id)) || (own && Object.values(own).filter((s) => !s.rig.shift).length < 2)) continue;
+      if (this.heroes.has(id) || (only && !only(id)) || this.ctx.world.isle?.caged(id) || (own && Object.values(own).filter((s) => !s.rig.shift).length < 2)) continue;
       const sid = `hero:${id}`;
       const npc = new Npc(this.ctx, idleSession(sid), { x: gx, z: gz + 2, region: this.ctx.world.hub });
       npc.heroActor = id;
@@ -1053,6 +1054,8 @@ export class Director {
         { area: world.hub, name: world.hub.name, color: '#d6b46e', total: visitors, working: 0, waiting: 0 },
         // (the training yard below it, under its name: those on it)
         { area: world.yard, name: world.yard.name, color: '#a8855a', total: onYard, working: 0, waiting: 0, under: true },
+        // (the Isle of the Caged beside the arena, north of the line as the Hold's name is: ui.js)
+        { area: world.isle, name: world.isle.name, color: '#c43a2a', total: 0, working: 0, waiting: 0, north: true },
         // (only those that have risen: one still under the mist, or sinking into it, isn't on the map)
         ...world.regionList().filter((r) => r.risen && !r.sinking).map((r) => ({ area: r, name: r.project, color: r.color, ...counts.get(r) })),
       ]);

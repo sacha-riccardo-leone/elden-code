@@ -21,6 +21,7 @@ import { Region } from './region.js';
 import { Hub } from './hub.js';
 import { Arena } from './arena.js';
 import { Yard, YARD } from './yard.js';
+import { Isle, ISLE } from './isle.js';
 import { Builder, NOISE_GLSL, UV_VERT, glowTexture, scaleBoxUV, BRICK_TILE } from './build.js';
 
 const LIGHT_POOL = 16;
@@ -141,6 +142,7 @@ export class World {
     this.hub = new Hub(this);
     this.arena = new Arena(this);
     this.yard = new Yard(this); // (the training yard below the Hold, always there)
+    this.isle = new Isle(this); // (and the Isle of the Caged beside the arena, its heroes caged)
   }
 
   // --------------------------------------------------------------------------------------------
@@ -641,6 +643,7 @@ export class World {
     if (this.hub.contains(x, z)) return this.hub;
     if (this.arena.contains(x, z)) return this.arena;
     if (this.yard.contains(x, z)) return this.yard;
+    if (this.isle.contains(x, z)) return this.isle;
     for (const r of this.regions.values()) if (r.contains(x, z)) return r;
     return null;
   }
@@ -649,6 +652,7 @@ export class World {
     if (x * x + z * z <= HUB.walkRadius * HUB.walkRadius) return true;
     if (this.arena.isWalk(x, z)) return true;
     if (this.yard.isWalk(x, z)) return true;
+    if (this.isle.isWalk(x, z)) return true;
     // an island (and its bridge) still below the mist can't be walked on
     for (const r of this.regions.values()) {
       if (!r.risen) continue;
@@ -668,11 +672,12 @@ export class World {
   }
 
   // (and north to the backs of the islands and the Hold, south to the far edge of the training yard
-  // below the Hold, and from end to end of it, longer than the Hold is wide: the overview, main.js)
+  // below the Hold, and from end to end of it, longer than the Hold is wide; and east to the far end of
+  // the Isle of the Caged, north to its back: the overview, main.js)
   extent() {
     let minX = -Math.max(HUB.radius, YARD.halfL);
-    let maxX = Math.max(HUB.radius, YARD.halfL);
-    let minZ = -HUB.radius;
+    let maxX = Math.max(HUB.radius, YARD.halfL, ISLE.cx + ISLE.hw);
+    let minZ = Math.min(-HUB.radius, ISLE.cz - ISLE.hd);
     for (const r of this.regions.values()) {
       minX = Math.min(minX, r.cx - REGION.halfW);
       maxX = Math.max(maxX, r.cx + REGION.halfW);
@@ -695,6 +700,8 @@ export class World {
     this.hub.update(dt, t, Math.min(1, hubResting / 3));
     this.arena.update(dt, t);
     this.yard.update(dt, t);
+    this.isle.near = Math.hypot(this.isle.cx - this.focus.x, this.isle.cz - this.focus.z) < reach;
+    this.isle.update(dt, t);
     this.followShadow(this.focus, camDist);
   }
 

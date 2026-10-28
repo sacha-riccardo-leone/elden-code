@@ -80,6 +80,7 @@ const [allHeroes, fireArt, spectreSheet] = await Promise.all([
 world.fireArt = fireArt; // (each island lights its own when it's built, region.js)
 world.hub.lightFires(fireArt);
 world.arena.lightFires(fireArt);
+world.isle.lightFires(fireArt);
 const playerSheet = allHeroes.find((s) => s.hero === 'knight') || null;
 const ctx = { scene, world, nav, particles, ui, director: null, heroSheets: allHeroes.filter((s) => s !== playerSheet), bossSheet: null, golemSheet: null, morvaneSheet: null, morvaneFlameSheet: null, spectreSheet };
 ctx.sound = sound;
@@ -275,8 +276,10 @@ ctx.training = training;
 training.start();
 const daylight = new Daylight({ renderer, scene, world, post, ui }); // day and night take turns
 ctx.daylight = daylight;
-// the heroes take their seats at the Round Table (the Twofold in the form for the hour); after the
-// tutorial, if there's one first
+// those still caged on the Isle of the Caged stand in their cages (isle.js); the others take their
+// seats at the Round Table (the Twofold in the form for the hour), after the tutorial, if there's one
+// first
+world.isle.fill(ctx);
 if (!tutorial.holding) director.start();
 else fight.quietUntil = Infinity; // (and no great enemy comes meanwhile)
 const perf = new Perf(renderer, post, resize);
@@ -473,7 +476,7 @@ function step(dt) {
   sound.music.update(fight.state === 'fighting' && fight.boss?.alive ? 'fight' : 'calm', dt);
   ui.overview = rig.dist > 40;
   ui.setFocusArea(world.areaAt(rig.cur.x, rig.cur.z), t);
-  ui.updateLabels([...areas(), world.yard]); // (and the training yard's, below the Hold)
+  ui.updateLabels([...areas(), world.yard, world.isle]); // (and the training yard's, below the Hold, and the Isle of the Caged's)
   // the map strip: where thou art, between islands too, and the arena while a great enemy is abroad
   ui.updateMap(me ? me.pos.x : 0, fight.hunting(), fight.sealed);
   ui.update(dt);
