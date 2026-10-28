@@ -143,12 +143,14 @@ export class Tutorial {
   }
 
   // Only the place a step is in shows: the Hold, or the training yard (without its stair up to the
-  // Hold); and thou keepest to it (on the yard, to its floor).
+  // Hold); never the Isle of the Caged (isle.js, hide); and thou keepest to it (on the yard, to its
+  // floor).
   show(place) {
     const { world } = this.ctx;
     world.hub.group.visible = place === 'hold';
     world.yard.group.visible = place === 'yard';
     world.yard.stair.visible = place !== 'yard';
+    world.isle.hide(true);
     this.fence = place === 'yard' ? (x, z) => world.yard.inside(x, z) : (x, z) => world.hub.contains(x, z);
   }
 
@@ -684,6 +686,7 @@ export class Tutorial {
     world.hub.group.visible = true;
     world.yard.group.visible = true;
     world.yard.stair.visible = true;
+    world.isle.hide(false);
     this.fence = null;
     safe(() => this.clearIsland());
     safe(() => {

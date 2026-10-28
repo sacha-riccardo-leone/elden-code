@@ -476,7 +476,7 @@ function step(dt) {
   sound.music.update(fight.state === 'fighting' && fight.boss?.alive ? 'fight' : 'calm', dt);
   ui.overview = rig.dist > 40;
   ui.setFocusArea(world.areaAt(rig.cur.x, rig.cur.z), t);
-  ui.updateLabels([...areas(), world.yard, world.isle]); // (and the training yard's, below the Hold, and the Isle of the Caged's)
+  ui.updateLabels([...areas(), world.yard, ...(world.isle.hidden ? [] : [world.isle])]); // (and the training yard's, below the Hold, and the Isle of the Caged's: not in the tutorial)
   // the map strip: where thou art, between islands too, and the arena while a great enemy is abroad
   ui.updateMap(me ? me.pos.x : 0, fight.hunting(), fight.sealed);
   ui.update(dt);

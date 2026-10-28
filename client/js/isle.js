@@ -246,6 +246,21 @@ export class Isle extends Builder {
     this.buildBridge();
   }
 
+  // Out of sight while the tutorial is walked (tutorial.js, show), and back after: the isle, its
+  // bridge, its prisoners, its lights (update) and its motes (Builder.ambient, `risen`).
+  hide(on) {
+    this.hidden = on;
+    this.group.visible = !on;
+    this.bridge.visible = !on;
+    this.risen = !on;
+    for (const c of this.cages) {
+      for (const f of c.figures) {
+        f.body.mesh.visible = !on;
+        f.body.blob.visible = !on;
+      }
+    }
+  }
+
   // Whether a hero is still held in one of its cages (director.js keeps it out of the Lands Between).
   caged(id) {
     return CAGES.some((c) => c.heroes.includes(id) && !this.freed.has(c.boss));
@@ -651,6 +666,7 @@ export class Isle extends Builder {
     f.body = new SpriteBody(this.world.scene, sheet);
     f.body.facing = f.facing;
     f.body.play('idle', true);
+    f.body.mesh.visible = f.body.blob.visible = !this.hidden;
   }
 
   // The Twofold, held, still changes with the hour, as abroad (director.js, SHIFT): golden light
@@ -834,5 +850,7 @@ export class Isle extends Builder {
       n.freeing = false;
       return false;
     });
+    // (out of sight, its lights out too: hide)
+    if (this.hidden) for (const l of this.ownLights) l.intensity = 0;
   }
 }
