@@ -15,12 +15,19 @@
 //            pieces swept away), and blows on its cracked ankle fill thine ultimate and hurt it no
 //            more, and once it's full, R breaks it
 //            at a stroke (training.js, lesson); here too the hint for Q, the camera's focus on it (no
-//            longer in a fight);
-//   gesture  through black, back at the Hold: thy fan of gestures (B), and one of them, a click on
-//            it or its number (1 to 8);
-//   become   a hero rises from grace beside thee and waits: a click on them, then on "Become";
+//            longer in a fight). Behind it all the while, since thou camest onto the yard, Vael and
+//            Jorvik stand caged (isle.js, Cage: as the Isle of the Caged's prisoners, as Sacha wants),
+//            and the words say so: break it to free them. Broken, their cage opens, they're freed,
+//            and they walk out to thee;
+//   become   there on the yard: a click on one of them, then on "Become" (without their art, a hero
+//            rising from grace beside thee instead);
+//   gesture  through black, back at the Hold, as whoever thou becamest (Maren and the other one
+//            freed come up too): thy fan of gestures (B), and one of them, a click on it or its number
+//            (1 to 8);
 //   island   Maren, let go, sets out for an island that rises for her and works there (why they
 //            go, and where they go with nothing to do); and it's done: again, or on into the world.
+// Vael and Jorvik are free from then on (and, the tutorial skipped, all the same: director.js starts
+// them with the rest as it's over); their cage is the tutorial's alone, put away as it ends.
 // On the yard (its stair up to the Hold put away), a step done, the golden arrow shows the way to the
 // next (guide.js, route): come into its ring, and it begins. Each step lets through what it teaches
 // and what came before (allows: main.js, input.js), and keeps thee to the place it's in (fence:
@@ -36,6 +43,7 @@ import { groundAt } from './ground.js';
 import { HUB_LAYOUT, REGION } from './config.js';
 import { AGAIN } from './gate.js';
 import { DODGES } from './runerocks.js';
+import { Cage, prisoner, nameOf } from './isle.js';
 
 const DONE = 'elden-code:tutorial'; // (localStorage: 'done', once walked or skipped)
 // The black between steps: how long it takes to fall, and how long it holds before lifting.
@@ -48,6 +56,12 @@ const FADE = { out: 0.6, hold: 0.35 };
 const SPOT = { hold: [1.6, 1.8] };
 const DUMMIES = { at: [0, 120, -120], out: 4.5 };
 const DUMMY_HITS = 2;
+// Vael and Jorvik, caged on the yard for the lesson (their ids), behind where the great dummy stands
+// (`z` from it: north of it, inside its sawdust ring, clear of the straw dummies); their way out of the
+// cage (isle.js, Cage: out of its door and down off its plinth onto the yard's floor), how long after
+// the great dummy breaks their cage opens, and where they come to wait: either side of thee, and in
+// front of its broken pieces (so that they're seen, not hidden behind them).
+const CAGED = { ids: ['bloodbender', 'runelord'], z: -6.6, way: [[1.15, 0, 0.3], [0.35, 0.8, 0.3], [0.35, 1.5, 0.3], [0.6, 2.3, 0]], open: 0.8, near: [2.1, 1.2] };
 // The island Maren sets out for (its project's name), and how much more than it the camera takes in.
 const ISLAND = { project: 'your-project', margin: 4 };
 // The ways to walk, each by its letter and its arrow.
@@ -126,9 +140,10 @@ export class Tutorial {
     return ALLOWS[this.step].includes(kind);
   }
 
-  // Whether `npc` may be clicked (inspected, its fan opened) and become: in the tutorial, its hero.
+  // Whether `npc` may be clicked (inspected, its fan opened) and become: in the tutorial, those freed
+  // from the cage on the yard (or its hero).
   pickable(npc) {
-    return !this.holding || (this.step === 'become' && npc === this.hero);
+    return !this.holding || (this.step === 'become' && (npc === this.hero || !!this.freed?.includes(npc)));
   }
 
   // Thou risest at grace (main.js): the first step, the yard emptied and out of sight.
@@ -150,6 +165,7 @@ export class Tutorial {
     world.hub.group.visible = place === 'hold';
     world.yard.group.visible = place === 'yard';
     world.yard.stair.visible = place !== 'yard';
+    this.cage?.show(place === 'yard');
     world.isle.hide(true);
     this.fence = place === 'yard' ? (x, z) => world.yard.inside(x, z) : (x, z) => world.hub.contains(x, z);
   }
@@ -250,6 +266,7 @@ export class Tutorial {
 
   update(dt, real = dt) {
     if (!this.holding || !this.step || this.ending) return;
+    this.cage?.update(dt); // (Vael and Jorvik in their cage on the yard, or walking out of it)
     if (this.busy) return;
     this.t += real;
     switch (this.step) {
@@ -297,11 +314,20 @@ export class Tutorial {
   }
 
   // dummies: in the black, the training yard set out: thou where the great dummy will stand (put
-  // away till thou comest back to it), three straw dummies round thee, broken ones staying in pieces.
+  // away till thou comest back to it), three straw dummies round thee, broken ones staying in pieces;
+  // and behind, Vael and Jorvik in their cage (nobody walks into it), to be freed as it breaks.
   setDummies() {
-    const { training } = this.ctx;
+    const { training, world } = this.ctx;
     const x0 = BOSS_DUMMY.x;
     const z0 = YARD.cz + BOSS_DUMMY.z;
+    const caged = CAGED.ids.map((id) => prisoner(this.ctx, id)).filter(Boolean);
+    if (caged.length && !this.cage) {
+      this.cage = new Cage(world, { parent: world.yard.group, x: BOSS_DUMMY.x, z: BOSS_DUMMY.z + CAGED.z, y: YARD.y, way: CAGED.way, onOut: (f) => this.freedOut(f) });
+      this.cage.fill(caged);
+      this.cageBlock = this.cage.rect();
+      world.yard.obstacles.push(this.cageBlock);
+      world.version += 1; // (the way round it: nav.js)
+    }
     this.show('yard');
     this.great = training.addDummy(x0, z0, { great: true });
     this.great.putAway(true);
@@ -349,13 +375,24 @@ export class Tutorial {
   }
 
   // The yard as it was (back at the Hold, or the tutorial over): its dummies taken away, its rune
-  // rocks at rest.
+  // rocks at rest, Vael and Jorvik's cage put away.
   leaveYard() {
-    const { training } = this.ctx;
+    const { training, world } = this.ctx;
     for (const d of [...(this.dummies || []), ...(this.great ? [this.great] : [])]) training.removeDummy(d);
     this.dummies = null;
     this.great = null;
     training.ring.reset();
+    this.putCageAway();
+  }
+
+  putCageAway() {
+    if (!this.cage) return;
+    const { world } = this.ctx;
+    this.cage.dispose();
+    this.cage = null;
+    world.yard.unblock(this.cageBlock);
+    this.cageBlock = null;
+    world.version += 1;
   }
 
   // rocks: over to their ring; in it, they take their turns, one after another (runerocks.js), thy
@@ -395,7 +432,8 @@ export class Tutorial {
   stepBoss() {
     const { training, pilot, ults, rig } = this.ctx;
     const g = this.great;
-    if (!g) { this.next('gesture', () => this.setHold()); return; }
+    // (no great dummy, its art missing: no freeing either; someone else to become)
+    if (!g) { this.putCageAway(); this.go('become'); return; }
     if (!this.phase) this.phase = 'walk';
     if (this.phase === 'walk') {
       const me = pilot.npc;
@@ -430,37 +468,102 @@ export class Tutorial {
         this.phase = full || ults.active ? 'ult' : 'ankle';
       }
     }
-    // the words for what's to do now (said again only when that changes)
-    if (this.phase !== this.said && this.phase !== 'broken') {
+    // the words for what's to do now (said again only when that changes), over them what breaking it
+    // does: frees Vael and Jorvik, caged behind it
+    if (this.phase !== this.said && ['ankle', 'ult'].includes(this.phase)) {
       this.said = this.phase;
       if (this.phase === 'ankle') {
-        this.say(['Strike its cracked ankle'], 'The great dummy');
+        this.say(['Strike its cracked ankle'], this.freeWords('The great dummy'));
         this.markAt = () => {
           const [ax, ay] = g.ankle();
           return [ax, g.y + ay + 0.35, g.pos.y + 0.3];
         };
       } else {
-        this.say(['Use your ultimate attack with', key('R')]);
+        this.say(['Use your ultimate attack with', key('R')], this.freeWords());
         this.markAt = null;
       }
     }
     this.el.hint.hidden = this.phase !== 'ankle' || !!training.focusUsed || !!ults.active;
-    if (this.phase === 'broken' && this.t - this.doneAt > 2.4) this.next('gesture', () => this.setHold());
+    // broken: a moment, then their cage opens and they walk out to thee (freeCaged, freedOut); once
+    // they're out, on to becoming one of them, there on the yard (no black)
+    if (this.phase === 'broken' && this.t - this.doneAt > CAGED.open) {
+      if (this.cage?.figures.length) this.freeCaged();
+      else this.go('become');
+    }
+    if (this.phase === 'freeing' && (this.freed.length >= this.freeCount || this.t - this.doneAt > 8)) this.go('become');
   }
 
-  // In the black, the yard as it was; back at the Hold, by its grace, as at first.
+  // Who's caged behind the great dummy ("Vael and Jorvik"), as the words and the banner say it.
+  cageNames() {
+    return (this.cage?.figures || []).map(nameOf).join(' and ');
+  }
+
+  // The line over what's to do at the great dummy: what breaking it does, or (no one caged behind it,
+  // their art missing) `plain`.
+  freeWords(plain = '') {
+    const names = this.cageNames();
+    return names ? `Break the great dummy to free ${names}` : plain;
+  }
+
+  // The great dummy broken: the cage behind it opens (isle.js, Cage.open), "Vael and Jorvik Freed",
+  // and a moment later they walk out of it, one after the other (freedOut).
+  freeCaged() {
+    const names = this.cageNames();
+    this.freed = [];
+    this.freeCount = this.cage.figures.length;
+    this.cage.open();
+    this.ctx.ui.banner(`${names} Freed`, 'The great dummy is broken', 'gold');
+    this.phase = 'freeing';
+    this.doneAt = this.t;
+  }
+
+  // One of them out of the cage: the hero itself now (director.js, start), walking up to wait beside
+  // thee (npc.js, 'stand'), to be become.
+  freedOut(f) {
+    const { director, pilot, nav } = this.ctx;
+    director.start((id) => id === f.id);
+    const n = director.heroes.get(f.id);
+    if (!n) return;
+    n.releaseSlot();
+    n.pos.set(f.x, f.z);
+    n.body.facing = f.facing;
+    n.setIntent({ kind: 'stand' });
+    const me = pilot.npc;
+    if (me) {
+      const side = this.freed.length ? 1 : -1;
+      const front = Math.max(me.pos.y, YARD.cz + BOSS_DUMMY.z) + CAGED.near[1];
+      const [x, z] = nav.clampToWalkable(me.pos.x + side * CAGED.near[0], front);
+      n.goTo(x, z, false);
+    }
+    this.freed.push(n);
+  }
+
+  // In the black, the yard as it was; back at the Hold, by its grace, as at first; and come up with
+  // thee, Maren (let go on the yard) to wait by the grace, and whichever of those freed thou didst not
+  // become to a seat at the Round Table.
   setHold() {
-    const { training } = this.ctx;
+    const { training, director, nav, world } = this.ctx;
     if (training.lesson) training.lesson.ult = false;
     this.el.hint.hidden = true;
     this.leaveYard();
     this.show('hold');
     const [x, z] = this.holdSpot();
     this.place(x, z);
+    const maren = director.maren;
+    if (maren && !maren.piloted && !maren.dead && !world.hub.contains(maren.pos.x, maren.pos.y)) {
+      const [gx, gz] = HUB_LAYOUT.grace;
+      const [mx, mz] = nav.clampToWalkable(gx - 2.4, gz + 2.2);
+      maren.releaseSlot();
+      maren.path = [];
+      maren.goal = null;
+      maren.pos.set(mx, mz);
+      maren.setIntent({ kind: 'stand' });
+    }
+    for (const n of this.freed || []) if (n !== this.hero && !n.piloted && !n.dead) n.setIntent({ kind: 'gather' });
   }
 
   // gesture: thy fan of gestures over thy head, opened with B (ui.js), and one of them made (a click
-  // on it, or its number); a moment to see it, and on to the hero rising (no black: the same place).
+  // on it, or its number); a moment to see it, and on to the island (no black: the same place).
   stepGesture() {
     const { pilot, ui } = this.ctx;
     const me = pilot.npc;
@@ -484,38 +587,46 @@ export class Tutorial {
     }
     if (this.phase === 'done' && this.t - this.doneAt > 1.6) {
       ui.closeFan();
-      this.go('become');
+      this.go('island');
     }
   }
 
-  // become: a hero rises from grace beside thee, and waits to be clicked, and become.
+  // become: there on the yard, those just freed from the cage wait beside thee (or, none freed, a hero
+  // rises from grace beside thee), to be clicked, and become; then through black to the Hold.
   stepBecome() {
     const { pilot, ui } = this.ctx;
     if (!this.phase) {
       if (this.t < 0.5) return;
-      this.hero = this.raiseHero();
-      if (!this.hero) { this.finish(); return; } // (no hero's art: nothing to become)
+      if (!this.freed?.length) {
+        const n = this.raiseHero();
+        this.freed = n ? [n] : [];
+      }
+      if (!this.freed.length) { this.finish(); return; } // (no hero's art: nothing to become)
       this.phase = 'rise';
     }
-    const n = this.hero;
-    if (pilot.npc === n) {
+    const me = pilot.npc;
+    if (this.freed.includes(me)) {
+      this.hero = me;
       this.markAt = null;
-      this.go('island');
+      this.next('gesture', () => this.setHold());
       return;
     }
-    if (this.phase === 'rise' && this.t > 2.4) this.phase = 'click';
+    if (this.phase === 'rise' && this.t > 1.2) this.phase = 'click';
     if (this.phase === 'click' || this.phase === 'fan') {
-      const phase = ui.fanOwner === n ? 'fan' : 'click';
-      if (phase !== this.said) {
-        this.said = phase;
-        const name = n.name.first;
-        this.say(phase === 'fan' ? [mouse('left'), `Now click “Become ${name}”`] : [mouse('left'), `Click on ${name} to become them`]);
-        this.markAt = phase === 'fan' ? null : () => {
-          const p = n.head();
+      const owner = this.freed.find((n) => ui.fanOwner === n);
+      const said = owner ? `fan:${owner.name.first}` : 'click';
+      if (said !== this.said) {
+        this.said = said;
+        const names = this.freed.map((n) => n.name.first).join(' or ');
+        this.say(owner ? [mouse('left'), `Now click “Become ${owner.name.first}”`] : [mouse('left'), `Click on ${names} to become them`]);
+        // (the mark over whichever of them stands nearer thee)
+        this.markAt = owner ? null : () => {
+          const near = pilot.npc && this.freed.reduce((a, b) => (Math.hypot(b.pos.x - pilot.npc.pos.x, b.pos.y - pilot.npc.pos.y) < Math.hypot(a.pos.x - pilot.npc.pos.x, a.pos.y - pilot.npc.pos.y) ? b : a));
+          const p = (near || this.freed[0]).head();
           return [p.x, p.y + 0.5, p.z];
         };
       }
-      this.phase = phase;
+      this.phase = owner ? 'fan' : 'click';
     }
   }
 
@@ -671,9 +782,10 @@ export class Tutorial {
     });
   }
 
-  // Everything of the tutorial's taken away: its dummies, the training yard as it was (its rune rocks
-  // open again: training.js, lessonEnd) and both places showing; the island gone again, Maren home at the Hold; its hero to the
-  // Round Table (or, held by thee, there once thou lettest go); and thou at the Hold.
+  // Everything of the tutorial's taken away: its dummies and Vael and Jorvik's cage, the training yard
+  // as it was (its rune rocks open again: training.js, lessonEnd) and both places showing; the island
+  // gone again, Maren home at the Hold; those it freed (and its hero) to the Round Table (or, held by
+  // thee, there once thou lettest go); and thou at the Hold.
   clear() {
     const { world, training, director, pilot, ults, ui, nav } = this.ctx;
     const safe = (fn) => {
@@ -690,10 +802,11 @@ export class Tutorial {
     this.fence = null;
     safe(() => this.clearIsland());
     safe(() => {
-      const n = this.hero;
-      if (!n || n.dead) return;
-      if (n.piloted) n.resume = { kind: 'gather' };
-      else n.setIntent({ kind: 'gather' });
+      for (const n of new Set([this.hero, ...(this.freed || [])])) {
+        if (!n || n.dead) continue;
+        if (n.piloted) n.resume = { kind: 'gather' };
+        else n.setIntent({ kind: 'gather' });
+      }
     });
     safe(() => {
       const me = pilot.npc;

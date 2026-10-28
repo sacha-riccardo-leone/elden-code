@@ -26,6 +26,7 @@ import { Flame } from './fire.js';
 import { SpriteBody } from './npc.js';
 import { carry, flash } from './lights.js';
 import { SHIFT } from './director.js';
+import { nameFor } from './lore.js';
 
 // Where it lies (its middle: as far north as the arena's middle, so that the islands' backs never
 // stand between it and the camera) and its shape: an oval `hw` either side of its middle east and
@@ -229,6 +230,209 @@ function underGlowCanvas() {
   return c;
 }
 
+// A caged hero's first name, as it goes by in the Lands Between: its drawing's own, else the one its
+// place at the Round Table gives it (npc.js, setHero; lore.js: Wynn, Ulric, Jorvik).
+export const nameOf = (f) => (f.body || f).sheet.rig?.firstName || nameFor(`hero:${f.id}`).first;
+
+// A hero as it stands in a cage (Cage.fill): its drawing (the Twofold's in its form for the hour, the
+// Witch's bare-faced), or null without its art.
+export function prisoner(ctx, id) {
+  const sheets = ctx.heroSheets || [];
+  const forms = id === 'twofold' || id === 'sorceress' ? Object.fromEntries(sheets.filter((s) => s.rig.pair === id).map((s) => [s.rig.form, s])) : null;
+  const form = id === 'twofold' ? ctx.director.formNow() : id === 'sorceress' ? 'bare' : null;
+  const sheet = forms ? forms[form] : sheets.find((s) => s.hero === id && !s.rig.pair);
+  return sheet ? { id, sheet, forms, form } : null;
+}
+
+// An iron cage of bars on a plinth of stone, in a group of its own set in `parent` at (x, z) on its
+// floor (`y` high there): the Isle of the Caged's three, and the one the tutorial sets on the training
+// yard for Vael and Jorvik (tutorial.js). Its door, in the middle of its front, swings in on its hinge
+// as it's opened (open; or stands open from the first, `open`). In it its two, drawn (fill), idle and
+// facing one another; as it's opened they walk out one after the other along `way` (OUT's kind), and
+// each, once out, is handed on (`onOut(f)`). One still held may change (`turn(f, dt, cage)`: the
+// Twofold, with the hour: Isle.turn). Nobody walks into it (rect: its owner keeps them out).
+export class Cage {
+  constructor(world, { parent, x, z, y = 0, open = false, way = OUT.way, onOut = null, turn = null }) {
+    this.world = world;
+    this.group = new THREE.Group();
+    this.group.position.set(x, y, z);
+    parent.add(this.group);
+    this.group.updateWorldMatrix(true, false);
+    const at = new THREE.Vector3().setFromMatrixPosition(this.group.matrixWorld);
+    this.at = [at.x, at.y, at.z]; // (where it stands in the world: its two are set there)
+    Object.assign(this, { way, onOut, turn, figures: [], hidden: false, opening: open ? CAGE.opening : -1 });
+    this.build(open);
+    Builder.prototype.mergeStatic.call({ group: this.group });
+  }
+
+  build(open) {
+    const { w, d, h, plinth, bar } = CAGE;
+    const { iron, bronze } = this.world.mat;
+    const g = this.group;
+    const top = plinth + h;
+    const half = CAGE.door / 2;
+    const box = (bw, bh, bd, mat, x, y, z, into = g) => {
+      const m = new THREE.Mesh(scaleBoxUV(new THREE.BoxGeometry(bw, bh, bd), bw, bh, bd, 1), mat);
+      m.position.set(x, y, z);
+      m.castShadow = true;
+      m.receiveShadow = true;
+      into.add(m);
+    };
+    const rod = (len) => new THREE.CylinderGeometry(0.035, 0.035, len, 5);
+    const upright = (px, pz, into = g) => {
+      const m = new THREE.Mesh(rod(h), iron);
+      m.position.set(px, plinth + h / 2, pz);
+      m.castShadow = true;
+      into.add(m);
+    };
+    box(w + 0.3, plinth, d + 0.3, this.world.matsFor('ashen').stone, 0, plinth / 2, 0);
+    // its corner posts, crowned with points, and rails along its foot, round it high up and at its top
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        box(0.16, h, 0.16, iron, (sx * w) / 2, plinth + h / 2, (sz * d) / 2);
+        const point = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.32, 4), iron);
+        point.position.set((sx * w) / 2, top + 0.16, (sz * d) / 2);
+        point.castShadow = true;
+        g.add(point);
+      }
+    }
+    for (const y of [plinth + 0.1, plinth + h * 0.62, top]) {
+      box(w, 0.1, 0.1, iron, 0, y, -d / 2);
+      for (const sx of [-1, 1]) {
+        box(0.1, 0.1, d, iron, (sx * w) / 2, y, 0);
+        box(w / 2 - half, 0.1, 0.1, iron, sx * (w / 4 + half / 2), y, d / 2);
+      }
+    }
+    // its bars: along its back and its sides, either side of its door, and across its top
+    for (let bx = -w / 2 + bar; bx < w / 2 - bar / 2; bx += bar) {
+      upright(bx, -d / 2);
+      if (Math.abs(bx) > half + 0.08) upright(bx, d / 2);
+      const across = new THREE.Mesh(rod(d), iron);
+      across.rotation.x = Math.PI / 2;
+      across.position.set(bx, top, 0);
+      g.add(across);
+    }
+    for (let bz = -d / 2 + bar; bz < d / 2 - bar / 2; bz += bar) for (const sx of [-1, 1]) upright((sx * w) / 2, bz);
+    // its door: a frame of its own with its bars, a lock on its free side; hinged at its west edge
+    const door = new THREE.Group();
+    door.position.set(-half, 0, d / 2);
+    box(0.1, h, 0.12, iron, 0.05, plinth + h / 2, 0, door);
+    box(0.1, h, 0.12, iron, CAGE.door - 0.05, plinth + h / 2, 0, door);
+    for (const y of [plinth + 0.1, plinth + h * 0.62, top - 0.08]) box(CAGE.door, 0.1, 0.12, iron, CAGE.door / 2, y, 0, door);
+    for (let bx = bar; bx < CAGE.door - bar / 2; bx += bar) upright(bx, 0, door);
+    box(0.24, 0.3, 0.16, bronze, CAGE.door - 0.16, plinth + 1.45, 0, door);
+    if (open) door.rotation.y = CAGE.swing;
+    g.add(door);
+    this.door = door;
+  }
+
+  // Its footprint in the world, `pad` round it, as an obstacle (build.js) for its owner to keep
+  // everyone out with.
+  rect(pad = 0.25) {
+    const [x, , z] = this.at;
+    return { type: 'rect', x0: x - CAGE.w / 2 - pad, z0: z - CAGE.d / 2 - pad, x1: x + CAGE.w / 2 + pad, z1: z + CAGE.d / 2 + pad };
+  }
+
+  // Its two (`list`: prisoner's, the first on its west side), standing idle and facing one another.
+  fill(list) {
+    const [x, y, z] = this.at;
+    this.figures = list.map((p, k) => {
+      const side = k === 0 ? -1 : 1;
+      const f = { ...p, x: x + side * CAGE.apart, y: y + CAGE.plinth, z, facing: -side, body: null, shift: null };
+      this.dress(f, p.sheet);
+      f.body.anim.t = Math.random() * 6; // (not both in step)
+      return f;
+    });
+  }
+
+  // One of them in a drawing (anew, as the Twofold changes).
+  dress(f, sheet) {
+    f.body?.dispose();
+    f.body = new SpriteBody(this.world.scene, sheet);
+    f.body.facing = f.facing;
+    f.body.play('idle', true);
+    f.body.mesh.visible = f.body.blob.visible = !this.hidden;
+  }
+
+  // Its two out of sight, or in sight again, as the place it stands in is (its bars go with it).
+  show(on) {
+    this.hidden = !on;
+    for (const f of this.figures) f.body.mesh.visible = f.body.blob.visible = on;
+  }
+
+  // Opened: its door swings in with a clank of iron, and a moment later its two walk out, one after
+  // the other, each along its way (`way`, its side's: toward the side it stood on).
+  open() {
+    this.opening = 0;
+    const [x, y, z] = this.at;
+    this.world.sound?.play('work-anvil', { at: [x, z], pitch: 0.6 });
+    this.figures.forEach((f, k) => {
+      const s = Math.sign(f.x - x) || 1;
+      f.out = { t: -(OUT.after + k * OUT.apart), d: 0, way: this.way.map(([wx, wz, wy]) => [x + s * wx, z + wz, y + wy]) };
+    });
+  }
+
+  // One walking out along its way, at its turn (open). Whether it's out.
+  walkOut(f, dt) {
+    const o = f.out;
+    o.t += dt;
+    if (o.t < 0) return false; // (waiting its turn)
+    f.body.play('walk');
+    o.d += OUT.speed * dt;
+    let d = o.d;
+    for (let k = 1; k < o.way.length; k++) {
+      const [ax, az, ay] = o.way[k - 1];
+      const [bx, bz, by] = o.way[k];
+      const len = Math.hypot(bx - ax, bz - az);
+      if (d <= len) {
+        const u = d / len;
+        f.x = ax + (bx - ax) * u;
+        f.z = az + (bz - az) * u;
+        f.y = ay + (by - ay) * u;
+        if (Math.abs(bx - ax) > 0.05) f.facing = f.body.facing = Math.sign(bx - ax);
+        return false;
+      }
+      d -= len;
+    }
+    return true;
+  }
+
+  // Its door swinging open; its two standing idle (or changing: turn), or walking out and, once out,
+  // handed on (onOut: their drawings gone, the heroes themselves taking their place).
+  update(dt) {
+    if (this.opening >= 0 && this.opening < CAGE.opening) {
+      this.opening = Math.min(CAGE.opening, this.opening + dt);
+      const k = this.opening / CAGE.opening;
+      this.door.rotation.y = CAGE.swing * (1 - (1 - k) ** 3);
+    }
+    for (const f of this.figures) {
+      if (f.out) {
+        if (this.walkOut(f, dt)) {
+          f.gone = true;
+          f.body.dispose();
+          f.body = null;
+          this.onOut?.(f);
+          continue;
+        }
+      } else this.turn?.(f, dt, this);
+      f.body.tick(dt);
+      f.body.place(f.x, f.y, f.z);
+    }
+    this.figures = this.figures.filter((f) => !f.gone);
+  }
+
+  // Taken away (the tutorial's, once its lesson is over).
+  dispose() {
+    for (const f of this.figures) {
+      f.shift?.light.end(0.1);
+      f.body?.dispose();
+    }
+    this.figures = [];
+    this.group.parent?.remove(this.group);
+    this.group.traverse((o) => o.geometry?.dispose());
+  }
+}
+
 export class Isle extends Builder {
   constructor(world) {
     super(world, ISLE.cx, ISLE.cz);
@@ -253,12 +457,7 @@ export class Isle extends Builder {
     this.group.visible = !on;
     this.bridge.visible = !on;
     this.risen = !on;
-    for (const c of this.cages) {
-      for (const f of c.figures) {
-        f.body.mesh.visible = !on;
-        f.body.blob.visible = !on;
-      }
-    }
+    for (const c of this.cages) c.show(!on);
   }
 
   // Whether a hero is still held in one of its cages (director.js keeps it out of the Lands Between).
@@ -316,74 +515,18 @@ export class Isle extends Builder {
     rock.position.y = -13;
     this.add(rock);
 
+    // its cages (nobody walks into them), each with its broken sign at its foot
     CAGES.forEach((c, i) => {
-      this.cages.push(this.cage(c.x, CAGE.z, this.freed.has(c.boss)));
+      const cage = new Cage(this.world, {
+        parent: this.group, x: c.x, z: CAGE.z, open: this.freed.has(c.boss),
+        onOut: (f) => this.handOver(f), turn: (f, dt, cg) => { if (f.id === 'twofold' && this.ctx) this.turn(f, dt, cg); },
+      });
+      this.cages.push(cage);
+      this.obstacles.push(cage.rect());
       this.signs.push(this.sign(i, c.x, SIGN.z));
     });
     for (const [x, z] of BRAZIERS) this.brazier(x, z);
     this.buildGrace();
-  }
-
-  // A cage of iron bars on a plinth of stone, its door (a group of its own, swinging on its hinge:
-  // update) shut, or (`open`) standing open; nobody walks into it.
-  cage(x, z, open) {
-    const { w, d, h, plinth, bar } = CAGE;
-    const iron = this.world.mat.iron;
-    const top = plinth + h;
-    const half = CAGE.door / 2;
-    this.box(w + 0.3, plinth, d + 0.3, this.mat.stone, x, plinth / 2, z, { tile: 1 });
-    const rod = (len) => new THREE.CylinderGeometry(0.035, 0.035, len, 5);
-    const upright = (px, pz, into = this.group) => {
-      const m = new THREE.Mesh(rod(h), iron);
-      m.position.set(px, plinth + h / 2, pz);
-      m.castShadow = true;
-      into.add(m);
-    };
-    // its corner posts, crowned with points, and rails along its foot, round it high up and at its top
-    for (const sx of [-1, 1]) {
-      for (const sz of [-1, 1]) {
-        this.box(0.16, h, 0.16, iron, x + (sx * w) / 2, plinth + h / 2, z + (sz * d) / 2, { tile: 1 });
-        const point = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.32, 4), iron);
-        point.position.set(x + (sx * w) / 2, top + 0.16, z + (sz * d) / 2);
-        point.castShadow = true;
-        this.add(point);
-      }
-    }
-    for (const y of [plinth + 0.1, plinth + h * 0.62, top]) {
-      this.box(w, 0.1, 0.1, iron, x, y, z - d / 2, { tile: 1 });
-      for (const sx of [-1, 1]) {
-        this.box(0.1, 0.1, d, iron, x + (sx * w) / 2, y, z, { tile: 1 });
-        this.box(w / 2 - half, 0.1, 0.1, iron, x + sx * (w / 4 + half / 2), y, z + d / 2, { tile: 1 });
-      }
-    }
-    // its bars: along its back and its sides, either side of its door, and across its top
-    for (let bx = -w / 2 + bar; bx < w / 2 - bar / 2; bx += bar) {
-      upright(x + bx, z - d / 2);
-      if (Math.abs(bx) > half + 0.08) upright(x + bx, z + d / 2);
-      const across = new THREE.Mesh(rod(d), iron);
-      across.rotation.x = Math.PI / 2;
-      across.position.set(x + bx, top, z);
-      this.add(across);
-    }
-    for (let bz = -d / 2 + bar; bz < d / 2 - bar / 2; bz += bar) for (const sx of [-1, 1]) upright(x + (sx * w) / 2, z + bz);
-    // its door: a frame of its own with its bars, a lock on its free side; hinged at its west edge
-    const door = new THREE.Group();
-    door.position.set(x - half, 0, z + d / 2);
-    const piece = (pw, ph, pd, mat, px, py) => {
-      const m = new THREE.Mesh(scaleBoxUV(new THREE.BoxGeometry(pw, ph, pd), pw, ph, pd, 1), mat);
-      m.position.set(px, py, 0);
-      m.castShadow = true;
-      door.add(m);
-    };
-    piece(0.1, h, 0.12, iron, 0.05, plinth + h / 2);
-    piece(0.1, h, 0.12, iron, CAGE.door - 0.05, plinth + h / 2);
-    for (const y of [plinth + 0.1, plinth + h * 0.62, top - 0.08]) piece(CAGE.door, 0.1, 0.12, iron, CAGE.door / 2, y);
-    for (let bx = bar; bx < CAGE.door - bar / 2; bx += bar) upright(bx, 0, door);
-    piece(0.24, 0.3, 0.16, this.world.mat.bronze, CAGE.door - 0.16, plinth + 1.45);
-    if (open) door.rotation.y = CAGE.swing;
-    this.add(door);
-    this.block(x - w / 2 - 0.25, z - d / 2 - 0.25, x + w / 2 + 0.25, z + d / 2 + 0.25);
-    return { x, z, door, figures: [], opening: open ? CAGE.opening : -1 };
   }
 
   // A broken sign before its cage: the slab's pieces, small stones of the isle's own grey, lying where
@@ -641,41 +784,18 @@ export class Isle extends Builder {
   // (the Twofold in its form for the hour, the Witch bare-faced), standing idle and facing one another.
   fill(ctx) {
     this.ctx = ctx;
-    const sheets = ctx.heroSheets || [];
-    const formsOf = (pair) => Object.fromEntries(sheets.filter((s) => s.rig.pair === pair).map((s) => [s.rig.form, s]));
     CAGES.forEach((c, i) => {
-      if (this.freed.has(c.boss)) return;
-      const cage = this.cages[i];
-      cage.figures = c.heroes.map((id, k) => {
-        const forms = id === 'twofold' || id === 'sorceress' ? formsOf(id) : null;
-        const form = id === 'twofold' ? ctx.director.formNow() : id === 'sorceress' ? 'bare' : null;
-        const sheet = forms ? forms[form] : sheets.find((s) => s.hero === id && !s.rig.pair);
-        if (!sheet) return null;
-        const side = k === 0 ? -1 : 1;
-        const f = { id, forms, form, x: this.wx(c.x + side * CAGE.apart), z: this.wz(CAGE.z), facing: -side, body: null, shift: null };
-        this.dress(f, sheet);
-        f.body.anim.t = Math.random() * 6; // (not both in step)
-        return f;
-      }).filter(Boolean);
+      if (!this.freed.has(c.boss)) this.cages[i].fill(c.heroes.map((id) => prisoner(ctx, id)).filter(Boolean));
     });
-  }
-
-  // A prisoner in a drawing (anew, as the Twofold changes).
-  dress(f, sheet) {
-    f.body?.dispose();
-    f.body = new SpriteBody(this.world.scene, sheet);
-    f.body.facing = f.facing;
-    f.body.play('idle', true);
-    f.body.mesh.visible = f.body.blob.visible = !this.hidden;
   }
 
   // The Twofold, held, still changes with the hour, as abroad (director.js, SHIFT): golden light
   // gathers round it, the drawing of the change holds a moment, and its other form bursts out.
-  turn(f, dt) {
+  turn(f, dt, cage) {
     if (!f.shift) {
       const want = this.ctx.director.formNow();
       if (want === f.form) return;
-      f.shift = { to: want, t: 0, stage: 0, glow: 0, light: carry(null, [f.x, 1.3 + CAGE.plinth, f.z + 0.5], { color: '#ffc860', power: 16, reach: 8, level: 0 }) };
+      f.shift = { to: want, t: 0, stage: 0, glow: 0, light: carry(null, [f.x, f.y + 1.3, f.z + 0.5], { color: '#ffc860', power: 16, reach: 8, level: 0 }) };
     }
     const s = f.shift;
     s.t += dt;
@@ -684,14 +804,14 @@ export class Isle extends Builder {
     if (s.glow <= 0 && s.stage < 2) {
       s.glow = 0.12;
       this.world.particles.emit({
-        pos: [f.x, CAGE.plinth + 1.3, f.z], spread: [0.5, 1.1, 0.3], vel: [0, 1.1, 0], velSpread: [0.3, 0.4, 0.3],
+        pos: [f.x, f.y + 1.3, f.z], spread: [0.5, 1.1, 0.3], vel: [0, 1.1, 0], velSpread: [0.3, 0.4, 0.3],
         color: ['#ffd75a', '#fff1c0', '#f0a020'], size: 0.07, life: 1.3, count: 6, drag: 0.6, intensity: 2.2,
       });
     }
     if (s.stage === 0 && s.t >= SHIFT.change) {
       s.stage = 1;
       const via = f.forms[f.forms[s.to]?.rig.via];
-      if (via) this.dress(f, via);
+      if (via) cage.dress(f, via);
     }
     if (!s.heard && s.t >= SHIFT.reveal - SHIFT.lead) {
       s.heard = true;
@@ -699,7 +819,7 @@ export class Isle extends Builder {
     }
     if (s.stage === 1 && s.t >= SHIFT.reveal) {
       s.stage = 2;
-      this.dress(f, f.forms[s.to]);
+      cage.dress(f, f.forms[s.to]);
       f.form = s.to;
     }
     if (s.t >= SHIFT.end) {
@@ -708,63 +828,33 @@ export class Isle extends Builder {
     }
   }
 
-  // A great enemy beaten from a sign (fight.js, win): his cage's door swings open (update) with a clank
-  // of iron, and its two walk out of it, one after the other, over its sign's stones and away on foot
-  // across the isle and its bridge to the Round Table (walkOut, handOver); it's remembered, its sign
-  // is spent, and the next wakes.
+  // A great enemy beaten from a sign (fight.js, win): his cage opens (Cage.open: its door swings in
+  // with a clank of iron), and its two walk out of it, one after the other, over its sign's stones
+  // and away on foot across the isle and its bridge to the Round Table (handOver); it's remembered,
+  // its sign is spent, and the next wakes.
   free(boss) {
     const i = CAGES.findIndex((c) => c.boss === boss);
     if (i < 0 || this.freed.has(boss)) return;
     this.freed.add(boss);
     try { localStorage.setItem(FREED, JSON.stringify([...this.freed])); } catch {}
     const cage = this.cages[i];
-    cage.opening = 0;
-    this.world.sound?.play('work-anvil', { at: [this.wx(cage.x), this.wz(cage.z)], pitch: 0.6 });
-    cage.figures.forEach((f, k) => {
-      // (the Twofold in its form for the hour, should it have been changing just then)
-      if (f.shift) {
-        f.shift.light.end(0.2);
-        f.shift = null;
-        f.form = this.ctx.director.formNow();
-        this.dress(f, f.forms[f.form]);
-      }
-      const s = Math.sign(f.x - this.wx(cage.x)) || 1;
-      f.out = { t: -(OUT.after + k * OUT.apart), d: 0, way: OUT.way.map(([x, z, y]) => [this.wx(cage.x + s * x), this.wz(cage.z + z), y]) };
-    });
+    // (the Twofold in its form for the hour, should it have been changing just then)
+    for (const f of cage.figures) {
+      if (!f.shift) continue;
+      f.shift.light.end(0.2);
+      f.shift = null;
+      f.form = this.ctx.director.formNow();
+      cage.dress(f, f.forms[f.form]);
+    }
+    cage.open();
     // (one not drawn in it, its art missing: on foot to the table from before the cage all the same)
     for (const id of CAGES[i].heroes) {
-      if (!cage.figures.some((f) => f.id === id)) this.handOver({ id, x: this.wx(cage.x), z: this.wz(cage.z + OUT.way[OUT.way.length - 1][1]), facing: 1 });
+      if (!cage.figures.some((f) => f.id === id)) this.handOver({ id, x: cage.at[0], z: cage.at[2] + OUT.way[OUT.way.length - 1][1], facing: 1 });
     }
-    const names = cage.figures.map((f) => f.body.sheet.rig?.firstName).filter(Boolean).join(' and ');
+    const names = cage.figures.map(nameOf).join(' and ');
     if (!names) return;
     this.ctx.ui.log(`${names}, freed from ${NAMES[boss]}'s cage, walk to Roundtable Hold`, 'gold', { region: this });
     this.ctx.ui.banner('Prisoners Freed', `${names} walk to Roundtable Hold`, 'gold');
-  }
-
-  // One freed walking out of its cage along its way (free), at its turn: to the door, through it, down
-  // off the plinth and over its sign's stones, onto clear floor. Whether it's out.
-  walkOut(f, dt) {
-    const o = f.out;
-    o.t += dt;
-    if (o.t < 0) return false; // (waiting its turn)
-    f.body.play('walk');
-    o.d += OUT.speed * dt;
-    let d = o.d;
-    for (let k = 1; k < o.way.length; k++) {
-      const [ax, az, ay] = o.way[k - 1];
-      const [bx, bz, by] = o.way[k];
-      const len = Math.hypot(bx - ax, bz - az);
-      if (d <= len) {
-        const u = d / len;
-        f.x = ax + (bx - ax) * u;
-        f.z = az + (bz - az) * u;
-        f.y = ay + (by - ay) * u;
-        if (Math.abs(bx - ax) > 0.05) f.facing = f.body.facing = Math.sign(bx - ax);
-        return false;
-      }
-      d -= len;
-    }
-    return true;
   }
 
   // Out of its cage: the drawing gives way to the hero itself (director.js, start), there, walking on
@@ -826,23 +916,9 @@ export class Isle extends Builder {
       s.core.material.opacity = 0.95 * Math.min(1.6, k);
       s.light.intensity = SIGN.light[0] * k;
     }
-    // a cage's door swinging open, and the prisoners standing idle (the Twofold changing with the
-    // hour), or, freed, walking out of it and away, Tarnished again
-    for (const c of this.cages) {
-      if (c.opening >= 0 && c.opening < CAGE.opening) {
-        c.opening = Math.min(CAGE.opening, c.opening + dt);
-        const k = c.opening / CAGE.opening;
-        c.door.rotation.y = CAGE.swing * (1 - (1 - k) ** 3);
-      }
-      for (const f of c.figures) {
-        if (f.out) {
-          if (this.walkOut(f, dt)) { this.handOver(f); f.gone = true; continue; }
-        } else if (f.id === 'twofold' && this.ctx) this.turn(f, dt);
-        f.body.tick(dt);
-        f.body.place(f.x, f.y ?? CAGE.plinth, f.z);
-      }
-      c.figures = c.figures.filter((f) => !f.gone);
-    }
+    // its cages: a door swinging open, the prisoners standing idle (the Twofold changing with the
+    // hour), or, freed, walking out and away, Tarnished again (Cage.update, handOver)
+    for (const c of this.cages) c.update(dt);
     // the freed on their way to the Round Table: free of it all once there (npc.js, journeyDone: a seat
     // at the table), or once anything else takes them (thou, becoming one)
     this.walkers = this.walkers.filter((n) => {
