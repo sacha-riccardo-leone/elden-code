@@ -226,7 +226,7 @@ export class Tutorial {
     n.body.facing = facing;
     const here = world.areaAt(x, z);
     if (n.isMaren && here?.walkRect) n.region = here;
-    rig.target.set(x, groundAt(x, z) + 0.8, z - 0.6);
+    rig.follow(x, groundAt(x, z), z);
     rig.snap();
   }
 

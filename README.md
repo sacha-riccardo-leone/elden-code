@@ -281,7 +281,10 @@ can **become any character** (but those still caged on the Isle of the Caged): c
 
 - **Controls** (whoever you are):
   - **W A S D** or the arrow keys to walk, **Shift** to run; cross the bridges to other islands.
-    The camera stays on you.
+    The camera stays on you, looking a little above you so that you stand in the lower middle of
+    the view with the world ahead above you, as Sacha wants: zoomed all the way in, your feet about
+    four fifths of the way down the screen; at the usual distance, two thirds (`FOLLOW`,
+    `client/js/camera.js`).
   - **Left click** strikes with the character's own attack (a Tarnished in its way staggers;
     it's all for show); a mage casts a spell instead (Vael always his lash of blood). **Right
     click** casts as Fortuna or a mage (Vael his gout of blood or his spikes), throws a spear as

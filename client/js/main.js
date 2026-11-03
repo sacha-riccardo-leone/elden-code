@@ -9,7 +9,7 @@ import { UI } from './ui.js';
 import { Input } from './input.js';
 import { Post } from './post.js';
 import { Perf } from './perf.js';
-import { CameraRig } from './camera.js';
+import { CameraRig, FOLLOW } from './camera.js';
 import { SPRING } from './npc.js';
 import { connect } from './net.js';
 import { Demo } from './demo.js';
@@ -115,7 +115,7 @@ function spawnPlayer() {
   maren.spawn(true);
   pilot.take(maren);
   rig.flyTo(x, z, FOLLOW_DIST);
-  rig.target.set(x, 0.8, z - 0.6);
+  rig.follow(x, groundAt(x, z), z);
   rig.snap();
 }
 
@@ -433,7 +433,7 @@ function step(dt) {
   const me = pilot.npc; // moved by the director with everyone else (its update asks the pilot)
   const shot = ults.shot();
   if (shot) {
-    rig.target.set(shot.at[0], shot.at[1], shot.at[2] - 0.6);
+    rig.target.set(shot.at[0], shot.at[1], shot.at[2] - FOLLOW.back);
   } else if (me) {
     if (overview && pilot.moving) endOverview();
     if (!overview) {
@@ -452,8 +452,8 @@ function step(dt) {
       }
       // (close up, nearer than thou wast, and moving as it goes: a great enemy changing, morvane.js)
       if (aim?.close) rig.distGoal = Math.max(rig.min, aim.dist);
-      const [x, y, z] = aim?.at || [me.pos.x, groundAt(me.pos.x, me.pos.y) + 0.8, me.pos.y];
-      rig.target.set(x, y, z - 0.6);
+      if (aim?.at) rig.target.set(aim.at[0], aim.at[1], aim.at[2] - FOLLOW.back);
+      else rig.follow(me.pos.x, groundAt(me.pos.x, me.pos.y), me.pos.y); // (thee in the lower middle of the view: camera.js)
     }
   }
   rig.update(dt);
@@ -559,7 +559,7 @@ try {
   nav.sync();
   const [gx, gz] = nav.clampToWalkable(HUB_LAYOUT.grace[0] + 1.6, HUB_LAYOUT.grace[1] + 1.8);
   rig.flyTo(gx, gz, FOLLOW_DIST);
-  rig.target.set(gx, 0.8, gz - 0.6);
+  rig.follow(gx, groundAt(gx, gz), gz);
   rig.snap();
   step(0);
   if (window.innerWidth && window.innerHeight) { // (a page out of sight has nothing to draw into)

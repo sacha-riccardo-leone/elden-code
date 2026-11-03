@@ -5,6 +5,12 @@ import * as THREE from 'three';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
+// Where it looks, following someone (follow): `up` over the ground under them and `back` behind
+// them (north), so that they stand in the lower middle of the view with the world before them above
+// it, as Sacha wants (closest in, their feet about four fifths of the way down; at the usual
+// distance, two thirds; farther out, nearer the middle).
+export const FOLLOW = { up: 1.8, back: 0.6 };
+
 export class CameraRig {
   constructor(camera) {
     this.camera = camera;
@@ -50,6 +56,11 @@ export class CameraRig {
     this.target.z = z;
     if (dist) this.distGoal = clamp(dist, this.min, this.overviewMax);
     this.clamp();
+  }
+
+  // Following someone standing at (x, z), on ground `y` high (FOLLOW).
+  follow(x, y, z) {
+    this.target.set(x, y + FOLLOW.up, z - FOLLOW.back);
   }
 
   // A jolt (a great enemy's blow landing), dying away.
